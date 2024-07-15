@@ -1,0 +1,10 @@
+version = 0.1
+[dev.deploy.parameters]
+stack_name = "reservations"
+resolve_s3 = true
+s3_prefix = "reservations"
+region = "ca-central-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "TableName=\"main\" Stage=\"api\""
+image_repositories = []
