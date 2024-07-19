@@ -16,16 +16,43 @@ Globals:
 Parameters:
   TableName:
     Type: String
-    Default: 'main'
+    Default: 'reserve-rec'
+  TableNameAudit:
+    Type: String
+    Default: 'Audit'
   Stage:
     Type: String
     Default: api
+  AccountId:
+    Type: String
+    Default: '637423314715'
+  DomainName:
+    Description: User-defined OpenSearch domain name
+    Type: String
+    Default: 'reserve-rec'
+  KMSKeyId:
+    Type: String
+    Default: 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es'
+  InstanceCount:
+    Type: Number
+    Default: 1
+  InstanceType:
+    Type: String
+    Default: 't3.small.search'
+  OpenSearchMainIndex:
+    Type: String
+    Default: 'main-index'
+  EBSIops:
+    Type: String
+    Default: 3000
 
 Resources:
   DynamoDBTable: 
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Ref TableName
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -37,7 +64,116 @@ Resources:
           KeyType: HASH
         - AttributeName: sk
           KeyType: RANGE
+  Audit:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      TableName: !Ref TableNameAudit
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DependsOn: DynamoDBTable
 
+  ## Roles
+  StreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      Policies:
+        - PolicyName: 'ProcessDynamoDBStreamRolePolicyOne'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              -
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:ConditionCheckItem
+                Resource: !Sub
+                  - 'arn:aws:dynamodb:ca-central-1:${AccountId}:table/Audit'
+                  - AccountId: !Ref AccountId
+                Effect: Allow
+        - PolicyName: 'ProcessDynamoDBStreamRolePolicyTwo'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              -
+                Action:
+                  - es:ESHttpPost
+                  - es:ESHttpPut
+                Resource: !Sub
+                  - 'arn:aws:es:ca-central-1:${AccountId}:domain/reserve-rec/*'
+                  - AccountId: !Ref AccountId
+                Effect: Allow
+
+  ## Opensearch
+  OpenSearch:
+    Type: AWS::OpenSearchService::Domain
+    DependsOn: StreamRole
+    Properties:
+      DomainName: !Ref DomainName
+      ClusterConfig:
+        DedicatedMasterEnabled: false
+        InstanceCount: !Ref InstanceCount
+        InstanceType: !Ref InstanceType
+        MultiAZWithStandbyEnabled: false
+        WarmEnabled: false
+        ZoneAwarenessEnabled: false
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      EncryptionAtRestOptions:
+        Enabled: true
+        KmsKeyId: !Ref KMSKeyId
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+      AdvancedSecurityOptions:
+        Enabled: true
+        InternalUserDatabaseEnabled: false
+        MasterUserOptions:
+          MasterUserARN: !GetAtt StreamRole.Arn
+      EBSOptions:
+        EBSEnabled: true
+        Iops: !Ref EBSIops
+        VolumeSize: '10'
+        Throughput: '125'
+        VolumeType: 'gp3'
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              AWS: '*'
+            Action: 'es:*'
+            Resource: !GetAtt StreamRole.Arn
 Outputs:
   DynamoDBTable:
     Description: The DynamoDB table for Reservations
