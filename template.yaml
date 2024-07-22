@@ -134,6 +134,106 @@ Resources:
                   - AccountId: !Ref AccountId
                 Effect: Allow
 
+  ### API ###
+  ApiDeployment:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'POST,GET,OPTIONS,PUT,DELETE'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+
+  ### LAMBDA LAYERS ###
+  BaseLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: base
+      Description: Common Base Tooling Layer
+      ContentUri: layers/base/
+      CompatibleRuntimes:
+        - nodejs18.x
+      LicenseInfo: 'Apache-2.0'
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: makefile
+
+  AWSUtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: awsUtils
+      Description: Common AWS Tooling Layer
+      ContentUri: layers/awsUtils/
+      CompatibleRuntimes:
+        - nodejs18.x
+      LicenseInfo: 'Apache-2.0'
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: makefile
+
+
+  # CloudFrontAPICachePolicy:
+  # Type: AWS::CloudFront::CachePolicy
+  # Properties:
+  #   CachePolicyConfig:
+  #     Comment: "Custom CloudFront Caching Policy to allow the Authorization header through to the Origins."
+  #     DefaultTTL: 1
+  #     MaxTTL: 1
+  #     MinTTL: 1
+  #     Name: "ApiGatewayId-CFCachePolicy"
+  #     ParametersInCacheKeyAndForwardedToOrigin:
+  #       CookiesConfig:
+  #         CookieBehavior: none
+  #       EnableAcceptEncodingBrotli: false
+  #       EnableAcceptEncodingGzip: false
+  #       HeadersConfig:
+  #         HeaderBehavior: whitelist
+  #         Headers:
+  #           - Authorization
+  #       QueryStringsConfig:
+  #         QueryStringBehavior: all
+
+  SearchFunction:
+    FunctionName: SearchFunction
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/search
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 7
+      Description: Search Handler
+      Policies:
+        - ElasticsearchHttpPostPolicy:
+            DomainName: !Ref DomainName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          OPENSEARCH_MAIN_INDEX: !Ref OpenSearchMainIndex
+          OPENSEARCH_DOMAIN_ENDPOINT: !Sub
+            - 'https://${Domain}/'
+            - Domain: !GetAtt OpenSearch.DomainEndpoint
+      Events:
+        SearchGet:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        SearchOptions:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+
   ## Opensearch
   OpenSearch:
     Type: AWS::OpenSearchService::Domain
