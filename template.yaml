@@ -53,6 +53,8 @@ Resources:
       TableName: !Ref TableName
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -274,6 +276,41 @@ Resources:
               AWS: '*'
             Action: 'es:*'
             Resource: !GetAtt StreamRole.Arn
+
+  ### DYNAMODB TABLES ###
+  ProcessDynamoDBStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/dynamoStream/
+      Handler: index.handler
+      Role: !GetAtt StreamRole.Arn
+      MemorySize: 512
+      Timeout: 60
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+      Runtime: nodejs18.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+            TableName: !Ref TableNameAudit
+        - ElasticsearchHttpPostPolicy:
+            DomainName: !Ref DomainName
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDBTable.StreamArn
+            BatchSize: 10
+            StartingPosition: TRIM_HORIZON
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          OPENSEARCH_MAIN_INDEX: !Ref OpenSearchMainIndex
+          OPENSEARCH_DOMAIN_ENDPOINT: !Sub
+            - 'https://${Domain}/'
+            - Domain: !GetAtt OpenSearch.DomainEndpoint
+
 Outputs:
   DynamoDBTable:
     Description: The DynamoDB table for Reservations

@@ -19,9 +19,6 @@ exports.handler = async function (event, context) {
       return sendResponse(400, {}, 'Bad Request', 'Invalid Params', context);
     }
 
-    // Check if the user is an admin
-    const isAdmin = event?.requestContext?.authorizer?.isAdmin || false;
-
     // Construct the search query
     let query = new OSQuery(OPENSEARCH_MAIN_INDEX, queryParams?.limit, queryParams?.startFrom);
     // Text search
@@ -34,22 +31,11 @@ exports.handler = async function (event, context) {
       }
     }
     query.addMustMatchTermsRule(termQuery, true);
-    // Admin permissions
-    if (!isAdmin) {
-      query.addMustNotMatchTermsRule({ status: 'pending' })
-    }
 
     // Send the query to the OpenSearch cluster
     let response = await query.search();
     logger.debug('Request:', JSON.stringify(query.request)); // Log the request (available after sending)
     logger.debug('Response:', JSON.stringify(response)); // Log the response
-
-    // Redact the "notes" field if the user is not an admin
-    if (!isAdmin) {
-      for (let i = 0; i < response.body.hits.total.value; i++) {
-        delete response.body.hits.hits[i]?._source?.notes;
-      }
-    }
 
     // Send a success response
     return sendResponse(200, response.body.hits, 'Success', null, context);
