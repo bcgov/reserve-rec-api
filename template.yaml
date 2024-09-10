@@ -364,6 +364,71 @@ Resources:
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
 
+  ProtectedAreasPut:
+    FunctionName: ProtectedAreasPut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/protectedAreas/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Put bulk Protected Areas lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        ProtectedAreaPut:
+          Type: Api
+          Properties:
+            Path: /protected-areas
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+
+  ProtectedAreaPut:
+    FunctionName: ProtectedAreaPut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/protectedAreas/_orcs/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Put single Protected Area lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        ProtectedAreaPut:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+
+
   ## Opensearch
   OpenSearch:
     Type: AWS::OpenSearchService::Domain

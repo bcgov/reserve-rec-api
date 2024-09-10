@@ -27,6 +27,31 @@ const OPTIONAL_PUT_FIELDS = [
     'searchTerms'
 ];
 
+// see README.md for more information on api update configurations.
+const DEFAULT_API_UPDATE_CONFIG = {
+    blacklistFields: [
+        'pk',
+        'sk',
+    ],
+    failOnError: true,
+    autoTimestamp: false,
+    autoVersion: false,
+}
+
+const PROTECTED_AREA_API_UPDATE_CONFIG = {
+    blacklistFields: [
+        'pk',
+        'sk',
+        'orcs',
+        'creationDate',
+        'legalName',
+        'displayName',
+    ],
+    failOnError: true,
+    autoTimestamp: true,
+    autoVersion: true
+}
+
 module.exports = {
     ESTABLISHED_STATE,
     HISTORICAL_STATE,
@@ -37,5 +62,7 @@ module.exports = {
     REPEAL_UPDATE_TYPE,
     REPEALED_STATE,
     SITE_MAIN_SK,
-    UPDATE_TYPES
+    UPDATE_TYPES,
+    DEFAULT_API_UPDATE_CONFIG,
+    PROTECTED_AREA_API_UPDATE_CONFIG
 };

@@ -17,6 +17,6 @@ exports.handler = async (event, context) => {
     const res = await getProtectedAreas(event?.queryStringParameters || null);
     return sendResponse(200, res, 'Success', null, context);
   } catch (error) {
-    return sendResponse(Number(error?.code) || 400, error?.data || null, error?.msg || 'Error', error?.error || null, context);
+    return sendResponse(Number(error?.code) || 400, error?.data || null, error?.message || 'Error', error?.error || null, context);
   }
 };
