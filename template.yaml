@@ -51,6 +51,12 @@ Parameters:
   DataRegisterApiKey:
     Type: String
     Default: 'dev-api'
+  CognitoUserPoolName:
+    Type: String
+    Default: 'public'
+  CognitoUserPoolClientName:
+    Type: String
+    Default: 'public-web-app'
 
 Resources:
   DynamoDBTable:
@@ -483,6 +489,27 @@ Resources:
             #   ApiKeyRequired: false
             #   Authorizer: NONE
             #   OverrideApiAuth: true
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref CognitoUserPoolName
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+  
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Ref CognitoUserPoolClientName
+      GenerateSecret: false
 
 Outputs:
   DynamoDBTable:
