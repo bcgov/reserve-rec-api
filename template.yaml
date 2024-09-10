@@ -57,6 +57,13 @@ Parameters:
   CognitoUserPoolClientName:
     Type: String
     Default: 'public-web-app'
+  UserPoolDomain:
+    Type: String
+    Default: 'reserve-rec'
+  GoogleAppId:
+    Type: String
+  GoogleAppSecret:
+    Type: String
 
 Resources:
   DynamoDBTable:
@@ -490,6 +497,7 @@ Resources:
             #   Authorizer: NONE
             #   OverrideApiAuth: true
 
+  # Cognito
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -510,6 +518,25 @@ Resources:
       UserPoolId: !Ref CognitoUserPool
       ClientName: !Ref CognitoUserPoolClientName
       GenerateSecret: false
+      
+  UserPoolDomain: 
+    Type: AWS::Cognito::UserPoolDomain 
+    Properties:
+      UserPoolId: !Ref CognitoUserPool 
+      Domain: !Ref UserPoolDomain
+    
+  GoogleUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ProviderName: "Google"
+      ProviderDetails:
+        client_id: !Ref GoogleAppId
+        client_secret: !Ref GoogleAppSecret
+        authorize_scopes: "profile email openid"
+      ProviderType: "Google"
+      AttributeMapping:
+        email: "email"
 
 Outputs:
   DynamoDBTable:

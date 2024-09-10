@@ -73,8 +73,10 @@ jobs:
           EBS_IOPS: ${{ vars.EBS_IOPS }}
           DATA_REGISTER_ENDPOINT: ${{ vars.DATA_REGISTER_ENDPOINT }}
           DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
+          GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+          GOOGLE_APP_SECRET: ${{ secrets.GOOGLE_APP_SECRET }}
         run: |
-          sam deploy --stack-name $STACK_NAME --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides "TableName=$TABLE_NAME" "TableNameAudit=$TABLE_NAME_AUDIT" "Stage=$STAGE" "AccountId=$ACCOUNT_ID" "DomainName=$DOMAIN_NAME" "KMSKeyId=$KMS_KEY_ID" "InstanceCount=$INSTANCE_COUNT" "InstanceType=$INSTANCE_TYPE" "OpenSearchMainIndex=$OPEN_SEARCH_MAIN_INDEX" "EBSIops=$EBS_IOPS" "DataRegisterEndpoint=$DATA_REGISTER_ENDPOINT" "DataRegisterApiKey=$DATA_REGISTER_API_KEY"
+          sam deploy --stack-name $STACK_NAME --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides "TableName=$TABLE_NAME" "TableNameAudit=$TABLE_NAME_AUDIT" "Stage=$STAGE" "AccountId=$ACCOUNT_ID" "DomainName=$DOMAIN_NAME" "KMSKeyId=$KMS_KEY_ID" "InstanceCount=$INSTANCE_COUNT" "InstanceType=$INSTANCE_TYPE" "OpenSearchMainIndex=$OPEN_SEARCH_MAIN_INDEX" "EBSIops=$EBS_IOPS" "DataRegisterEndpoint=$DATA_REGISTER_ENDPOINT" "DataRegisterApiKey=$DATA_REGISTER_API_KEY" "GoogleAppId=GOOGLE_APP_ID" "GoogleAppSecret=GOOGLE_APP_SECRET"
 
       # - shell: bash
       #   env:
