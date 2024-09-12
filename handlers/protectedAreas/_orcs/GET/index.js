@@ -7,7 +7,7 @@ const { getProtectedAreaByOrcs } = require('/opt/protectedAreas')
 const { logger, sendResponse } = require('/opt/base');
 
 exports.handler = async (event, context) => {
-  logger.info('Get Protected Areas', event);
+  logger.info('Get single Protected Area', event);
 
   if (event?.httpMethod === 'OPTIONS') {
     return sendResponse(200, null, 'Success', null, context);
@@ -23,6 +23,6 @@ exports.handler = async (event, context) => {
     const res = await getProtectedAreaByOrcs(orcs);
     return sendResponse(200, res, 'Success', null, context);
   } catch (error) {
-    return sendResponse(Number(error?.code) || 400, error?.data || null, error?.msg || 'Error', error?.error || null, context);
+    return sendResponse(Number(error?.code) || 400, error?.data || null, error?.message || 'Error', error?.error || error, context);
   }
 };

@@ -5,18 +5,19 @@
   "dependencies": {
     "@aws-sdk/util-dynamodb": "^3.540.0",
     "@opensearch-project/opensearch": "^2.11.0",
+    "axios": "^1.7.7",
     "jsonwebtoken": "^9.0.2",
     "winston": "^3.13.1"
   },
   "devDependencies": {
-    "luxon": "^3.4.4",
+    "@aws-sdk/client-dynamodb": "^3.649.0",
     "jest": "^29.7.0",
-    "@aws-sdk/client-dynamodb": "^3.616.0"
+    "luxon": "^3.4.4"
   },
   "scripts": {
-    "start": "sam local start-api --env-vars env.json --skip-pull-image 2>&1 | tr '\r' '\n'",
-    "start-full": "yarn build && yarn start",
+    "start": "sam local start-api --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "build": "sam build",
+    "start-full": "yarn build && yarn start",
     "test": "export AWS_REGION=local-env && export TABLE_NAME=Reserve-Rec-tests && yarn build && jest --coverage"
   },
   "jest": {
