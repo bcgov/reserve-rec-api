@@ -67,10 +67,7 @@ Parameters:
     Type: String
   GoogleAppSecret:
     Type: String
-  CMSAPIEndpoint:
-    Type: String
-    Default: 'https://cms.bcparks.ca/api'
-  CognitoCallbackURL:
+  CognitoCallbackURLs:
     Type: String
   Environment:
     Type: String
@@ -605,6 +602,9 @@ Resources:
         - "email"
       UsernameAttributes:
         - email
+      AliasAttributes:
+        - email
+        - preferred_username
       Schema:
         - Name: email
           AttributeDataType: String
@@ -648,9 +648,9 @@ Resources:
       GenerateSecret: false # enabling this will break the frontend login
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs:
-       - !Ref CognitoCallbackURL
+       - !Ref CognitoCallbackURLs
       LogoutURLs:
-       - !Ref CognitoCallbackURL
+       - !Ref CognitoCallbackURLs
       AllowedOAuthFlows:
         - code
       AllowedOAuthScopes:
