@@ -60,7 +60,7 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
 
         // Validate fields. Check for duplicates, permissible fields, and missing mandatory fields
         validateUpdateFields(allFields, item, config);
-        logger.debug('All fields (validated)', JSON.stringify(allFields, null, 2));
+        logger.debug('All fields (validated):', allFields);
 
         // Build update expression
         const { updateExpression, expressionAttributeNames, expressionAttributeValues } = updateExpressionBuilder(allFields, item);
@@ -210,7 +210,8 @@ function updateExpressionBuilder(allFields, item) {
       setExpPortion = allFields.set.map((field) => ` #${field} = :${field}`);
       allFields.set.map((field) => setNames[`#${field}`] = field);
       allFields.set.map((field) => setValues[`:${field}`] = marshall(item.set[field], {
-        convertTopLevelContainer: true
+        convertTopLevelContainer: true,
+        removeUndefinedValues: true
       }));
     }
 
@@ -219,7 +220,9 @@ function updateExpressionBuilder(allFields, item) {
       addExpPortion = allFields.add.map((field) => ` #${field} = if_not_exists(#${field}, :add__start__value) + :${field}`);
       setValues[`:add__start__value`] = marshall(0);
       allFields.add.map((field) => setNames[`#${field}`] = field);
-      allFields.add.map((field) => setValues[`:${field}`] = marshall(item.add[field]));
+      allFields.add.map((field) => setValues[`:${field}`] = marshall(item.add[field], {
+        removeUndefinedValues: true
+      }));
     }
 
     // Combine append expressions
@@ -228,7 +231,8 @@ function updateExpressionBuilder(allFields, item) {
       setValues[`:append__start__value`] = { L: [] };
       allFields.append.map((field) => setNames[`#${field}`] = field);
       allFields.append.map((field) => setValues[`:${field}`] = marshall(item.append[field], {
-        convertTopLevelContainer: true
+        convertTopLevelContainer: true,
+        removeUndefinedValues: true
       }));
     }
 
@@ -247,35 +251,11 @@ function updateExpressionBuilder(allFields, item) {
   const expressionAttributeNames = { ...setNames, ...removeNames };
   const expressionAttributeValues = { ...setValues };
 
-  return { updateExpression, expressionAttributeNames, expressionAttributeValues };
-}
+  logger.debug('Update expression:', updateExpression);
+  logger.debug('Expression Attribute Names:', expressionAttributeNames);
+  logger.debug('Expression Attribute Values:', expressionAttributeValues);
 
-/**
- * Arranges the configuration fields based on the provided parameters.
- *
- * @param {Object} config - The configuration object.
- * @param {string} configField - The field in the configuration object to arrange.
- * @param {Array} actions - The actions to group the fields by.
- * @param {boolean} [allowAllField=true] - Whether to allow the "all" field to be included in each action's fields.
- * @returns {Object} - The arranged fields grouped by action.
- */
-function arrangeConfigFields(config, configField, actions, allowAllField = true) {
-  let checkFields = {};
-  if (Array.isArray(config[configField])) {
-    // All fields are enforced for all actions
-    for (const action of actions) {
-      checkFields[action] = config[configField];
-    }
-  } else {
-    // Fields are grouped by action
-    for (const action of actions) {
-      checkFields[action] = config[configField][action] || [];
-      if (allowAllField && config[configField]?.all) {
-        checkFields[action] = [...checkFields[action], ...config[configField]?.all];
-      }
-    }
-  }
-  return checkFields;
+  return { updateExpression, expressionAttributeNames, expressionAttributeValues };
 }
 
 function validateConfig(config) {
@@ -286,7 +266,7 @@ function validateConfig(config) {
 
 function includeFieldInAction(field, value, action, request, config) {
   if (!request?.[action]) {
-    request[action] = [];
+    request[action] = {};
   }
   request[action][field] = value;
   // set config to accept new field if whitelist
@@ -299,7 +279,7 @@ function clearRequestFieldFromAllActions(field, request) {
   const actions = ['set', 'add', 'append'];
   for (const action of actions) {
     if (request[action]) {
-      delete request[action][field];
+      delete request[action]?.[field];
     }
     if (request['remove']) {
       request['remove'] = request['remove'].filter((f) => f !== field);

@@ -270,6 +270,29 @@ Resources:
             Schedule: cron(0 8 * * ? *)
             Description: "Sync Data Register protected areas every day at 08:00 UTC (00:00 PDT)"
 
+  # CMS Integration
+  SyncCMSProtectedAreasFunction:
+    FunctionName: SyncCMSProtectedAreasFunction
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/synchronization/syncCMSProtectedAreas/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Description: Syncs CMS protected areas on demand
+      MemorySize: 512
+      Timeout: 900
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          CMS_ENDPOINT_URL: !Ref CMSAPIEndpoint
+
   SearchFunction:
     FunctionName: SearchFunction
     Type: AWS::Serverless::Function
