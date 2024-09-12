@@ -605,9 +605,6 @@ Resources:
         - "email"
       UsernameAttributes:
         - email
-      AliasAttributes:
-        - email
-        - preferred_username
       Schema:
         - Name: email
           AttributeDataType: String
