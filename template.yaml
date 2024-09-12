@@ -647,8 +647,8 @@ Resources:
         - Google
       GenerateSecret: false # enabling this will break the frontend login
       AllowedOAuthFlowsUserPoolClient: true
-      CallbackURLs: !Split [',', CognitoCallbackURLs]
-      LogoutURLs: !Split [',', CognitoCallbackURLs]
+      CallbackURLs: !Split [',', !Ref CognitoCallbackURLs]
+      LogoutURLs: !Split [',', !Ref CognitoCallbackURLs]
       AllowedOAuthFlows:
         - code
       AllowedOAuthScopes:
