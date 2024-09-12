@@ -67,6 +67,9 @@ Parameters:
     Type: String
   GoogleAppSecret:
     Type: String
+  CMSAPIEndpoint:
+    Type: String
+    Default: 'https://cms.bcparks.ca/api'
   CognitoCallbackURLs:
     Type: String
   Environment:
