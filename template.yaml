@@ -639,7 +639,7 @@ Resources:
       Schema:
         - Name: email
           AttributeDataType: String
-          Mutable: true 
+          Mutable: false 
           Required: true
       MfaConfiguration: "OFF"
       Policies:
@@ -665,8 +665,8 @@ Resources:
         client_secret: !Ref GoogleAppSecret
         authorize_scopes: "profile email openid"
       ProviderType: "Google"
-      AttributeMapping:
-        email: "email"
+      # AttributeMapping:
+      #   email: "email"
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
