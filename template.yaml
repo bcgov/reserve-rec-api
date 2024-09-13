@@ -636,8 +636,6 @@ Resources:
             Priority: 1
       # AutoVerifiedAttributes:
       #   - "email"
-      # DeletionProtection: ACTIVE
-      # MfaConfiguration: "OFF"
       # Policies:
       #   PasswordPolicy:
       #     MinimumLength: "8"
@@ -674,6 +672,7 @@ Resources:
       UserPoolId: !Ref CognitoUserPool
       SupportedIdentityProviders:
         - Google
+        - COGNITO
       GenerateSecret: false # enabling this will break the frontend login
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs: !Split [',', !Ref CognitoCallbackURLs]
