@@ -647,6 +647,8 @@ Resources:
         - Name: email
           AttributeDataType: String
           Required: true
+      UsernameAttributes:
+        - email
       UserPoolName: !Ref CognitoUserPoolName
 
   GoogleUserPoolIdentityProvider:
