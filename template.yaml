@@ -630,10 +630,10 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      # AccountRecoverySetting:
-      #   RecoveryMechanisms:
-      #     - Name: "verified_email"
-      #       Priority: 1
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: "verified_email"
+            Priority: 1
       # AutoVerifiedAttributes:
       #   - "email"
       # DeletionProtection: ACTIVE
