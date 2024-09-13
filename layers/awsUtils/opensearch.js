@@ -2,6 +2,7 @@
 const { defaultProvider } = require('@aws-sdk/credential-provider-node'); // V3 SDK.
 const { Client } = require('@opensearch-project/opensearch');
 const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws');
+const { logger } = require('/opt/base');
 
 // Import necessary libraries and modules
 const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
@@ -10,6 +11,10 @@ const OPENSEARCH_AUDIT_INDEX = process.env.OPENSEARCH_MAIN_INDEX || 'audit-index
 const OPENSEARCH_DEFAULT_SORT_ORDER = 'asc'; // asc or desc
 const DEFAULT_RESULT_SIZE = 10;
 const MAX_RESULT_SIZE = 100;
+
+// Maximum number of transactions in a single batch - the real limit is roughly 6.3MB
+const TRANSACTION_MAX_SIZE = 100;
+
 // Query parameters that should not be used as keyable search terms
 const nonKeyableTerms = [
   'text',
@@ -17,7 +22,7 @@ const nonKeyableTerms = [
   'limit',
   'sortField',
   'sortOrder',
-]
+];
 
 let client = new Client({
   ...AwsSigv4Signer({
@@ -38,7 +43,7 @@ if (process.env.IS_OFFLINE === 'true') {
     ssl: {
       rejectUnauthorized: false
     }
-  })
+  });
 }
 
 /**
@@ -80,7 +85,7 @@ class OSQuery {
     this.from = from || 0;
     this.sortField = sortField || null;
     this.sortOrder = sortOrder || OPENSEARCH_DEFAULT_SORT_ORDER;
-        /**
+    /**
      * The sort object for sorting the results.
      * @type {Object}
      */
@@ -107,7 +112,7 @@ class OSQuery {
       body: {
         query: this.query,
       }
-    }
+    };
     // Add sort to body if provided
     if (this.sort) {
       this.request.body['sort'] = this.sort;
@@ -137,37 +142,37 @@ class OSQuery {
           query: escapeOpenSearchQuery(string)
         }
       }
-    )
+    );
   }
 
   /**
    * Adds must match terms rule to the OpenSearch query (logical `AND`).
    *
    * @param {Array} terms - An array of terms to match in the query.
-   * @param {Boolean} exactMatch - If true, term must match exactly to return a hit. Default false. 
+   * @param {Boolean} exactMatch - If true, term must match exactly to return a hit. Default false.
    */
   addMustMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'must', exactMatch)
+    addTermsRule(this.query, terms, 'must', exactMatch);
   }
 
   /**
    * Adds must not match terms rule to the OpenSearch query (logical `NOT`).
    *
    * @param {Array} terms - An array of terms to exclude from the query.
-   * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false. 
+   * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false.
    */
   addMustNotMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'must_not', exactMatch)
+    addTermsRule(this.query, terms, 'must_not', exactMatch);
   }
 
   /**
  * Adds should match terms rule to the OpenSearch query (logical `OR`).
  *
  * @param {Array} terms - An array of terms to exclude from the query.
- * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false. 
+ * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false.
  */
   addShouldMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'should', exactMatch)
+    addTermsRule(this.query, terms, 'should', exactMatch);
   }
 
   /**
@@ -181,7 +186,7 @@ class OSQuery {
       [field]: {
         order: order
       }
-    }]
+    }];
   }
 
 }
@@ -207,7 +212,7 @@ function addTermsRule(query, terms, clause = 'must', exactMatch = true) {
       default:
         value = value.toLowerCase();
         if (exactMatch) {
-          value = value.split(',')
+          value = value.split(',');
         }
         break;
     }
@@ -219,7 +224,7 @@ function addTermsRule(query, terms, clause = 'must', exactMatch = true) {
           [term]: value
         }
       }
-    )
+    );
   }
 }
 
@@ -274,9 +279,67 @@ function setSearchLimit(limit = DEFAULT_RESULT_SIZE) {
     requestedLimit = 1;
   }
   if (requestedLimit > MAX_RESULT_SIZE) {
-    requestedLimit = MAX_RESULT_SIZE
+    requestedLimit = MAX_RESULT_SIZE;
   }
   return requestedLimit;
+}
+
+async function checkIndexExists(indexName) {
+  return await client.indices.exists({ index: indexName });
+}
+
+function buildIdFromPkSk(pk, sk) {
+  return `${pk}#${sk}`;
+}
+
+async function listIndices() {
+  return await client.cat.indices({ format: 'json' });
+}
+
+// Function to chunk the data into smaller arrays
+function chunkArray(array, chunkSize) {
+  const result = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    result.push(array.slice(i, i + chunkSize));
+  }
+  return result;
+}
+
+async function bulkUpdateDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, action = 'index') {
+
+  const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
+
+  logger.info('Documents:', items.length);
+  logger.info('Transactions:', dataChunks.length);
+
+  try {
+    for (let i = 0; i < dataChunks.length; i++) {
+      const chunk = dataChunks[i];
+
+      const bulkBody = [];
+      for (const item of chunk) {
+        bulkBody.push({
+          [action]: {
+            _id: item.id,
+          }
+        });
+        bulkBody.push(item.body);
+      }
+
+      const bulkCommand = {
+        index: indexName,
+        body: bulkBody
+      };
+
+      // logger.info('bulkCommand:', bulkCommand);
+
+      const data = await client.bulk(bulkCommand);
+      logger.info(`BatchWriteItem response for chunk ${i}:`);
+    }
+  } catch (error) {
+    logger.error('Error updating documents:', error);
+    throw error;
+  }
 }
 
 module.exports = {
@@ -284,6 +347,10 @@ module.exports = {
   OPENSEARCH_MAIN_INDEX,
   OPENSEARCH_AUDIT_INDEX,
   nonKeyableTerms,
+  buildIdFromPkSk,
+  bulkUpdateDocuments,
+  checkIndexExists,
   client,
+  listIndices,
   OSQuery
-}
+};

@@ -70,7 +70,10 @@ Parameters:
   CMSAPIEndpoint:
     Type: String
     Default: 'https://cms.bcparks.ca/api'
-  CognitoCallbackURLs:
+  TantalisAPIEndpoint:
+    Type: String
+    Default: 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows'
+  CognitoCallbackURL:
     Type: String
   Environment:
     Type: String
@@ -292,6 +295,32 @@ Resources:
         Variables:
           LOG_LEVEL: info
           CMS_ENDPOINT_URL: !Ref CMSAPIEndpoint
+
+  # Tantalis Integration
+  SyncTantalisProtectedAreasFunction:
+    FunctionName: SyncTantalisProtectedAreasFunction
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/synchronization/syncTantalisProtectedAreas/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Description: Syncs Tantalis protected areas on demand
+      MemorySize: 512
+      Timeout: 900
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TANTALIS_ENDPOINT_URL: !Ref TantalisAPIEndpoint
+          OPENSEARCH_ENDPOINT_URL: !Sub
+            - 'https://${Domain}/'
+            - Domain: !GetAtt OpenSearch.DomainEndpoint
 
   SearchFunction:
     FunctionName: SearchFunction
@@ -622,7 +651,7 @@ Resources:
         RecoveryMechanisms:
           - Name: "verified_email"
             Priority: 1
-  
+
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
     DependsOn: [CognitoUserPool]
@@ -663,23 +692,23 @@ Resources:
       IdTokenValidity: 1 # from five minutes to one day
       AccessTokenValidity: 1 # from five minutes to one day
       RefreshTokenValidity: 30 # from 60 minutes to 10 years.
-      
-  UserPoolDomain: 
-    Type: AWS::Cognito::UserPoolDomain 
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
     DependsOn: [CognitoUserPool]
     Properties:
-      UserPoolId: !Ref CognitoUserPool 
+      UserPoolId: !Ref CognitoUserPool
       Domain: !Sub "${Project}-${Environment}"
-    
-  UserPoolUICustomization: 
+
+  UserPoolUICustomization:
     Type: AWS::Cognito::UserPoolUICustomizationAttachment
     DependsOn: [CognitoUserPool]
     DependsOn: UserPoolDomain
-    Properties: 
+    Properties:
       UserPoolId: !Ref CognitoUserPool
       ClientId: 'ALL'
       CSS: |
-        .banner-customizable { 
+        .banner-customizable {
           background-color: #6E6F6E;
           padding: 2em 0;
         }
