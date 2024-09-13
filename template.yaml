@@ -73,7 +73,7 @@ Parameters:
   TantalisAPIEndpoint:
     Type: String
     Default: 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows'
-  CognitoCallbackURL:
+  CognitoCallbackURLs:
     Type: String
   Environment:
     Type: String
