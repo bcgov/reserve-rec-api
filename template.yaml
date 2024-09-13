@@ -630,29 +630,29 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Ref CognitoUserPoolName
+      # AccountRecoverySetting:
+      #   RecoveryMechanisms:
+      #     - Name: "verified_email"
+      #       Priority: 1
+      # AutoVerifiedAttributes:
+      #   - "email"
       DeletionProtection: ACTIVE
-      AutoVerifiedAttributes:
-        - "email"
-      UsernameAttributes:
-        - email
-      Schema:
-        - Name: email
-          AttributeDataType: String
-          Mutable: false 
-          Required: true
       MfaConfiguration: "OFF"
-      Policies:
-        PasswordPolicy:
-          RequireLowercase: true
-          RequireSymbols: false
-          RequireNumbers: true
-          MinimumLength: "8"
-          RequireUppercase: true
-      AccountRecoverySetting:
-        RecoveryMechanisms:
-          - Name: "verified_email"
-            Priority: 1
+      # Policies:
+      #   PasswordPolicy:
+      #     MinimumLength: "8"
+      #     RequireLowercase: true
+      #     RequireNumbers: true
+      #     RequireSymbols: false
+      #     RequireUppercase: true
+      # Schema:
+      #   - Name: email
+      #     AttributeDataType: String
+      #     Mutable: false 
+      #     Required: true
+      UserPoolName: !Ref CognitoUserPoolName
+      # UsernameAttributes:
+      #   - email
 
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
