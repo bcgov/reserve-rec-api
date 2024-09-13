@@ -314,6 +314,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
+        - ElasticsearchHttpPostPolicy:
+            DomainName: !Ref DomainName
       Environment:
         Variables:
           LOG_LEVEL: info
