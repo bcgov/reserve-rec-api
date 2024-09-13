@@ -639,7 +639,7 @@ Resources:
       Schema:
         - Name: email
           AttributeDataType: String
-          Mutable: false
+          Mutable: true 
           Required: true
       MfaConfiguration: "OFF"
       Policies:
