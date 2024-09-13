@@ -643,11 +643,10 @@ Resources:
       #     RequireNumbers: true
       #     RequireSymbols: false
       #     RequireUppercase: true
-      # Schema:
-      #   - Name: email
-      #     AttributeDataType: String
-      #     Mutable: false 
-      #     Required: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
       UserPoolName: !Ref CognitoUserPoolName
 
   GoogleUserPoolIdentityProvider:
