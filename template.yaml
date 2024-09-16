@@ -71,6 +71,8 @@ Parameters:
     Type: String
   AzureAppSecret:
     Type: String
+  AzureOIDCURL:
+    Type: String
   CMSAPIEndpoint:
     Type: String
     Default: 'https://cms.bcparks.ca/api'
@@ -677,8 +679,10 @@ Resources:
       UserPoolId: !Ref CognitoUserPool
       ProviderName: "AzureIDIR"
       ProviderDetails:
+        authorize_scopes: "profile email openid"
         client_id: !Ref AzureAppId
-        client_secret: !Ref AzureAppSecret
+        oidc_issuer: !Ref AzureOIDCURL
+        provider-app-client-secret: !Ref AzureAppSecret
       ProviderType: "OIDC"
       AttributeMapping:
         email: "email"
