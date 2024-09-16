@@ -634,15 +634,12 @@ Resources:
         RecoveryMechanisms:
           - Name: "verified_email"
             Priority: 1
-      # AutoVerifiedAttributes:
-      #   - "email"
-      # Policies:
-      #   PasswordPolicy:
-      #     MinimumLength: "8"
-      #     RequireLowercase: true
-      #     RequireNumbers: true
-      #     RequireSymbols: false
-      #     RequireUppercase: true
+      AutoVerifiedAttributes:
+        - "email"
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE  
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
       Schema:
         - Name: email
           AttributeDataType: String
