@@ -1,24 +1,7 @@
 const { logger } = require('/opt/base');
-const { batchWriteData, AUDIT_TABLE_NAME } = require('/opt/dynamodb');
-const { defaultProvider } = require('@aws-sdk/credential-provider-node'); // V3 SDK.
-const { Client } = require('@opensearch-project/opensearch');
-const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws');
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT;
-const OPENSEARCH_MAIN_INDEX = process.env.OPENSEARCH_MAIN_INDEX;
+const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall } = require('/opt/dynamodb');
+const { OPENSEARCH_MAIN_INDEX, client } = require('/opt/opensearch');
 
-const openSearchClient = new Client({
-  ...AwsSigv4Signer({
-    region: 'ca-central-1',
-    service: 'es',
-    getCredentials: () => {
-      // Any other method to acquire a new Credentials object can be used.
-      const credentialsProvider = defaultProvider();
-      return credentialsProvider();
-    },
-  }),
-  node: OPENSEARCH_DOMAIN_ENDPOINT, // OpenSearch domain URL
-});
 
 exports.handler = async function (event, context) {
   logger.info('Stream Handler');
@@ -55,32 +38,65 @@ exports.handler = async function (event, context) {
 
       logger.debug(`auditImage:${JSON.stringify(auditImage)}`);
 
+      let upsertDocs = [];
+      let deleteDocs = [];
+
       switch (record.eventName) {
         case 'MODIFY':
         case 'INSERT': {
-          // Add/update index.
-          const data = {
-            id: openSearchId,
-            index: OPENSEARCH_MAIN_INDEX,
-            body: unmarshall(newImage),
-            refresh: true
+          // Upsert document (update if exists, create if not).
+          const doc = {
+            ...unmarshall(newImage),
           };
-          logger.debug(JSON.stringify(data));
-          await openSearchClient.index(data);
+          doc['id'] = openSearchId;
+
+          upsertDocs.push(doc);
+          logger.debug(JSON.stringify(doc));
         } break;
         case 'REMOVE': {
           // Remove it from the index
-          const data = {
+          const doc = {
             id: openSearchId,
-            index: OPENSEARCH_MAIN_INDEX
           };
-          logger.debug(JSON.stringify(data));
-          await openSearchClient.delete(data);
+
+          deleteDocs.push(doc);
+          logger.debug(JSON.stringify(doc));
         }
       }
 
+
       auditRecordsToCreate.push(auditImage);
     }
+
+    // Remove docs to delete
+    await client.helper.bulk({
+      datasource: deleteDocs,
+      refreshOnCompletion: true, // Refresh the index after the operation
+      onDocument(doc) {
+        return [
+          { delete: { _id: doc.id, _index: OPENSEARCH_MAIN_INDEX } }
+        ];
+      }
+    });
+
+    // Upsert docs to update
+    await client.helper.bulk({
+      datasource: upsertDocs,
+      refreshOnCompletion: true, // Refresh the index after the operation
+      onDocument(doc) {
+        return [
+          {
+            update: {
+              _id: doc.id,
+              _index: OPENSEARCH_MAIN_INDEX
+            }
+          },
+          {
+            doc_as_upsert: true
+          }
+        ];
+      }
+    });
 
     // Write it all out to the Audit table
     logger.info(`Writing batch data`);
