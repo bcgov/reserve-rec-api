@@ -635,11 +635,11 @@ Resources:
           - Name: "verified_email"
             Priority: 1
       AutoVerifiedAttributes:
-        - "email"
-      # VerificationMessageTemplate:
-      #   DefaultEmailOption: CONFIRM_WITH_CODE  
-      # EmailConfiguration:
-      #   EmailSendingAccount: COGNITO_DEFAULT
+        - email
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE  
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
       Schema:
         - Name: email
           AttributeDataType: String
@@ -647,6 +647,10 @@ Resources:
       UsernameAttributes:
         - email
       UserPoolName: !Ref CognitoUserPoolName
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+
 
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
