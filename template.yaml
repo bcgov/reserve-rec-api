@@ -67,6 +67,10 @@ Parameters:
     Type: String
   GoogleAppSecret:
     Type: String
+  AzureAppId:
+    Type: String
+  AzureAppSecret:
+    Type: String
   CMSAPIEndpoint:
     Type: String
     Default: 'https://cms.bcparks.ca/api'
@@ -665,6 +669,20 @@ Resources:
       ProviderType: "Google"
       AttributeMapping:
         email: "email"
+
+  AzureUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    DependsOn: [CognitoUserPool]
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ProviderName: "AzureIDIR"
+      ProviderDetails:
+        client_id: !Ref AzureAppId
+        client_secret: !Ref AzureAppSecret
+      ProviderType: "OIDC"
+      AttributeMapping:
+        email: "email"
+        username: "sub"
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
