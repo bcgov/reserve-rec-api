@@ -4,7 +4,7 @@
 
 const { getProtectedAreas } = require('/opt/protectedAreas');
 const { httpGet, logger, sendResponse } = require('/opt/base');
-const { buildIdFromPkSk, bulkUpsertDocuments } = require('/opt/opensearch');
+const { buildIdFromPkSk, bulkWriteDocuments } = require('/opt/opensearch');
 
 const TANTALIS_ENDPOINT_URL = process.env.TANTALIS_ENDPOINT_URL || 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows';
 const TANTALIS_ENDPOINT_PARAMS = '?service=wfs&version=2.0.0&request=getfeature&typename=PUB:WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW&outputFormat=json&srsName=EPSG:4326';
@@ -44,7 +44,7 @@ exports.handler = async (event, context) => {
     logger.info(`Found ${updateItems.length} protected areas with boundaries - updating OpenSearch`);
 
     // Update the protected areas in OpenSearch
-    await bulkUpsertDocuments(updateItems);
+    await bulkWriteDocuments(updateItems);
 
     logger.info(`Updated ${updateItems?.length} protected areas with boundaries`);
 
