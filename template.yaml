@@ -679,6 +679,7 @@ Resources:
       UserPoolId: !Ref CognitoUserPool
       ProviderName: "AzureIDIR"
       ProviderDetails:
+        attributes_request_method: "GET"
         authorize_scopes: "profile email openid"
         client_id: !Ref AzureAppId
         oidc_issuer: !Ref AzureOIDCURL
