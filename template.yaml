@@ -682,7 +682,7 @@ Resources:
         authorize_scopes: "profile email openid"
         client_id: !Ref AzureAppId
         oidc_issuer: !Ref AzureOIDCURL
-        provider-app-client-secret: !Ref AzureAppSecret
+        client_secret: !Ref AzureAppSecret
       ProviderType: "OIDC"
       AttributeMapping:
         email: "email"
