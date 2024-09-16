@@ -636,10 +636,10 @@ Resources:
             Priority: 1
       AutoVerifiedAttributes:
         - "email"
-      VerificationMessageTemplate:
-        DefaultEmailOption: CONFIRM_WITH_CODE  
-      EmailConfiguration:
-        EmailSendingAccount: COGNITO_DEFAULT
+      # VerificationMessageTemplate:
+      #   DefaultEmailOption: CONFIRM_WITH_CODE  
+      # EmailConfiguration:
+      #   EmailSendingAccount: COGNITO_DEFAULT
       Schema:
         - Name: email
           AttributeDataType: String
