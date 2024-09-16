@@ -305,7 +305,7 @@ function chunkArray(array, chunkSize) {
   return result;
 }
 
-async function bulkUpdateDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, action = 'index') {
+async function bulkUpsertDocuments(items, indexName = OPENSEARCH_MAIN_INDEX) {
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
 
@@ -316,25 +316,25 @@ async function bulkUpdateDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, act
     for (let i = 0; i < dataChunks.length; i++) {
       const chunk = dataChunks[i];
 
-      const bulkBody = [];
-      for (const item of chunk) {
-        bulkBody.push({
-          [action]: {
-            _id: item.id,
-          }
-        });
-        bulkBody.push(item.body);
-      }
+      await client.helpers.bulk({
+        datasource: chunk,
+        onDocument (doc) {
+          let newDoc = [
+            {
+              update: {
+                _id: doc.id,
+                _index: indexName
+              }
+            },
+            {
+              doc_as_upsert: true
+            }
+          ];
+          return newDoc;
+        }
+      });
 
-      const bulkCommand = {
-        index: indexName,
-        body: bulkBody
-      };
-
-      // logger.info('bulkCommand:', bulkCommand);
-
-      const data = await client.bulk(bulkCommand);
-      logger.info(`BatchWriteItem response for chunk ${i}:`);
+      logger.info(`BatchWriteItem response for chunk ${i}: complete`);
     }
   } catch (error) {
     logger.error('Error updating documents:', error);
@@ -348,7 +348,7 @@ module.exports = {
   OPENSEARCH_AUDIT_INDEX,
   nonKeyableTerms,
   buildIdFromPkSk,
-  bulkUpdateDocuments,
+  bulkUpsertDocuments,
   checkIndexExists,
   client,
   listIndices,

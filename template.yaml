@@ -321,7 +321,7 @@ Resources:
           LOG_LEVEL: info
           TANTALIS_ENDPOINT_URL: !Ref TantalisAPIEndpoint
           OPENSEARCH_DOMAIN_ENDPOINT: !Sub
-            - 'https://${Domain}/'
+            - 'https://${Domain}'
             - Domain: !GetAtt OpenSearch.DomainEndpoint
 
   SearchFunction:

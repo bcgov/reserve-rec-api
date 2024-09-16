@@ -4,7 +4,7 @@
 
 const { getProtectedAreas } = require('/opt/protectedAreas');
 const { httpGet, logger, sendResponse } = require('/opt/base');
-const { buildIdFromPkSk, bulkUpdateDocuments} = require('/opt/opensearch');
+const { buildIdFromPkSk, bulkUpsertDocuments } = require('/opt/opensearch');
 
 const TANTALIS_ENDPOINT_URL = process.env.TANTALIS_ENDPOINT_URL || 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows';
 const TANTALIS_ENDPOINT_PARAMS = '?service=wfs&version=2.0.0&request=getfeature&typename=PUB:WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW&outputFormat=json&srsName=EPSG:4326';
@@ -31,13 +31,11 @@ exports.handler = async (event, context) => {
         logger.error(`Error getting protected area ${protectedArea.orcs} from Tantalis: ${error}`);
         continue;
       }
-      const boundary = formatTantalisData(res.data, protectedArea);
+      const boundary = formatTantalisData(res.data);
       if (Object.keys(boundary).length > 0) {
         updateItems.push({
           id: buildIdFromPkSk(protectedArea.pk, protectedArea.sk),
-          body: {
-            boundary: boundary
-          }
+          boundary: boundary
         });
       }
 
@@ -46,9 +44,9 @@ exports.handler = async (event, context) => {
     logger.info(`Found ${updateItems.length} protected areas with boundaries - updating OpenSearch`);
 
     // Update the protected areas in OpenSearch
-    await bulkUpdateDocuments(updateItems);
+    await bulkUpsertDocuments(updateItems);
 
-    logger.info(`Updated ${count} protected areas with boundaries`);
+    logger.info(`Updated ${updateItems?.length} protected areas with boundaries`);
 
     return sendResponse(200, [], 'Success', null, context);
   } catch (error) {
@@ -56,7 +54,7 @@ exports.handler = async (event, context) => {
   }
 };
 
-function formatTantalisData(data, protectedArea) {
+function formatTantalisData(data) {
   // Site data also can be found in the 'features' property - we must filter them out for now
   // It seems like if ORCS_SECONDARY !== '00' then it is a site.
   // Filter out any areas where ORCS_SECONDARY !== '00'.
