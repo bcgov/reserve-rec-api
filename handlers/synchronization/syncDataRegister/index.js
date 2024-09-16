@@ -11,6 +11,9 @@ const DATA_REGISTER_SUBDIRECTORY = '/parks/names';
 const DATA_REGISTER_API_KEY = process.env.DATA_REGISTER_API_KEY;
 const ESTABLISHED_STATE = 'established';
 
+// If true, all protected areas will be updated regardless of whether they have changed (helps to trigger a dynamo stream event)
+const FORCE_UPDATE = false;
+
 // Add data register fields to sync here
 const FIELDS_TO_SYNC = [
   'legalName',
@@ -68,7 +71,7 @@ async function syncData(protectedAreas) {
       return protectedArea?.[field] !== existingItem?.[field];
     });
 
-    if (shouldUpdate) {
+    if (shouldUpdate || FORCE_UPDATE) {
       updateList.push(await createUpdatePAItem(protectedArea, now));
     }
   }

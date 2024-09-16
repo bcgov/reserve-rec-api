@@ -1,6 +1,6 @@
 const { logger } = require('/opt/base');
 const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall } = require('/opt/dynamodb');
-const { OPENSEARCH_MAIN_INDEX, client } = require('/opt/opensearch');
+const { OPENSEARCH_MAIN_INDEX, bulkWriteDocuments } = require('/opt/opensearch');
 
 
 exports.handler = async function (event, context) {
@@ -8,6 +8,8 @@ exports.handler = async function (event, context) {
   logger.debug(event);
   try {
     let auditRecordsToCreate = [];
+    let upsertDocs = [];
+    let deleteDocs = [];
     for (const record of event?.Records) {
       const eventName = record.eventName;
       let newImage = record.dynamodb.NewImage;
@@ -38,9 +40,6 @@ exports.handler = async function (event, context) {
 
       logger.debug(`auditImage:${JSON.stringify(auditImage)}`);
 
-      let upsertDocs = [];
-      let deleteDocs = [];
-
       switch (record.eventName) {
         case 'MODIFY':
         case 'INSERT': {
@@ -69,34 +68,9 @@ exports.handler = async function (event, context) {
     }
 
     // Remove docs to delete
-    await client.helper.bulk({
-      datasource: deleteDocs,
-      refreshOnCompletion: true, // Refresh the index after the operation
-      onDocument(doc) {
-        return [
-          { delete: { _id: doc.id, _index: OPENSEARCH_MAIN_INDEX } }
-        ];
-      }
-    });
-
+    await bulkWriteDocuments(deleteDocs, OPENSEARCH_MAIN_INDEX, 'delete');
     // Upsert docs to update
-    await client.helper.bulk({
-      datasource: upsertDocs,
-      refreshOnCompletion: true, // Refresh the index after the operation
-      onDocument(doc) {
-        return [
-          {
-            update: {
-              _id: doc.id,
-              _index: OPENSEARCH_MAIN_INDEX
-            }
-          },
-          {
-            doc_as_upsert: true
-          }
-        ];
-      }
-    });
+    await bulkWriteDocuments(upsertDocs, OPENSEARCH_MAIN_INDEX);
 
     // Write it all out to the Audit table
     logger.info(`Writing batch data`);

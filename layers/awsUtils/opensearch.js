@@ -305,7 +305,8 @@ function chunkArray(array, chunkSize) {
   return result;
 }
 
-async function bulkUpsertDocuments(items, indexName = OPENSEARCH_MAIN_INDEX) {
+async function bulkWriteDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, action = 'update') {
+  // actions: [create, update, delete, index]
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
 
@@ -318,18 +319,25 @@ async function bulkUpsertDocuments(items, indexName = OPENSEARCH_MAIN_INDEX) {
 
       await client.helpers.bulk({
         datasource: chunk,
+        refreshOnCompletion: true, // Refresh the index after the operation
         onDocument (doc) {
+          if (!doc.id) {
+            throw new Error('Document does not have an ID: ' + JSON.stringify(doc));
+          }
           let newDoc = [
             {
-              update: {
+              [action]: {
                 _id: doc.id,
                 _index: indexName
               }
             },
-            {
-              doc_as_upsert: true
-            }
           ];
+          // update actions must be a tuple with the document and the upsert flag
+          if (action === 'update') {
+            newDoc.push({
+              doc_as_upsert: true // Create if it doesn't exist
+            });
+          }
           return newDoc;
         }
       });
@@ -348,7 +356,7 @@ module.exports = {
   OPENSEARCH_AUDIT_INDEX,
   nonKeyableTerms,
   buildIdFromPkSk,
-  bulkUpsertDocuments,
+  bulkWriteDocuments,
   checkIndexExists,
   client,
   listIndices,
