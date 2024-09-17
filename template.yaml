@@ -657,21 +657,6 @@ Resources:
         AttributesRequireVerificationBeforeUpdate:
           - email
 
-
-  GoogleUserPoolIdentityProvider:
-    Type: AWS::Cognito::UserPoolIdentityProvider
-    DependsOn: [CognitoUserPool]
-    Properties:
-      UserPoolId: !Ref CognitoUserPool
-      ProviderName: "Google"
-      ProviderDetails:
-        client_id: !Ref GoogleAppId
-        client_secret: !Ref GoogleAppSecret
-        authorize_scopes: "profile email openid"
-      ProviderType: "Google"
-      AttributeMapping:
-        email: "email"
-
   AzureUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
     DependsOn: [CognitoUserPool]
@@ -691,12 +676,11 @@ Resources:
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
-    DependsOn: [GoogleUserPoolIdentityProvider, CognitoUserPool]
+    DependsOn: [CognitoUserPool]
     Properties:
       ClientName: !Ref CognitoUserPoolClientName
       UserPoolId: !Ref CognitoUserPool
       SupportedIdentityProviders:
-        - Google
         - COGNITO
       GenerateSecret: false # enabling this will break the frontend login
       AllowedOAuthFlowsUserPoolClient: true
