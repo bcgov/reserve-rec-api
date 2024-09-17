@@ -681,7 +681,7 @@ Resources:
       ClientName: !Ref CognitoUserPoolClientName
       UserPoolId: !Ref CognitoUserPool
       SupportedIdentityProviders:
-        - COGNITO
+        - AzureIDIR
       GenerateSecret: false # enabling this will break the frontend login
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs: !Split [',', !Ref CognitoCallbackURLs]
