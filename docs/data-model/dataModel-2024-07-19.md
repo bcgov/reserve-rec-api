@@ -31,7 +31,7 @@ Below is a table of the data types used in the MVD to enforce uniform data repre
 |`DateTime`|Full ISO timestamp|
 |`Date`|Calendar date presented as an object, eg: `{year: 2024, month: 7, day: 18}`|
 |`ISODate`|Calendar date presented as `YYYY-MM-DD`|
-|`Time`|Time of day in 24h time, presented as an object, eg: `{hours: 12, minutes: 30, seconds: 0}`|
+|`Time`|Time of day in 24h time, presented as an object, eg: `{hour: 12, minute: 30, second: 0}`|
 |`Duration`|A non-specific, continuous span of time, presented as an object, eg: `{days: 14}`|
 |`Interval`|A specific, continuous span of time with a start and end bound by `DateTimes`|
 |[`propertyType`]|An array of `propertyType`|
