@@ -184,6 +184,16 @@ Resources:
         AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
         MaxAge: "'600'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+          AddDefaultAuthorizerToCorsPreflight: false
+          Authorizers:
+            CognitoAuthorizer:
+              FunctionPayloadType: REQUEST
+              FunctionArn: !GetAtt Authorizer.Arn
+              Identity:
+                Headers:
+                  - Authorization
 
   ### LAMBDA LAYERS ###
   BaseLayer:
@@ -329,6 +339,20 @@ Resources:
           OPENSEARCH_DOMAIN_ENDPOINT: !Sub
             - 'https://${Domain}'
             - Domain: !GetAtt OpenSearch.DomainEndpoint
+
+  Authorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/authorizer/
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+      Runtime: nodejs18.x
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
 
   SearchFunction:
     FunctionName: SearchFunction
