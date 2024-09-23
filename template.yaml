@@ -711,6 +711,13 @@ Resources:
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs: !Split [',', !Ref CognitoCallbackURLs]
       LogoutURLs: !Split [',', !Ref CognitoCallbackURLs]
+      RefreshTokenValidity: 1
+      AccessTokenValidity: 20
+      IdTokenValidity: 20
+      TokenValidityUnits:
+        AccessToken: "minutes"
+        IdToken: "minutes"
+        RefreshToken: "days"
       AllowedOAuthFlows:
         - code
       AllowedOAuthScopes:
