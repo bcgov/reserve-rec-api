@@ -186,14 +186,14 @@ Resources:
         MaxAge: "'600'"
       Auth:
         DefaultAuthorizer: CognitoAuthorizer
-          AddDefaultAuthorizerToCorsPreflight: false
-          Authorizers:
-            CognitoAuthorizer:
-              FunctionPayloadType: REQUEST
-              FunctionArn: !GetAtt Authorizer.Arn
-              Identity:
-                Headers:
-                  - Authorization
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt Authorizer.Arn
+            Identity:
+              Headers:
+                - Authorization
 
   ### LAMBDA LAYERS ###
   BaseLayer:
