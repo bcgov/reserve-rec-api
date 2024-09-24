@@ -20,29 +20,32 @@ exports.handler = async function (event, context, callback) {
 
     const groups = claims['cognito:groups'];
 
-    const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
+    console.log("groups", groups);
 
-    console.log(results);
+    return generatePolicy(claims.sid, 'Allow', event.methodArn);
 
-    if (results.length > 0) {
-      const policy = {
-        Version: results[0].policy.Version,
-        Statement: []
-      };
+    // const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
 
-      results.forEach(item => {
-        policy.Statement = policy.Statement.concat(item.policy.Statement);
-      });
+    // console.log(results);
 
-      return getResponseObject(policy);
-    }
+    // if (results.length > 0) {
+    //   const policy = {
+    //     Version: results[0].policy.Version,
+    //     Statement: []
+    //   };
 
-    return getDenyPolicy(event.methodArn);
+    //   results.forEach(item => {
+    //     policy.Statement = policy.Statement.concat(item.policy.Statement);
+    //   });
+
+    //   return generatePolicy(claims.sid, 'Allow', event.methodArn);
+    // }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }
 
-  return generatePolicy(claims.sid, 'Allow', event.methodArn);
+  console.log("Deny");
+  return getDenyPolicy(event.methodArn);
 };
 
 async function batchQueryWrapper(tableName, key, values) {
@@ -90,7 +93,7 @@ async function validateToken(token) {
 
   if (keyIndex === -1) {
     console.log('Public key not found in jwks.json');
-    return false;
+    throw 'Public key not found in jwks.json';
   }
 
   // construct the public key
@@ -109,7 +112,7 @@ async function validateToken(token) {
   verify.end();
   if (!verify.verify(publicKey, decodedSignature)) {
     console.log('Signature verification failed');
-    return false;
+    throw 'Signature verification failed';
   }
 
   console.log('Signature successfully verified');
@@ -121,13 +124,13 @@ async function validateToken(token) {
   // additionally we can verify the token expiration
   if (Date.now() / 1000 > claims.exp) {
     console.log('Token is expired');
-    return false;
+    throw 'Token is expired';
   }
 
   // and the Audience  (use claims['client_id'] if verifying an access token)
   if (claims.client_id !== COGNITO_APP_CLIENT_ID) {
     console.log('Token was not issued for this audience');
-    return false;
+    throw 'Token was not issued for this audience';
   }
 
   // now we can use the claims
