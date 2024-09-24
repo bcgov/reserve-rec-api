@@ -1,6 +1,7 @@
 const { logger } = require('/opt/base');
 const AWS = require('aws-sdk');
 const TABLE_NAME = process.env.TABLE_NAME;
+const jwt = require('jsonwebtoken');
 
 exports.handler = async function (event, context, callback) {
   logger.debug('event', JSON.stringify(event));
