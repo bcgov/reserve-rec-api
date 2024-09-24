@@ -1,5 +1,6 @@
 const { logger } = require('/opt/base');
 const AWS = require('aws-sdk');
+const TABLE_NAME = process.env.TABLE_NAME;
 
 exports.handler = async function (event, context, callback) {
   logger.debug('event', JSON.stringify(event));
@@ -15,6 +16,7 @@ exports.handler = async function (event, context, callback) {
 
   try {
     const claims = validateToken(tokenData.token);
+    console.log("claims", claims);
 
     const groups = claims['cognito:groups'];
 
@@ -40,7 +42,7 @@ exports.handler = async function (event, context, callback) {
     logger.error(JSON.stringify(e));
   }
 
-  return generatePolicy(token.data.sid, 'Allow', methodArn);
+  return generatePolicy(claims.sid, 'Allow', event.methodArn);
 };
 
 async function batchQueryWrapper(tableName, key, values) {

@@ -353,6 +353,7 @@ Resources:
         Variables:
           LOG_LEVEL: info
           COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
+          TABLE_NAME: !Ref TableName
 
   SearchFunction:
     FunctionName: SearchFunction
