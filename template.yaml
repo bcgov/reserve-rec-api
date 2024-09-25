@@ -643,7 +643,6 @@ Resources:
             Method: GET
             RestApiId: !Ref ApiDeployment
             Auth:
-              ApiKeyRequired: false
               Authorizer: NONE
               OverrideApiAuth: true
         ConfigOptions:
