@@ -1,21 +1,23 @@
 const { logger } = require('/opt/base');
-const AWS = require('aws-sdk');
 const TABLE_NAME = process.env.TABLE_NAME;
 const jwt = require('jsonwebtoken');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 
 exports.handler = async function (event, context, callback) {
+  console.log(event);
   logger.debug('event', JSON.stringify(event));
 
-  const headers = event?.headers;
-  const authorization = event?.headers?.Authorization;
-
-  const tokenData = await parseToken(headers, authorization);
-
-  if (tokenData.valid === false) {
-    return await getDenyPolicy(event.methodArn);
-  }
-
   try {
+    const headers = event?.headers;
+    const authorization = event?.headers?.Authorization;
+
+    console.log("Parse Token");
+    const tokenData = await parseToken(headers, authorization);
+    console.log(tokenData);
+    if (tokenData.valid === false) {
+      console.log("Invalid token");
+      return await getDenyPolicy(event.methodArn);
+    }
     const claims = validateToken(tokenData.token);
     console.log("claims", claims);
 
@@ -50,7 +52,7 @@ exports.handler = async function (event, context, callback) {
 };
 
 async function batchQueryWrapper(tableName, key, values) {
-  const dynamodb = new AWS.DynamoDB.DocumentClient();
+  const dynamodb = new DynamoDBClient();
   let results = [];
   const valuesList = [];
 
@@ -146,7 +148,7 @@ async function getDenyPolicy(methodArn) {
 async function parseToken(headers, authorization) {
   let response = { 'valid': false };
 
-  if(!headers?.Authorization || headers.Authorization === 'None') {
+  if (!headers?.Authorization || headers.Authorization === 'None') {
     return response;
   }
 
@@ -162,7 +164,7 @@ async function parseToken(headers, authorization) {
   return {
     valid: true,
     token: authHeader[1]
-  }
+  };
 }
 
 // Help function to generate an IAM policy

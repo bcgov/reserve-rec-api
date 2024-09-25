@@ -642,20 +642,20 @@ Resources:
             Path: /config
             Method: GET
             RestApiId: !Ref ApiDeployment
-            # Auth:
-            #   ApiKeyRequired: false
-            #   Authorizer: NONE
-            #   OverrideApiAuth: true
+            Auth:
+              ApiKeyRequired: false
+              Authorizer: NONE
+              OverrideApiAuth: true
         ConfigOptions:
           Type: Api
           Properties:
             Path: /config
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
-            # Auth:
-            #   ApiKeyRequired: false
-            #   Authorizer: NONE
-            #   OverrideApiAuth: true
+            Auth:
+              ApiKeyRequired: false
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   # Cognito
   CognitoUserPool:
