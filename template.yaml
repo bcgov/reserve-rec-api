@@ -398,6 +398,10 @@ Resources:
             Path: /search
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
+            Auth:
+              ApiKeyRequired: false
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   ## Protected Areas ##
   ProtectedAreasGet:
@@ -437,6 +441,10 @@ Resources:
             Path: /protected-areas
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
+            Auth:
+              ApiKeyRequired: false
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   ProtectedAreaGet:
     FunctionName: ProtectedAreaGet
@@ -469,12 +477,16 @@ Resources:
             Path: /protected-areas/{orcs}
             Method: GET
             RestApiId: !Ref ApiDeployment
-        SearchOptions:
+        ProtectedAreasOptions:
           Type: Api
           Properties:
             Path: /protected-areas/{orcs}
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
+            Auth:
+              ApiKeyRequired: false
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   ProtectedAreasPut:
     FunctionName: ProtectedAreasPut
