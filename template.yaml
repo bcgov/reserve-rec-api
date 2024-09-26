@@ -14,59 +14,12 @@ Globals:
         DYNAMODB_ENDPOINT_URL: https://dynamodb.ca-central-1.amazonaws.com
 
 Parameters:
-  TableName:
-    Type: String
-    Default: 'reserve-rec'
-  TableNameAudit:
-    Type: String
-    Default: 'Audit'
-  Stage:
-    Type: String
-    Default: api
   AccountId:
     Type: String
     Default: '637423314715'
-  DomainName:
-    Description: User-defined OpenSearch domain name
+  AllowOrigin:
     Type: String
-    Default: 'reserve-rec'
-  KMSKeyId:
-    Type: String
-    Default: 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es'
-  InstanceCount:
-    Type: Number
-    Default: 1
-  InstanceType:
-    Type: String
-    Default: 't3.small.search'
-  OpenSearchMainIndex:
-    Type: String
-    Default: 'main-index'
-  EBSIops:
-    Type: String
-    Default: 3000
-  DataRegisterEndpoint:
-    Type: String
-    Default: 'https://dev-data.bcparks.ca/api'
-  DataRegisterApiKey:
-    Type: String
-    Default: 'dev-api'
-  CognitoUserPoolName:
-    Type: String
-    Default: 'public'
-  CognitoUserPoolClientName:
-    Type: String
-    Default: 'public-web-app'
-  IdentityPoolName:
-    Type: String
-    Default: 'ReserveRecIdentity'
-  Project:
-    Type: String
-    Default: 'reserve-rec'
-  GoogleAppId:
-    Type: String
-  GoogleAppSecret:
-    Type: String
+    Default: "'http://localhost:4200,http://localhost:4300'"
   AzureAppId:
     Type: String
   AzureAppSecret:
@@ -76,13 +29,63 @@ Parameters:
   CMSAPIEndpoint:
     Type: String
     Default: 'https://cms.bcparks.ca/api'
+  CognitoCallbackURLs:
+    Type: String
+  CognitoUserPoolClientName:
+    Type: String
+    Default: 'public-web-app'
+  CognitoUserPoolName:
+    Type: String
+    Default: 'public'
+  DataRegisterApiKey:
+    Type: String
+    Default: 'dev-api'
+  DataRegisterEndpoint:
+    Type: String
+    Default: 'https://dev-data.bcparks.ca/api'
+  DomainName:
+    Description: User-defined OpenSearch domain name
+    Type: String
+    Default: 'reserve-rec'
+  EBSIops:
+    Type: String
+    Default: 3000
+  Environment:
+    Type: String
+  GoogleAppId:
+    Type: String
+  GoogleAppSecret:
+    Type: String
+  IdentityPoolName:
+    Type: String
+    Default: 'ReserveRecIdentity'
+  InstanceCount:
+    Type: Number
+    Default: 1
+  InstanceType:
+    Type: String
+    Default: 't3.small.search'
+  KMSKeyId:
+    Type: String
+    Default: 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es'
+  OpenSearchMainIndex:
+    Type: String
+    Default: 'main-index'
+  Project:
+    Type: String
+    Default: 'reserve-rec'
+  Stage:
+    Type: String
+    Default: api
+  TableName:
+    Type: String
+    Default: 'reserve-rec'
+  TableNameAudit:
+    Type: String
+    Default: 'Audit'
   TantalisAPIEndpoint:
     Type: String
     Default: 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows'
-  CognitoCallbackURLs:
-    Type: String
-  Environment:
-    Type: String
 
 Resources:
   DynamoDBTable:
@@ -183,7 +186,7 @@ Resources:
         AllowCredentials: true
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Amz-Security-Token'"
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowOrigin: "'*'"
+        AllowOrigin: !Ref AllowOrigin
         MaxAge: "'600'"
       Auth:
         DefaultAuthorizer: CognitoAuthorizer
