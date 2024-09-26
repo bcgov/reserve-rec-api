@@ -7,6 +7,10 @@ exports.handler = async function (event, context, callback) {
   console.log(event);
   logger.debug('event', JSON.stringify(event));
 
+  // const policy = generatePolicy('public', 'Allow', event.methodArn);
+  // console.log(policy);
+  // return policy;
+
   try {
     const headers = event?.headers;
     const authorization = event?.headers?.Authorization;
@@ -188,11 +192,7 @@ let generatePolicy = function (principalId, effect, methodArn) {
     authResponse.policyDocument = policyDocument;
   }
 
-  if (effect === 'Allow') {
-    return handleContextAndAPIKey(authResponse, permissionObject, headers);
-  } else {
-    return authResponse;
-  }
+  return authResponse;
 };
 
 function handleContextAndAPIKey(authResponse, permissionObject, headers) {

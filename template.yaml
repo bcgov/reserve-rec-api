@@ -181,7 +181,7 @@ Resources:
       StageName: !Ref Stage
       Cors:
         AllowMethods: "'POST,GET,OPTIONS,PUT,DELETE'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
         MaxAge: "'600'"
       Auth:
