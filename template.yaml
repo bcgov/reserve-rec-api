@@ -399,7 +399,6 @@ Resources:
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
             Auth:
-              ApiKeyRequired: false
               Authorizer: NONE
               OverrideApiAuth: true
 
@@ -442,7 +441,6 @@ Resources:
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
             Auth:
-              ApiKeyRequired: false
               Authorizer: NONE
               OverrideApiAuth: true
 
@@ -477,14 +475,13 @@ Resources:
             Path: /protected-areas/{orcs}
             Method: GET
             RestApiId: !Ref ApiDeployment
-        SearchOptions:
+        ProtectedAreasOptions:
           Type: Api
           Properties:
             Path: /protected-areas/{orcs}
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
             Auth:
-              ApiKeyRequired: false
               Authorizer: NONE
               OverrideApiAuth: true
 
