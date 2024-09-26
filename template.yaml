@@ -477,7 +477,7 @@ Resources:
             Path: /protected-areas/{orcs}
             Method: GET
             RestApiId: !Ref ApiDeployment
-        ProtectedAreasOptions:
+        SearchOptions:
           Type: Api
           Properties:
             Path: /protected-areas/{orcs}
