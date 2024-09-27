@@ -596,6 +596,24 @@ Resources:
             Auth:
               Authorizer: NONE
               OverrideApiAuth: true
+        PoliciesOptionsByType:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PoliciesOptionsById:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}/{policyId}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   PolicyPost:
     FunctionName: PolicyPost
