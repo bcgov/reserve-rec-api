@@ -685,6 +685,88 @@ Resources:
             Method: PUT
             RestApiId: !Ref ApiDeployment
 
+  ### Places ###
+  PlacesGet:
+    FunctionName: PlacesGet
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/places/_orcs/GET
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Get single place or place collection by placetype (and identifier) lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        PlacesGetByOrcs:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PlacesGetByType:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}/{placeType}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PlacesGetByIdentifier:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}/{placeType}/{identifier}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PlacesOptions:
+          Type: Api
+          Properties:
+            Path: /places
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PlacesOptionsByOrcs:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PlacesOptionsByType:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}/{placeType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PlacesOptionsByIdentifier:
+          Type: Api
+          Properties:
+            Path: /places/{orcs}/{placeType}/{identifier}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+
+
   ## Opensearch
   OpenSearch:
     Type: AWS::OpenSearchService::Domain
