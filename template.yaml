@@ -434,7 +434,7 @@ Resources:
             Path: /protected-areas
             Method: GET
             RestApiId: !Ref ApiDeployment
-        SearchOptions:
+        ProtectedAreasOptions:
           Type: Api
           Properties:
             Path: /protected-areas
@@ -469,13 +469,13 @@ Resources:
           LOG_LEVEL: info
           TABLE_NAME: !Ref TableName
       Events:
-        ProtectedAreasGet:
+        ProtectedAreaGet:
           Type: Api
           Properties:
             Path: /protected-areas/{orcs}
             Method: GET
             RestApiId: !Ref ApiDeployment
-        ProtectedAreasOptions:
+        ProtectedAreaOptions:
           Type: Api
           Properties:
             Path: /protected-areas/{orcs}
@@ -587,6 +587,9 @@ Resources:
             Path: /policies/{policyType}
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
         PolicyGetById:
           Type: Api
           Properties:
@@ -599,7 +602,9 @@ Resources:
             Path: /policies/{policyType}/{policyId}
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
-
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   PolicyPost:
     FunctionName: PolicyPost
