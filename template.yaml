@@ -766,6 +766,86 @@ Resources:
               Authorizer: NONE
               OverrideApiAuth: true
 
+  ### Permits ###
+  PermitsGet:
+    FunctionName: PermitsGet
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/permits/_orcs/GET
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Get single permit or permit collection by permit type (and identifier) lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        PermitsGetByOrcs:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PermitsGetByType:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}/{permitType}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PermitsGetByIdentifier:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}/{permitType}/{identifier}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PermitsOptions:
+          Type: Api
+          Properties:
+            Path: /permits
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PermitsOptionsByOrcs:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PermitsOptionsByType:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}/{permitType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        PermitsOptionsByIdentifier:
+          Type: Api
+          Properties:
+            Path: /permits/{orcs}/{permitType}/{identifier}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
 
   ## Opensearch
   OpenSearch:
