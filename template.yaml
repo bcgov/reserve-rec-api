@@ -549,6 +549,114 @@ Resources:
             Method: PUT
             RestApiId: !Ref ApiDeployment
 
+  ### Policies ###
+  PoliciesGet:
+    FunctionName: PoliciesGet
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/policies/_policyType/GET
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Get single policy or policy collection by type (and id) lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        PoliciesGetByType:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        PolicyGetById:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}/{policyId}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+
+  PolicyPost:
+    FunctionName: PolicyPost
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/policies/_policyType/POST
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Create single policy lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        PolicyPost:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}
+            Method: POST
+            RestApiId: !Ref ApiDeployment
+
+  PolicyPut:
+    FunctionName: PolicyPut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/policies/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Update policies lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        PoliciesPut:
+          Type: Api
+          Properties:
+            Path: /policies
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+        PolicyPutById:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}/{policyId}
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
 
   ## Opensearch
   OpenSearch:
@@ -679,7 +787,7 @@ Resources:
       AutoVerifiedAttributes:
         - email
       VerificationMessageTemplate:
-        DefaultEmailOption: CONFIRM_WITH_CODE  
+        DefaultEmailOption: CONFIRM_WITH_CODE
       EmailConfiguration:
         EmailSendingAccount: COGNITO_DEFAULT
       Schema:

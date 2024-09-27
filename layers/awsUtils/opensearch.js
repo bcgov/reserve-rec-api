@@ -310,6 +310,7 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, acti
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
 
+  logger.info('indexName:', indexName);
   logger.info('Documents:', items.length);
   logger.info('Transactions:', dataChunks.length);
 

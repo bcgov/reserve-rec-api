@@ -114,6 +114,7 @@ const Exception = class extends Error {
 };
 
 module.exports = {
+  DateTime,
   Exception,
   checkWarmup,
   getNow,

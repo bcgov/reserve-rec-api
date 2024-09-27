@@ -1,6 +1,6 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiUpdateHandler } = require("/opt/data-utils");
-const { PROTECTED_AREA_API_UPDATE_CONFIG } = require("/opt/data-constants");
+const { PROTECTED_AREA_API_UPDATE_CONFIG } = require("/opt/protectedAreas/configs");
 const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
@@ -18,13 +18,18 @@ exports.handler = async (event, context) => {
     // extract orcs and actions from body
     let updateRequests = [];
     for (const item of body) {
-      if (!item?.actions ?? !item?.orcs) {
-        throw new Exception('ORCS and actions are required for every update item', { code: 400 });
+      if (!item?.orcs) {
+        throw new Exception('ORCS number is required for every update item', { code: 400 });
       }
-      const updateItem = {... item?.actions};
 
-      // Format body with key
-      updateItem['key'] = { pk: 'protectedArea', sk: String(item.orcs) };
+      const sk = String(item.orcs);
+      delete item.orcs;
+
+      const updateItem = {
+        key: { pk: 'protectedArea', sk: sk },
+        data: item,
+      };
+
       updateRequests.push(updateItem);
     }
 

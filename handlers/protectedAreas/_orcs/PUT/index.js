@@ -1,6 +1,6 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiUpdateHandler } = require("/opt/data-utils");
-const { PROTECTED_AREA_API_UPDATE_CONFIG } = require("/opt/data-constants");
+const { PROTECTED_AREA_API_UPDATE_CONFIG } = require("/opt/protectedAreas/configs");
 const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
@@ -16,13 +16,16 @@ exports.handler = async (event, context) => {
     }
 
     // Format body with key
-    body['key'] = { pk: 'protectedArea', sk: orcs };
+    const updateItem = {
+      key: { pk: 'protectedArea', sk: orcs },
+      data: body,
+    };
 
     // Use quickApiUpdateHandler to create the update item
-    const updateItem = await quickApiUpdateHandler(TABLE_NAME, [body], PROTECTED_AREA_API_UPDATE_CONFIG);
+    const updateItems = await quickApiUpdateHandler(TABLE_NAME, [updateItem], PROTECTED_AREA_API_UPDATE_CONFIG);
 
     // Use batchTransactData to update the database
-    const res = await batchTransactData(updateItem);
+    const res = await batchTransactData(updateItems);
 
     return sendResponse(200, res, 'Success', null, context);
   } catch (error) {

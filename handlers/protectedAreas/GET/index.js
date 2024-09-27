@@ -3,7 +3,7 @@
  * Fetch all protected areas
  */
 
-const { getProtectedAreas } = require('/opt/protectedAreas');
+const { getProtectedAreas } = require('/opt/protectedAreas/methods');
 const { logger, sendResponse } = require('/opt/base');
 
 exports.handler = async (event, context) => {
