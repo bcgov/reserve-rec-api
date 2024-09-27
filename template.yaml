@@ -847,6 +847,106 @@ Resources:
               Authorizer: NONE
               OverrideApiAuth: true
 
+  ### Inventory ###
+  InventoryGet:
+    FunctionName: InventoryGet
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/inventory/_orcs/_placeType/_placeId/GET
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Role: !GetAtt StreamRole.Arn
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Get inventory or inventory collection lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        InventoryGetByPlaceId:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        InventoryGetByType:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}/{inventoryType}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        InventoryGetByIdentifier:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}/{inventoryType}/{identifier}
+            Method: GET
+            RestApiId: !Ref ApiDeployment
+        InventoryOptions:
+          Type: Api
+          Properties:
+            Path: /inventory
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        InventoryOptionsByOrcs:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        InventoryOptionsByPlaceType:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        InventoryOptionsByPlaceId:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        InventoryOptionsByType:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}/{inventoryType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+        InventoryOptionsByIdentifier:
+          Type: Api
+          Properties:
+            Path: /inventory/{orcs}/{placeType}/{placeId}/{inventoryType}/{identifier}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+
+
   ## Opensearch
   OpenSearch:
     Type: AWS::OpenSearchService::Domain
