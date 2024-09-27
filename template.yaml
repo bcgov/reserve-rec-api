@@ -581,12 +581,25 @@ Resources:
             Path: /policies/{policyType}
             Method: GET
             RestApiId: !Ref ApiDeployment
+        PoliciesOptionsByType:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
         PolicyGetById:
           Type: Api
           Properties:
             Path: /policies/{policyType}/{policyId}
             Method: GET
             RestApiId: !Ref ApiDeployment
+        PoliciesOptionsById:
+          Type: Api
+          Properties:
+            Path: /policies/{policyType}/{policyId}
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+
 
   PolicyPost:
     FunctionName: PolicyPost
