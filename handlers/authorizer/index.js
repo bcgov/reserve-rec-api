@@ -7,9 +7,9 @@ exports.handler = async function (event, context, callback) {
   console.log(event);
   logger.debug('event', JSON.stringify(event));
 
-  // const policy = generatePolicy('public', 'Allow', event.methodArn);
-  // console.log(policy);
-  // return policy;
+  const policy = generatePolicy('public', 'Allow', event.methodArn);
+  console.log(policy);
+  return policy;
 
   try {
     const headers = event?.headers;
@@ -159,7 +159,7 @@ async function parseToken(headers, authorization) {
   const authHeader = authorization.split(' ');
 
   // Deny request if the authorization header is not present
-  // or the header does not have the Bearer token and the 
+  // or the header does not have the Bearer token and the
   // first string is not 'Bearer'
   if (authHeader.length !== 2 || authHeader[0] !== 'Bearer') {
     return response;
