@@ -493,7 +493,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -525,7 +524,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -558,7 +556,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -623,7 +620,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -655,7 +651,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -694,7 +689,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -775,7 +769,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
@@ -856,7 +849,6 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
         - !Ref DataUtilsLayer
-      Role: !GetAtt StreamRole.Arn
       Runtime: nodejs20.x
       Architectures:
         - x86_64
