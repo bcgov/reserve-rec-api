@@ -7,7 +7,8 @@ exports.handler = async function (event, context, callback) {
   console.log(event);
   logger.debug('event', JSON.stringify(event));
 
-  const policy = generatePolicy('public', 'Allow', event.methodArn);
+  // TODO: use methodARN to get the policy
+  const policy = generatePolicy('public', 'Allow', 'arn:aws:execute-api:ca-central-1:637423314715:6kbrprs1r7/api/*');
   console.log(policy);
   return policy;
 
