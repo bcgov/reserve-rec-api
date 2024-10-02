@@ -74,6 +74,9 @@ Parameters:
   Project:
     Type: String
     Default: 'reserve-rec'
+  Region:
+    Type: String
+    Default: 'ca-central-1'
   Stage:
     Type: String
     Default: api
@@ -358,6 +361,10 @@ Resources:
           LOG_LEVEL: info
           COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
           TABLE_NAME: !Ref TableName
+          ACCOUNT_ID: !Ref AccountId
+          AWS_REGION: !Ref Region
+          STAGE_NAME: !Ref Stage
+          REST_API_ID: !Ref ApiDeployment
 
   SearchFunction:
     FunctionName: SearchFunction

@@ -8,9 +8,9 @@ exports.handler = async function (event, context, callback) {
   logger.debug('event', JSON.stringify(event));
 
   // TODO: use methodARN to get the policy
-  const policy = generatePolicy('public', 'Allow', 'arn:aws:execute-api:ca-central-1:637423314715:6kbrprs1r7/api/*');
-  console.log(policy);
-  return policy;
+  // const policy = generatePolicy('public', 'Allow', '');
+  // console.log(policy);
+  // return policy;
 
   try {
     const headers = event?.headers;
@@ -30,7 +30,9 @@ exports.handler = async function (event, context, callback) {
 
     console.log("groups", groups);
 
-    return generatePolicy(claims.sid, 'Allow', event.methodArn);
+    const methodArn = `arn:aws:execute-api:${process.env.AWS_REGION}:${process.env.ACCOUNT_ID}:${process.env.REST_API_ID}/${process.env.STAGE_NAME}/*`
+
+    return generatePolicy(claims.sid, 'Allow', methodArn);
 
     // const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
 
