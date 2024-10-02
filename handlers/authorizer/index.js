@@ -30,9 +30,15 @@ exports.handler = async function (event, context, callback) {
 
     console.log("groups", groups);
 
-    const methodArn = `arn:aws:execute-api:${process.env.AWS_REGION}:${process.env.ACCOUNT_ID}:${process.env.REST_API_ID}/${process.env.STAGE_NAME}/*`
+    let methodArn = `arn:aws:execute-api:ca-central-1:637423314715:6kbrprs1r7/api/*`;
+    const arnPrefix = methodArn.split(':').slice(0, 6);
+    const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
+    // arn:aws:execute-api:ca-central-1:637423314715
+    const apiIDString = arnPrefix[5];
+    const apiString = apiIDString.split('/')[0];
+    const fullAPIMethods = joinedArnPrefix + ':' +apiString + '/' + process.env.STAGE_NAME + '/*';
 
-    return generatePolicy(claims.sid, 'Allow', methodArn);
+    return generatePolicy(claims.sid, 'Allow', fullAPIMethods);
 
     // const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
 
