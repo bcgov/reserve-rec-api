@@ -7,6 +7,7 @@
     "@opensearch-project/opensearch": "^2.11.0",
     "axios": "^1.7.7",
     "jsonwebtoken": "^9.0.2",
+    "jwk-to-pem": "^2.0.6",
     "winston": "^3.13.1"
   },
   "devDependencies": {
