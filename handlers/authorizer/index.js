@@ -98,9 +98,9 @@ function validateToken(token) {
   const decodedToken = jwt.decode(token, { complete: true });
   console.log(decodedToken);
   const headers = decodedToken.header;
-  console.log(headers);
+  console.log('headers', headers);
   const kid = headers.kid;
-  console.log(kid);
+  console.log('kid', kid);
 
   // search for the kid in the downloaded public keys
   let keyIndex = -1;
