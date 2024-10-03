@@ -361,7 +361,6 @@ Resources:
           LOG_LEVEL: info
           COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
           TABLE_NAME: !Ref TableName
-          REST_API_ID: !Ref ApiID
           STAGE_NAME: !Ref Stage
 
   SearchFunction:
