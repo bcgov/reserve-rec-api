@@ -94,8 +94,11 @@ async function batchQueryWrapper(tableName, key, values) {
 }
 
 function validateToken(token) {
+  console.log("validateToken");
   const headers = jwt.decode(token, { complete: true }).header;
+  console.log(headers);
   const kid = headers.kid;
+  console.log(kid);
 
   // search for the kid in the downloaded public keys
   let keyIndex = -1;
@@ -105,6 +108,7 @@ function validateToken(token) {
       break;
     }
   }
+  console.log(keyIndex);
 
   if (keyIndex === -1) {
     console.log('Public key not found in jwks.json');
@@ -112,15 +116,19 @@ function validateToken(token) {
   }
 
   // construct the public key
+  console.log(keys[keyIndex]);
   const publicKey = jwkToPem(keys[keyIndex]);
+
+  console.log(publicKey);
 
   // get the last two sections of the token,
   // message and signature (encoded in base64)
   const [message, encodedSignature] = token.split('.').slice(0, 2);
-
+  console.log(message);
   // decode the signature
   const decodedSignature = Buffer.from(encodedSignature, 'base64');
 
+  console.log(decodedSignature);
   // verify the signature
   const verify = crypto.createVerify('SHA256');
   verify.update(message);
