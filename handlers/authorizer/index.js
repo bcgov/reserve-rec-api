@@ -94,8 +94,10 @@ async function batchQueryWrapper(tableName, key, values) {
 }
 
 function validateToken(token) {
-  console.log("validateToken");
-  const headers = jwt.decode(token, { complete: true }).header;
+  console.log("validateToken", token);
+  const decodedToken = jwt.decode(token, { complete: true });
+  console.log(decodedToken);
+  const headers = decodedToken.header;
   console.log(headers);
   const kid = headers.kid;
   console.log(kid);
