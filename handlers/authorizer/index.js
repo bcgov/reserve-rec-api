@@ -107,6 +107,8 @@ function validateToken(token) {
   // search for the kid in the downloaded public keys
   const keys = JSON.stringify(process.env.JWKS);
 
+  console.log("keys:", keys);
+
   let keyIndex = -1;
   for (let i = 0; i < keys.length; i++) {
     if (kid === keys[i].kid) {
