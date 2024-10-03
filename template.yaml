@@ -65,6 +65,8 @@ Parameters:
   InstanceType:
     Type: String
     Default: 't3.small.search'
+  Jwks:
+    Type: String
   KMSKeyId:
     Type: String
     Default: 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es'
@@ -362,6 +364,7 @@ Resources:
           COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
           TABLE_NAME: !Ref TableName
           STAGE_NAME: !Ref Stage
+          JWKS: !Ref Jwks
 
   SearchFunction:
     FunctionName: SearchFunction

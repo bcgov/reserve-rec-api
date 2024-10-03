@@ -2,6 +2,8 @@ const { logger } = require('/opt/base');
 const TABLE_NAME = process.env.TABLE_NAME;
 const jwt = require('jsonwebtoken');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const jwkToPem = require('jwk-to-pem');
+const crypto = require('crypto');
 
 exports.handler = async function (event, context, callback) {
   console.log(event);
@@ -103,6 +105,8 @@ function validateToken(token) {
   console.log('kid:', kid);
 
   // search for the kid in the downloaded public keys
+  const keys = JSON.stringify(process.env.JWKS);
+
   let keyIndex = -1;
   for (let i = 0; i < keys.length; i++) {
     if (kid === keys[i].kid) {
