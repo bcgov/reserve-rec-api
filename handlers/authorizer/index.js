@@ -98,9 +98,9 @@ function validateToken(token) {
   const decodedToken = jwt.decode(token, { complete: true });
   console.log(decodedToken);
   const headers = decodedToken.header;
-  console.log('headers', headers);
+  console.log('headers:', headers);
   const kid = headers.kid;
-  console.log('kid', kid);
+  console.log('kid:', kid);
 
   // search for the kid in the downloaded public keys
   let keyIndex = -1;
@@ -110,7 +110,7 @@ function validateToken(token) {
       break;
     }
   }
-  console.log(keyIndex);
+  console.log('keyindex:', keyIndex);
 
   if (keyIndex === -1) {
     console.log('Public key not found in jwks.json');
