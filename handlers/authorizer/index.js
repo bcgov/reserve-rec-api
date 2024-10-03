@@ -93,7 +93,7 @@ async function batchQueryWrapper(tableName, key, values) {
   return results;
 }
 
-async function validateToken(token) {
+function validateToken(token) {
   const headers = jwt.decode(token, { complete: true }).header;
   const kid = headers.kid;
 
@@ -180,7 +180,7 @@ async function parseToken(headers, authorization) {
 }
 
 // Help function to generate an IAM policy
-let generatePolicy = function (principalId, effect, methodArn) {
+function generatePolicy(principalId, effect, methodArn) {
   logger.debug('principalId', principalId);
   let authResponse = {};
 
