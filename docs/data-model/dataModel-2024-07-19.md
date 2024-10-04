@@ -50,7 +50,7 @@ All datatypes in the MVD shall stem from the following base datatype, which prim
 |description|`String`|A description of the data|N|
 |version|`Number`|Version of the data|Y|
 |creationDate|`DateTime`|Date of initial data creation|Y|
-|updateDate|`DateTime`|Date of most recent versioning|Y|
+|lastUpdated|`DateTime`|Date of most recent versioning|Y|
 |category|`String` or `Enum`|The category of data, eg [place](#places) or [inventory](#inventory)|Y|
 |type|`String` or `Enum`|Name of the specific datatype, eg 'park' or 'tentpad'|Y|
 |images|`URL`|A URL linking to a storage location for images|N|
@@ -72,19 +72,24 @@ Some quick examples of inventory are:
 All permits inherit the properties from [base data type](#base-data-properties).
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
-|geo|`GeoJSON`|Valid geoJSON describing the geospatial features of the inventory|N|
-|latitude|`Number`|The latitude of the inventory|N|
-|longitude|`Number`|The longitude of the inventory|N|
-|geohash|`String`|Minimum 4 point precision geohash of the place|N|
+|location|`GeoJSON`|Valid geoJSON (geopoint) describing the geospatial features of the inventory|N|
 |timezone|`String`|The IANA string timezone identifier of the timezone within which the inventory exists*|Y|
 |mapZoom|`Number`|Zoom level at which the item appears on a map|N|
 |isFinite|`Boolean`|Whether or not the inventory belongs to a finite set|Y|
 |isReservable|`Boolean`|Whether or not the inventory is reservable|Y|
 |parentPermit|`Permit`|The permit that handles the allocation of the inventory. See [**permits**](#permits)|N|
-|parkName|`String`|The name of the parent park|N|
+|parentPlace|`Place`|The place where the inventory is located|Y|
+|inventoryId|`Number`|Like identifier - a number that uniquely distinguishes the inventory from other inventory of the same type in the same place|Y|
+|siteName|`String`|The name of the parent place|N|
 |orcs|`Number`|The orcs of the parent park|N|
-|siteName|`String`|The name of the parent geospatial site/campground/subarea/etc|N|
+|dataSource|`String`|Where the information on the inventory was obtained (meta)|N|
 |cwAssetId|`Number`|CityWide Asset Id|N|
+
+Example Inventory pk/sk (For tentpad #1, campground #5 (Little Kuitshe Creek Campground), orcs #9398 (Juan de Fuca)
+```
+pk: inventory::9398::campground::5
+sk: tentpad::1
+```
 
 *Likely inherited from the inventory's parent place.
 
@@ -117,10 +122,16 @@ All permits inherit the properties from [base data type](#base-data-properties).
 |changePolicy| `ChangePolicy`|The permit's governing change policy. See [change policy](#change-policy)|Y|
 |feePolicy| `FeePolicy`|The permit's governing fee policy. See [fee policy](#fee-policy)|Y|
 |partyPolicy| `PartyPolicy`|The permit's governing party policy. See [party policy](#party-policy)|Y|
-|inventory|[`Inventory`]|A list of inventory controlled by the permit|N|
+|isInventoryFinite|`Boolean`|Whether or not the inventory is part of a limited set|Y|
+|permitType|`String`|Permit type.|Y|
+|permitId|`Number`|Like identifier - a number that uniquely distinguishes the permit from other permits of the same type at the same place|Y|
+|inventory|`[Inventory]`|A list of inventory keys that are controlled by the permit|N|
 
-
-
+Example pk/sk for Permit (Backcountry registration permit #1 for orcs #9398 (Juan de Fuca)
+```
+pk: permit::9398
+sk: backcountryRegistration::1
+```
 ## Policies
 Policies are rulesets that control how inventory is made available to users, how users can claim and exchange inventory, and how much users will pay for their inventory.
 
@@ -145,6 +156,12 @@ Booking policies define how inventory is made available to users and how users a
 |noShowTime|`Time`|The time of day after which a user is considered to have no-showed if they have not already checked in.
 |allDatesBookedIntervals|[`Interval`]|Intervals of dates within which a user cannot book a portion of dates - that is, if any date of their booking coincides with a date in `allDatesBookedIntervals`, they must also book all of the other dates within the `Interval`. Common on holiday weekends.|N|
 
+Example policy pk/sk (Booking policy #1)
+```
+pk: policy::booking
+sk: 1
+```
+
 ### Change Policies
 Change policies define how users are able to change existing claims they may have on inventory. Cancellations fall within change policies as the user is still changing an existing claim they have by returning all their claimed inventory to the system. Fee + Change policies can likely be rolled into 1 policy type.
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
@@ -155,7 +172,6 @@ Change policies define how users are able to change existing claims they may hav
 |inWindowNightsForfeit|`Number`|The number of nights worth of fees forfeit in addition to cancellation fees if the user makes changes within the change window|Y|
 |sameDayNightsForfeit|`Number`|The number of nights worth of fees forfeit in addition to cancellation fees if the user makes changes on the same day of their scheduled arrival|N|
 |isFeeWaivedInWindow|`Boolean`|Is the change fee waived if the user makes a change within the change window (applicable to canoe circuits)|N|
-
 
 ### Fee Policies
 Fee policies define how users are charged for their inventory, and if/how they are refunded in the event of a change or cancellation. Fee + Change policies can likely be rolled into 1 policy type.
@@ -200,22 +216,50 @@ Places are geospatial entities with a somewhat fixed, physical extension. They c
 -   trails (polyline)
 -   timezones (polygon)
 
-Places can have at most 1 parent place and zero to many child places. For example, Bear Beach is a place (point) within Juan de Fuca Park. The Juan de Fuca Trail (polyline) is also a place within JDF Park. JDF Park is a place (polygon) within the North Island section. The North Island section is a place (polygon) within the West Coast region.
-
 Each place must have a point representation if it is not already defined by a point. For polygons, this may be the centroid. For polylines, this may be a midpoint or a terminal point on the line (like a trailhead) that best represents the place. This point is used to determine several things, like the location where icons will be rendered for the place and which timezone the place belongs to.
 
+At the point of writing, we only have authoritative information on protected areas as places, but a need for some intermediate place type has been identified (aka Cam zones).
+
+The purpose of 'Cam zones' is twofold:
+ - To identify groups of inventory that are relevant to one another, for example grouping all the tentpads in a single campground, especially if the protected area is listed to have multiple campgrounds within them.
+ - To provide additional search references for end users when they are trying to identify what they do. For example: A user who wants to visit Sombrio Beach might search for 'Sombrio Beach', instead of 'Juan de Fuca'.
+
+### Protected Area Properties
+|**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
+|---|---|---|---|
+|pk|`String`|'protectedArea'|Y|
+|sk|`String`|<orcs>|Y|
+|orcs|`Number`|The orcs number of the parent park of the place|N|
+|displayName|`String`|Display name synced from name data register|Y|
+|legalName|`String`|Legal name synced from name data register|Y|
+|location|`GeoJSON`|Protected area centroid, synced from CMS|N|
+|boundary|`GeoJSON`|Valid geoJSON (geoPolygon) synced from Tantalis (only available in OpenSearch)|N|
+|timezone|`String` or `Enum`|The IANA string timezone identifier of the place|Y|
+|mapZoom|`Number`|Zoom level at which the item appears on a map|N|
+|cwAssetId|`Number`|CityWide asset id, if applicable|N|
+
+Example protected area pk/sk (Orcs 9398: Juan de Fuca)
+```
+pk: protectedArea
+sk: 9398
+```
+
 ### Place Data Properties
-All places inherit the properties from [base data type](#base-data-properties).
+All places (Cam zones) inherit the properties from [base data type](#base-data-properties).
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
 |orcs|`Number`|The orcs number of the parent park of the place|N|
 |address|`String`|Address of the place|N|
-|geo|`GeoJSON`|Valid geoJSON describing the geospatial features of the place|N|
+|location|`GeoJSON`|Valid geoJSON (geoPoint) describing the geospatial features of the place|N|
+|boundary|`GeoJSON`|Valid geoJSON (geoPolygon) describing the geospatial features of the place|N|
 |parentPlace|`Place`|The key of the immediate parent of the place|N|
-|childPlaces|[`Place`]|The keys of the immediate children of the place|N|
 |timezone|`String` or `Enum`|The IANA string timezone identifier of the place|Y|
-|geohash|`String`|Minimum 4 point precision geohash of the place|Y|
-|latitude|`Number`|The latitude of the place|Y|
-|longitude|`Number`|The longitude of the place|Y|
 |mapZoom|`Number`|Zoom level at which the item appears on a map|N|
 |cwAssetId|`Number`|CityWide asset id, if applicable|N|
+|featureGroup|`String`|A conventional way of grouping places - for example, all campgrounds on the Juan de Fuca Trail could be grouped by a featureGroup called 'Juan de Fuca Trail'|N|
+
+Example place pk/sk (campground #5 (Little Kuitshe Creek Campground), in orcs #9398 (Juan de Fuca))
+```
+pk: place::9398
+sk: campground::5
+```
