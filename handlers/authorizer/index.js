@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const jwkToPem = require('jwk-to-pem');
 const crypto = require('crypto');
-const awsjwtverify = require('aws-jwt-verify');
-const verifier = awsjwtverify.create({
+const { CognitoJwtVerifier } = require('aws-jwt-verify');
+const verifier = CognitoJwtVerifier.create({
   userPoolId: "ca-central-1_nXF7h0SwT",
   tokenUse: "access",
   clientId: process.env.COGNITO_APP_CLIENT_ID,
