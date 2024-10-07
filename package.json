@@ -5,6 +5,7 @@
   "dependencies": {
     "@aws-sdk/util-dynamodb": "^3.540.0",
     "@opensearch-project/opensearch": "^2.11.0",
+    "aws-jwt-verify": "^4.0.1",
     "axios": "^1.7.7",
     "jsonwebtoken": "^9.0.2",
     "jwk-to-pem": "^2.0.6",
