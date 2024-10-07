@@ -138,7 +138,7 @@ function validateToken(token) {
 
   console.log(decodedSignature);
   // verify the signature
-  const verify = crypto.createVerify('SHA256');
+  const verify = crypto.createVerify(alg);
   verify.update(message);
   verify.end();
   if (!verify.verify(publicKey, decodedSignature)) {
