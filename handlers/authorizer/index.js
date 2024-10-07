@@ -100,7 +100,16 @@ async function batchQueryWrapper(tableName, key, values) {
   return results;
 }
 
-function validateToken(token) {
+async function validateToken(token) {
+  try {
+    const payload = await verifier.verify(
+      "eyJraWQeyJhdF9oYXNoIjoidk..." // the JWT as string
+    );
+    console.log("Token is valid. Payload:", payload);
+  } catch {
+    console.log("Token not valid!");
+  }
+
   console.log("validateToken", token);
   const decodedToken = jwt.decode(token, { complete: true });
   console.log(decodedToken);
