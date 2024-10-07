@@ -108,9 +108,11 @@ function validateToken(token) {
   console.log(keys);
 
   let keyIndex = -1;
+  let alg;
   for (let i = 0; i < keys.length; i++) {
     if (kid === keys[i].kid) {
       keyIndex = i;
+      alg = keys[i].alg;
       break;
     }
   }
