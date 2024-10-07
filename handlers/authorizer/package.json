@@ -5,6 +5,7 @@
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.664.0",
         "@aws-sdk/util-dynamodb": "^3.540.0",
+        "aws-jwt-verify": "^4.0.1",
         "crypto": "^1.0.1",
         "jsonwebtoken": "^9.0.2",
         "jwk-to-pem": "^2.0.6"
