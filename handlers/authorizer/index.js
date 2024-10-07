@@ -4,6 +4,12 @@ const jwt = require('jsonwebtoken');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const jwkToPem = require('jwk-to-pem');
 const crypto = require('crypto');
+const awsjwtverify = require('aws-jwt-verify');
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: "",
+  tokenUse: "access",
+  clientId: process.env.COGNITO_APP_CLIENT_ID,
+});
 
 exports.handler = async function (event, context, callback) {
   console.log(event);
@@ -36,7 +42,7 @@ exports.handler = async function (event, context, callback) {
     const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
     const apiIDString = arnPrefix[5];
     const apiString = apiIDString.split('/')[0];
-    const fullAPIMethods = joinedArnPrefix + ':' +apiString + '/' + process.env.STAGE_NAME + '/*';
+    const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
 
     return generatePolicy(claims.sid, 'Allow', fullAPIMethods);
 
@@ -127,7 +133,7 @@ function validateToken(token) {
   console.log(keys[keyIndex]);
   const publicKey = jwkToPem(keys[keyIndex]);
 
-  console.log(publicKey);
+
 
   // get the last two sections of the token,
   // message and signature (encoded in base64)
@@ -136,15 +142,31 @@ function validateToken(token) {
   // decode the signature
   const decodedSignature = Buffer.from(encodedSignature, 'base64');
 
-  console.log(decodedSignature);
-  // verify the signature
-  const verify = crypto.createVerify(alg);
-  verify.update(message);
-  verify.end();
-  if (!verify.verify(publicKey, decodedSignature)) {
-    console.log('Signature verification failed');
-    throw 'Signature verification failed';
+  console.log("publickey", publicKey);
+  console.log("message:", message);
+  console.log("decodedSignature", decodedSignature);
+  console.log("encodedSignature", encodedSignature);
+  console.log("alg:", alg);
+  console.log("verification creating:", crypto.getHashes());
+
+  for (let i = 0; i < crypto.getHashes().length; i++) {
+    try {
+      const verify = crypto.createVerify((crypto.getHashes())[i]);
+
+      verify.update(message);
+      verify.end();
+      // console.log(publicKey, encodedSignature)
+      if (!verify.verify(publicKey, encodedSignature)) {
+        // console.log('Signature verification failed');
+        throw 'Signature verification failed';
+      }
+      console.log("verify:", (crypto.getHashes())[i]);
+      break;
+    } catch (e) {
+      // console.log("e:", e);
+    }
   }
+
 
   console.log('Signature successfully verified');
 
