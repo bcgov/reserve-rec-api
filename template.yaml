@@ -132,6 +132,39 @@ Resources:
     DependsOn: DynamoDBTable
 
   ## Roles
+  ReadDynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      Policies:
+        - PolicyName: 'ProcessDynamoDBStreamRolePolicyOne'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              -
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:DescribeTable
+                  - dynamodb:ConditionCheckItem
+                Resource: !Sub
+                  - 'arn:aws:dynamodb:ca-central-1:${AccountId}:table/reserve-rec'
+                  - AccountId: !Ref AccountId
+                Effect: Allow
+
   StreamRole:
     Type: AWS::IAM::Role
     Properties:
@@ -358,6 +391,7 @@ Resources:
         - !Ref BaseLayer
         - !Ref AWSUtilsLayer
       Runtime: nodejs18.x
+      Role: !GetAtt ReadDynamoDBRole.Arn
       Environment:
         Variables:
           LOG_LEVEL: info
