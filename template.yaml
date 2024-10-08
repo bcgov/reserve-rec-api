@@ -362,6 +362,7 @@ Resources:
         Variables:
           LOG_LEVEL: info
           COGNITO_APP_CLIENT_ID: !Ref CognitoUserPoolClient
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPool
           TABLE_NAME: !Ref TableName
           STAGE_NAME: !Ref Stage
           JWKS: !Ref Jwks

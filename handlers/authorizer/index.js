@@ -1,24 +1,16 @@
 const { logger } = require('/opt/base');
 const TABLE_NAME = process.env.TABLE_NAME;
-const jwt = require('jsonwebtoken');
+const { TABLE_NAME, getOne, USER_ID_PARTITION } = require('/opt/dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const jwkToPem = require('jwk-to-pem');
-const crypto = require('crypto');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 const verifier = CognitoJwtVerifier.create({
-  userPoolId: "ca-central-1_nXF7h0SwT",
+  userPoolId: process.env.COGNITO_USER_POOL_ID,
   tokenUse: "access",
   clientId: process.env.COGNITO_APP_CLIENT_ID,
 });
 
 exports.handler = async function (event, context, callback) {
-  console.log(event);
   logger.debug('event', JSON.stringify(event));
-
-  // TODO: use methodARN to get the policy
-  // const policy = generatePolicy('public', 'Allow', '');
-  // console.log(policy);
-  // return policy;
 
   try {
     const headers = event?.headers;
@@ -31,21 +23,22 @@ exports.handler = async function (event, context, callback) {
       console.log("Invalid token");
       return await getDenyPolicy(event.methodArn);
     }
-    const claims = validateToken(tokenData.token);
-    console.log("claims", claims);
+    const payload = await validateToken(tokenData.token);
+    const sub = payload.sub;
+    console.log("sub:", sub);
 
-    const groups = claims['cognito:groups'];
-
-    console.log("groups", groups);
+    // Grab the user's groups and inject into the context.
+    const userData = await getOne(USER_ID_PARTITION, sub);
+    console.log("userData:", userData);
 
     const arnPrefix = event.methodArn.split(':').slice(0, 6);
     const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
     const apiIDString = arnPrefix[5];
     const apiString = apiIDString.split('/')[0];
     const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
+    console.log("fullAPIMethods:", fullAPIMethods);
 
-    return generatePolicy(claims.sid, 'Allow', fullAPIMethods);
-
+    return generatePolicy(sub, 'Allow', fullAPIMethods);
     // const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
 
     // console.log(results);
@@ -70,134 +63,37 @@ exports.handler = async function (event, context, callback) {
   return getDenyPolicy(event.methodArn);
 };
 
-async function batchQueryWrapper(tableName, key, values) {
+async function getUserData(sub) {
   const dynamodb = new DynamoDBClient();
-  let results = [];
-  const valuesList = [];
-
-  for (let i = 0; i < values.length; i += 25) {
-    valuesList.push(values.slice(i, i + 25));
-  }
-
-  for (const vlist of valuesList) {
-    const params = {
-      RequestItems: {
-        [tableName]: {
-          Keys: vlist.map(val => ({ [key]: val }))
-        }
-      }
-    };
-
-    let response = await dynamodb.batchGet(params).promise();
-    results = results.concat(response.Responses[tableName]);
-
-    while (response.UnprocessedKeys && Object.keys(response.UnprocessedKeys).length) {
-      response = await dynamodb.batchGet({ RequestItems: response.UnprocessedKeys }).promise();
-      results = results.concat(response.Responses[tableName]);
+  const params = {
+    TableName: TABLE_NAME,
+    Key: {
+      pk: { S: 'userid' },
+      sk: { S: sub }
     }
-  }
+  };
 
-  return results;
+  try {
+    const data = await dynamodb.getItem(params).promise();
+    if (!data.Item) {
+      throw new Error('User not found');
+    }
+    return data.Item;
+  } catch (error) {
+    logger.error('Error fetching user data:', error);
+    throw error;
+  }
 }
 
 async function validateToken(token) {
   try {
-    const payload = await verifier.verify(
-      "eyJraWQeyJhdF9oYXNoIjoidk..." // the JWT as string
-    );
+    const payload = await verifier.verify(token);
     console.log("Token is valid. Payload:", payload);
+    return payload;
   } catch {
-    console.log("Token not valid!");
+    console.log("Token is invalid");
+    throw 'Token is invalid.';
   }
-
-  console.log("validateToken", token);
-  const decodedToken = jwt.decode(token, { complete: true });
-  console.log(decodedToken);
-  const headers = decodedToken.header;
-  console.log('headers:', headers);
-  const kid = headers.kid;
-  console.log('kid:', kid);
-
-  // search for the kid in the downloaded public keys
-  const keys = JSON.parse(process.env.JWKS);
-  console.log(keys);
-
-  let keyIndex = -1;
-  let alg;
-  for (let i = 0; i < keys.length; i++) {
-    if (kid === keys[i].kid) {
-      keyIndex = i;
-      alg = keys[i].alg;
-      break;
-    }
-  }
-  console.log('keyindex:', keyIndex);
-
-  if (keyIndex === -1) {
-    console.log('Public key not found in jwks.json');
-    throw 'Public key not found in jwks.json';
-  }
-
-  // construct the public key
-  console.log(keys[keyIndex]);
-  const publicKey = jwkToPem(keys[keyIndex]);
-
-
-
-  // get the last two sections of the token,
-  // message and signature (encoded in base64)
-  const [message, encodedSignature] = token.split('.').slice(0, 2);
-  console.log(message);
-  // decode the signature
-  const decodedSignature = Buffer.from(encodedSignature, 'base64');
-
-  console.log("publickey", publicKey);
-  console.log("message:", message);
-  console.log("decodedSignature", decodedSignature);
-  console.log("encodedSignature", encodedSignature);
-  console.log("alg:", alg);
-  console.log("verification creating:", crypto.getHashes());
-
-  for (let i = 0; i < crypto.getHashes().length; i++) {
-    try {
-      const verify = crypto.createVerify((crypto.getHashes())[i]);
-
-      verify.update(message);
-      verify.end();
-      // console.log(publicKey, encodedSignature)
-      if (!verify.verify(publicKey, encodedSignature)) {
-        // console.log('Signature verification failed');
-        throw 'Signature verification failed';
-      }
-      console.log("verify:", (crypto.getHashes())[i]);
-      break;
-    } catch (e) {
-      // console.log("e:", e);
-    }
-  }
-
-
-  console.log('Signature successfully verified');
-
-  // since we passed the verification, we can now safely
-  // use the unverified claims
-  const claims = jwt.decode(token);
-
-  // additionally we can verify the token expiration
-  if (Date.now() / 1000 > claims.exp) {
-    console.log('Token is expired');
-    throw 'Token is expired';
-  }
-
-  // and the Audience  (use claims['client_id'] if verifying an access token)
-  if (claims.client_id !== COGNITO_APP_CLIENT_ID) {
-    console.log('Token was not issued for this audience');
-    throw 'Token was not issued for this audience';
-  }
-
-  // now we can use the claims
-  console.log(claims);
-  return claims;
 }
 
 async function getDenyPolicy(methodArn) {

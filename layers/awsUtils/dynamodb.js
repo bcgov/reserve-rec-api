@@ -5,7 +5,7 @@ const { logger } = require('/opt/base');
 const TABLE_NAME = process.env.TABLE_NAME || 'reserve-rec';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
 const DYNAMODB_ENDPOINT_URL = process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000';
-
+const USER_ID_PARTITION = 'userid';
 const TRANSACTION_MAX_SIZE = 100;
 
 const options = {
@@ -232,17 +232,18 @@ async function batchTransactData(data, action = 'Put') {
 
 module.exports = {
   AWS_REGION,
+  PutItemCommand,
+  QueryCommand,
   TABLE_NAME,
-  dynamodb,
-  dynamodbClient,
+  USER_ID_PARTITION,
   batchTransactData,
   batchWriteData,
+  dynamodb,
+  dynamodbClient,
   getOne,
   marshall,
   putItem,
   runQuery,
   runScan,
   unmarshall,
-  PutItemCommand,
-  QueryCommand,
 };
