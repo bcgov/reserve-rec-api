@@ -31,7 +31,7 @@ exports.handler = async function (event, context, callback) {
     console.log("userData:", userData);
 
     // Generate the methodArn for the user to access the API
-    if (userData.claims === 'sysadmin') {
+    if (userData.claims?.includes('sysadmin')) {
       const arnPrefix = event.methodArn.split(':').slice(0, 6);
       const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
       const apiIDString = arnPrefix[5];
