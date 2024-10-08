@@ -30,30 +30,19 @@ exports.handler = async function (event, context, callback) {
     const userData = await getOne(USER_ID_PARTITION, sub);
     console.log("userData:", userData);
 
-    const arnPrefix = event.methodArn.split(':').slice(0, 6);
-    const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
-    const apiIDString = arnPrefix[5];
-    const apiString = apiIDString.split('/')[0];
-    const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
-    console.log("fullAPIMethods:", fullAPIMethods);
-
-    return generatePolicy(sub, 'Allow', fullAPIMethods);
-    // const results = batchQueryWrapper(TABLE_NAME, 'group', groups);
-
-    // console.log(results);
-
-    // if (results.length > 0) {
-    //   const policy = {
-    //     Version: results[0].policy.Version,
-    //     Statement: []
-    //   };
-
-    //   results.forEach(item => {
-    //     policy.Statement = policy.Statement.concat(item.policy.Statement);
-    //   });
-
-    //   return generatePolicy(claims.sid, 'Allow', event.methodArn);
-    // }
+    // Generate the methodArn for the user to access the API
+    if (userData.claims === 'sysadmin') {
+      const arnPrefix = event.methodArn.split(':').slice(0, 6);
+      const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
+      const apiIDString = arnPrefix[5];
+      const apiString = apiIDString.split('/')[0];
+      const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
+      console.log("fullAPIMethods:", fullAPIMethods);
+      return generatePolicy(sub, 'Allow', fullAPIMethods);
+    } else {
+      console.log("Deny");
+      return generatePolicy(sub, 'Deny', event.methodArn);
+    }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }
