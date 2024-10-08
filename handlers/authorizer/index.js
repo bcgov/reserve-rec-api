@@ -1,5 +1,4 @@
 const { logger } = require('/opt/base');
-const TABLE_NAME = process.env.TABLE_NAME;
 const { TABLE_NAME, getOne, USER_ID_PARTITION } = require('/opt/dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
