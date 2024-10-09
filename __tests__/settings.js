@@ -40,7 +40,9 @@ async function createDB(items, tableName = TABLE_NAME) {
     for (const item of items) {
         await dynamodb.putItem({
             TableName: tableName,
-            Item: marshall(item)
+            Item: marshall(item, {
+                removeUndefinedValues: true
+            })
         });
     }
 
@@ -76,7 +78,9 @@ async function putDB(data, tableName = TABLE_NAME) {
     for (const item of data) {
         await dynamodb.putItem({
             TableName: tableName,
-            Item: marshall(item)
+            Item: marshall(item, {
+                removeUndefinedValues: true
+            })
         });
     }
 }
