@@ -3,6 +3,7 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { logger } = require('/opt/base');
 
 const TABLE_NAME = process.env.TABLE_NAME || 'reserve-rec';
+const AUDIT_TABLE_NAME = process.env.UDIT_TABLE_NAME || 'Audit';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
 const DYNAMODB_ENDPOINT_URL = process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000';
 const USER_ID_PARTITION = 'userid';
@@ -231,6 +232,7 @@ async function batchTransactData(data, action = 'Put') {
 }
 
 module.exports = {
+  AUDIT_TABLE_NAME,
   AWS_REGION,
   PutItemCommand,
   QueryCommand,
