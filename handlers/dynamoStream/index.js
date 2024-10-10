@@ -1,5 +1,5 @@
 const { logger } = require('/opt/base');
-const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall } = require('/opt/dynamodb');
+const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall, USER_ID_PARTITION } = require('/opt/dynamodb');
 const { OPENSEARCH_MAIN_INDEX, bulkWriteDocuments } = require('/opt/opensearch');
 
 
@@ -20,6 +20,12 @@ exports.handler = async function (event, context) {
       const creationTime = createDate.toISOString();
 
       const gsipk = record.dynamodb.Keys.pk;
+
+      // If pk === 'userid' then skip
+      if (gsipk.S === USER_ID_PARTITION) {
+        continue;
+      }
+
       const gsisk = record.dynamodb.Keys.sk;
       const user = newImage?.lastModifiedBy?.S || "system";
 
