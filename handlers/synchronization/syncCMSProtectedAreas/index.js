@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
         const fieldsToSync = getFieldsToSync(res.data);
         const updateItem = {
           key: {
-            pk: 'protectedArea',
+            pk: 'place::protectedArea',
             sk: protectedArea.orcs
           },
           set: fieldsToSync

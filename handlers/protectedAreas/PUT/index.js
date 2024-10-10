@@ -26,7 +26,7 @@ exports.handler = async (event, context) => {
       delete item.orcs;
 
       const updateItem = {
-        key: { pk: 'protectedArea', sk: sk },
+        key: { pk: 'place::protectedArea', sk: sk },
         data: item,
       };
 

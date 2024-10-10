@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
 
     // Format body with key
     const updateItem = {
-      key: { pk: 'protectedArea', sk: orcs },
+      key: { pk: 'place::protectedArea', sk: orcs },
       data: body,
     };
 
