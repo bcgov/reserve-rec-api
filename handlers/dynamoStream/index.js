@@ -21,8 +21,9 @@ exports.handler = async function (event, context) {
 
       const gsipk = record.dynamodb.Keys.pk;
 
-      // If pk === 'userid' then skip
+      // If pk === USER_ID_PARTITION then skip
       if (gsipk.S === USER_ID_PARTITION) {
+        // TODO: Push data into either a new index and add some sort of record to the audit table.
         continue;
       }
 
