@@ -11,6 +11,8 @@ const verifier = CognitoJwtVerifier.create({
 exports.handler = async function (event, context, callback) {
   logger.debug('event', JSON.stringify(event));
 
+  return await authorizeAll(event);
+
   try {
     const headers = event?.headers;
     const authorization = event?.headers?.Authorization;
@@ -50,6 +52,16 @@ exports.handler = async function (event, context, callback) {
   console.log("Deny");
   return getDenyPolicy(event.methodArn);
 };
+
+async function authorizeAll(event) {
+  const arnPrefix = event.methodArn.split(':').slice(0, 6);
+  const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
+  const apiIDString = arnPrefix[5];
+  const apiString = apiIDString.split('/')[0];
+  const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
+  console.log("fullAPIMethods:", fullAPIMethods);
+  return generatePolicy('pub', 'Allow', fullAPIMethods);
+}
 
 async function getUserData(sub) {
   const dynamodb = new DynamoDBClient();
