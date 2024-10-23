@@ -2,7 +2,7 @@
  * Imports geospatial boundary data for protected areas from the Tantalis API
  */
 
-const { getProtectedAreas } = require('/opt/protectedAreas');
+const { getProtectedAreas } = require('/opt/protectedAreas/methods');
 const { httpGet, logger, sendResponse } = require('/opt/base');
 const { buildIdFromPkSk, bulkWriteDocuments } = require('/opt/opensearch');
 
