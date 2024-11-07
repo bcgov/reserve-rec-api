@@ -58,7 +58,7 @@ async function syncData(protectedAreas) {
     // DynamoDB RRUs are 20% the cost of WRUs, so we can afford to check if the item exists before
     // adding it, instead of doing a PUT with a conditional expression.
     // Usually this should be cheaper since we expect most items to already exist.
-    const existingItem = await getOne('place::protectedArea', protectedArea.pk);
+    const existingItem = await getOne('protectedArea', `${protectedArea.pk}::properties`);
 
     // If the item does not exist, add it to the database
     if (!existingItem) {
@@ -81,8 +81,8 @@ async function syncData(protectedAreas) {
 
 async function createPutPAItem(protectedArea, timestamp) {
   let item = {
-    pk: 'place::protectedArea',
-    sk: protectedArea.pk,
+    pk: 'protectedArea',
+    sk: `${protectedArea.pk}::properties`,
     orcs: protectedArea.pk,
     creationDate: timestamp,
     lastUpdated: timestamp
@@ -118,8 +118,8 @@ function createUpdatePAItem(protectedArea, timestamp) {
     data: {
       TableName: TABLE_NAME,
       Key: {
-        pk: { S: 'place::protectedArea' },
-        sk: { S: protectedArea.pk }
+        pk: { S: 'protectedArea' },
+        sk: { S: `${protectedArea.pk}::properties` }
       },
       UpdateExpression: updateExpression,
       ExpressionAttributeNames: expressionAttributeNames,

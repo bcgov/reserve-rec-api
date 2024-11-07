@@ -155,6 +155,16 @@ class OSQuery {
     addTermsRule(this.query, terms, 'must', exactMatch);
   }
 
+
+  /**
+   * Adds a filter terms rule to the OpenSearch query (logical `AND` applied before querying to reduce query set).
+   *
+   * @param {Array<string>} terms - The terms to be added as filter rules.
+   */
+  addFilterTermsRule(terms) {
+    addTermsRule(this.query, terms, 'filter', true);
+  }
+
   /**
    * Adds must not match terms rule to the OpenSearch query (logical `NOT`).
    *
@@ -189,6 +199,23 @@ class OSQuery {
     }];
   }
 
+  addRangeQueryRule(field, rangeStart, rangeEnd, includeStart = true, includeEnd = true) {
+    let rangeStartOperator = includeStart ? 'gte' : 'gt';
+    let rangeEndOperator = includeEnd ? 'lte' : 'lt';
+
+    setNestedValue(
+      this.query,
+      ['bool', 'filter'],
+      {
+        range: {
+          [field]: {
+            [rangeStartOperator]: rangeStart,
+            [rangeEndOperator]: rangeEnd
+          }
+        }
+      }
+    );
+  }
 }
 
 /**
@@ -199,10 +226,10 @@ class OSQuery {
  * @param {boolean} [ignore=false] - If true, adds terms as "must_not" in the query; otherwise, adds as "must".
  * @param {boolean} [exactMatch=true] - If true, uses "terms" in the match; otherwise, uses "match".
  */
-function addTermsRule(query, terms, clause = 'must', exactMatch = true) {
+function addTermsRule(query, terms, clause = 'filter', exactMatch = true) {
   let match = exactMatch ? 'terms' : 'match';
   for (const term of Object.keys(terms)) {
-    let value = terms[term];
+    let value = escapeOpenSearchQuery(terms[term]);
     // determine value type
     switch (typeof terms[term]) {
       case 'boolean':
@@ -321,7 +348,7 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, acti
       await client.helpers.bulk({
         datasource: chunk,
         refreshOnCompletion: true, // Refresh the index after the operation
-        onDocument (doc) {
+        onDocument(doc) {
           if (!doc.id) {
             throw new Error('Document does not have an ID: ' + JSON.stringify(doc));
           }

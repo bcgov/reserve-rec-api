@@ -27,7 +27,7 @@ async function getProtectedAreas(params) {
       TableName: TABLE_NAME,
       KeyConditionExpression: 'pk = :pk',
       ExpressionAttributeValues: {
-        ':pk': { S: 'place::protectedArea' },
+        ':pk': { S: 'protectedArea' },
       },
     };
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
@@ -47,7 +47,7 @@ async function getProtectedAreas(params) {
  */
 async function getProtectedAreaByOrcs(orcs) {
   try {
-    const res = await getOne('place::protectedArea', orcs);
+    const res = await getOne('protectedArea', `${orcs}::properties`);
     return res;
   } catch (error) {
     throw new Exception('Error getting protected area', { code: 400, error: error });

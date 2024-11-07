@@ -14,28 +14,40 @@ exports.handler = async function (event, context) {
     const queryParams = event.queryStringParameters;
 
     const userQuery = queryParams?.text;
-    if (!userQuery) {
-      logger.error(`Bad Request - Invalid Params:${JSON.stringify(queryParams)}`);
-      return sendResponse(400, {}, 'Bad Request', 'Invalid Params', context);
-    }
+    // if (!userQuery) {
+    //   logger.error(`Bad Request - Invalid Params:${JSON.stringify(queryParams)}`);
+    //   return sendResponse(400, {}, 'Bad Request', 'Invalid Params', context);
+    // }
 
     // Construct the search query
     let query = new OSQuery(OPENSEARCH_MAIN_INDEX, queryParams?.limit, queryParams?.startFrom);
+
     // Text search
-    query.addMatchQueryStringRule(queryParams?.text);
-    // Term matching
+    if (userQuery) {
+      query.addMatchQueryStringRule(queryParams?.text);
+    }
+
+    // Term filtering
     let termQuery = { ...queryParams };
     for (const term in termQuery) {
       if (nonKeyableTerms.indexOf(term) > -1) {
         delete termQuery[term];
       }
     }
-    query.addMustMatchTermsRule(termQuery, true);
+
+    // Date range filtering
+    if (queryParams?.startDate && queryParams?.endDate) {
+      query.addRangeQueryRule('date', queryParams?.startDate, queryParams?.endDate);
+      delete termQuery.startDate;
+      delete termQuery.endDate;
+    }
+
+    query.addFilterTermsRule(termQuery, true);
 
     // Send the query to the OpenSearch cluster
     let response = await query.search();
-    logger.debug('Request:', JSON.stringify(query.request)); // Log the request (available after sending)
-    logger.debug('Response:', JSON.stringify(response)); // Log the response
+    logger.debug('Request:', query.request); // Log the request (available after sending)
+    logger.debug('Response:', response); // Log the response
 
     // Send a success response
     return sendResponse(200, response.body.hits, 'Success', null, context);

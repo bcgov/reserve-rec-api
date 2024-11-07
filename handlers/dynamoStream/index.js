@@ -2,10 +2,9 @@ const { logger } = require('/opt/base');
 const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall, USER_ID_PARTITION } = require('/opt/dynamodb');
 const { OPENSEARCH_MAIN_INDEX, bulkWriteDocuments } = require('/opt/opensearch');
 
-
 exports.handler = async function (event, context) {
   logger.info('Stream Handler');
-  logger.debug(event);
+  logger.debug(JSON.stringify(event));
   try {
     let auditRecordsToCreate = [];
     let upsertDocs = [];
