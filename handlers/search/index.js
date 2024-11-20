@@ -1,6 +1,6 @@
 // Import necessary libraries and modules
 const { OSQuery, OPENSEARCH_MAIN_INDEX, nonKeyableTerms } = require('/opt/opensearch');
-const { sendResponse, logger } = require('/opt/base');
+const { sendResponse, logger, Exception } = require('/opt/base');
 // Lambda function entry point
 exports.handler = async function (event, context) {
   logger.debug('Search:', event); // Log the search event
@@ -13,11 +13,13 @@ exports.handler = async function (event, context) {
     // Extract query parameters from the event
     const queryParams = event.queryStringParameters;
 
+    if (!queryParams) {
+      throw new Exception('No search parameters provided.', {
+        code: 400,
+      })
+    }
+
     const userQuery = queryParams?.text;
-    // if (!userQuery) {
-    //   logger.error(`Bad Request - Invalid Params:${JSON.stringify(queryParams)}`);
-    //   return sendResponse(400, {}, 'Bad Request', 'Invalid Params', context);
-    // }
 
     // Construct the search query
     let query = new OSQuery(OPENSEARCH_MAIN_INDEX, queryParams?.limit, queryParams?.startFrom);

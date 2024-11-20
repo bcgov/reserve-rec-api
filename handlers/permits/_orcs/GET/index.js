@@ -20,6 +20,7 @@ exports.handler = async (event, context) => {
     const identifier = event?.pathParameters?.identifier || event?.queryStringParameters?.identifier || null;
     const startDate = event?.queryStringParameters?.startDate || null;
     const endDate = event?.queryStringParameters?.endDate || null;
+    const showAvailability = event?.queryStringParameters?.showAvailability || false;
 
     if (!permitType && identifier) {
       throw new Exception('PermitType is required when searching by identifier', { code: 400 });
@@ -32,7 +33,7 @@ exports.handler = async (event, context) => {
     let permits = null;
 
     if (startDate) {
-      permits = await getPermit(orcs, permitType, identifier, startDate, endDate);
+      permits = await getPermit(orcs, permitType, identifier, startDate, endDate, showAvailability);
     } else {
       permits = await getPermits(orcs, permitType, identifier);
     }

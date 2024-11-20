@@ -16,7 +16,6 @@ const FORCE_UPDATE = false;
 
 // Add data register fields to sync here
 const FIELDS_TO_SYNC = [
-  'legalName',
   'displayName'
 ];
 
@@ -82,8 +81,15 @@ async function syncData(protectedAreas) {
 async function createPutPAItem(protectedArea, timestamp) {
   let item = {
     pk: 'protectedArea',
-    sk: `${protectedArea.pk}::properties`,
+    sk: `${protectedArea.pk}`,
     orcs: protectedArea.pk,
+    identifier: protectedArea.pk,
+    schema: 'protectedArea',
+    timeZone: 'America/Vancouver',
+    minMapZoom: 10,
+    maxMapZoom: 18,
+    imageUrl: 'https://picsum.photos/500',
+    version: 1,
     creationDate: timestamp,
     lastUpdated: timestamp
   };

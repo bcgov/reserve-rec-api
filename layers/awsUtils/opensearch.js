@@ -53,16 +53,17 @@ if (process.env.IS_OFFLINE === 'true') {
  */
 class OSQuery {
   /**
-   * Creates an instance of OSQuery.
-   *
-   * @constructor
-   * @param {string} [index=OPENSEARCH_MAIN_INDEX] - The index to search.
-   * @param {number} [size=setSearchLimit(size)] - The maximum number of results to return.
-   * @param {number} [from=0] - The starting index for the results.
-   * @param {number} [sortField=null] - A field to sort the results by.
-   * @param {number} [sortOrder=OPENSEARCH_DEFAULT_SORT_ORDER] - The sorting method to use when sorting results.
+   * Creates an instance of the OpenSearch query builder.
+   * 
+   * @param {string} index - The index to search.
+   * @param {Object} [options={}] - The options for the search query.
+   * @param {number} [options.size] - The maximum number of results to return.
+   * @param {number} [options.from=0] - The starting index for the results.
+   * @param {string} [options.sortField] - The field to sort the results by.
+   * @param {'asc' | 'desc'} [options.sortOrder='asc'] - The sorting method to use when sorting results.
+   * @param {string} [options.pipeline] - The pipeline to use for the search.
    */
-  constructor(index, size, from, sortField, sortOrder) {
+  constructor(index, options = {}) {
     /**
      * The query object representing the OpenSearch query.
      * @type {Object}
@@ -77,19 +78,35 @@ class OSQuery {
      * The maximum number of results to return.
      * @type {number}
      */
-    this.size = setSearchLimit(size);
+    this.size = setSearchLimit(options?.size);
     /**
      * The starting index for the results.
      * @type {number}
+     * @default DEFAULT_RESULT_SIZE
      */
-    this.from = from || 0;
-    this.sortField = sortField || null;
-    this.sortOrder = sortOrder || OPENSEARCH_DEFAULT_SORT_ORDER;
+    this.from = options?.from || 0;
+    /**
+     * The field to sort the results by.
+     * @type {string}
+     */
+    this.sortField = options?.sortField || null;
+    /**
+     * The sorting method to use when sorting results.
+     * @type {string}
+     * @default 'asc'
+     * @enum {'asc' | 'desc'}
+     */
+    this.sortOrder = options?.sortOrder || OPENSEARCH_DEFAULT_SORT_ORDER;
     /**
      * The sort object for sorting the results.
      * @type {Object}
      */
     this.sort = null;
+    /**
+     * The pipeline to use for the search.
+     * @type {string}
+     */
+    this.pipeline = options?.pipeline || null;
     this.request = null;
     this.initSortQuery();
   }
@@ -109,13 +126,22 @@ class OSQuery {
       index: this.index,
       size: this.size,
       from: this.from,
-      body: {
-        query: this.query,
-      }
     };
+    let body = {}
+    // add query to body if provided
+    if (Object.keys(this.query).length > 0) {
+      body['query'] = this.query;
+    }
     // Add sort to body if provided
     if (this.sort) {
-      this.request.body['sort'] = this.sort;
+      body['sort'] = this.sort;
+    }
+    // Add pipeline to body if provided
+    if (this.pipeline) {
+      body['search_pipeline'] = this.pipeline;
+    }
+    if (Object.keys(body).length > 0) {
+      this.request.body = body;
     }
     return await client.search(this.request);
   }
@@ -155,7 +181,6 @@ class OSQuery {
     addTermsRule(this.query, terms, 'must', exactMatch);
   }
 
-
   /**
    * Adds a filter terms rule to the OpenSearch query (logical `AND` applied before querying to reduce query set).
    *
@@ -183,6 +208,21 @@ class OSQuery {
  */
   addShouldMatchTermsRule(terms, exactMatch = false) {
     addTermsRule(this.query, terms, 'should', exactMatch);
+  }
+
+  /**
+   * Adds a query rule to filter results by a list of IDs.
+   *
+   * @param {Array<string>} ids - An array of IDs to filter the query results.
+   */
+  addIDsQueryRule(ids) {
+    setNestedValue(
+      this.query,
+      ['ids'],
+      {
+        values: ids
+      }
+    );
   }
 
   /**
@@ -216,6 +256,10 @@ class OSQuery {
       }
     );
   }
+
+  updateSearchPipeline(pipeline) {
+    this.pipeline = pipeline;
+  }
 }
 
 /**
@@ -229,7 +273,7 @@ class OSQuery {
 function addTermsRule(query, terms, clause = 'filter', exactMatch = true) {
   let match = exactMatch ? 'terms' : 'match';
   for (const term of Object.keys(terms)) {
-    let value = escapeOpenSearchQuery(terms[term]);
+    let value = terms[term];
     // determine value type
     switch (typeof terms[term]) {
       case 'boolean':

@@ -35,7 +35,7 @@ async function getPermits(orcs, permitType = null, identifier = null, params = n
   return await runQuery(queryCommand, params?.limit || null, params?.lastEvaluatedKey || null, params?.paginated || false);
 }
 
-async function getPermit(orcs, permitType, identifier, startDate = null, endDate = null) {
+async function getPermit(orcs, permitType, identifier, startDate = null, endDate = null, showAvailability = false) {
   const permitProps = await getOne(`permit::${orcs}`, `${permitType}::${identifier}::properties`);
   if (!permitProps) {
     throw new Exception(`No static properties found for pk: permit::${orcs}, sk: ${permitType}::${identifier}::properties`, { code: 404 });
@@ -61,7 +61,10 @@ async function getPermit(orcs, permitType, identifier, startDate = null, endDate
     }
   }
 
-  console.log('permitData:', permitData);
+  if (showAvailability) {
+    permitData.FilterExpression = 'attribute_exists(availability) AND availability >= :availability';
+    permitData.ExpressionAttributeValues[':availability'] = { N: 0 };
+  }
 
   let temporalPermitData = await runQuery(permitData, null, null, false);
 
