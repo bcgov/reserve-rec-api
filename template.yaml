@@ -658,6 +658,77 @@ Resources:
                 Authorizer: NONE
                 OverrideApiAuth: true
 
+  ### Activities ###
+  ActivitiesGet:
+      FunctionName: ActivitiesGet
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: handlers/activities/GET
+        Handler: index.handler
+        Layers:
+          - !Ref BaseLayer
+          - !Ref AWSUtilsLayer
+          - !Ref DataUtilsLayer
+        Runtime: nodejs20.x
+        Architectures:
+          - x86_64
+        MemorySize: 128
+        Timeout: 20
+        Description: Get activities by orcs or single activity with orcs/activityType/activityId lambda function
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Ref TableName
+        Environment:
+          Variables:
+            LOG_LEVEL: info
+            TABLE_NAME: !Ref TableName
+        Events:
+          ActivitiesGet:
+            Type: Api
+            Properties:
+              Path: /activities
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          ActivitiesOptions:
+            Type: Api
+            Properties:
+              Path: /activities
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+          ActivitiesByOrcsGet:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/activities
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          ActivitiesByOrcsOptions:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/activities
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+          ActivitiesGetByOrcsAndSubareaId:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          ActivitiesOptionsByOrcsAndSubareaId:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/activities/{subareaId}/{activityId}
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+
   ### Policies ###
   PoliciesGet:
     FunctionName: PoliciesGet

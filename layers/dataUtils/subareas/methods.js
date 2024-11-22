@@ -3,6 +3,7 @@
  */
 
 const { TABLE_NAME, getOne, parallelizedBatchGetData, runQuery } = require('/opt/dynamodb');
+const { buildCompKeysFromSkField } = require('/opt/data-utils');
 const { Exception, logger } = require('/opt/base');
 
 async function getSubareasByOrcs(orcs, params = null) {
@@ -37,18 +38,10 @@ async function getSubareaById(orcs, id, fetchObj = null) {
     // In the case where we want to fetch activities and/or facilites, there is no capacity unit cost saving by batching the gets, only a latency cost saving - so we can just do them in parallel to keep their results separate.
     let promiseObj = {};
     if (fetchObj?.fetchActivities && res.activities) {
-      let activities = [];
-      for (const activity of res?.activities) {
-        activities.push({ pk: `activity::${orcs}`, sk: activity });
-      }
-      promiseObj.activities = activities;
+      promiseObj.activities = buildCompKeysFromSkField(res, `activity::${orcs}`, 'activities');
     }
     if (fetchObj?.fetchFacilities && res?.facilities) {
-      let facilities = [];
-      for (const facility of res.facilities) {
-        facilities.push({ pk: `facility::${orcs}`, sk: facility });
-      }
-      promiseObj.facilities = facilities;
+      promiseObj.facilities = buildCompKeysFromSkField(res, `facility::${orcs}`, 'facilities');
     }
 
     if (Object.keys(promiseObj).length) {

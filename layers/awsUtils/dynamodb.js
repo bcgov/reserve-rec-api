@@ -134,6 +134,13 @@ async function putItem(obj, tableName = TABLE_NAME) {
   await dynamodb.putItem(putObj);
 }
 
+/**
+ * Retrieves data from DynamoDB in parallel using batch get requests. Fires off multiple async requests to DynamoDB, but waits for all to complete before returning.
+ *
+ * @param {Object} groups - An object where each key represents a group of data and its value is an array of pk/sk keys to fetch.
+ * @param {string} tableName - The name of the DynamoDB table to query.
+ * @returns {Object} An object where each key is a group of results from the batch get requests.
+ */
 async function parallelizedBatchGetData(groups, tableName) {
   // create array from groups
   const keys = Object.keys(groups);
@@ -141,9 +148,21 @@ async function parallelizedBatchGetData(groups, tableName) {
   return promises;
 }
 
+/**
+ * Retrieves a batch of items from a DynamoDB table.
+ *
+ * @param {Array} keys - An array of keys to retrieve from the table.
+ * @param {string} tableName - The name of the DynamoDB table.
+ * @returns {Object} An array of items retrieved from the table.
+ */
+async function batchGetData(keys, tableName) {
+  const data = await Promise(batchGetDataPromise('batch', keys, tableName));
+  return data.batch;
+}
+
 function batchGetDataPromise(groupName, keys, tableName) {
-  let data = [];
   return new Promise((resolve, reject) => {
+    let data = [];
     const params = {
       RequestItems: {
         [tableName]: {
@@ -274,6 +293,7 @@ module.exports = {
   QueryCommand,
   TABLE_NAME,
   USER_ID_PARTITION,
+  batchGetData,
   batchTransactData,
   batchWriteData,
   dynamodb,

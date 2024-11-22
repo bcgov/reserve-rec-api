@@ -1,4 +1,4 @@
-const { marshall, runQuery } = require("/opt/dynamodb");
+const { marshall, runQuery, parallelizedBatchGetData } = require("/opt/dynamodb");
 const { Exception, getNowISO, logger } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("/opt/data-constants");
 
@@ -347,7 +347,28 @@ async function getNextIdentifier(tableName, pk, identifierField, skStartsWith = 
   return nextId + 1;
 }
 
+/**
+ * Builds an array of composite keys (pk/sk) from a specified field of sort keys in the root item.
+ *
+ * @param {Object} rootItem - The root item containing the field to build keys from.
+ * @param {string|Function} pk - The partition key or a function to generate the partition key from the root item.
+ * @param {string} skField - The field name in the root item that contains sort keys.
+ * @returns {Array<Object>} An array of objects containing the partition key (pk) and sort key (sk) of each item.
+ */
+function buildCompKeysFromSkField(rootItem, pk, skField){
+  let keys = [];
+  for (const item of rootItem?.[skField]) {
+    let pkValue = pk;
+    if (typeof pk === 'function') {
+      pkValue = pk(rootItem);
+    }
+    keys.push({ pk: pkValue, sk: item });
+  }
+  return keys;
+}
+
 module.exports = {
+  buildCompKeysFromSkField,
   getNextIdentifier,
   quickApiCreateHandler,
   quickApiUpdateHandler,
