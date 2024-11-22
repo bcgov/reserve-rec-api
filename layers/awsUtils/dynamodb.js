@@ -1,4 +1,4 @@
-const { DynamoDB, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, TransactWriteItemsCommand } = require('@aws-sdk/client-dynamodb');
+const { BatchGetItemCommand, DynamoDB, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, TransactWriteItemsCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { logger } = require('/opt/base');
 
@@ -134,6 +134,42 @@ async function putItem(obj, tableName = TABLE_NAME) {
   await dynamodb.putItem(putObj);
 }
 
+async function parallelizedBatchGetData(groups, tableName) {
+  // create array from groups
+  const keys = Object.keys(groups);
+  const promises = await Promise.all(keys.map(key => batchGetDataPromise(key, groups[key], tableName)));
+  return promises;
+}
+
+function batchGetDataPromise(groupName, keys, tableName) {
+  let data = [];
+  return new Promise((resolve, reject) => {
+    const params = {
+      RequestItems: {
+        [tableName]: {
+          Keys: keys.map(key => marshall(key))
+        }
+      }
+    };
+    const command = new BatchGetItemCommand(params);
+    dynamodbClient.send(command, (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        data = res.Responses[tableName].map(item => unmarshall(item));
+        if (res.UnprocessedKeys[tableName]?.Keys) {
+          data['unprocessedKeys'] = res.UnprocessedKeys[tableName]?.Keys;
+        }
+        resolve({
+          key: groupName,
+          data: data
+        });
+      }
+    });
+  });
+}
+
+
 async function batchWriteData(dataToInsert, chunkSize, tableName) {
   logger.debug(JSON.stringify(dataToInsert));
 
@@ -244,6 +280,7 @@ module.exports = {
   dynamodbClient,
   getOne,
   marshall,
+  parallelizedBatchGetData,
   putItem,
   runQuery,
   runScan,
