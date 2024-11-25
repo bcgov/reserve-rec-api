@@ -30,7 +30,6 @@ async function getProductById(orcs, activityType, activityId, productId, fetchOb
     let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::properties`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
-      console.log('POLICY_TYPES:', POLICY_TYPES);
       POLICY_TYPES.map(policyType => {
         const property = `${policyType}Policy`;
         promiseObj[property] = [{
@@ -39,10 +38,8 @@ async function getProductById(orcs, activityType, activityId, productId, fetchOb
         }];
       });
     }
-    console.log('promiseObj:', promiseObj);
     if (Object.keys(promiseObj).length) {
       let results = await parallelizedBatchGetData(promiseObj, TABLE_NAME);
-      console.log('results:', results);
       for (const result of results) {
         res[result.key] = result.data;
       }

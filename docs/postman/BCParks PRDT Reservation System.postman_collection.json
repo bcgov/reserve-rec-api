@@ -14,6 +14,215 @@
 					"name": "Protected Area by ORCS",
 					"item": [
 						{
+							"name": "Subarea",
+							"item": [
+								{
+									"name": "Get Subarea by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/subareas?subareaId=1&fetchActivities=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"subareas"
+											],
+											"query": [
+												{
+													"key": "subareaId",
+													"value": "1"
+												},
+												{
+													"key": "fetchActivities",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "8"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Activity",
+							"item": [
+								{
+									"name": "ActivityType and ActivityId",
+									"item": [
+										{
+											"name": "Products",
+											"item": [
+												{
+													"name": "Get Products",
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{base_url}}/protected-areas/:orcs/activities/:activityType/:activityId/products",
+															"host": [
+																"{{base_url}}"
+															],
+															"path": [
+																"protected-areas",
+																":orcs",
+																"activities",
+																":activityType",
+																":activityId",
+																"products"
+															],
+															"variable": [
+																{
+																	"key": "orcs",
+																	"value": "7"
+																},
+																{
+																	"key": "activityType",
+																	"value": "dayuse"
+																},
+																{
+																	"key": "activityId",
+																	"value": "1"
+																}
+															]
+														}
+													},
+													"response": []
+												}
+											]
+										},
+										{
+											"name": "Get Activity by Orcs, ActivityType, ActivityId",
+											"request": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{base_url}}/protected-areas/:orcs/activities/:activityType/:activityId",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"protected-areas",
+														":orcs",
+														"activities",
+														":activityType",
+														":activityId"
+													],
+													"variable": [
+														{
+															"key": "orcs",
+															"value": "8"
+														},
+														{
+															"key": "activityType",
+															"value": ""
+														},
+														{
+															"key": "activityId",
+															"value": ""
+														}
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Get Activity by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/activities?activityType=dayuse&activityId=3&fetchProducts=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"activities"
+											],
+											"query": [
+												{
+													"key": "activityType",
+													"value": "dayuse"
+												},
+												{
+													"key": "activityId",
+													"value": "3"
+												},
+												{
+													"key": "fetchProducts",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "8"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Facility",
+							"item": [
+								{
+									"name": "Get Facility by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/facilities?facilityType=parking&facilityId=1&fetchActivities=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"facilities"
+											],
+											"query": [
+												{
+													"key": "facilityType",
+													"value": "parking"
+												},
+												{
+													"key": "facilityId",
+													"value": "1"
+												},
+												{
+													"key": "fetchActivities",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "15"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
 							"name": "Get Protected Area by ORCS",
 							"request": {
 								"method": "GET",
@@ -44,7 +253,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "",
+									"raw": "{\r\n    \"displayName\": \"Strathcona 2 Electric Boogaloo\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -76,7 +285,23 @@
 					"name": "Get Protected Areas",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/protected-areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"protected-areas"
+							]
+						}
 					},
 					"response": []
 				},
@@ -185,42 +410,6 @@
 									"response": []
 								}
 							]
-						},
-						{
-							"name": "Get Policies By Policy Type",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/policies/:policyType",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"policies",
-										":policyType"
-									],
-									"variable": [
-										{
-											"key": "policyType",
-											"value": "booking"
-										}
-									]
-								}
-							},
-							"response": []
 						}
 					]
 				},
@@ -228,6 +417,42 @@
 					"name": "Create Policy",
 					"request": {
 						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/policies/:policyType",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"policies",
+								":policyType"
+							],
+							"variable": [
+								{
+									"key": "policyType",
+									"value": "booking"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Policies By Policy Type",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
 						"header": [],
 						"body": {
 							"mode": "raw",
@@ -286,353 +511,142 @@
 			]
 		},
 		{
-			"name": "Places",
+			"name": "Subareas",
 			"item": [
 				{
-					"name": "Places By ORCS",
-					"item": [
-						{
-							"name": "Places by PlaceType",
-							"item": [
+					"name": "Get subareas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/subareas?orcs=8&subareaId=1&fetchActivities=true&fetchFacilities=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subareas"
+							],
+							"query": [
 								{
-									"name": "Place by Identifier",
-									"item": [
-										{
-											"name": "Get Place by Identifier",
-											"request": {
-												"method": "GET",
-												"header": [],
-												"url": {
-													"raw": "{{base_url}}/places/:orcs/:placeType/:identifier",
-													"host": [
-														"{{base_url}}"
-													],
-													"path": [
-														"places",
-														":orcs",
-														":placeType",
-														":identifier"
-													],
-													"variable": [
-														{
-															"key": "orcs",
-															"value": "250"
-														},
-														{
-															"key": "placeType",
-															"value": "campground"
-														},
-														{
-															"key": "identifier",
-															"value": "2"
-														}
-													]
-												}
-											},
-											"response": []
-										}
-									]
+									"key": "orcs",
+									"value": "8"
 								},
 								{
-									"name": "Get Places by PlaceType",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{base_url}}/places/:orcs/:placeType",
-											"host": [
-												"{{base_url}}"
-											],
-											"path": [
-												"places",
-												":orcs",
-												":placeType"
-											],
-											"variable": [
-												{
-													"key": "orcs",
-													"value": "1"
-												},
-												{
-													"key": "placeType",
-													"value": "boatlaunch"
-												}
-											]
-										}
-									},
-									"response": []
+									"key": "subareaId",
+									"value": "1"
+								},
+								{
+									"key": "fetchActivities",
+									"value": "true"
+								},
+								{
+									"key": "fetchFacilities",
+									"value": "true"
 								}
 							]
-						},
-						{
-							"name": "Get Places By ORCS",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/places/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"places",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
 						}
-					]
+					},
+					"response": []
 				}
 			]
 		},
 		{
-			"name": "Permits",
+			"name": "Activities",
 			"item": [
 				{
-					"name": "Permits by ORCS",
-					"item": [
-						{
-							"name": "Permits by PermitType",
-							"item": [
+					"name": "Get Activities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities?orcs=7",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"activities"
+							],
+							"query": [
 								{
-									"name": "Permits by Identifier",
-									"item": [
-										{
-											"name": "Get Permit by Identifier",
-											"request": {
-												"method": "GET",
-												"header": [],
-												"url": {
-													"raw": "{{base_url}}/permits/:orcs/:permitType/:identifier",
-													"host": [
-														"{{base_url}}"
-													],
-													"path": [
-														"permits",
-														":orcs",
-														":permitType",
-														":identifier"
-													],
-													"variable": [
-														{
-															"key": "orcs",
-															"value": "250"
-														},
-														{
-															"key": "permitType",
-															"value": "backcountryRegistration"
-														},
-														{
-															"key": "identifier",
-															"value": "1"
-														}
-													]
-												}
-											},
-											"response": []
-										}
-									]
-								},
-								{
-									"name": "Get Permits by PermitType",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{base_url}}/permits/:orcs/:permitType",
-											"host": [
-												"{{base_url}}"
-											],
-											"path": [
-												"permits",
-												":orcs",
-												":permitType"
-											],
-											"variable": [
-												{
-													"key": "orcs",
-													"value": "1"
-												},
-												{
-													"key": "permitType",
-													"value": "backcountryRegistration"
-												}
-											]
-										}
-									},
-									"response": []
+									"key": "orcs",
+									"value": "7"
 								}
 							]
-						},
-						{
-							"name": "Get Permit by ORCS",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/permits/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"permits",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "9398"
-										}
-									]
-								}
-							},
-							"response": []
 						}
-					]
+					},
+					"response": []
 				}
 			]
 		},
 		{
-			"name": "Inventory",
+			"name": "Facilties",
 			"item": [
 				{
-					"name": "Inventory by Place",
-					"item": [
-						{
-							"name": "Inventory by InventoryType",
-							"item": [
+					"name": "Get Facilities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/facilities?orcs=363",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"facilities"
+							],
+							"query": [
 								{
-									"name": "Inventory by Identifier",
-									"item": [
-										{
-											"name": "Get Inventory By Identifier",
-											"request": {
-												"method": "GET",
-												"header": [],
-												"url": {
-													"raw": "{{base_url}}/inventory/:orcs/:placeType/:placeId/:inventoryType/:identifier",
-													"host": [
-														"{{base_url}}"
-													],
-													"path": [
-														"inventory",
-														":orcs",
-														":placeType",
-														":placeId",
-														":inventoryType",
-														":identifier"
-													],
-													"variable": [
-														{
-															"key": "orcs",
-															"value": "1"
-														},
-														{
-															"key": "placeType",
-															"value": "campground"
-														},
-														{
-															"key": "placeId",
-															"value": "1"
-														},
-														{
-															"key": "inventoryType",
-															"value": "tentpad"
-														},
-														{
-															"key": "identifier",
-															"value": "1"
-														}
-													]
-												}
-											},
-											"response": []
-										}
-									]
-								},
-								{
-									"name": "Get Inventory by InventoryType",
-									"request": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{base_url}}/inventory/:orcs/:placeType/:placeId/:inventoryType",
-											"host": [
-												"{{base_url}}"
-											],
-											"path": [
-												"inventory",
-												":orcs",
-												":placeType",
-												":placeId",
-												":inventoryType"
-											],
-											"variable": [
-												{
-													"key": "orcs",
-													"value": "1"
-												},
-												{
-													"key": "placeType",
-													"value": "campground"
-												},
-												{
-													"key": "placeId",
-													"value": "1"
-												},
-												{
-													"key": "inventoryType",
-													"value": "tentpad"
-												}
-											]
-										}
-									},
-									"response": []
+									"key": "orcs",
+									"value": "363"
 								}
 							]
-						},
-						{
-							"name": "Get Inventory by Place",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/inventory/:orcs/:placeType/:placeId",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"inventory",
-										":orcs",
-										":placeType",
-										":placeId"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "1"
-										},
-										{
-											"key": "placeType",
-											"value": "campground"
-										},
-										{
-											"key": "placeId",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
 						}
-					]
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/products?orcs=7&activityType=dayuse&activityId=1&productId=1&fetchPolicies=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"products"
+							],
+							"query": [
+								{
+									"key": "orcs",
+									"value": "7"
+								},
+								{
+									"key": "activityType",
+									"value": "dayuse"
+								},
+								{
+									"key": "activityId",
+									"value": "1"
+								},
+								{
+									"key": "productId",
+									"value": "1"
+								},
+								{
+									"key": "fetchPolicies",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -660,9 +674,9 @@
 					}
 				},
 				"url": {
-					"raw": "{{vanity_url}}/search?text=park",
+					"raw": "{{base_url}}/search?limit=20&type=opDate&startDate=2024-11-06&endDate=2024-11-08&category=permit",
 					"host": [
-						"{{vanity_url}}"
+						"{{base_url}}"
 					],
 					"path": [
 						"search"
@@ -670,7 +684,7 @@
 					"query": [
 						{
 							"key": "type",
-							"value": "protectedArea",
+							"value": "backcountryRegistration",
 							"disabled": true
 						},
 						{
@@ -680,11 +694,90 @@
 						},
 						{
 							"key": "text",
-							"value": "park"
+							"value": "date",
+							"disabled": true
 						},
 						{
 							"key": "limit",
+							"value": "20"
+						},
+						{
+							"key": "status",
+							"value": "historical",
+							"disabled": true
+						},
+						{
+							"key": "sortField",
+							"value": "effectiveDate",
+							"disabled": true
+						},
+						{
+							"key": "type",
+							"value": "opDate"
+						},
+						{
+							"key": "startDate",
+							"value": "2024-11-06"
+						},
+						{
+							"key": "endDate",
+							"value": "2024-11-08"
+						},
+						{
+							"key": "category",
+							"value": "permit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Permit Search",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{x-api-key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/search/permits",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"search",
+						"permits"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "backcountryRegistration",
+							"disabled": true
+						},
+						{
+							"key": "startFrom",
 							"value": "4",
+							"disabled": true
+						},
+						{
+							"key": "text",
+							"value": "joffre",
 							"disabled": true
 						},
 						{
@@ -695,6 +788,21 @@
 						{
 							"key": "sortField",
 							"value": "effectiveDate",
+							"disabled": true
+						},
+						{
+							"key": "limit",
+							"value": "2",
+							"disabled": true
+						},
+						{
+							"key": "startDate",
+							"value": "2024-11-06",
+							"disabled": true
+						},
+						{
+							"key": "endDate",
+							"value": "2024-11-08",
 							"disabled": true
 						}
 					]
