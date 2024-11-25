@@ -729,6 +729,77 @@ Resources:
                 Authorizer: NONE
                 OverrideApiAuth: true
 
+  ### Facilities ###
+  FacilitiesGet:
+      FunctionName: FacilitiesGet
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: handlers/facilities/GET
+        Handler: index.handler
+        Layers:
+          - !Ref BaseLayer
+          - !Ref AWSUtilsLayer
+          - !Ref DataUtilsLayer
+        Runtime: nodejs20.x
+        Architectures:
+          - x86_64
+        MemorySize: 128
+        Timeout: 20
+        Description: Get facilites by orcs or single facility with orcs/facilityType/facilityId lambda function
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Ref TableName
+        Environment:
+          Variables:
+            LOG_LEVEL: info
+            TABLE_NAME: !Ref TableName
+        Events:
+          FacilitiesGet:
+            Type: Api
+            Properties:
+              Path: /facilities
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          FacilitiesOptions:
+            Type: Api
+            Properties:
+              Path: /facilities
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+          FcilitiesByOrcsGet:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/facilities
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          FcilitiesByOrcsOptions:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/facilities
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+          FcilitiesGetByOrcsAndSubareaId:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
+              Method: GET
+              RestApiId: !Ref ApiDeployment
+          FcilitiesOptionsByOrcsAndSubareaId:
+            Type: Api
+            Properties:
+              Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
+              Method: OPTIONS
+              RestApiId: !Ref ApiDeployment
+              Auth:
+                Authorizer: NONE
+                OverrideApiAuth: true
+
   ### Policies ###
   PoliciesGet:
     FunctionName: PoliciesGet
