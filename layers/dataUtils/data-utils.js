@@ -1,4 +1,4 @@
-const { marshall, runQuery, parallelizedBatchGetData } = require("/opt/dynamodb");
+const { marshall, runQuery } = require("/opt/dynamodb");
 const { Exception, getNowISO, logger } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("/opt/data-constants");
 
