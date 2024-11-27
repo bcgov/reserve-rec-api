@@ -722,7 +722,7 @@ Resources:
         ActivitiesOptionsByOrcsAndSubareaId:
           Type: Api
           Properties:
-            Path: /protected-areas/{orcs}/activities/{subareaId}/{activityId}
+            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
             Method: OPTIONS
             RestApiId: !Ref ApiDeployment
             Auth:
