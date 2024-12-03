@@ -1,4 +1,5 @@
-const { TABLE_NAME, runQuery, getOne } = require('/opt/dynamodb');
+const { TABLE_NAME, batchGetData, runQuery, getOne } = require('/opt/dynamodb');
+const { buildCompKeysFromSkField } = require('/opt/data-utils');
 const { Exception, logger } = require('/opt/base');
 const { getProductsByActivity } = require('/opt/products/methods');
 
@@ -33,6 +34,10 @@ async function getActivityById(orcs, type, id, fetchObj = null) {
     if (fetchObj?.fetchProducts) {
       const products = await getProductsByActivity(orcs, type, id);
       res.products = products?.items || [];
+    }
+    if (fetchObj?.fetchFacilities && res.facilities) {
+      let keys = buildCompKeysFromSkField(res, `facility::${orcs}`, 'facilities');
+      res.facilities = await batchGetData(keys, TABLE_NAME);
     }
     return res;
   } catch (error) {

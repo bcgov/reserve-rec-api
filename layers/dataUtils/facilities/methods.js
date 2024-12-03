@@ -1,6 +1,6 @@
-const { TABLE_NAME, runQuery, getOne } = require('/opt/dynamodb');
+const { TABLE_NAME, batchGetData, runQuery, getOne } = require('/opt/dynamodb');
+const { buildCompKeysFromSkField } = require('/opt/data-utils');
 const { Exception, logger } = require('/opt/base');
-const { getActivitiesByOrcs } = require('/opt/activities/methods');
 
 async function getFacilitiesByOrcs(orcs, params = null) {
   logger.info('Get Facilities');
@@ -30,9 +30,9 @@ async function getFacilityById(orcs, type, id, fetchObj = null) {
   logger.info('Get Facility By Type and ID');
   try {
     let res = await getOne(`facility::${orcs}`, `${type}::${id}`);
-    if (fetchObj?.fetchActivities) {
-      const activities = await getActivitiesByOrcs(orcs);
-      res.activities = activities?.items || [];
+    if (fetchObj?.fetchActivities && res.activities) {
+      let keys = buildCompKeysFromSkField(res, `activity::${orcs}`, 'activities');
+      res.activities = await batchGetData(keys, TABLE_NAME);
     }
     return res;
   } catch (error) {

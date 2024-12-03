@@ -19,6 +19,7 @@ exports.handler = async (event, context) => {
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || null;
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || null;
     const fetchProducts = Boolean(event?.queryStringParameters?.fetchProducts);
+    const fetchFacilities = Boolean(event?.queryStringParameters?.fetchFacilities);
 
     if (!orcs) {
       throw new Exception('ORCS is required', { code: 400 });
@@ -32,7 +33,8 @@ exports.handler = async (event, context) => {
     }
 
     const fetchObj = {
-      fetchProducts: fetchProducts
+      fetchProducts: fetchProducts,
+      fetchFacilities: fetchFacilities
     };
 
     let activitySk = (activityType && activityId) ? `${activityType}::${activityId}` : null;

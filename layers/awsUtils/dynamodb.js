@@ -156,8 +156,8 @@ async function parallelizedBatchGetData(groups, tableName) {
  * @returns {Object} An array of items retrieved from the table.
  */
 async function batchGetData(keys, tableName) {
-  const data = await Promise(batchGetDataPromise('batch', keys, tableName));
-  return data.batch;
+  const res = await batchGetDataPromise('batch', keys, tableName);
+  return res?.data;
 }
 
 function batchGetDataPromise(groupName, keys, tableName) {
@@ -176,7 +176,7 @@ function batchGetDataPromise(groupName, keys, tableName) {
         reject(err);
       } else {
         data = res.Responses[tableName].map(item => unmarshall(item));
-        if (res.UnprocessedKeys[tableName]?.Keys) {
+        if (res?.UnprocessedKeys?.[tableName]?.Keys) {
           data['unprocessedKeys'] = res.UnprocessedKeys[tableName]?.Keys;
         }
         resolve({
