@@ -3,7 +3,7 @@ const { combine, timestamp } = format;
 const axios = require('axios');
 const { DateTime } = require('luxon');
 
-const TIMEZONE = 'America/Vancouver';
+const DEFAULT_TIMEZONE = 'America/Vancouver';
 
 const LEVEL = process.env.LOG_LEVEL || "error";
 
@@ -103,6 +103,23 @@ async function httpGet(url, params = null, headers = null) {
   }
 }
 
+const buildDateTimeFromShortDate = function (shortDate, tz = DEFAULT_TIMEZONE) {
+  return DateTime.fromFormat(shortDate, 'yyyy-LL-dd', { zone: tz });
+}
+
+const buildDateRange = function (startDate, endDate, format = 'yyyy-LL-dd') {
+  let dateRange = [];
+  // convert startDate and endDate to DateTime objects
+  const startDateTime = DateTime.fromISO(startDate);
+  const endDateTime = DateTime.fromISO(endDate);
+  let currentDate = startDateTime;
+  while (currentDate <= endDateTime) {
+    dateRange.push(currentDate.toFormat(format));
+    currentDate = currentDate.plus({ days: 1 });
+  }
+  return dateRange;
+}
+
 const Exception = class extends Error {
   constructor(message, errorData) {
     super(message);
@@ -116,6 +133,8 @@ const Exception = class extends Error {
 module.exports = {
   DateTime,
   Exception,
+  buildDateTimeFromShortDate,
+  buildDateRange,
   checkWarmup,
   getNow,
   getNowISO,

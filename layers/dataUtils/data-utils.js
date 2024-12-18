@@ -1,4 +1,4 @@
-const { marshall, runQuery } = require("/opt/dynamodb");
+const { getOne, marshall, runQuery } = require("/opt/dynamodb");
 const { Exception, getNowISO, logger } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("/opt/data-constants");
 
@@ -124,6 +124,11 @@ function validateRequestData(itemData, itemConfig) {
     return;
   }
 
+  // If no fields are provided, skip validation
+  if (!itemConfig?.fields) {
+    return;
+  }
+
   let dupeCheck = new Set();
 
   // validate all the fields using the rules in the config.
@@ -172,7 +177,7 @@ function validateRequestData(itemData, itemConfig) {
   }
 }
 
-async function quickApiCreateHandler(tableName, createList, config = DEFAULT_API_UPDATE_CONFIG) {
+async function quickApiPutHandler(tableName, createList, config = DEFAULT_API_UPDATE_CONFIG) {
   // We need to ensure that the 'set' action is used for all fields.
   logger.debug('Table name', tableName);
   logger.debug('Create list', JSON.stringify(createList, null, 2));
@@ -193,6 +198,12 @@ async function quickApiCreateHandler(tableName, createList, config = DEFAULT_API
           throw new Exception(`No field data provided with item.`, { code: 400, error: `Item data should be of the form: {field: <value>}` });
         }
 
+        // If overwrites are allowed, check if the item already exists
+        let existingItem = null;
+        if (itemConfig?.allowOverwrite) {
+          existingItem = await getOne(itemData.pk, itemData.sk);
+        }
+
         let dataToValidate = {};
         Object.keys(itemData).map((field) => {
           dataToValidate[field] = {
@@ -205,12 +216,12 @@ async function quickApiCreateHandler(tableName, createList, config = DEFAULT_API
         validateRequestData(dataToValidate, itemConfig);
 
         if (itemConfig?.autoTimestamp) {
-          itemData['creationDate'] = now;
+          itemData['creationDate'] = existingItem?.creationDate ? existingItem.creationDate : now;
           itemData['lastUpdated'] = now;
         }
 
         if (itemConfig?.autoVersion) {
-          itemData['version'] = 1;
+          itemData['version'] = existingItem?.version ? existingItem.version + 1 : 1;
         }
 
         let createCommand = {
@@ -218,9 +229,14 @@ async function quickApiCreateHandler(tableName, createList, config = DEFAULT_API
           data: {
             TableName: tableName,
             Item: marshall(itemData),
-            ConditionExpression: 'attribute_not_exists(pk)',
           }
         };
+
+        // Prevent overwrites if config.allowOverwrite is false
+        if (!itemConfig?.allowOverwrite) {
+          createCommand.data.ConditionExpression = 'attribute_not_exists(pk)';
+        }
+
         createItems.push(createCommand);
       } catch (error) {
         if (config?.failOnError) {
@@ -355,7 +371,7 @@ async function getNextIdentifier(tableName, pk, identifierField, skStartsWith = 
  * @param {string} skField - The field name in the root item that contains sort keys.
  * @returns {Array<Object>} An array of objects containing the partition key (pk) and sort key (sk) of each item.
  */
-function buildCompKeysFromSkField(rootItem, pk, skField){
+function buildCompKeysFromSkField(rootItem, pk, skField) {
   let keys = [];
   for (const item of rootItem?.[skField]) {
     let pkValue = pk;
@@ -370,6 +386,6 @@ function buildCompKeysFromSkField(rootItem, pk, skField){
 module.exports = {
   buildCompKeysFromSkField,
   getNextIdentifier,
-  quickApiCreateHandler,
+  quickApiPutHandler,
   quickApiUpdateHandler,
 };

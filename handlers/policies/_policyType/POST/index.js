@@ -3,7 +3,7 @@
  */
 
 const { Exception, logger, sendResponse } = require('/opt/base');
-const { getNextIdentifier, quickApiCreateHandler } = require('/opt/data-utils');
+const { getNextIdentifier, quickApiPutHandler } = require('/opt/data-utils');
 const { TABLE_NAME, batchTransactData } = require('/opt/dynamodb');
 const { POLICY_API_CREATE_CONFIGS, POLICY_TYPES } = require('/opt/policies/configs');
 
@@ -43,7 +43,7 @@ exports.handler = async (event, context) => {
 
     logger.debug('createCommand', createCommand);
 
-    let commandList = await quickApiCreateHandler(TABLE_NAME, [createCommand], config);
+    let commandList = await quickApiPutHandler(TABLE_NAME, [createCommand], config);
     await batchTransactData(commandList);
 
     const returnData = {

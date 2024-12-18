@@ -871,6 +871,47 @@ Resources:
               Authorizer: NONE
               OverrideApiAuth: true
 
+  ### Build Schedule ###
+  BuildProductSchedulePut:
+    FunctionName: BuildProductSchedulePut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/products/buildSchedule/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Build a product schedule from its default properties and a calendar - lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        BuildProductSchedulePut:
+          Type: Api
+          Properties:
+            Path: /products/build-schedule
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+        BuildProductScheduleOptions:
+          Type: Api
+          Properties:
+            Path: /products/build-schedule
+            Method: OPTIONS
+            RestApiId: !Ref ApiDeployment
+            Auth:
+              Authorizer: NONE
+              OverrideApiAuth: true
+
   ### Policies ###
   PoliciesGet:
     FunctionName: PoliciesGet
