@@ -60,7 +60,35 @@ async function getSubareaById(orcs, id, fetchObj = null) {
   }
 }
 
-async function postSubarea(orcs, fields) {
+async function generateDefaultSubareaObj(orcs) {
+  const nextId = await getNextSubareaId(orcs);
+
+  // construct default subarea object
+  return {
+    pk: `subarea::${orcs}`,
+    sk: String(nextId),
+    identifier: nextId,
+    schema: 'subarea',
+    orcs: orcs,
+    displayName: `Subarea ${orcs}-${nextId}`,
+    description: '',
+    isVisible: false,
+    activities: [],
+    facilities: [],
+    searchTerms: [],
+    version: 1,
+    envelope: {
+      type: 'Envelope',
+      coordinates: BC_BBOX
+    },
+    location: {
+      type: 'Point',
+      coordinates: BC_CENTROID
+    }
+  };
+}
+
+async function postSubarea(orcs, body = null) {
   logger.info('Post New Subarea');
   try {
     // Check orcs
@@ -68,34 +96,16 @@ async function postSubarea(orcs, fields) {
     if (!park) {
       throw 'Invalid ORCS';
     }
-    const nextId = await getNextSubareaId(orcs);
 
-    // construct default subarea object
-    const subarea = {
-      pk: `subarea::${orcs}`,
-      sk: String(nextId),
-      identifier: nextId,
-      schema: 'subarea',
-      orcs: orcs,
-      displayName: `Subarea ${orcs}-${nextId}`,
-      description: '',
-      isVisible: false,
-      activities: [],
-      facilities: [],
-      searchTerms: [],
-      envelope: {
-        type: 'Envelope',
-        coordinates: BC_BBOX
-      },
-      location: {
-        type: 'Point',
-        coordinates: BC_CENTROID
-      }
-    };
+    const subarea = await generateDefaultSubareaObj(orcs);
+
+    // if body provided, object merge with default subarea object
+    if (body) {
+      Object.assign(subarea, body);
+    }
 
     const updateList = [{
-      data: subarea,
-      config: SUBAREA_CREATE_CONFIG
+      data: subarea
     }];
 
     const command = await quickApiPutHandler(TABLE_NAME, updateList, SUBAREA_CREATE_CONFIG);

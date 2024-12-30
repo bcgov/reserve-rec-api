@@ -13,7 +13,7 @@ const BC_BBOX = [
 ];
 
 const BC_CENTROID = [
-    [-126.545, 54.15]
+    -126.545, 54.15
 ];
 
 module.exports = {

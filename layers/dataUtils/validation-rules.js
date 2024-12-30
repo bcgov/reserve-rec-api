@@ -2,6 +2,10 @@ const { DateTime, Exception } = require('/opt/base');
 
 class rulesFns {
 
+  expectValue(value, expectedValue) {
+    return value === expectedValue;
+  }
+
   regexMatch(value, regex) {
     if (!regex.test(value)) {
       throw new Exception(`Invalid value: Expected ${value} to match regex: ${regex}`, { code: 400 });
@@ -29,6 +33,26 @@ class rulesFns {
    */
   expectString(value) {
     this.expectType(value, ['string']);
+  }
+
+  /**
+   * Validates that the provided value is of type boolean.
+   *
+   * @param {*} value - The value to be validated.
+   * @throws {TypeError} Throws an error if the value is not a boolean.
+   */
+  expectBoolean(value) {
+    this.expectType(value, ['boolean']);
+  }
+
+  /**
+   * Checks if the provided value is an array.
+   *
+   * @param {*} value - The value to be checked.
+   * @returns {boolean} - Returns true if the value is an array, otherwise false.
+   */
+  expectArray(value) {
+    return Array.isArray(value);
   }
 
   /**
@@ -179,14 +203,14 @@ class rulesFns {
    * @param {boolean} [inclusive=true] - Whether the range is inclusive. If true, the value can be equal to min or max.
    * @throws {Exception} Throws an exception if the value is not within the specified range.
    */
-  expectInRange(value, min, max, inclusive = true) {
+  expectInRange(value, min, max, inclusive = true, name = 'value') {
     this.expectType(value, ['number']);
     if (inclusive) {
       if (value < min || value > max) {
-        throw new Exception(`Invalid value: Expected ${value} to be equal to or between ${min} and ${max}`, { code: 400 });
+        throw new Exception(`Invalid ${name}: Expected ${value} to be equal to or between ${min} and ${max}`, { code: 400 });
       } else {
         if (value <= min || value >= max) {
-          throw new Exception(`Invalid value: Expected ${value} to be between ${min} and ${max}`, { code: 400 });
+          throw new Exception(`Invalid ${name}: Expected ${value} to be between ${min} and ${max}`, { code: 400 });
         }
       }
     }
@@ -199,7 +223,7 @@ class rulesFns {
    * @throws {RangeError} Throws an error if the latitude value is not within the range of -90 to 90.
    */
   expectLatitude(value) {
-    this.expectInRange(value, -90, 90);
+    this.expectInRange(value, -90, 90, true, 'latitude');
   }
 
   /**
@@ -209,7 +233,7 @@ class rulesFns {
    * @param {number} value - The value to be validated as a longitude.
    */
   expectLongitude(value) {
-    this.expectInRange(value, -180, 180);
+    this.expectInRange(value, -180, 180, true, 'longitude');
   }
 
   /**
@@ -225,11 +249,33 @@ class rulesFns {
       throw new Exception(`Invalid geopoint type: Expected 'type' to be 'Point'`, { code: 400 });
     }
     const coords = value?.coordinates;
-    if (!Array.isArray(coords) || coords.length !== 2) {
+    if (!this.expectArray(coords) || coords.length !== 2) {
       throw new Exception('Invalid geopoint coordinates: Expected coordinates to be an array with two elements', { code: 400 });
     }
     this.expectLongitude(coords[0]);
     this.expectLatitude(coords[1]);
+  }
+
+  /**
+   * Validates that the given value is a GeoJSON Envelope object.
+   *
+   * @param {Object} value - The value to validate.
+   * @param {string} value.type - The type of the GeoJSON object, expected to be 'Envelope'.
+   * @param {Array} value.coordinates - The coordinates of the envelope, expected to be an array of longitude and latitude pairs.
+   * @throws {Exception} Throws an exception if the type is not 'Envelope' or if the coordinates are not an array.
+   */
+  expectGeoEnvelope(value) {
+    if (!value?.type || value?.type !== 'Envelope') {
+      throw new Exception(`Invalid geopoint type: Expected 'type' to be 'Envelope'`, { code: 400 });
+    }
+    const coords = value?.coordinates;
+    if (!this.expectArray(coords)) {
+      throw new Exception('Invalid geopoint coordinates: Expected coordinates to be an array', { code: 400 });
+    }
+    for (const coord of coords) {
+      this.expectLongitude(coord[0]);
+      this.expectLatitude(coord[1]);
+    }
   }
 }
 
