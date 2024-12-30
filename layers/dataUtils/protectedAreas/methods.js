@@ -47,7 +47,7 @@ async function getProtectedAreas(params) {
  */
 async function getProtectedAreaByOrcs(orcs) {
   try {
-    const res = await getOne('protectedArea', `${orcs}::properties`);
+    const res = await getOne('protectedArea', `${orcs}`);
     return res;
   } catch (error) {
     throw new Exception('Error getting protected area', { code: 400, error: error });

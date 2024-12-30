@@ -12,7 +12,7 @@
     "luxon": "^3.4.4"
   },
   "scripts": {
-    "start": "sam local start-api --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
+    "start": "sam local start-api -t template.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "build": "sam build",
     "start-full": "yarn build && yarn start",
     "test": "export AWS_REGION=local-env && export TABLE_NAME=Reserve-Rec-tests && yarn build && jest --coverage"

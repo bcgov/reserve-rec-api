@@ -62,6 +62,7 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
         }
 
         // Bump version number if config.autoVersion is true
+        let providedVersion = itemData?.version?.value || null;
         if (itemConfig?.autoVersion) {
           itemData['version'] = { value: 1, action: 'add' };
         }
@@ -86,8 +87,14 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
         if (Object.keys(expressionAttributeValues).length === 0) {
           delete updateObj.data.ExpressionAttributeValues;
         }
-        updateItems.push(updateObj);
 
+        // If serial updating is enforced, the ConditionExpression must check the version field
+        if (itemConfig?.enforceSerialUpdates) {
+          updateObj.data.ConditionExpression += ' AND version = :oldVersion';
+          updateObj.data.ExpressionAttributeValues[':oldVersion'] = marshall(providedVersion);
+        }
+
+        updateItems.push(updateObj);
 
       } catch (error) {
         // If failOnError is true, throw the error
@@ -101,7 +108,6 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
   } catch (error) {
     throw error;
   }
-
 }
 
 /**
@@ -125,7 +131,7 @@ function validateRequestData(itemData, itemConfig) {
   }
 
   // If no fields are provided, skip validation
-  if (!itemConfig?.fields) {
+  if (!itemConfig?.fields || itemConfig?.allowAllFields) {
     return;
   }
 
@@ -133,6 +139,12 @@ function validateRequestData(itemData, itemConfig) {
 
   // validate all the fields using the rules in the config.
   try {
+
+    // If serial updating is enforced, the request must provide the version field.
+    // The version field must match the current version, but this is enforced as a ConditionExpression elsewhere.
+    if (itemConfig?.enforceSerialUpdates && !itemData?.version) {
+      throw new Exception(`Version field is missing in the request`, { code: 400, error: `Version field is mandatory for serial updates` });
+    }
 
     // check if all mandatory fields are present
     const configProperties = Object.keys(itemConfig?.fields);

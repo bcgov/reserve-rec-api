@@ -658,6 +658,80 @@ Resources:
               Authorizer: NONE
               OverrideApiAuth: true
 
+  SubareasPost:
+    FunctionName: SubareasPost
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/subareas/POST
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Post subareas lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        SubareasPost:
+          Type: Api
+          Properties:
+            Path: /subareas
+            Method: POST
+            RestApiId: !Ref ApiDeployment
+        SubareasPostByOrcs:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}/subareas
+            Method: POST
+            RestApiId: !Ref ApiDeployment
+
+  SubareasPut:
+    FunctionName: SubareasPut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/subareas/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Put subareas lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        SubareasPut:
+          Type: Api
+          Properties:
+            Path: /subareas
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+        SubareasPutByOrcs:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}/subareas
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+
   ### Activities ###
   ActivitiesGet:
     FunctionName: ActivitiesGet

@@ -2,9 +2,12 @@
  * Functionality and utils for subareas
  */
 
-const { TABLE_NAME, getOne, parallelizedBatchGetData, runQuery } = require('/opt/dynamodb');
-const { buildCompKeysFromSkField } = require('/opt/data-utils');
+const { TABLE_NAME, batchTransactData, getOne, parallelizedBatchGetData, runQuery } = require('/opt/dynamodb');
+const { buildCompKeysFromSkField, quickApiPutHandler, quickApiUpdateHandler } = require('/opt/data-utils');
 const { Exception, logger } = require('/opt/base');
+const { getProtectedAreaByOrcs } = require('/opt/protectedAreas/methods');
+const { BC_BBOX, BC_CENTROID } = require('/opt/data-constants');
+const { SUBAREA_CREATE_CONFIG, SUBAREA_UPDATE_CONFIG } = require('/opt/subareas/configs');
 
 async function getSubareasByOrcs(orcs, params = null) {
   logger.info('Get PA Subareas');
@@ -25,7 +28,7 @@ async function getSubareasByOrcs(orcs, params = null) {
     };
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Subareas: ${res?.items?.length} found.`);
-    return res;
+    return res?.items || [];
   } catch (error) {
     throw new Exception('Error getting subareas', { code: 400, error: error });
   }
@@ -57,7 +60,86 @@ async function getSubareaById(orcs, id, fetchObj = null) {
   }
 }
 
+async function postSubarea(orcs, fields) {
+  logger.info('Post New Subarea');
+  try {
+    // Check orcs
+    const park = await getProtectedAreaByOrcs(orcs);
+    if (!park) {
+      throw 'Invalid ORCS';
+    }
+    const nextId = await getNextSubareaId(orcs);
+
+    // construct default subarea object
+    const subarea = {
+      pk: `subarea::${orcs}`,
+      sk: String(nextId),
+      identifier: nextId,
+      schema: 'subarea',
+      orcs: orcs,
+      displayName: `Subarea ${orcs}-${nextId}`,
+      description: '',
+      isVisible: false,
+      activities: [],
+      facilities: [],
+      searchTerms: [],
+      envelope: {
+        type: 'Envelope',
+        coordinates: BC_BBOX
+      },
+      location: {
+        type: 'Point',
+        coordinates: BC_CENTROID
+      }
+    };
+
+    const updateList = [{
+      data: subarea,
+      config: SUBAREA_CREATE_CONFIG
+    }];
+
+    const command = await quickApiPutHandler(TABLE_NAME, updateList, SUBAREA_CREATE_CONFIG);
+
+    const res = await batchTransactData(command);
+
+    return subarea;
+  } catch (error) {
+    throw new Exception('Error posting new subarea', { code: 400, error: error });
+  }
+}
+
+async function getNextSubareaId(orcs) {
+  // Get the next ID
+  const subareas = await getSubareasByOrcs(orcs, { paginated: false });
+  if (!subareas) {
+    return 1;
+  }
+  const idArray = subareas.map((subarea) => parseInt(subarea?.sk));
+  const nextId = Math.max(...idArray) + 1;
+  return nextId;
+}
+
+async function putSubarea(orcs, subareaId, body) {
+  logger.info('Put Subarea');
+  try {
+    let updateItem = {
+      key: {
+        pk: `subarea::${orcs}`,
+        sk: subareaId
+      },
+      data: body,
+    };
+    const putCommand = await quickApiUpdateHandler(TABLE_NAME, [updateItem], SUBAREA_UPDATE_CONFIG);
+    const res = await batchTransactData(putCommand);
+    return res;
+  } catch (error) {
+    throw new Exception('Error putting subarea', { code: 400, error: error });
+  }
+}
+
 module.exports = {
   getSubareasByOrcs,
   getSubareaById,
+  postSubarea,
+  putSubarea
 };

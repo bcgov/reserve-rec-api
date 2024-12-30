@@ -22,6 +22,16 @@ class rulesFns {
   }
 
   /**
+   * Validates that the provided value is of type string.
+   *
+   * @param {*} value - The value to be validated.
+   * @throws {TypeError} Throws an error if the value is not a string.
+   */
+  expectString(value) {
+    this.expectType(value, ['string']);
+  }
+
+  /**
    * Validates if the provided action is included in the list of allowed actions.
    * Throws an exception if the action is not permitted.
    *
