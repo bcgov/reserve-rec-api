@@ -5,7 +5,9 @@
     "reserve-rec-cdk": "bin/reserve-rec-cdk.js"
   },
   "scripts": {
-    "build": "tsc",
+    "start": "sam local start-api -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
+    "build": "cdk synth",
+    "start-full": "yarn build && yarn start",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
