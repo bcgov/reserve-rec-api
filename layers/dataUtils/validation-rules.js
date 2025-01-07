@@ -208,10 +208,10 @@ class rulesFns {
     if (inclusive) {
       if (value < min || value > max) {
         throw new Exception(`Invalid ${name}: Expected ${value} to be equal to or between ${min} and ${max}`, { code: 400 });
-      } else {
-        if (value <= min || value >= max) {
-          throw new Exception(`Invalid ${name}: Expected ${value} to be between ${min} and ${max}`, { code: 400 });
-        }
+      }
+    } else {
+      if (value <= min || value >= max) {
+        throw new Exception(`Invalid ${name}: Expected ${value} to be between ${min} and ${max}`, { code: 400 });
       }
     }
   }

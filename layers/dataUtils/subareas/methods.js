@@ -7,6 +7,7 @@ const { buildCompKeysFromSkField, quickApiPutHandler, quickApiUpdateHandler } = 
 const { Exception, logger } = require('/opt/base');
 const { getProtectedAreaByOrcs } = require('/opt/protectedAreas/methods');
 const { BC_BBOX, BC_CENTROID } = require('/opt/data-constants');
+const { getFacilitiesBySubarea } = require('/opt/facilities/methods');
 const { SUBAREA_CREATE_CONFIG, SUBAREA_UPDATE_CONFIG } = require('/opt/subareas/configs');
 
 async function getSubareasByOrcs(orcs, params = null) {
@@ -109,8 +110,7 @@ async function postSubarea(orcs, body = null) {
     }];
 
     const command = await quickApiPutHandler(TABLE_NAME, updateList, SUBAREA_CREATE_CONFIG);
-
-    const res = await batchTransactData(command);
+    await batchTransactData(command);
 
     return subarea;
   } catch (error) {
@@ -129,6 +129,71 @@ async function getNextSubareaId(orcs) {
   return nextId;
 }
 
+// This action can only be used if both the subarea and facility objects are already created
+// Only the subarea object can call thsi
+async function updateFacilitySubareaLinks(orcs, facilitySkList, subareaId) {
+  try {
+    // get existing subarea object
+    const subareaObj = await getSubareaById(orcs, subareaId);
+    const existingFacilities = subareaObj?.facilities || [];
+
+    // get the delta of facilities to add or remove
+    const addFacilitiesSks = facilitySkList.filter((facility) => !existingFacilities.includes(facility));
+    const removeFacilitiesSks = existingFacilities.filter((facility) => !facilitySkList.includes(facility));
+
+    // update the subarea object with the new facilities
+    let subareaCommands = [
+      {
+        key: {
+          pk: `subarea::${orcs}`,
+          sk: subareaId
+        },
+        data: {
+          facilities: facilitySkList
+        }
+      }
+    ];
+
+    // there should be no overlap between add and remove lists for facilities, so we can do both actions in the same batch transaction
+    // facilities can only belong to one subarea
+    let facilitiesCommands = [];
+    if (addFacilities.length) {
+      for (const facilitySk of addFacilitiesSks) {
+        facilitiesCommands.push({
+          key: {
+            pk: `facility::${orcs}`,
+            sk: facilitySk
+          },
+          data: {
+            subarea: `subarea::${orcs}#${subareaId}`
+          }
+        });
+      }
+    }
+    if (removeFacilities.length) {
+      for (const facilitySk of removeFacilitiesSks) {
+        facilitiesCommands.push({
+          key: {
+            pk: `facility::${orcs}`,
+            sk: facilitySk
+          },
+          data: {
+            subarea: null
+          }
+        });
+      }
+    }
+    let updateCommands = await quickApiUpdateHandler(TABLE_NAME, subareaCommands, SUBAREA_UPDATE_CONFIG);
+    if (facilitiesCommands.length) {
+      updateCommands = updateCommands.concat(await quickApiUpdateHandler(TABLE_NAME, facilitiesCommands, FACILITY_UPDATE_CONFIG));
+    }
+    console.log('updateCommands:', updateCommands);
+    return await batchTransactData(updateCommands);
+  } catch (error) {
+    throw new Exception('Error updating subarea links to facility', { code: 400, error: error });
+  }
+}
+
 async function putSubarea(orcs, subareaId, body) {
   logger.info('Put Subarea');
   try {
@@ -139,7 +204,8 @@ async function putSubarea(orcs, subareaId, body) {
       },
       data: body,
     };
-    const putCommand = await quickApiUpdateHandler(TABLE_NAME, [updateItem], SUBAREA_UPDATE_CONFIG);
+    let putCommand = await quickApiUpdateHandler(TABLE_NAME, [updateItem], SUBAREA_UPDATE_CONFIG);
+
     const res = await batchTransactData(putCommand);
     return res;
   } catch (error) {
@@ -147,9 +213,33 @@ async function putSubarea(orcs, subareaId, body) {
   }
 }
 
+async function deleteSubarea(orcs, subareaId) {
+  logger.info('Delete Subarea');
+  try {
+    // check if there are any facilities linked to this subarea
+    // for now, we will not allow deletion of subareas with linked items
+    const facilites = await getFacilitiesBySubarea(orcs, subareaId);
+    if (facilites.length) {
+      let sks = facility.map((facility) => facility.sk);
+      throw `Cannot delete subarea with linked facilities: ${sks.join(',\n')}`;
+    }
+    let deleteItem = {
+      pk: `subarea::${orcs}`,
+      sk: subareaId
+    };
+    let deleteCommand = await quickApiDeleteHandler(TABLE_NAME, deleteItem);
+    const res = await batchTransactData(deleteCommand);
+    return res;
+  } catch (error) {
+    throw new Exception('Error deleting subarea', { code: 400, error: error });
+  }
+}
+
 module.exports = {
+  deleteSubarea,
   getSubareasByOrcs,
   getSubareaById,
   postSubarea,
-  putSubarea
+  putSubarea,
+  updateFacilitySubareaLinks
 };

@@ -732,6 +732,43 @@ Resources:
             Method: PUT
             RestApiId: !Ref ApiDeployment
 
+  SubareasDelete:
+    FunctionName: SubareasDelete
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/subareas/DELETE
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Delete subareas lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        SubareasDelete:
+          Type: Api
+          Properties:
+            Path: /subareas
+            Method: DELETE
+            RestApiId: !Ref ApiDeployment
+        SubareasPutByOrcs:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}/subareas/{subareaId}
+            Method: DELETE
+            RestApiId: !Ref ApiDeployment
+
   ### Activities ###
   ActivitiesGet:
     FunctionName: ActivitiesGet
@@ -873,6 +910,80 @@ Resources:
             Auth:
               Authorizer: NONE
               OverrideApiAuth: true
+
+  FacilitiesPost:
+    FunctionName: FacilitiesPost
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/facilities/POST
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Post facilities lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        FacilitesPost:
+          Type: Api
+          Properties:
+            Path: /facilities
+            Method: POST
+            RestApiId: !Ref ApiDeployment
+        FacilitiesPostByOrcsAndFacilityType:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}/facilities/{facilityType}
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+
+  FacilitiesPut:
+    FunctionName: FacilitiesPut
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/facilities/PUT
+      Handler: index.handler
+      Layers:
+        - !Ref BaseLayer
+        - !Ref AWSUtilsLayer
+        - !Ref DataUtilsLayer
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 20
+      Description: Put facilities lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Environment:
+        Variables:
+          LOG_LEVEL: info
+          TABLE_NAME: !Ref TableName
+      Events:
+        FacilitiesPut:
+          Type: Api
+          Properties:
+            Path: /facilities
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
+        FacilitiesPutByOrcsAndFacilityType:
+          Type: Api
+          Properties:
+            Path: /protected-areas/{orcs}/facilities/{facilityType}
+            Method: PUT
+            RestApiId: !Ref ApiDeployment
 
   ### Products ###
   ProductsGet:

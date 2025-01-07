@@ -133,6 +133,7 @@ const Exception = class extends Error {
 module.exports = {
   DateTime,
   Exception,
+  DEFAULT_TIMEZONE,
   buildDateTimeFromShortDate,
   buildDateRange,
   checkWarmup,
