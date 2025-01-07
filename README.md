@@ -1,11 +1,14 @@
-# For the Parks and Recreation Digital Transformation project.
+# Welcome to your CDK TypeScript project
 
-# Introduction
+This is a blank project for CDK development with TypeScript.
 
-This repository consists of the back end API code for the Parks Services Administration. 
+The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
-Associated repos:
+## Useful commands
 
-- https://github.com/bcgov/reserve-rec-public
-- https://github.com/bcgov/reserve-rec-admin
-- https://github.com/bcgov/reserve-rec-api
+* `npm run build`   compile typescript to js
+* `npm run watch`   watch for changes and compile
+* `npm run test`    perform the jest unit tests
+* `npx cdk deploy`  deploy this stack to your default AWS account/region
+* `npx cdk diff`    compare deployed stack with current state
+* `npx cdk synth`   emits the synthesized CloudFormation template
