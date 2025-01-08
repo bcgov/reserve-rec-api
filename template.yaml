@@ -300,87 +300,87 @@ Resources:
 
   ### LAMBDAS ###
 
-  # Data Register Integration
-  SyncDataRegisterFunction:
-    FunctionName: SyncDataRegisterFunction
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/synchronization/syncDataRegister/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Description: Syncs Data Register protected areas every day at 08:00 UTC (00:00 PDT)
-      MemorySize: 512
-      Timeout: 900
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-            # TableName: !Ref TableNameAudit
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          DATA_REGISTER_ENDPOINT: !Ref DataRegisterEndpoint
-          DATA_REGISTER_API_KEY: !Ref DataRegisterApiKey
-      Events:
-        UpdateProtectedAreas:
-          Type: Schedule
-          Properties:
-            Name: "SyncDataRegisterFunctionSchedule"
-            Schedule: cron(0 8 * * ? *)
-            Description: "Sync Data Register protected areas every day at 08:00 UTC (00:00 PDT)"
+  # # Data Register Integration
+  # SyncDataRegisterFunction:
+  #   FunctionName: SyncDataRegisterFunction
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/synchronization/syncDataRegister/
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Description: Syncs Data Register protected areas every day at 08:00 UTC (00:00 PDT)
+  #     MemorySize: 512
+  #     Timeout: 900
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #           # TableName: !Ref TableNameAudit
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         DATA_REGISTER_ENDPOINT: !Ref DataRegisterEndpoint
+  #         DATA_REGISTER_API_KEY: !Ref DataRegisterApiKey
+  #     Events:
+  #       UpdateProtectedAreas:
+  #         Type: Schedule
+  #         Properties:
+  #           Name: "SyncDataRegisterFunctionSchedule"
+  #           Schedule: cron(0 8 * * ? *)
+  #           Description: "Sync Data Register protected areas every day at 08:00 UTC (00:00 PDT)"
 
-  # CMS Integration
-  SyncCMSProtectedAreasFunction:
-    FunctionName: SyncCMSProtectedAreasFunction
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/synchronization/syncCMSProtectedAreas/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Description: Syncs CMS protected areas on demand
-      MemorySize: 512
-      Timeout: 900
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          CMS_ENDPOINT_URL: !Ref CMSAPIEndpoint
+  # # CMS Integration
+  # SyncCMSProtectedAreasFunction:
+  #   FunctionName: SyncCMSProtectedAreasFunction
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/synchronization/syncCMSProtectedAreas/
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Description: Syncs CMS protected areas on demand
+  #     MemorySize: 512
+  #     Timeout: 900
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         CMS_ENDPOINT_URL: !Ref CMSAPIEndpoint
 
-  # Tantalis Integration
-  SyncTantalisProtectedAreasFunction:
-    FunctionName: SyncTantalisProtectedAreasFunction
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/synchronization/syncTantalisProtectedAreas/
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Description: Syncs Tantalis protected areas on demand
-      MemorySize: 512
-      Timeout: 900
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-        - ElasticsearchHttpPostPolicy:
-            DomainName: !Ref DomainName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TANTALIS_ENDPOINT_URL: !Ref TantalisAPIEndpoint
-          OPENSEARCH_DOMAIN_ENDPOINT: !Sub
-            - 'https://${Domain}'
-            - Domain: !GetAtt OpenSearch.DomainEndpoint
+  # # Tantalis Integration
+  # SyncTantalisProtectedAreasFunction:
+  #   FunctionName: SyncTantalisProtectedAreasFunction
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/synchronization/syncTantalisProtectedAreas/
+  #     Handler: index.handler
+  #     Runtime: nodejs20.x
+  #     Description: Syncs Tantalis protected areas on demand
+  #     MemorySize: 512
+  #     Timeout: 900
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #       - ElasticsearchHttpPostPolicy:
+  #           DomainName: !Ref DomainName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TANTALIS_ENDPOINT_URL: !Ref TantalisAPIEndpoint
+  #         OPENSEARCH_DOMAIN_ENDPOINT: !Sub
+  #           - 'https://${Domain}'
+  #           - Domain: !GetAtt OpenSearch.DomainEndpoint
 
   Authorizer:
     Type: AWS::Serverless::Function
@@ -525,710 +525,710 @@ Resources:
               Authorizer: NONE
               OverrideApiAuth: true
 
-  ProtectedAreasPut:
-    FunctionName: ProtectedAreasPut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/protectedAreas/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Put bulk Protected Areas lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        ProtectedAreaPut:
-          Type: Api
-          Properties:
-            Path: /protected-areas
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # ProtectedAreasPut:
+  #   FunctionName: ProtectedAreasPut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/protectedAreas/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Put bulk Protected Areas lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       ProtectedAreaPut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
-  ProtectedAreaPut:
-    FunctionName: ProtectedAreaPut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/protectedAreas/_orcs/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Put single Protected Area lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        ProtectedAreaPut:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # ProtectedAreaPut:
+  #   FunctionName: ProtectedAreaPut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/protectedAreas/_orcs/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Put single Protected Area lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       ProtectedAreaPut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
-  ### Subareas ###
-  SubareasGet:
-    FunctionName: SubareasGet
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/subareas/GET
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Get subareas based on orcs or single subarea with orcs and subarea id lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        SubareasGet:
-          Type: Api
-          Properties:
-            Path: /subareas
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        SubareasOptions:
-          Type: Api
-          Properties:
-            Path: /subareas
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        SubareasGetByOrcs:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        SubareasOptionsByOrcs:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        SubareasGetByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas/{subareaId}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        SubareasOptionsByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas/{subareaId}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Subareas ###
+  # SubareasGet:
+  #   FunctionName: SubareasGet
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/subareas/GET
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Get subareas based on orcs or single subarea with orcs and subarea id lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       SubareasGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /subareas
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /subareas
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       SubareasGetByOrcs:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasOptionsByOrcs:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       SubareasGetByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas/{subareaId}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasOptionsByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas/{subareaId}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  SubareasPost:
-    FunctionName: SubareasPost
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/subareas/POST
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Post subareas lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        SubareasPost:
-          Type: Api
-          Properties:
-            Path: /subareas
-            Method: POST
-            RestApiId: !Ref ApiDeployment
-        SubareasPostByOrcs:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas
-            Method: POST
-            RestApiId: !Ref ApiDeployment
+  # SubareasPost:
+  #   FunctionName: SubareasPost
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/subareas/POST
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Post subareas lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       SubareasPost:
+  #         Type: Api
+  #         Properties:
+  #           Path: /subareas
+  #           Method: POST
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasPostByOrcs:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas
+  #           Method: POST
+  #           RestApiId: !Ref ApiDeployment
 
-  SubareasPut:
-    FunctionName: SubareasPut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/subareas/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Put subareas lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        SubareasPut:
-          Type: Api
-          Properties:
-            Path: /subareas
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
-        SubareasPutByOrcs:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # SubareasPut:
+  #   FunctionName: SubareasPut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/subareas/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Put subareas lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       SubareasPut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /subareas
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasPutByOrcs:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
-  SubareasDelete:
-    FunctionName: SubareasDelete
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/subareas/DELETE
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Delete subareas lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        SubareasDelete:
-          Type: Api
-          Properties:
-            Path: /subareas
-            Method: DELETE
-            RestApiId: !Ref ApiDeployment
-        SubareasPutByOrcs:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/subareas/{subareaId}
-            Method: DELETE
-            RestApiId: !Ref ApiDeployment
+  # SubareasDelete:
+  #   FunctionName: SubareasDelete
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/subareas/DELETE
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Delete subareas lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       SubareasDelete:
+  #         Type: Api
+  #         Properties:
+  #           Path: /subareas
+  #           Method: DELETE
+  #           RestApiId: !Ref ApiDeployment
+  #       SubareasPutByOrcs:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/subareas/{subareaId}
+  #           Method: DELETE
+  #           RestApiId: !Ref ApiDeployment
 
-  ### Activities ###
-  ActivitiesGet:
-    FunctionName: ActivitiesGet
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/activities/GET
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Get activities by orcs or single activity with orcs/activityType/activityId lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        ActivitiesGet:
-          Type: Api
-          Properties:
-            Path: /activities
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ActivitiesOptions:
-          Type: Api
-          Properties:
-            Path: /activities
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        ActivitiesByOrcsGet:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ActivitiesByOrcsOptions:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        ActivitiesGetByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ActivitiesOptionsByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Activities ###
+  # ActivitiesGet:
+  #   FunctionName: ActivitiesGet
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/activities/GET
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Get activities by orcs or single activity with orcs/activityType/activityId lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       ActivitiesGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /activities
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ActivitiesOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /activities
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       ActivitiesByOrcsGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ActivitiesByOrcsOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       ActivitiesGetByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ActivitiesOptionsByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  ### Facilities ###
-  FacilitiesGet:
-    FunctionName: FacilitiesGet
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/facilities/GET
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Get facilites by orcs or single facility with orcs/facilityType/facilityId lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        FacilitiesGet:
-          Type: Api
-          Properties:
-            Path: /facilities
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        FacilitiesOptions:
-          Type: Api
-          Properties:
-            Path: /facilities
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        FacilitiesByOrcsGet:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        FacilitiesByOrcsOptions:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        FacilitiesGetByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        FacilitiesOptionsByOrcsAndSubareaId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Facilities ###
+  # FacilitiesGet:
+  #   FunctionName: FacilitiesGet
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/facilities/GET
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Get facilites by orcs or single facility with orcs/facilityType/facilityId lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       FacilitiesGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /facilities
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       FacilitiesOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /facilities
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       FacilitiesByOrcsGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       FacilitiesByOrcsOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       FacilitiesGetByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       FacilitiesOptionsByOrcsAndSubareaId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities/{facilityType}/{facilityId}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  FacilitiesPost:
-    FunctionName: FacilitiesPost
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/facilities/POST
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Post facilities lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        FacilitesPost:
-          Type: Api
-          Properties:
-            Path: /facilities
-            Method: POST
-            RestApiId: !Ref ApiDeployment
-        FacilitiesPostByOrcsAndFacilityType:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities/{facilityType}
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # FacilitiesPost:
+  #   FunctionName: FacilitiesPost
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/facilities/POST
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Post facilities lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       FacilitesPost:
+  #         Type: Api
+  #         Properties:
+  #           Path: /facilities
+  #           Method: POST
+  #           RestApiId: !Ref ApiDeployment
+  #       FacilitiesPostByOrcsAndFacilityType:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities/{facilityType}
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
-  FacilitiesPut:
-    FunctionName: FacilitiesPut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/facilities/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Put facilities lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        FacilitiesPut:
-          Type: Api
-          Properties:
-            Path: /facilities
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
-        FacilitiesPutByOrcsAndFacilityType:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/facilities/{facilityType}
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # FacilitiesPut:
+  #   FunctionName: FacilitiesPut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/facilities/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Put facilities lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       FacilitiesPut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /facilities
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
+  #       FacilitiesPutByOrcsAndFacilityType:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/facilities/{facilityType}
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
-  ### Products ###
-  ProductsGet:
-    FunctionName: ProductsGet
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/products/GET
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Get products by orcs/activityType/activityID or single product with orcs/activityType/activityType/productId lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        ProductsGet:
-          Type: Api
-          Properties:
-            Path: /products
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ProductsOptions:
-          Type: Api
-          Properties:
-            Path: /products
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        ProductsByOrcsGet:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ProductsByOrcsOptions:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        ProductsGetByOrcsActivtyAndProductId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products/{productId}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        ProductsOptionsGetByOrcsActivtyAndProductId:
-          Type: Api
-          Properties:
-            Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products/{productId}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Products ###
+  # ProductsGet:
+  #   FunctionName: ProductsGet
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/products/GET
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Get products by orcs/activityType/activityID or single product with orcs/activityType/activityType/productId lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       ProductsGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /products
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ProductsOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /products
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       ProductsByOrcsGet:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ProductsByOrcsOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       ProductsGetByOrcsActivtyAndProductId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products/{productId}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       ProductsOptionsGetByOrcsActivtyAndProductId:
+  #         Type: Api
+  #         Properties:
+  #           Path: /protected-areas/{orcs}/activities/{activityType}/{activityId}/products/{productId}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  ### Build Schedule ###
-  BuildProductSchedulePut:
-    FunctionName: BuildProductSchedulePut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/products/buildSchedule/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Build a product schedule from its default properties and a calendar - lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        BuildProductSchedulePut:
-          Type: Api
-          Properties:
-            Path: /products/build-schedule
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
-        BuildProductScheduleOptions:
-          Type: Api
-          Properties:
-            Path: /products/build-schedule
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Build Schedule ###
+  # BuildProductSchedulePut:
+  #   FunctionName: BuildProductSchedulePut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/products/buildSchedule/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Build a product schedule from its default properties and a calendar - lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       BuildProductSchedulePut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /products/build-schedule
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
+  #       BuildProductScheduleOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /products/build-schedule
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  ### Policies ###
-  PoliciesGet:
-    FunctionName: PoliciesGet
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/policies/_policyType/GET
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Get single policy or policy collection by type (and id) lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        PoliciesGetByType:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        PolicyGetById:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}/{policyId}
-            Method: GET
-            RestApiId: !Ref ApiDeployment
-        PoliciesOptions:
-          Type: Api
-          Properties:
-            Path: /policies
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        PoliciesOptionsByType:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
-        PoliciesOptionsById:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}/{policyId}
-            Method: OPTIONS
-            RestApiId: !Ref ApiDeployment
-            Auth:
-              Authorizer: NONE
-              OverrideApiAuth: true
+  # ### Policies ###
+  # PoliciesGet:
+  #   FunctionName: PoliciesGet
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/policies/_policyType/GET
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Get single policy or policy collection by type (and id) lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       PoliciesGetByType:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       PolicyGetById:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}/{policyId}
+  #           Method: GET
+  #           RestApiId: !Ref ApiDeployment
+  #       PoliciesOptions:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       PoliciesOptionsByType:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
+  #       PoliciesOptionsById:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}/{policyId}
+  #           Method: OPTIONS
+  #           RestApiId: !Ref ApiDeployment
+  #           Auth:
+  #             Authorizer: NONE
+  #             OverrideApiAuth: true
 
-  PolicyPost:
-    FunctionName: PolicyPost
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/policies/_policyType/POST
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Create single policy lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        PolicyPost:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}
-            Method: POST
-            RestApiId: !Ref ApiDeployment
+  # PolicyPost:
+  #   FunctionName: PolicyPost
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/policies/_policyType/POST
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Create single policy lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       PolicyPost:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}
+  #           Method: POST
+  #           RestApiId: !Ref ApiDeployment
 
-  PolicyPut:
-    FunctionName: PolicyPut
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: handlers/policies/PUT
-      Handler: index.handler
-      Layers:
-        - !Ref BaseLayer
-        - !Ref AWSUtilsLayer
-        - !Ref DataUtilsLayer
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Timeout: 20
-      Description: Update policies lambda function
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
-      Environment:
-        Variables:
-          LOG_LEVEL: info
-          TABLE_NAME: !Ref TableName
-      Events:
-        PoliciesPut:
-          Type: Api
-          Properties:
-            Path: /policies
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
-        PolicyPutById:
-          Type: Api
-          Properties:
-            Path: /policies/{policyType}/{policyId}
-            Method: PUT
-            RestApiId: !Ref ApiDeployment
+  # PolicyPut:
+  #   FunctionName: PolicyPut
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: handlers/policies/PUT
+  #     Handler: index.handler
+  #     Layers:
+  #       - !Ref BaseLayer
+  #       - !Ref AWSUtilsLayer
+  #       - !Ref DataUtilsLayer
+  #     Runtime: nodejs20.x
+  #     Architectures:
+  #       - x86_64
+  #     MemorySize: 128
+  #     Timeout: 20
+  #     Description: Update policies lambda function
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: !Ref TableName
+  #     Environment:
+  #       Variables:
+  #         LOG_LEVEL: info
+  #         TABLE_NAME: !Ref TableName
+  #     Events:
+  #       PoliciesPut:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
+  #       PolicyPutById:
+  #         Type: Api
+  #         Properties:
+  #           Path: /policies/{policyType}/{policyId}
+  #           Method: PUT
+  #           RestApiId: !Ref ApiDeployment
 
   ## Opensearch
   OpenSearch:
@@ -1525,14 +1525,14 @@ Outputs:
     Export:
       Name: DynamoDBTable-Export
 
-  ProtectedAreasGetEndpoint:
-    Description: The Protected Areas GET endpoint
-    Value: !Sub 'https://${ApiDeployment}.execute-api.ca-central-1.amazonaws.com/${Stage}/protected-areas'
-    Export:
-      Name: ProtectedAreasGetEndpoint-Export
+  # ProtectedAreasGetEndpoint:
+  #   Description: The Protected Areas GET endpoint
+  #   Value: !Sub 'https://${ApiDeployment}.execute-api.ca-central-1.amazonaws.com/${Stage}/protected-areas'
+  #   Export:
+  #     Name: ProtectedAreasGetEndpoint-Export
 
-  ProtectedAreaGetEndpoint:
-    Description: The Protected Area GET endpoint
-    Value: !Sub 'https://${ApiDeployment}.execute-api.ca-central-1.amazonaws.com/${Stage}/protected-areas/{orcs}'
-    Export:
-      Name: ProtectedAreaGetEndpoint-Export
+  # ProtectedAreaGetEndpoint:
+  #   Description: The Protected Area GET endpoint
+  #   Value: !Sub 'https://${ApiDeployment}.execute-api.ca-central-1.amazonaws.com/${Stage}/protected-areas/{orcs}'
+  #   Export:
+  #     Name: ProtectedAreaGetEndpoint-Export
