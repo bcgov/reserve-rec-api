@@ -74,16 +74,21 @@ Subareas as defined by this project may share some similarities with other data 
 |**Property Name**|**Property Type**|**Definition**|**Example**|
 |---|---|---|---|
 |pk|`String`|subarea::\<orcs>|'subarea::7'|
-|sk|`String`|\<subareaID>|'1'|
+|sk|`String`|\<subareaId>|'1'|
 |orcs|`Number`|The ORCS number of the parent protected area|7|
 |displayName|`String`|Display name for the subarea|'Cheakamus Lake Area'|
 |description|`String`|Description of the subarea|'Describes the Cheakamus Lake area'|
 |schema|`String` or `Enum`|The schema/data type (meta)|'subarea'|
+|identifier|`Number`|Also `subareaId`. Disambiguates the subarea if there are many subareas within a single protected area.|1|
+|subareaId|`Number`|See `identifier`|1|
 |location|`OSGeo`|Subarea centroid, synced from CMS|`{type: "Point", coordinates: [lng, lat]}`|
-|boundary|`OSGeo`|Subarea polygon or multipolygon boundary (only available in OpenSearch)|`{type: "Polygon", coordinates: [[[]]]}`|
+|envelope|`OSGeo`|Subarea bounding box (only available in OpenSearch)|`{type: "Envelope", coordinates: [[[]]]}`|
 |timezone|`String` or `Enum`|The IANA string timezone identifier of the place|'America/Vancouver'|
+|isVisible|`Boolean`|Is the subarea visible to the public?|`true`|
 |minMapZoom|`Number`|The smallest zoom level at which the object will appear|5|
 |maxMapZoom|'Number'|The largest zoom level at which the object will appear|10|
+|facilities|`[String]`|A list of `sk`s of facilities belonging to the subarea (facility `pk` can be inferred)|[parking::1, parking::2, trail::1]|
+|activities|`[String]`|A list of `sk`s of activities belonging to the subarea (activity`pk` can be inferred)|[dayuse::1, dayuse::2]|
 |imageUrl|'String'|Url to an image representing the object|'https://picsum.photos/500'|
 |version|`Number`|Data revision (meta)|1|
 |creationDate|`DateTime`|Timestamp of original data creation in UTC (meta)|`2024-11-15T00:00:000Z`|
@@ -107,8 +112,10 @@ Similar to subareas, facilities may have some similarities to preexisting data c
 |location|`OSGeo`|Facility centroid, synced from CMS|`{type: "Point", coordinates: [lng, lat]}`|
 |address|`String`|Street address of the facility - used for map routing|'Cheakamus Lake Rd, Whistler, BC V0N 1B1'|
 |identifier|`Number`|Also `facilityId`. Disambiguates the facility if there are many facilities of a certain type within a protected area|1|
+|facilityId|`Number`|See `identifier`|1|
 |subarea|`String`| pk/sk of parent subarea separated by `#`|'subarea::7#1'|
 |activities|`[String]`|List of `sk`s for activities that are associated with the facility. Note that activity `pk` should be able to be inferred from the orcs of the parent park|['dayuse::1', 'dayuse::2'] 
+|isVisible|`Boolean`|Is the facility visible to the public?|`true`|
 |timezone|`String` or `Enum`|The IANA string timezone identifier of the facility|'America/Vancouver'|
 |minMapZoom|`Number`|The smallest zoom level at which the object will appear|5|
 |maxMapZoom|'Number'|The largest zoom level at which the object will appear|10|
@@ -140,8 +147,10 @@ Activities and facilities form many-to-many relationships, but every activity mu
 |activityType|`String` or `Enum`|The activity type (meta)|'dayuse'|
 |subActivityType|`String` or `Enum`|The type of activity type (meta)|'parking'|
 |identifier|`Number`|Also `activityId`. Disambiguates the activity if there are many activities of a certain type within a protected area|1|
+|activityId|`Number`|See `identifier`.|1|
 |subarea|`String`| pk/sk of parent subarea separated by `#`|'subarea::7#1'|
 |facilities|`[String]`|List of `sk`s for facilities that are associated with the actvitiy. Note that facility `pk` should be able to be inferred from the orcs of the parent park|['parking::1', 'parking::2'] 
+|isVisible|`Boolean`|Is the activity visible to the public?|`true`|
 |imageUrl|'String'|Url to an image representing the object|'https://picsum.photos/500'|
 |version|`Number`|Data revision (meta)|1|
 |creationDate|`DateTime`|Timestamp of original data creation in UTC (meta)|`2024-11-15T00:00:000Z`|
@@ -153,7 +162,7 @@ A product is an instance of an activity with of specific rules that govern that 
 
 Each product has a set of base policies that control the booking/party/change/cancellation/fee rules for the product. 
 
-Products are finer-grained offerings compared to activities. They adds definition to an activity to control how a user can experience/obtain the offering. For example, a 'Cheakamus Lake Day Use' activity implies that there are day-use offerings at Cheakamus Lake, but does not define when they are available, how many people can take advantage of the offering, what it costs, etc. The activity has two products, 'Cheakamus Lake Day Use: Morning Pass' and 'Cheakamus Lake Day Use: Afternoon Pass', each with specific opening and closing times, days of the week, capacity limits, and other rules that govern how users can have a 'Day Use' experience at 'Cheakamus Lake'. 
+Products are finer-grained offerings compared to activities. They adds definition to an activity to control how a user can experience/obtain the offering. For example, a 'Cheakamus Lake Day Use' activity implies that there are day-use offerings at Cheakamus Lake, but does not define when they are available, how many people can take advantage of the offering, what it costs, etc. The activity has two products, 'Cheakamus Lake Day Use: Morning Pass' and 'Cheakamus Lake Day Use: Afternoon Pass', each with specific opening and closing times, days of the week, capacity limits, and other specific rules that govern how users can have a 'Day Use' experience at 'Cheakamus Lake'. 
 
 ### Base Product Properties
 |**Property Name**|**Property Type**|**Definition**|**Example**|
@@ -183,6 +192,8 @@ Products are finer-grained offerings compared to activities. They adds definitio
 |creationDate|`DateTime`|Timestamp of original data creation in UTC (meta)|`2024-11-15T00:00:000Z`|
 |lastUpdated|`DateTime`|Timestamp of last update in UTC (meta)|`2024-11-15T00:00:000Z`|
 
+Sometimes product properties change with time, which is handled by [calendars](#calendars) and schedule building. Building a schedule results in date-specific products. See [scheduling](#scheduling) for more details.
+
 ### Specific Date Product Properties
 |**Property Name**|**Property Type**|**Definition**|**Example**|
 |---|---|---|---|
@@ -192,13 +203,25 @@ Products are finer-grained offerings compared to activities. They adds definitio
 ## Policies
 Policies are rulesets that control how inventory is made available to users, how users can claim and exchange inventory, and how much users will pay for their inventory.
 
-Certain policies are the same for many [**products**](#products), hence policies being their own entity, rather than baked into the properties of products. 
+Certain policies are the same for many [**products**](#products), hence policies being their own entity, rather than baked into the properties of products.
+
+### Root Policy Properties
+|**Property Name**|**Property Type**|**Definition**|**Example**|
+|---|---|---|---|
+|pk|`String`|policy::\<policyType>|'policy::booking'|
+|sk|`String`|\<policyId>|'1'|
+|schema|`String`|The schema/datatype (meta)|'policy'|
+identifier|`Number`|Also `policyId`. Disambiguates the policy if there are many policies of the same `policyType`.|1|
+|policyId|`Number`|See `identifier`|1|
+|displayName|`String`|Display name for the policy|'Standard Day Use Parking and Trail (ALL DAY) Booking Policy'|
+|description|`String`|Description of the policy|'This booking policy is for Day Use - ALL DAY parking and trail passes.'|
 
 ### Booking Policies
 Booking policies define how inventory is made available to users and how users are able to claim inventory. They involve details like how long in advance a user is able to book a certain date, how long they are allowed to claim the inventory for, and when the user is expected to use their inventory by.
 
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
+|policyType|`String`|Policy type ('booking', 'fee', 'change', 'party').|'booking'|
 |minStay|`Duration`|The minimum duration a user is permitted to book at once|Y|
 |maxStay|`Duration`|The maximum duration a user is permitted to book at once|Y|
 |resWindowType|`String` or `Enum`|The type of advanced booking window, 'rolling' or 'fixed'|Y|
@@ -216,6 +239,7 @@ Change policies define how users are able to change existing claims they may hav
 
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
+|policyType|`String`|Policy type ('booking', 'fee', 'change', 'party').|'change'|
 |areChangesAllowed|`Boolean`|Is the user permitted to change their inventory?|Y|
 |changeWindowDuration|`Duration`|The duration prior to the first date of a booking where a user is penalized in addition to change fees for making changes to their inventory. Before this window, changes and cancellations receive a full refund less change fees|Y|
 |changeRestrictedDuration|`Duration`|The duration after creating or changing a booking that a user is forbidden from making further changes (discourages speculative booking)|N|
@@ -228,6 +252,7 @@ Fee policies define how users are charged for their inventory, and if/how they a
 
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
+|policyType|`String`|Policy type ('booking', 'fee', 'change', 'party').|'fee'|
 |isAcceptingPayment|`Boolean`|Does BC Parks charge for this inventory?|Y|
 |adultNightlyCampingFee|`Number`|Fee per adult per night, in dollars|N|
 |childNightlyCampingFee|`Number`|Fee per child per night, in dollars|N|
@@ -241,6 +266,7 @@ Party policies dictate how user's camping parties are allowed to be composed. Th
 
 |**Property Name**|**Property Type**|**Definition**|**Mandatory?**|
 |---|---|---|---|
+|policyType|`String`|Policy type ('booking', 'fee', 'change', 'party').|'party'|
 |minOccupantAge|`Number`|The minimum age of the named occupant|N|
 |minSize|`Number`|The minimum number of persons allowed in the party|Y|
 |maxSize|`Number`|The maximum number of persons allowed in the party|Y|
@@ -266,7 +292,9 @@ When it comes to inventory allocation, and looking at inventory availability, th
 * **Flex Inventory** refers to inventory of non-specific assets or assets that can be freely exchanged between users during a user's booking dates. The system can be asset-agnostic when allocating inventory or checking availability on any given day. Flex inventory is typically conceptual inventory that exists only as needed. One example of flex inventory is the day-use capacity for a trail. The maximum capacity of the trail can be easily adjusted on different dates to suit park operator needs. Users can claim inventory (capacity units on any given day) until the trail capacity limit is reached. If a user wants to visit the trail 3 days in a row, the system only needs to ensure there is capacity available on each day, not whether the user has the same inventory for all 3 days.  Another counterintuitive example of flex inventory is backcountry reservations. Backcountry reservations 'guarantee' the user a tentpad at their destination, but they do not assign the user a specific asset, ie specific tentpad. Like the day-use example, backcountry reservation offerings have a daily capacity limit equal to the number of tentpads the offering includes. If a user wants to make a backcountry reservation for 3 consecutive days, the system does not have to ensure they are assigned the same tentpad for the duration of the user's visit. So long as there is availability on all of the days in their visit, the user can show up on their arrival date, pick any unoccupied tentpad, and they will not have to move for the duration of their stay.
 
 ## Assets
-Assets are the non-temporal part of inventory. They can be something physical, like a tentpad (but not on any specific date) or conceptual, like trail capacity (again, not on any specific date).
+Assets are the non-temporal part of inventory. They can be something physical, like a tentpad (but not on any specific date) or conceptual, like trail capacity (again, not on any specific date). An asset persists year-round, meaning it isn't created or destroyed based on what time of year it is. An asset can be made available to users through a product, which makes an asset availability time-dependent (basically turning it into inventory). 
+
+For example, a tentpad in a campground is physically persistent year-round, but the campground is only open from May to September. A product makes the tentpad (asset) available between May and September (inventory), so a user can access the tentpad only when the campground is open, despite the asset always existing.
 
 ## Permits
 A permit is a document that captures inventory and assigns it to a specific user. It can be thought of a receipt or other proof of purchase that grants a user permission to use a specific asset on a specific date. It also doubles as an administrative record of which inventory items were claimed on which dates and by whom. 
@@ -280,3 +308,258 @@ Examples:
 * Tentpad #43 at Rathtrevor Beach campground from 2024-08-15 to 2024-08-17 (3 nights, 3 inventory/permits, 1 fixed asset)
 * One day-use pass for Joffre Lakes on 2024-07-22 (1 day, 1 inventory/permit, 1 flex asset)
 * One tentpad at Wedgemount Lake campground (backcountry reservation) from 2024-08-15 to 2024-08-17 (3 nights, 3 inventory/permits, 1 flex asset)
+
+# Scheduling
+All of the previous datatypes primarily handle cases where data is static - that is, it does not change with time. In reality in a reservation system, properties like availability, cost, capacity, and others are in constant fluctuation. The reservation needs a way to keep track of these temporal properties and their relationships to static properties and datatypes.
+
+As defined by [inventory](#inventory), it is predicted that the shortest interval that temporal properties can change between is **1 day**. Therefore, this implies that the properties of a single asset/product cannot have more than 1 value for any given day, and our scheduling system must deal in **days**.
+
+Note: an example of a case where properties appear to change more than once per day might be the AM/PM day use passes for a day use area like Cheakamus. For the same 'assets' (parking spaces), the policies change during the day (AM capacity is only available in the morning, PM only in the afternoon). In this case, AM and PM offerings should be broken into their own products, such that each day has 2 offerings (AM or PM) but the properties of either do not change throughout the day (AM window is from 7am-12pm/1pm, PM window is from 12pm/1pm-dusk). Importantly, the assets and the durations they are offered for (inventory) managed by each product **have no overlap**.
+
+## Calendar
+A calendar is a data concept that allows for more granular control over the properties of a [product](#product) over a fixed period of time. It allows for system administrator to change how a product is offered on a predefined schedule if a product's properties change depending on the date, day of week, season, etc. 
+
+At its core, a calendar contains a start date, an end date, and a [schedule](#schedule-properties) that contains any deviations from the base product properties that occur on any day in between the start and end dates. The schedule properties on a given day will overwrite the base product properties on that given day. 
+
+Once a calendar is defined, the `buildSchedule` function can be run with the API to build out the calendar into [one product item for every day](#specific-date-product-properties) it is offered between the start date and end date. These date-specific products will be what the user looks at to determine day-to-day availability of a certain product. They are analogous to the `reservations` object used in Day Use Pass. For every date between the start and end date inclusive, the `buildSchedule` function looks for that date in the calendar schedule. If the calendar contains changes on that date, the date-specific product item will contain those changes (essentially overwriting the base product properties). In cases where properties are not changed by the calendar, or where dates are not present in the calendar, the base product properties will be copied into the date-specific product.
+
+The overwrite currently is just a basic object merge with the schedule properties taking precedence over the base product. 
+
+For example, some day use passes are only offered on weekends and holidays. In this case, the base product properties would define what the day use offering is like on the weekends and holidays. The calendar would contain the start and end date for the season, and a schedule where every non-holiday weekday has `isPermitRequired: false`. When the schedule is built, only dates where `isPermitRequired: true` will be built into date-specific products. 
+
+### Calendar Properties
+|**Property Name**|**Property Type**|**Definition**|**Example**|
+|---|---|---|---|
+|pk|`String`|calendar::\<orcs>::\<activityType>::\<activityId>|'calendar::7::dayuse::1'|
+|sk|`String`|\<productId>::\<startDate>|'1::2024-12-10'|
+|orcs|`Number`|The ORCS number of the parent protected area|7|
+|schema|`String` or `Enum`|The schema/data type (meta)|'calendar'|
+|activity|`String`|Parent activity `sk`|'dayuse::1`|
+|activityId|`Number`|ActivityId of the parent activity|1|
+|activityType|`String` or `Enum`|The activity type (meta)|'dayuse'|
+|startDate|`ISODate`|The start date of the calendar|2024-12-10|
+|endDate|`ISODate`|The end date of the calendar|2025-02-15|
+|schedule|`Schedule`|See [schedule properties](#schedule-properties)|{Schedule}|
+|version|`Number`|Data revision (meta)|1|
+|creationDate|`DateTime`|Timestamp of original data creation in UTC (meta)|`2024-11-15T00:00:000Z`|
+|lastUpdated|`DateTime`|Timestamp of last update in UTC (meta)|`2024-11-15T00:00:000Z`|
+
+### Schedule Properties
+A schedule is a complex object where each key is an `ISODate` between `startDate` and `endDate`. If the base product properties deviate on an `ISODate`, the property with that `ISODate` key contains a sub-object with all the deviations.
+
+**Example**
+```
+schedule: {
+	2024-12-12: {
+		isPermitRequired: false;
+	},
+	2024-12-13: {
+		isPermitRequired: false;
+	},
+	2024-12-15: {
+		baseCapacity: 250;
+		description: 'Base capacity changed to account for expected change in demand to visit this facility';
+	}
+	
+}
+```
+
+# API Endpoints
+## Protected Areas
+#### GET All Protected Areas
+Gets all protected areas in the system. 
+```
+GET /protected-areas
+```
+**Returns:** all protected areas in the system.
+
+#### GET Specific Protected Area
+Gets a specific protected area in the system.
+```
+GET /protected-areas/<orcs>
+GET /protected-areas?orcs=<orcs>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the protected area.|
+
+**Returns:** A single specific protected area with the ORCS `<orcs>`.
+
+## Subareas
+#### GET Subareas by ORCS
+Gets all subareas that are linked to a specific ORCS (all subareas within a specific park).
+```
+GET /subareas?orcs=<orcs>
+GET /protected-areas/<orcs>/subareas
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+
+**Returns:** All subareas linked to the protected area with the ORCS `<orcs>`.
+
+#### GET Specific Subarea
+Gets a specific subarea within a specific park.
+```
+GET /subareas?orcs=<orcs>&subareaId=<subareaId>
+GET /protected-areas/<orcs>/subareas/<subareaId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`subareaId`|The subarea ID of the subarea|
+
+Optional query parameters:
+|parameter|description|
+|---|---|
+|`fetchFacilities`|Fetches the list of facilities defined by the facility `sk`s in the `facilities` property of the subarea. The `facilites` property is overwritten with the list of facilities when returning the subarea. Gets the facilities of the subarea in the same call as the subarea GET, but is equally resource intensive as doing individual facility GETs by subarea.|
+|`fetchActivities`|Fetches the list of activities defined by the activity `sk`s in the `activities` property of the subarea. The `activities` property is overwritten with the list of activities when returning the subarea. Gets the activities of the subarea in the same call as the subarea GET, but is equally resource intensive as doing individual activity GETs by subarea.|
+
+**Returns:** A single subarea identified by its subarea ID and the ORCS of its parent protected area.
+
+#### POST Subarea
+Creates a brand new subarea within the provided protected area. Creating a brand new subarea will automatically assign the next logical `subareaId` to the newly created subarea. 
+```
+POST /subareas?orcs=<orcs>
+POST /protected-areas/<orcs>/subareas
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+
+Optional POST body parameters (see [subarea](#subarea)):
+```
+displayName
+description
+isVisible
+searchTerms
+envelope
+location
+```
+**Returns:** The details of the newly created subarea.  
+
+#### PUT Subarea
+Updates an existing subarea.
+```
+PUT /subareas?orcs=<orcs>&subareaId=<subareaId>
+PUT /protected-areas/<orcs>/subareas/<subareaId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`subareaId`|The subarea ID of the subarea|
+
+Optional PUT body parameters (see [subarea](#subarea)):
+```
+displayName
+description
+isVisible
+searchTerms
+envelope
+location
+version (if serial updating is enforced)
+```
+Adding facilities and activities to subareas will be handled by a separate endpoint to ensure proper linkage between data types. 
+**Returns:** Success/Failure message.
+
+## Facilities
+#### GET Facilities by ORCS
+Gets all facilities that are linked to a specific ORCS (all facilities within a specific park).
+```
+GET /facilities?orcs=<orcs>
+GET /protected-areas/<orcs>/facilities
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+
+**Returns:** All facilities linked to the protected area with the ORCS `<orcs>`.
+
+#### GET Facility by ORCS and Facility Type/ID
+Gets a specific facility by ORCS, facility type, and facility ID.
+```
+GET /facilities?orcs=<orcs>&facilityType=<facilityType>&facilityId=<facilityId>
+GET /protected-areas/<orcs>/facilities/<facilityType>/<facilityId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`facilityType`|The type of facility (trail, parking, campground, etc)|
+|`facilityId`| Facility identifier|
+
+Optional query parameters:
+|parameter|description|
+|---|---|
+|`fetchActivities`|Fetches the list of activities defined by the activity `sk`s in the `activities` property of the facility. The `activities` property is overwritten with the list of activities when returning the facility. Gets the activities of the facility in the same call as the facility GET, but is equally resource intensive as doing individual activity GETs by facility.|
+
+**Returns:** A single facility with `orcs`, `facilityType` and `facilityId`
+
+## Activities
+#### GET Activities by ORCS
+Gets all activities that are linked to a specific ORCS (all activities within a specific park).
+```
+GET /activities?orcs=<orcs>
+GET /protected-areas/<orcs>/activities
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+
+**Returns:** All facilities linked to the protected area with the ORCS `<orcs>`.
+
+#### GET Activity by ORCS and Activity Type/ID
+Gets a specific activity by ORCS, activity type, and activity ID.
+```
+GET /activities?orcs=<orcs>&activityType=<activityType>&activityId=<activityId>
+GET /protected-areas/<orcs>/activities/<activityType>/<activityId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`activityType`|The type of activity(camping, dayuse, etc)|
+|`activityId`| Activity identifier|
+
+Optional query parameters:
+|parameter|description|
+|---|---|
+|`fetchFacilities`|Fetches the list of facilities defined by the facility `sk`s in the `facilities` property of the activity. The `facilities` property is overwritten with the list of facilities when returning the activity. Gets the facilities of the activity in the same call as the activity GET, but is equally resource intensive as doing individual facility GETs by activity.|
+
+**Returns:** A single activity with `orcs`, `activityType` and `activityId`.
+
+#### GET Products by Activity
+Gets a list of products associated with an activity.
+```
+GET /products?orcs=<orcs>&activityType=<activityType>&activityId=<activityId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`activityType`|The type of activity(camping, dayuse, etc)|
+|`activityId`| Activity identifier|
+
+**Returns:** A list of products belonging to the activity with `orcs`, `activityType` and `activityId`.
+
+#### GET Product by ORCS, Activity and ProductId.
+Gets a specific product by ORCS, activity type, activity ID and product ID.
+
+```
+GET /products?orcs=<orcs>&activityType=<activityType>&activityId=<activityId>&productId=<productId>
+```
+|parameter|description|
+|---|---|
+|`orcs`|The orcs number of the parent protected area.|
+|`activityType`|The type of activity(camping, dayuse, etc)|
+|`activityId`| Activity identifier|
+|`productId`| Product identifier|
+
+Optional query parameters:
+
+|parameter|description|
+|---|---|
+|`fetchPolicies`|Fetches the list of policies (`booking`, `fee`, `change` and `party`) defined by the policy `sk`s in the `bookingPolicy`, `feePolicy`, `changePolicy` and `partyPolicy` properties of the product. The `bookingPolicy`, `feePolicy`, `changePolicy` and `partyPolicy` properties are overwritten with the full policies when returning the product. Gets the policies of the product in the same call as the product GET, but is equally resource intensive as doing individual policy GETs by product.|
+|`fetchSchedule`|Fetches a portion of the product schedule between a range of dates. If `startDate` is also provided with the call, the schedule date for just that single date is returned. If `startDate` and `endDate` are provided with the call, all the schedule dates between `startDate` and `endDate` inclusive are also provided with the call. If neither `startDate` nor `endDate` are provided, the current date is determined and a window of predetermined length (default is 2 weeks) is returned with the call. Gets the schedule of the product in the same call as the product GET, but is equally resource intensive as doing individual product schedule date GETs.|
+|`startDate`|The specific date of the product schedule to return or the start of a range of dates to return. In `ISODate` format (YYYY-MM-DD). Timezone is determined by the facility where the product is offered.|
+|`endDate`|The end of a range of dates to return. Argument `startDate` must also be provided. In `ISODate` format (YYYY-MM-DD). Timezone is determined by the facility where the product is offered.|
+
+
+
