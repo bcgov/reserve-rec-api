@@ -35,7 +35,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     stage: process.env.STAGE || 'api',
     AUDIT_TABLE_NAME: process.env.TABLE_NAME_AUDIT || 'reserve-rec-audit',
     TABLE_NAME: process.env.TABLE_NAME || 'reserve-rec',
-    PBUSUB_TABLE_NAME: process.env.TABLE_NAME || 'reserve-rec-pubsub',
+    PUBSUB_TABLE_NAME: process.env.PUBSUB_TABLE_NAME || 'reserve-rec-pubsub',
     tantalisEndpointUrl: process.env.TANTALIS_ENDPOINT_URL || 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows',
   },
 });
