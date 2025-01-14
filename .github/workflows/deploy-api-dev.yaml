@@ -68,7 +68,8 @@ jobs:
           STACK_NAME: ${{ vars.STACK_NAME }}
         run: |
           echo "Deploying $STACK_NAME"
-          cdk deploy $STACK_NAME --require-approval never --rollback
+          cdk deploy ReserveRecCdkStack --require-approval never --rollback
+        # cdk deploy $STACK_NAME --require-approval never --rollback
 
           
       # ### CDK Synth
