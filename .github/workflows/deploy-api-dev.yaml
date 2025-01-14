@@ -24,6 +24,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Install AWS CDK
+        run: yarn global add aws-cdk
+
+      # - name: Setup Node.js environment
+      #   uses: actions/setup-node@v2
+      #   with: 
+      #     node-version: latest
+      #     cache: "npm"
+
+      # - name: Install dependencies
+      #   run: npm install
+
       # - shell: bash
       #   env:
       #     WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
@@ -45,22 +57,35 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       ### CDK Synth
-      - name: Cache CDK Synth
-        id: cache-cdk-synth
-        uses: actions/cache@v4
-        with:
-          path: |
-            **.aws-sam
-          key: ${{ github.sha }}-cdk-cache
-      - name: Run cdk synth
-        if: steps.cache-cdk-synth.outputs.cache-hit != 'true'
-        run: |
-          cdk synth
+      - name: CDK Synth
+        run: cdk synth
 
-      ### Prevent prompts and failure when the stack is unchanged
-      - name: CDK deploy
+      ## CDK Deploy
+      - name: CDK Deploy
         env:
           STACK_NAME: ${{ vars.STACK_NAME }}
+        run: |
+          echo "Deploying $STACK_NAME"
+          cdk deploy $STACK_NAME --require-approval never --rollback
+
+          
+      # ### CDK Synth
+      # - name: Cache CDK Synth
+      #   id: cache-cdk-synth
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       **.aws-sam
+      #     key: ${{ github.sha }}-cdk-cache
+      # - name: Run cdk synth
+      #   if: steps.cache-cdk-synth.outputs.cache-hit != 'true'
+      #   run: |
+      #     cdk synth
+
+      ### Prevent prompts and failure when the stack is unchanged
+      # - name: CDK deploy
+      #   env:
+      #     STACK_NAME: ${{ vars.STACK_NAME }}
           # TABLE_NAME: ${{ vars.TABLE_NAME }}
           # TABLE_NAME_AUDIT: ${{ vars.TABLE_NAME_AUDIT }}
           # STAGE: ${{ vars.STAGE }}
@@ -79,9 +104,9 @@ jobs:
           # COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
           # ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
           # JWKS: ${{ secrets.JWKS }}
-        run: |
-          echo "Deploying $STACK_NAME"
-          cdk deploy $STACK_NAME --require-approval never --rollback
+        # run: |
+        #   echo "Deploying $STACK_NAME"
+        #   cdk deploy $STACK_NAME --require-approval never --rollback
         # sam deploy --stack-name $STACK_NAME --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_NAMED_IAM --parameter-overrides "AllowOrigin=$ALLOW_ORIGIN" "TableName=$TABLE_NAME" "TableNameAudit=$TABLE_NAME_AUDIT" "Stage=$STAGE" "AccountId=$ACCOUNT_ID" "DomainName=$DOMAIN_NAME" "KMSKeyId=$KMS_KEY_ID" "InstanceCount=$INSTANCE_COUNT" "InstanceType=$INSTANCE_TYPE" "OpenSearchMainIndex=$OPEN_SEARCH_MAIN_INDEX" "EBSIops=$EBS_IOPS" "DataRegisterEndpoint=$DATA_REGISTER_ENDPOINT" "DataRegisterApiKey=$DATA_REGISTER_API_KEY" "AzureAppId=$AZURE_APP_ID" "AzureAppSecret=$AZURE_APP_SECRET" "AzureOIDCURL=$AZURE_OIDC_URL" "CognitoCallbackURLs=$COGNITO_CALLBACK_URLS" "Jwks=$JWKS" "Environment=dev"
 
       # - shell: bash
