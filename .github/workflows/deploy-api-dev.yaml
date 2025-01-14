@@ -4,7 +4,7 @@ run-name: Deploying ${{ github.ref_name }} (API) to dev
 
 on:
   push:
-    branches: [main]
+    branches: [cdk] # change this back to main later
   workflow_dispatch:
 
 permissions:
@@ -31,10 +31,10 @@ jobs:
       #     curl -X POST -H 'Content-Type: application/json' $WEBHOOK_URL --data '{"text":"Reserve Rec API Dev"}'
 
       ### Setup AWS CLI
-      - name: Setup AWS SAM
-        uses: aws-actions/setup-sam@v2
-        with:
-          use-installer: true
+      # - name: Setup AWS SAM
+      #   uses: aws-actions/setup-sam@v2
+      #   with:
+      #     use-installer: true
 
       ### Assume AWS IAM Role
       - name: Get AWS credentials
