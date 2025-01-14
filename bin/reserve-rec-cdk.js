@@ -31,7 +31,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     kmsKeyId: process.env.KMS_KEY_ID || 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es',
     opensearchEndpointUrl: process.env.OPENSEARCH_ENDPOINT_URL || 'http://localhost:9200',
     opensearchMainIndex: process.env.OPENSEARCH_MAIN_INDEX || 'main-index',
-    project: process.env.PROJECT || 'reserve-rec',
+    project: process.env.PROJECT || 'reserve-rec-main',
     stage: process.env.STAGE || 'api',
     AUDIT_TABLE_NAME: process.env.TABLE_NAME_AUDIT || 'reserve-rec-audit',
     TABLE_NAME: process.env.TABLE_NAME || 'reserve-rec',
