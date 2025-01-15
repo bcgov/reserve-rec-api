@@ -44,7 +44,27 @@ jobs:
       ## CDK Deploy
       - name: CDK Deploy
         env:
+          # Secrets
+          AZURE_APP_ID: ${{ secrets.AZURE_APP_ID }}
+          AZURE_APP_SECRET: ${{ secrets.AZURE_APP_SECRET }}
+          AZURE_OIDC_URL: ${{ secrets.AZURE_OIDC_URL }}
+          DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
+          JWKS: ${{ secrets.JWKS }}
+          KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
+          # Variables
+          ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
+          COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
+          DATA_REGISTER_ENDPOINT: ${{ vars.DATA_REGISTER_ENDPOINT }}
+          DOMAIN_ENDPOINT: ${{ vars.DOMAIN_ENDPOINT }}
+          EBS_IOPS: ${{ vars.EBS_IOPS }}
+          INSTANCE_COUNT: ${{ vars.INSTANCE_COUNT }}
+          INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
+          OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
           STACK_NAME: ${{ vars.STACK_NAME }}
+          STAGE: ${{ vars.STAGE }}
+          TABLE_NAME: ${{ vars.TABLE_NAME }}
+          AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
+          
         run: |
           echo "Deploying $STACK_NAME"
           cdk deploy ReserveRecCdkStack --require-approval never --rollback
