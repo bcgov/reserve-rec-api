@@ -1,0 +1,911 @@
+{
+	"info": {
+		"_postman_id": "d5314b6f-3178-44eb-9a6f-e3111e217cf5",
+		"name": "BCParks PRDT Reservation System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14509064",
+		"_collection_link": "https://bcparks-dup.postman.co/workspace/BCParks-Day-Use-Pass~c6a232b9-cbde-4bc3-aa2c-906ab8c015e7/collection/14509064-d5314b6f-3178-44eb-9a6f-e3111e217cf5?action=share&source=collection_link&creator=14509064"
+	},
+	"item": [
+		{
+			"name": "Protected Areas",
+			"item": [
+				{
+					"name": "Protected Area by ORCS",
+					"item": [
+						{
+							"name": "Subarea",
+							"item": [
+								{
+									"name": "Get Subarea by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/subareas?subareaId=1&fetchActivities=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"subareas"
+											],
+											"query": [
+												{
+													"key": "subareaId",
+													"value": "1"
+												},
+												{
+													"key": "fetchActivities",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "8"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Activity",
+							"item": [
+								{
+									"name": "ActivityType and ActivityId",
+									"item": [
+										{
+											"name": "Products",
+											"item": [
+												{
+													"name": "Get Products",
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{base_url}}/protected-areas/:orcs/activities/:activityType/:activityId/products",
+															"host": [
+																"{{base_url}}"
+															],
+															"path": [
+																"protected-areas",
+																":orcs",
+																"activities",
+																":activityType",
+																":activityId",
+																"products"
+															],
+															"variable": [
+																{
+																	"key": "orcs",
+																	"value": "7"
+																},
+																{
+																	"key": "activityType",
+																	"value": "dayuse"
+																},
+																{
+																	"key": "activityId",
+																	"value": "1"
+																}
+															]
+														}
+													},
+													"response": []
+												}
+											]
+										},
+										{
+											"name": "Get Activity by Orcs, ActivityType, ActivityId",
+											"request": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{base_url}}/protected-areas/:orcs/activities/:activityType/:activityId",
+													"host": [
+														"{{base_url}}"
+													],
+													"path": [
+														"protected-areas",
+														":orcs",
+														"activities",
+														":activityType",
+														":activityId"
+													],
+													"variable": [
+														{
+															"key": "orcs",
+															"value": "8"
+														},
+														{
+															"key": "activityType",
+															"value": ""
+														},
+														{
+															"key": "activityId",
+															"value": ""
+														}
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Get Activity by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/activities?activityType=dayuse&activityId=3&fetchProducts=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"activities"
+											],
+											"query": [
+												{
+													"key": "activityType",
+													"value": "dayuse"
+												},
+												{
+													"key": "activityId",
+													"value": "3"
+												},
+												{
+													"key": "fetchProducts",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "8"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Facility",
+							"item": [
+								{
+									"name": "Get Facility by Protected Area",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/protected-areas/:orcs/facilities?facilityType=parking&facilityId=1&fetchActivities=true",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"protected-areas",
+												":orcs",
+												"facilities"
+											],
+											"query": [
+												{
+													"key": "facilityType",
+													"value": "parking"
+												},
+												{
+													"key": "facilityId",
+													"value": "1"
+												},
+												{
+													"key": "fetchActivities",
+													"value": "true"
+												}
+											],
+											"variable": [
+												{
+													"key": "orcs",
+													"value": "15"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Get Protected Area by ORCS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/protected-areas/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"protected-areas",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Protected Area By ORCS",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"displayName\": \"Strathcona 2 Electric Boogaloo\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/protected-areas/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"protected-areas",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get Protected Areas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/protected-areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"protected-areas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Update Protected Areas",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/protected-areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"protected-areas"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Policies",
+			"item": [
+				{
+					"name": "Policies by Policy Types",
+					"item": [
+						{
+							"name": "Policy by Policy ID",
+							"item": [
+								{
+									"name": "Get Policy By Policy ID",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url}}/policies/:policyType/:policyId",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"policies",
+												":policyType",
+												":policyId"
+											],
+											"variable": [
+												{
+													"key": "policyType",
+													"value": ""
+												},
+												{
+													"key": "policyId",
+													"value": ""
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Single Policy",
+									"request": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}/policies/:policyType/:policyId",
+											"host": [
+												"{{base_url}}"
+											],
+											"path": [
+												"policies",
+												":policyType",
+												":policyId"
+											],
+											"variable": [
+												{
+													"key": "policyType",
+													"value": "booking"
+												},
+												{
+													"key": "policyId",
+													"value": "1"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Create Policy",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/policies/:policyType",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"policies",
+								":policyType"
+							],
+							"variable": [
+								{
+									"key": "policyType",
+									"value": "booking"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Policies By Policy Type",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/policies/:policyType",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"policies",
+								":policyType"
+							],
+							"variable": [
+								{
+									"key": "policyType",
+									"value": "booking"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Policies",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/policies",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"policies"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subareas",
+			"item": [
+				{
+					"name": "Get subareas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/subareas?orcs=8&subareaId=1&fetchActivities=true&fetchFacilities=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subareas"
+							],
+							"query": [
+								{
+									"key": "orcs",
+									"value": "8"
+								},
+								{
+									"key": "subareaId",
+									"value": "1"
+								},
+								{
+									"key": "fetchActivities",
+									"value": "true"
+								},
+								{
+									"key": "fetchFacilities",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Activities",
+			"item": [
+				{
+					"name": "Get Activities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities?orcs=7",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"activities"
+							],
+							"query": [
+								{
+									"key": "orcs",
+									"value": "7"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Facilties",
+			"item": [
+				{
+					"name": "Get Facilities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/facilities?orcs=363",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"facilities"
+							],
+							"query": [
+								{
+									"key": "orcs",
+									"value": "363"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/products?orcs=7&activityType=dayuse&activityId=1&productId=1&fetchPolicies=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"products"
+							],
+							"query": [
+								{
+									"key": "orcs",
+									"value": "7"
+								},
+								{
+									"key": "activityType",
+									"value": "dayuse"
+								},
+								{
+									"key": "activityId",
+									"value": "1"
+								},
+								{
+									"key": "productId",
+									"value": "1"
+								},
+								{
+									"key": "fetchPolicies",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Search",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{x-api-key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/search?limit=20&type=opDate&startDate=2024-11-06&endDate=2024-11-08&category=permit",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"search"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "backcountryRegistration",
+							"disabled": true
+						},
+						{
+							"key": "startFrom",
+							"value": "4",
+							"disabled": true
+						},
+						{
+							"key": "text",
+							"value": "date",
+							"disabled": true
+						},
+						{
+							"key": "limit",
+							"value": "20"
+						},
+						{
+							"key": "status",
+							"value": "historical",
+							"disabled": true
+						},
+						{
+							"key": "sortField",
+							"value": "effectiveDate",
+							"disabled": true
+						},
+						{
+							"key": "type",
+							"value": "opDate"
+						},
+						{
+							"key": "startDate",
+							"value": "2024-11-06"
+						},
+						{
+							"key": "endDate",
+							"value": "2024-11-08"
+						},
+						{
+							"key": "category",
+							"value": "permit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Permit Search",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{x-api-key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/search/permits",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"search",
+						"permits"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "backcountryRegistration",
+							"disabled": true
+						},
+						{
+							"key": "startFrom",
+							"value": "4",
+							"disabled": true
+						},
+						{
+							"key": "text",
+							"value": "joffre",
+							"disabled": true
+						},
+						{
+							"key": "status",
+							"value": "historical",
+							"disabled": true
+						},
+						{
+							"key": "sortField",
+							"value": "effectiveDate",
+							"disabled": true
+						},
+						{
+							"key": "limit",
+							"value": "2",
+							"disabled": true
+						},
+						{
+							"key": "startDate",
+							"value": "2024-11-06",
+							"disabled": true
+						},
+						{
+							"key": "endDate",
+							"value": "2024-11-08",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "clientId",
+				"value": "{{cognito_client_id}}",
+				"type": "string"
+			},
+			{
+				"key": "authUrl",
+				"value": "{{cognito_auth_url}}/login",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "{{cognito_auth_url}}/oauth2/token",
+				"type": "string"
+			},
+			{
+				"key": "useBrowser",
+				"value": true,
+				"type": "boolean"
+			},
+			{
+				"key": "grant_type",
+				"value": "authorization_code",
+				"type": "string"
+			},
+			{
+				"key": "scope",
+				"value": "",
+				"type": "string"
+			},
+			{
+				"key": "client_authentication",
+				"value": "body",
+				"type": "string"
+			},
+			{
+				"key": "tokenName",
+				"value": "{{token_name}}",
+				"type": "string"
+			},
+			{
+				"key": "refreshRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "tokenRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "authRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "challengeAlgorithm",
+				"value": "S256",
+				"type": "string"
+			},
+			{
+				"key": "redirect_uri",
+				"value": "http://localhost:4200",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
