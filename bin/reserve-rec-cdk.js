@@ -28,6 +28,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     identityPoolName: process.env.IDENTITY_POOL_NAME || 'ReserveRecIdentity',
     instanceCount: process.env.INSTANCE_COUNT || '1',
     instanceType: process.env.INSTANCE_TYPE || 't3.small.search',
+    IS_OFFLINE: process.env.IS_OFFLINE || 'true',
     jwks: process.env.JWKS || 'jwks',
     kmsKeyId: process.env.KMS_KEY_ID || 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es',
     opensearchEndpointUrl: process.env.OPENSEARCH_ENDPOINT_URL || 'http://localhost:9200',
