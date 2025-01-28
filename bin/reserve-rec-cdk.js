@@ -9,7 +9,8 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
 
-    // Custom environeemnt variables
+    // Custom environment variables
+    API_STAGE: process.env.API_STAGE || 'api',
     corsAllowOrigins: process.env.CORS_ALLOW_ORIGINS || 'http://localhost:4200,http://localhost:4300',
     azureAppId: process.env.AZURE_APP_ID || 'azure-app-id',
     azureAppSecret: process.env.AZURE_APP_SECRET || 'azure-app-secret',
