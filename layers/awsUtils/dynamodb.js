@@ -124,6 +124,23 @@ async function runScan(query, limit = null, lastEvaluatedKey = null, paginated =
   }
 }
 
+async function deleteItem(pk, sk, tableName = TABLE_NAME) {
+  logger.info(`deleteItem: { pk: ${pk}, sk: ${sk} }`);
+  const params = {
+    TableName: tableName,
+    Key: marshall({ pk, sk }),
+    ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+  };
+
+  try {
+    await dynamodbClient.send(new DeleteItemCommand(params));
+    logger.info(`Item with pk: ${pk} and sk: ${sk} deleted successfully.`);
+  } catch (error) {
+    logger.error(`Error deleting item with pk: ${pk} and sk: ${sk}:`, error);
+    throw error;
+  }
+}
+
 async function putItem(obj, tableName = TABLE_NAME) {
   let putObj = {
     TableName: tableName,
@@ -296,6 +313,7 @@ module.exports = {
   batchGetData,
   batchTransactData,
   batchWriteData,
+  deleteItem,
   dynamodb,
   dynamodbClient,
   getOne,
