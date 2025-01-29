@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 const cdk = require('aws-cdk-lib');
 const { ReserveRecCdkStack } = require('../lib/reserve-rec-cdk-stack');
-const { OPENSEARCH_DOMAIN_ENDPOINT } = require('../lib/layers/awsUtils/opensearch');
 
 const app = new cdk.App();
 new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
