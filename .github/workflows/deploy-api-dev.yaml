@@ -61,9 +61,14 @@ jobs:
           INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
           OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
           STACK_NAME: ${{ vars.STACK_NAME }}
-          STAGE: ${{ vars.STAGE }}
+          API_STAGE: ${{ vars.STAGE }}
           TABLE_NAME: ${{ vars.TABLE_NAME }}
           AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
+          PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
+          IS_OFFLINE: ${{ vars.IS_OFFLINE }}
+          DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          
           
         run: |
           echo "Deploying $STACK_NAME"
