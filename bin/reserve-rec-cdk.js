@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const cdk = require('aws-cdk-lib');
 const { ReserveRecCdkStack } = require('../lib/reserve-rec-cdk-stack');
+const { OPENSEARCH_DOMAIN_ENDPOINT } = require('../lib/layers/awsUtils/opensearch');
 
 const app = new cdk.App();
 new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
@@ -23,7 +24,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     dataRegisterAoUrl: process.env.DATA_REGISTER_AO_URL || 'https://dev-data.bcparks.ca/api',
     domainName: process.env.DOMAIN_NAME || 'reserve-rec',
     DYNAMODB_ENDPOINT_URL: process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000',
-    ebsIops: process.env.EBS_IOPS || '3000',
+    EBS_IOPS: process.env.EBS_IOPS || '3000',
     environmentName: process.env.ENVIRONMENT_NAME || 'dev',
     identityPoolName: process.env.IDENTITY_POOL_NAME || 'ReserveRecIdentity',
     instanceCount: process.env.INSTANCE_COUNT || '1',
@@ -31,6 +32,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     IS_OFFLINE: process.env.IS_OFFLINE || 'true',
     jwks: process.env.JWKS || 'jwks',
     kmsKeyId: process.env.KMS_KEY_ID || 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es',
+    OPENSEARCH_DOMAIN_NAME: process.env.OPENSEARCH_DOMAIN_NAME || 'reserve-rec-os',
     opensearchEndpointUrl: process.env.OPENSEARCH_ENDPOINT_URL || 'http://localhost:9200',
     opensearchMainIndex: process.env.OPENSEARCH_MAIN_INDEX || 'main-index',
     project: process.env.PROJECT || 'reserve-rec',
