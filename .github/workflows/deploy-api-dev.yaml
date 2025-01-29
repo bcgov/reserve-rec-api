@@ -11,6 +11,10 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: deploy-reserve-rec-api
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
