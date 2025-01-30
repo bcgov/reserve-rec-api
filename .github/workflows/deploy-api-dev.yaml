@@ -55,6 +55,8 @@ jobs:
           DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
+          OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
+
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
           COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
@@ -72,8 +74,8 @@ jobs:
           IS_OFFLINE: ${{ vars.IS_OFFLINE }}
           DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}
-          
-          
+
+
         run: |
           echo "Deploying $STACK_NAME"
           cdk deploy ReserveRecCdkStack --require-approval never --rollback
