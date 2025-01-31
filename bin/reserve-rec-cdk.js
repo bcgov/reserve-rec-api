@@ -33,7 +33,6 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     kmsKeyId: process.env.KMS_KEY_ID || 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es',
     OPENSEARCH_DOMAIN_NAME: process.env.OPENSEARCH_DOMAIN_NAME || 'reserve-rec-os',
     OPENSEARCH_ADMIN_PASSWORD: process.env.OPENSEARCH_ADMIN_PASSWORD || 'admin',
-    opensearchEndpointUrl: process.env.OPENSEARCH_ENDPOINT_URL || 'http://localhost:9200',
     opensearchMainIndex: process.env.OPENSEARCH_MAIN_INDEX || 'main-index',
     project: process.env.PROJECT || 'reserve-rec',
     stage: process.env.STAGE || 'api',
