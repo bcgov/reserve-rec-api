@@ -56,6 +56,7 @@ jobs:
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
           OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
+          SAML_IDP_METADATA_CONTENT: $${{ secrets.SAML_IDP_METADATA_CONTENT }}
 
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
@@ -66,6 +67,8 @@ jobs:
           INSTANCE_COUNT: ${{ vars.INSTANCE_COUNT }}
           INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
           OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
+          OPENSEARCH_DOMAIN_URL: $${{ vars.OPENSEARCH_DOMAIN_URL }}
+          SAML_IDP_ENTITY_ID: $${{ vars.SAML_IDP_ENTITY_ID }}
           STACK_NAME: ${{ vars.STACK_NAME }}
           API_STAGE: ${{ vars.STAGE }}
           TABLE_NAME: ${{ vars.TABLE_NAME }}

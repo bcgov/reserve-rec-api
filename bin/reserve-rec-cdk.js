@@ -33,6 +33,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     kmsKeyId: process.env.KMS_KEY_ID || 'arn:aws:kms:ca-central-1:637423314715:alias/aws/es',
     OPENSEARCH_DOMAIN_NAME: process.env.OPENSEARCH_DOMAIN_NAME || 'reserve-rec-os',
     OPENSEARCH_ADMIN_PASSWORD: process.env.OPENSEARCH_ADMIN_PASSWORD || 'admin',
+    OPENSEARCH_DOMAIN_URL: process.env.OPENSEARCH_DOMAIN_URL || 'http://localhost:9200',
     opensearchMainIndex: process.env.OPENSEARCH_MAIN_INDEX || 'main-index',
     project: process.env.PROJECT || 'reserve-rec',
     stage: process.env.STAGE || 'api',
@@ -40,5 +41,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     TABLE_NAME: process.env.TABLE_NAME || 'reserve-rec-main',
     PUBSUB_TABLE_NAME: process.env.PUBSUB_TABLE_NAME || 'reserve-rec-pubsub',
     tantalisEndpointUrl: process.env.TANTALIS_ENDPOINT_URL || 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows',
+    SAML_IDP_ENTITY_ID: process.env.SAML_IDP_ENTITY_ID || 'saml-idp-entity-id',
+    SAML_IDP_METADATA_CONTENT: process.env.SAML_IDP_METADATA_CONTENT || 'saml-idp-metadata-content',
   },
 });
