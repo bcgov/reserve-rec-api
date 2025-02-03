@@ -56,7 +56,6 @@ jobs:
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
           OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
-          SAML_IDP_METADATA_CONTENT: $${{ secrets.SAML_IDP_METADATA_CONTENT }}
 
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
