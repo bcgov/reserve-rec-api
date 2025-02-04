@@ -8,6 +8,8 @@
     "start": "sam local start-api -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "build": "cdk synth",
     "start-full": "yarn build && yarn start",
+    "invoke-lambda": "sam local invoke $1 --no-event -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json",
+    "invoke-lambda-full": "yarn build && yarn invoke-lambda $1",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
