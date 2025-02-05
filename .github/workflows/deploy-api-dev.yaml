@@ -60,7 +60,7 @@ jobs:
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
           COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
-          DATA_REGISTER_ENDPOINT: ${{ vars.DATA_REGISTER_ENDPOINT }}
+          DATA_REGISTER_URL: ${{ vars.DATA_REGISTER_URL}}
           DOMAIN_ENDPOINT: ${{ vars.DOMAIN_ENDPOINT }}
           EBS_IOPS: ${{ vars.EBS_IOPS }}
           INSTANCE_COUNT: ${{ vars.INSTANCE_COUNT }}
@@ -73,7 +73,7 @@ jobs:
           TABLE_NAME: ${{ vars.TABLE_NAME }}
           AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
           PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
-          IS_OFFLINE: ${{ vars.IS_OFFLINE }}
+          IS_OFFLINE: 'false'
           DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}
 
