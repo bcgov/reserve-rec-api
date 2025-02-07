@@ -12,9 +12,14 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     // Custom environment variables
     API_STAGE: process.env.API_STAGE || 'api',
     corsAllowOrigins: process.env.CORS_ALLOW_ORIGINS || 'http://localhost:4200,http://localhost:4300',
-    azureAppId: process.env.AZURE_APP_ID || 'azure-app-id',
-    azureAppSecret: process.env.AZURE_APP_SECRET || 'azure-app-secret',
-    azureOIDCUrl: process.env.AZURE_OIDC_URL || 'azure-oidc-url',
+    azureClientId: process.env.AZURE_CLIENT_ID || 'azure-client-id',
+    azureAppClientName: process.env.AZURE_APP_CLIENT_NAME || 'azure-app-client-name',
+    azureProviderName: process.env.AZURE_PROVIDER_NAME || 'AzureIDIR',
+    azureClientSecret: process.env.AZURE_CLIENT_SECRET || 'azure-app-secret',
+    azureCallbackUrls: process.env.AZURE_CALLBACK_URLS || 'http://localhost:4300/callback',
+    azureLogoutUrls: process.env.AZURE_LOGOUT_URLS || 'http://localhost:4300/logout',
+    allowedOAuthFlows: process.env.AZURE_ALLOWED_OAUTH_FLOWS || 'ALLOW_USER_SRP_AUTH,ALLOW_CUSTOM_AUTH',
+    azureIssuerUrl: process.env.AZURE_ISSUER_URL || 'azure-oidc-url',
     cmsApiUrl: process.env.CMS_API_URL || 'https://cms.bcparks.ca/api',
     cognitoCallbackUrls: process.env.COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
     cognitoUserPoolClientName: process.env.COGNITO_USER_POOL_CLIENT_NAME || 'public-web-app',
@@ -43,5 +48,6 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     SAML_IDP_ENTITY_ID: process.env.SAML_IDP_ENTITY_ID || 'saml-idp-entity-id',
     SAML_IDP_METADATA_CONTENT: process.env.SAML_IDP_METADATA_CONTENT || 'saml-idp-metadata-content',
     DATA_REGISTER_URL: process.env.DATA_REGISTER_URL || 'https://dev-data.bcparks.ca/api',
+    
   },
 });
