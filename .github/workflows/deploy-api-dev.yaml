@@ -69,7 +69,7 @@ jobs:
           OPENSEARCH_DOMAIN_URL: $${{ vars.OPENSEARCH_DOMAIN_URL }}
           SAML_IDP_ENTITY_ID: $${{ vars.SAML_IDP_ENTITY_ID }}
           STACK_NAME: ${{ vars.STACK_NAME }}
-          API_STAGE: ${{ vars.STAGE }}
+          API_STAGE: ${{ vars.API_STAGE }}
           TABLE_NAME: ${{ vars.TABLE_NAME }}
           AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
           PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
