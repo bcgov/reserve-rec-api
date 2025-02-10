@@ -82,6 +82,11 @@ jobs:
           DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}
 
+          # Public Cognito
+          PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
+          PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
+          PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
+
 
         run: |
           echo "Deploying $STACK_NAME"

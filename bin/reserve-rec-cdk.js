@@ -21,9 +21,6 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     allowedOAuthFlows: process.env.AZURE_ALLOWED_OAUTH_FLOWS || 'ALLOW_USER_SRP_AUTH,ALLOW_CUSTOM_AUTH',
     azureIssuerUrl: process.env.AZURE_ISSUER_URL || 'azure-oidc-url',
     cmsApiUrl: process.env.CMS_API_URL || 'https://cms.bcparks.ca/api',
-    cognitoCallbackUrls: process.env.COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
-    cognitoUserPoolClientName: process.env.COGNITO_USER_POOL_CLIENT_NAME || 'public-web-app',
-    cognitoUserPoolName: process.env.COGNITO_USER_POOL_NAME || 'public',
     DATA_REGISTER_URL: process.env.DATA_REGISTER_URL || 'https://data-register.bcparks.ca/api',
     domainName: process.env.DOMAIN_NAME || 'reserve-rec',
     DYNAMODB_ENDPOINT_URL: process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000',
@@ -49,5 +46,10 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     SAML_IDP_METADATA_CONTENT: process.env.SAML_IDP_METADATA_CONTENT || 'saml-idp-metadata-content',
     DATA_REGISTER_URL: process.env.DATA_REGISTER_URL || 'https://dev-data.bcparks.ca/api',
     S3_BUCKET_GEOSPATIAL: process.env.S3_BUCKET_GEOSPATIAL || 'reserve-rec-geospatial',
+
+    // Public Cognito
+    publicUserPoolName: process.env.PUBLIC_USER_POOL_NAME || 'public',
+    publicUserPoolClientName: process.env.PUBLIC_USER_POOL_CLIENT_NAME || 'public-web-app',
+    publicCognitoCallbackURLs: process.env.PUBLIC_COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
   },
 });
