@@ -1,0 +1,14 @@
+{
+  "name": "pdr-api-aws-utils-layer",
+  "version": "0.0.1",
+  "author": "Team Osprey",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.540.0",
+    "@aws-sdk/client-secrets-manager": "^3.741.0",
+    "@aws-sdk/credential-provider-node": "^3.540.0",
+    "@aws-sdk/util-dynamodb": "^3.540.0",
+    "@opensearch-project/opensearch": "^2.4.0",
+    "axios": "^1.7.9"
+  }
+}

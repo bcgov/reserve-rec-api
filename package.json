@@ -1,34 +1,32 @@
 {
-  "name": "reserve-rec-api",
-  "version": "1.0.0",
-  "description": "Reserve Rec API System",
-  "dependencies": {
-    "@aws-sdk/util-dynamodb": "^3.540.0",
-    "@opensearch-project/opensearch": "^2.11.0"
-  },
-  "devDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.649.0",
-    "jest": "^29.7.0",
-    "luxon": "^3.4.4"
+  "name": "reserve-rec-cdk",
+  "version": "0.1.0",
+  "bin": {
+    "reserve-rec-cdk": "bin/reserve-rec-cdk.js"
   },
   "scripts": {
-    "start": "sam local start-api -t template.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
-    "build": "sam build",
+    "start": "sam local start-api -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
+    "build": "cdk synth",
     "start-full": "yarn build && yarn start",
-    "test": "export AWS_REGION=local-env && export TABLE_NAME=Reserve-Rec-tests && yarn build && jest --coverage"
+    "invoke-lambda": "sam local invoke $1 --no-event -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json",
+    "invoke-lambda-full": "yarn build && yarn invoke-lambda $1",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
   },
-  "jest": {
-    "verbose": true,
-    "modulePathIgnorePatterns": [
-      "<rootDir>/__tests__",
-      "<rootDir>/tools",
-      "<rootDir>/.aws-sam/"
-    ],
-    "moduleNameMapper": {
-      "^/opt/dynamodb": "<rootDir>/.aws-sam/build/AWSUtilsLayer/dynamodb",
-      "^/opt/base": "<rootDir>/.aws-sam/build/BaseLayer/base",
-      "^/opt/opensearch": "<rootDir>/.aws-sam/build/AWSUtilsLayer/opensearch",
-      "^/opt/data-constants": "<rootDir>/.aws-sam/build/DataUtilsLayer/data-constants"
-    }
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.7.9",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3"
+  },
+  "dependencies": {
+    "@aws-sdk/credential-provider-node": "^3.743.0",
+    "@opensearch-project/opensearch": "^3.2.0",
+    "aws-cdk-lib": "2.173.2",
+    "aws-sdk": "^2.1692.0",
+    "constructs": "^10.0.0"
   }
 }
