@@ -27,6 +27,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     bcscState: process.env.BCSC_STATE || 'bcsc-state',
     bcscNonce: process.env.BCSC_NONCE || 'bcsc-nonce',
     bcscIssuer: process.env.BCSC_ISSUER || 'https://idtest.gov.bc.ca/oauth2/',
+    bcscJwksUri: process.env.BCSC_JWKS_URI || 'https://idtest.gov.bc.ca/oauth2/jwk',
     bcscSubject: process.env.BCSC_SUBJECT || 'urn:did:MPX2WF45KT4FD3LWERR2YGPRKTNEMA25|urn:idcheck:demo:sit1',
     bcscAudience: process.env.BCSC_AUDIENCE || 'https://ministry.gov.bc.ca/service/',
     bcscExpiresIn: process.env.BCSC_EXPIRES_IN || '1499612280970',
