@@ -16,7 +16,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     azureAppClientName: process.env.AZURE_APP_CLIENT_NAME || 'azure-app-client-name',
     azureProviderName: process.env.AZURE_PROVIDER_NAME || 'AzureIDIR',
     azureClientSecret: process.env.AZURE_CLIENT_SECRET || 'azure-app-secret',
-    azureCallbackUrls: process.env.AZURE_CALLBACK_URLS || 'http://localhost:4300/callback',
+    azureCallbackUrls: process.env.AZURE_CALLBACK_URLS || 'http://localhost:4300',
     azureLogoutUrls: process.env.AZURE_LOGOUT_URLS || 'http://localhost:4300/logout',
     allowedOAuthFlows: process.env.AZURE_ALLOWED_OAUTH_FLOWS || 'ALLOW_USER_SRP_AUTH,ALLOW_CUSTOM_AUTH',
     azureIssuerUrl: process.env.AZURE_ISSUER_URL || 'azure-oidc-url',
