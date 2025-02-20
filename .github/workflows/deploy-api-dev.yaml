@@ -90,7 +90,8 @@ jobs:
 
         run: |
           echo "Deploying $STACK_NAME"
-          cdk deploy ReserveRecCdkStack --require-approval never --rollback
+          cdk deploy ReserveRecCdkStack --require-approval never --rollback --outputs-file cfn-outputs.json
+          cat cfn-outputs.json
         # cdk deploy $STACK_NAME --require-approval never --rollback
 
 
