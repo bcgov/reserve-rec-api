@@ -90,7 +90,7 @@ jobs:
 
         run: |
           echo "Deploying $STACK_NAME"
-          cdk deploy ReserveRecCdkStack --require-approval never --rollback --outputs-file cfn-outputs.json
+          cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
           cat cfn-outputs.json
         # cdk deploy $STACK_NAME --require-approval never --rollback
       
@@ -100,5 +100,5 @@ jobs:
           TABLE_NAME: ${{ vars.TABLE_NAME }}
           STACK_NAME: ${{ vars.STACK_NAME }}
         run: |
-          node lib/tools/updateConfig.js cfn-output.js lib/tools/valid_admin_attributes.json admin $STACK_NAME
-          node lib/tools/updateConfig.js cfn-output.js lib/tools/valid_public_attributes.json public $STACK_NAME
+          node lib/tools/updateConfig.js cfn-outputs.json lib/tools/valid_admin_attributes.json admin $STACK_NAME
+          node lib/tools/updateConfig.js cfn-outputs.json lib/tools/valid_public_attributes.json public $STACK_NAME
