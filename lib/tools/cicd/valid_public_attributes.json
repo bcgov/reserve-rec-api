@@ -2,6 +2,7 @@
     "PublicUserPoolId",
     "PublicUserPoolClientId",
     "PublicIdentityPoolId",
+    "PublicUserPoolDomain",
     "ApiLocation",
     "ApiPath"
 ]

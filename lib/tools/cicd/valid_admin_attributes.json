@@ -2,6 +2,7 @@
     "AdminUserPoolId",
     "AdminUserPoolClientId",
     "AdminIdentityPoolId",
+    "AdminUserPoolDomain",
     "ApiLocation",
     "ApiPath"
 ]
