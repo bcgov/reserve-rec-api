@@ -20,7 +20,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     azureLogoutUrls: process.env.AZURE_LOGOUT_URLS || 'http://localhost:4300/logout',
     allowedOAuthFlows: process.env.AZURE_ALLOWED_OAUTH_FLOWS || 'ALLOW_USER_SRP_AUTH,ALLOW_CUSTOM_AUTH',
     azureIssuerUrl: process.env.AZURE_ISSUER_URL || 'azure-oidc-url',
-    cognitoDomainPrefix: process.env.COGNITO_DOMAIN || 'reserve-rec-dev',
+    cognitoDomainPrefix: process.env.COGNITO_DOMAIN || 'reserve-rec-admin-dev',
     bcscScope: process.env.BCSC_SCOPE || 'openid',
     bcscResponseType: process.env.BCSC_RESPONSE_TYPE || 'code',
     bcscClientId: process.env.BCSC_CLIENT_ID || 'bcsc-client-id',
