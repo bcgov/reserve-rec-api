@@ -8,16 +8,328 @@
 	},
 	"item": [
 		{
+			"name": "Geozones",
+			"item": [
+				{
+					"name": "Geozone by Collection ID",
+					"item": [
+						{
+							"name": "Get Geozone by Collection ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Post Geozone by Collection ID",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n   {\r\n      \"displayName\": \"Cheakamus 4\",\r\n      \"gzCollectionId\": \"7\",\r\n      \"orcs\": 7,\r\n      \"identifier\": 4,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 4,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  89.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   },\r\n   {\r\n      \"displayName\": \"Cheakamus 5\",\r\n      \"gzCollectionId\": \"7\",\r\n      \"orcs\": 7,\r\n      \"identifier\": 5,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 5,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            88,\r\n            -88\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  88.123,\r\n                  -88.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Geozone by Collection ID",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n   {\r\n      \"displayName\": \"New Cheakamus 4\",\r\n      \"identifier\": 4,\r\n      \"schema\": \"geozone\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  89.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   },\r\n   {\r\n      \"displayName\": \"New Cheakamus 5\",\r\n      \"identifier\": 5,\r\n      \"schema\": \"geozone\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            88,\r\n            -88\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  88.123,\r\n                  -88.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Delete Geozone by Collection ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n   {\"sk\": \"4\"\r\n   },\r\n   {\"sk\": \"5\"\r\n   }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Geozone by Collection Geozone ID",
+					"item": [
+						{
+							"name": "Get Geozone by Collection Geozone ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid",
+										":geozoneid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										},
+										{
+											"key": "geozoneid",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Post Geozone by Collection Geozone ID",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"displayName\": \"New New Cheakamus\",\r\n    \"gzCollectionId\": \"7\",\r\n    \"orcs\": 7,\r\n    \"identifier\": 3,\r\n    \"schema\": \"geozone\",\r\n    \"geozoneId\": 3,\r\n    \"location\": {\r\n        \"type\": \"Point\",\r\n        \"coordinates\": [\r\n            89,\r\n            -89\r\n        ]\r\n    },\r\n    \"envelope\": {\r\n        \"type\": \"Envelope\",\r\n        \"coordinates\": [\r\n            [\r\n                [\r\n                    89.123,\r\n                    -89.123\r\n                ],\r\n                [\r\n                    89.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        ]\r\n    },\r\n    \"timezone\": \"America\/Vancouver\",\r\n    \"isVisible\": true,\r\n    \"minMapZoom\": 123,\r\n    \"maxMapZoom\": 456,\r\n    \"facilities\": [\r\n        \"parking::1\",\r\n        \"parking::2\"\r\n    ],\r\n    \"activities\": [\r\n        \"dayuse::1\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid",
+										":geozoneid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										},
+										{
+											"key": "geozoneid",
+											"value": "3"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Put Geozone by Collection Geozone ID",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"displayName\": \"Newer Cheakamus\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid",
+										":geozoneid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										},
+										{
+											"key": "geozoneid",
+											"value": "3"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Geozone by Collection Geozone ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollection",
+										":gzcollectionid",
+										":geozoneid"
+									],
+									"variable": [
+										{
+											"key": "gzcollection",
+											"value": "bcparks"
+										},
+										{
+											"key": "gzcollectionid",
+											"value": "7"
+										},
+										{
+											"key": "geozoneid",
+											"value": "3"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
 			"name": "Protected Areas",
 			"item": [
 				{
 					"name": "Protected Area by ORCS",
 					"item": [
 						{
-							"name": "Subarea",
+							"name": "Geozone",
 							"item": [
 								{
-									"name": "Get Subarea by Protected Area",
+									"name": "Get Geozone by Protected Area",
 									"request": {
 										"method": "GET",
 										"header": [],
@@ -239,7 +551,7 @@
 									"variable": [
 										{
 											"key": "orcs",
-											"value": ""
+											"value": "1"
 										}
 									]
 								}
@@ -253,7 +565,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"displayName\": \"Strathcona 2 Electric Boogaloo\"\r\n}",
+									"raw": "{\r\n  \"displayName\": \"Strathcona 2 Electric Boogaloo\",\r\n  \"location\": {\r\n    \"type\": \"Point\",\r\n    \"coordinates\": [0.123, -0.123]\r\n  }\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -312,7 +624,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "",
+							"raw": "[\n  {\n    \"orcs\": 1,\n    \"displayName\": \"Strathcona - Batch update\",\n    \"maxMapZoom\": 20},\n  {\n    \"orcs\": 2,\n    \"displayName\": \"Mount Robson Park - Batch update\",\n    \"maxMapZoom\": 20\n  }\n]",
 							"options": {
 								"raw": {
 									"language": "json"
