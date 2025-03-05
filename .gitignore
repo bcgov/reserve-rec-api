@@ -1,6 +1,8 @@
 !jest.config.js
 *.d.ts
 node_modules
+/lib/handlers/events/*
+/.vscode/settings.json
 
 # CDK asset staging directory
 .cdk.staging

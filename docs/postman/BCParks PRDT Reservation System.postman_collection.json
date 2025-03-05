@@ -49,7 +49,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n   {\r\n      \"displayName\": \"Cheakamus 4\",\r\n      \"identifier\": 4,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 4,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  89.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   },\r\n   {\r\n      \"displayName\": \"Cheakamus 5\",\r\n      \"identifier\": 5,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 5,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            88,\r\n            -88\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  88.123,\r\n                  -88.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   }\r\n]",
+									"raw": "[\r\n   {\r\n      \"displayName\": \"Cheakamus 4\",\r\n      \"gzCollectionId\": \"7\",\r\n      \"orcs\": 7,\r\n      \"identifier\": 4,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 4,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  89.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   },\r\n   {\r\n      \"displayName\": \"Cheakamus 5\",\r\n      \"gzCollectionId\": \"7\",\r\n      \"orcs\": 7,\r\n      \"identifier\": 5,\r\n      \"schema\": \"geozone\",\r\n      \"geozoneId\": 5,\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            88,\r\n            -88\r\n         ]\r\n      },\r\n      \"envelope\": {\r\n         \"type\": \"Envelope\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  88.123,\r\n                  -88.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"isVisible\": true,\r\n      \"minMapZoom\": 123,\r\n      \"maxMapZoom\": 456,\r\n      \"facilities\": [\r\n         \"parking::1\",\r\n         \"parking::2\"\r\n      ],\r\n      \"activities\": [\r\n         \"dayuse::1\"\r\n      ]\r\n   }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -125,7 +125,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n   {\r\n      \"identifier\": 4\r\n   },\r\n   {\r\n      \"geozoneId\": 5\r\n   }\r\n]",
+									"raw": "[\r\n   {\"sk\": \"4\"\r\n   },\r\n   {\"sk\": \"5\"\r\n   }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -159,15 +159,15 @@
 					]
 				},
 				{
-					"name": "Geozone by Collection Subarea ID",
+					"name": "Geozone by Collection Geozone ID",
 					"item": [
 						{
-							"name": "Get Geozone by Collection Subarea ID",
+							"name": "Get Geozone by Collection Geozone ID",
 							"request": {
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:gzid",
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
 									"host": [
 										"{{base_url}}"
 									],
@@ -175,7 +175,7 @@
 										"geozones",
 										":gzcollection",
 										":gzcollectionid",
-										":gzid"
+										":geozoneid"
 									],
 									"variable": [
 										{
@@ -187,7 +187,7 @@
 											"value": "7"
 										},
 										{
-											"key": "gzid",
+											"key": "geozoneid",
 											"value": "1"
 										}
 									]
@@ -196,13 +196,13 @@
 							"response": []
 						},
 						{
-							"name": "Post Geozone by Collection Subarea ID",
+							"name": "Post Geozone by Collection Geozone ID",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"displayName\": \"New New Cheakamus\",\r\n    \"identifier\": 3,\r\n    \"schema\": \"geozone\",\r\n    \"geozoneId\": 3,\r\n    \"location\": {\r\n        \"type\": \"Point\",\r\n        \"coordinates\": [\r\n            89,\r\n            -89\r\n        ]\r\n    },\r\n    \"envelope\": {\r\n        \"type\": \"Envelope\",\r\n        \"coordinates\": [\r\n            [\r\n                [\r\n                    89.123,\r\n                    -89.123\r\n                ],\r\n                [\r\n                    89.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        ]\r\n    },\r\n    \"timezone\": \"America\/Vancouver\",\r\n    \"isVisible\": true,\r\n    \"minMapZoom\": 123,\r\n    \"maxMapZoom\": 456,\r\n    \"facilities\": [\r\n        \"parking::1\",\r\n        \"parking::2\"\r\n    ],\r\n    \"activities\": [\r\n        \"dayuse::1\"\r\n    ]\r\n}",
+									"raw": "{\r\n    \"displayName\": \"New New Cheakamus\",\r\n    \"gzCollectionId\": \"7\",\r\n    \"orcs\": 7,\r\n    \"identifier\": 3,\r\n    \"schema\": \"geozone\",\r\n    \"geozoneId\": 3,\r\n    \"location\": {\r\n        \"type\": \"Point\",\r\n        \"coordinates\": [\r\n            89,\r\n            -89\r\n        ]\r\n    },\r\n    \"envelope\": {\r\n        \"type\": \"Envelope\",\r\n        \"coordinates\": [\r\n            [\r\n                [\r\n                    89.123,\r\n                    -89.123\r\n                ],\r\n                [\r\n                    89.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        ]\r\n    },\r\n    \"timezone\": \"America\/Vancouver\",\r\n    \"isVisible\": true,\r\n    \"minMapZoom\": 123,\r\n    \"maxMapZoom\": 456,\r\n    \"facilities\": [\r\n        \"parking::1\",\r\n        \"parking::2\"\r\n    ],\r\n    \"activities\": [\r\n        \"dayuse::1\"\r\n    ]\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -210,7 +210,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:gzid",
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
 									"host": [
 										"{{base_url}}"
 									],
@@ -218,7 +218,7 @@
 										"geozones",
 										":gzcollection",
 										":gzcollectionid",
-										":gzid"
+										":geozoneid"
 									],
 									"variable": [
 										{
@@ -230,7 +230,7 @@
 											"value": "7"
 										},
 										{
-											"key": "gzid",
+											"key": "geozoneid",
 											"value": "3"
 										}
 									]
@@ -239,7 +239,7 @@
 							"response": []
 						},
 						{
-							"name": "Put Geozone by Collection Subarea ID",
+							"name": "Put Geozone by Collection Geozone ID",
 							"request": {
 								"method": "PUT",
 								"header": [],
@@ -253,7 +253,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:gzid",
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
 									"host": [
 										"{{base_url}}"
 									],
@@ -261,7 +261,7 @@
 										"geozones",
 										":gzcollection",
 										":gzcollectionid",
-										":gzid"
+										":geozoneid"
 									],
 									"variable": [
 										{
@@ -273,7 +273,7 @@
 											"value": "7"
 										},
 										{
-											"key": "gzid",
+											"key": "geozoneid",
 											"value": "3"
 										}
 									]
@@ -282,12 +282,12 @@
 							"response": []
 						},
 						{
-							"name": "Delete Geozone by Collection Subarea ID",
+							"name": "Delete Geozone by Collection Geozone ID",
 							"request": {
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:gzid",
+									"raw": "{{base_url}}/geozones/:gzcollection/:gzcollectionid/:geozoneid",
 									"host": [
 										"{{base_url}}"
 									],
@@ -295,7 +295,7 @@
 										"geozones",
 										":gzcollection",
 										":gzcollectionid",
-										":gzid"
+										":geozoneid"
 									],
 									"variable": [
 										{
@@ -307,7 +307,7 @@
 											"value": "7"
 										},
 										{
-											"key": "gzid",
+											"key": "geozoneid",
 											"value": "3"
 										}
 									]
@@ -326,10 +326,10 @@
 					"name": "Protected Area by ORCS",
 					"item": [
 						{
-							"name": "Subarea",
+							"name": "Geozone",
 							"item": [
 								{
-									"name": "Get Subarea by Protected Area",
+									"name": "Get Geozone by Protected Area",
 									"request": {
 										"method": "GET",
 										"header": [],
