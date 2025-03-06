@@ -559,6 +559,39 @@
 							"response": []
 						},
 						{
+							"name": "Create Protected Area By ORCS",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n   \"pk\": \"protectedArea\",\r\n   \"sk\": \"999\",\r\n   \"orcs\": 999,\r\n   \"displayName\": \"Whole New Protected Area\",\r\n   \"schema\": \"protectedArea\",\r\n   \"location\": {\r\n      \"type\": \"Point\",\r\n      \"coordinates\": [\r\n         89,\r\n         -89\r\n      ]\r\n   },\r\n   \"boundary\": {\r\n      \"type\": \"Polygon\",\r\n      \"coordinates\": [\r\n         [\r\n            [\r\n               89.123,\r\n               -89.123\r\n            ],\r\n            [\r\n               88.122,\r\n               -88.122\r\n            ],\r\n            [\r\n               87.121,\r\n               -87.121\r\n            ],\r\n            [\r\n               86.12,\r\n               -86.12\r\n            ]\r\n         ]\r\n      ]\r\n   },\r\n   \"boundaryUrl\": \"http:\/\/s3.amazonaws.com\/bucket\/\",\r\n   \"timezone\": \"America\/Vancouver\",\r\n   \"minMapZoom\": 100,\r\n   \"maxMapZoom\": 125,\r\n   \"imageUrl\": \"www.example.com\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/protected-areas/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"protected-areas",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Update Protected Area By ORCS",
 							"request": {
 								"method": "PUT",
@@ -584,7 +617,31 @@
 									"variable": [
 										{
 											"key": "orcs",
-											"value": "1"
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Geozone by Collection ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/protected-areas/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"protected-areas",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
 										}
 									]
 								}
@@ -618,13 +675,13 @@
 					"response": []
 				},
 				{
-					"name": "Batch Update Protected Areas",
+					"name": "Batch Create Protected Areas",
 					"request": {
-						"method": "PUT",
+						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "[\n  {\n    \"orcs\": 1,\n    \"displayName\": \"Strathcona - Batch update\",\n    \"maxMapZoom\": 20},\n  {\n    \"orcs\": 2,\n    \"displayName\": \"Mount Robson Park - Batch update\",\n    \"maxMapZoom\": 20\n  }\n]",
+							"raw": "[\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"998\",\r\n      \"orcs\": 998,\r\n      \"displayName\": \"Whole New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http:\/\/s3.amazonaws.com\/bucket\/\",\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   },\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"999\",\r\n      \"orcs\": 999,\r\n      \"displayName\": \"Another New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http:\/\/s3.amazonaws.com\/bucket\/\",\r\n      \"timezone\": \"America\/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   }\r\n]",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -633,6 +690,32 @@
 						},
 						"url": {
 							"raw": "{{base_url}}/protected-areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"protected-areas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Delete Protected Areas",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n   {\r\n      \"sk\": \"998\"\r\n   },\r\n   {\r\n      \"sk\": \"999\"\r\n   }\r\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/protected-areas/",
 							"host": [
 								"{{base_url}}"
 							],
