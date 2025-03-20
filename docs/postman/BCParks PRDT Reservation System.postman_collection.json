@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "678fb222-a822-4734-a13e-1bb13dc65dfc",
+		"_postman_id": "397e9c9e-d85f-49d9-993a-128fddd15ad8",
 		"name": "BCParks PRDT Reservation System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_collection_link": "https://bcparks-dup.postman.co/workspace/BCParks-Day-Use-Pass~c6a232b9-cbde-4bc3-aa2c-906ab8c015e7/collection/14509064-d5314b6f-3178-44eb-9a6f-e3111e217cf5?action=share&source=collection_link&creator=14509064",
@@ -14,31 +14,35 @@
 					"name": "Geozone by Collection ID",
 					"item": [
 						{
-							"name": "Get Geozone by Collection ID",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"geozones",
-										":gzcollectionid"
-									],
-									"variable": [
-										{
-											"key": "gzcollectionid",
-											"value": "bcparks::7"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Batch Post Geozone by Collection ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -72,19 +76,86 @@
 						},
 						{
 							"name": "Batch Put Geozone by Collection ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update geozones",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "PUT",
 								"header": [],
 								"body": {
 									"mode": "raw",
 									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus 4\",\r\n        \"geozoneId\": \"4\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus 5\",\r\n        \"activities\": [\r\n            \"boating::5\"\r\n        ],\r\n        \"sk\": \"5\"\r\n    }\r\n]",
-
 									"options": {
 										"raw": {
 											"language": "json"
 										}
 									}
 								},
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollectionid",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollectionid"
+									],
+									"variable": [
+										{
+											"key": "gzcollectionid",
+											"value": "bcparks::7"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Geozone by Collection ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
 								"url": {
 									"raw": "{{base_url}}/geozones/:gzcollectionid",
 									"host": [
@@ -110,37 +181,33 @@
 					"name": "Geozone by Collection Geozone ID",
 					"item": [
 						{
-							"name": "Get Geozone by Collection Geozone ID",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=3",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"geozones",
-										":gzcollectionid"
-									],
-									"query": [
-										{
-											"key": "geozoneId",
-											"value": "3"
-										}
-									],
-									"variable": [
-										{
-											"key": "gzcollectionid",
-											"value": "bcparks::7"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Post Geozone by Collection Geozone ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -180,6 +247,21 @@
 						},
 						{
 							"name": "Put Geozone by Collection Geozone ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "PUT",
 								"header": [],
@@ -218,7 +300,109 @@
 							"response": []
 						},
 						{
+							"name": "Get Geozone by Collection Geozone ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.expect(pm.response.json()).to.have.property('data');",
+											"    pm.expect(pm.response.json()).to.have.property('msg');",
+											"    pm.expect(pm.response.json()).to.have.property('context');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=3",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"geozones",
+										":gzcollectionid"
+									],
+									"query": [
+										{
+											"key": "geozoneId",
+											"value": "3"
+										}
+									],
+									"variable": [
+										{
+											"key": "gzcollectionid",
+											"value": "bcparks::7"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Delete Geozone by Collection Geozone ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response body has expected properties\", function () {",
+											"    pm.response.to.have.jsonBody('code', 200);",
+											"    pm.response.to.have.jsonBody('data', true);",
+											"    pm.response.to.have.jsonBody('msg', \"Success\");",
+											"    pm.response.to.have.jsonBody('error', null);",
+											"    pm.response.to.have.jsonBody('context');",
+											"});",
+											"",
+											"const bearerToken = pm.environment.get('bearer_token');",
+											"const gzCollectionId = 'bcparks::7';",
+											"",
+											"// Run the DELETE request with geozoneId=4",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${gzCollectionId}/?geozoneId=4`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${gzCollectionId}/?geozoneId=5`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -467,31 +651,34 @@
 							]
 						},
 						{
-							"name": "Get Protected Area by ORCS",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/protected-areas/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"protected-areas",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Create Protected Area By ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -525,6 +712,21 @@
 						},
 						{
 							"name": "Update Protected Area By ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "PUT",
 								"header": [],
@@ -557,7 +759,80 @@
 							"response": []
 						},
 						{
+							"name": "Get Protected Area by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('object').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/protected-areas/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"protected-areas",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Delete Geozone by Collection ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response body has expected properties\", function () {",
+											"    pm.response.to.have.jsonBody('code', 200);",
+											"    pm.response.to.have.jsonBody('data', true);",
+											"    pm.response.to.have.jsonBody('msg', \"Success\");",
+											"    pm.response.to.have.jsonBody('error', null);",
+											"    pm.response.to.have.jsonBody('context');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -583,31 +858,35 @@
 					]
 				},
 				{
-					"name": "Get Protected Areas",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "x-api-key",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/protected-areas",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"protected-areas"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Batch Create Protected Areas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test for status code",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Test for response body properties",
+									"pm.test(\"Response body has data, msg, and context\", function () {",
+									"    pm.response.to.have.jsonBody(\"data\");",
+									"    pm.response.to.have.jsonBody(\"msg\");",
+									"    pm.response.to.have.jsonBody(\"context\");",
+									"});",
+									"",
+									"// Test for response body data field value",
+									"pm.test(\"Data field value is true\", function () {",
+									"    pm.expect(pm.response.json().data).to.equal(true);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -633,7 +912,82 @@
 					"response": []
 				},
 				{
+					"name": "Get Protected Areas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test for status code",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Test for response body properties",
+									"pm.test(\"Response body has data, msg, and context\", function () {",
+									"    pm.expect(pm.response.json()).to.have.property('data');",
+									"    pm.expect(pm.response.json()).to.have.property('msg');",
+									"    pm.expect(pm.response.json()).to.have.property('context');",
+									"});",
+									"",
+									"// Test for data items array",
+									"pm.test(\"Data items array is empty\", function () {",
+									"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/protected-areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"protected-areas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Batch Delete Protected Areas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response body has expected properties\", function () {",
+									"    pm.response.to.have.jsonBody('code', 200);",
+									"    pm.response.to.have.jsonBody('data', true);",
+									"    pm.response.to.have.jsonBody('msg', \"Success\");",
+									"    pm.response.to.have.jsonBody('error', null);",
+									"    pm.response.to.have.jsonBody('context');",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -664,312 +1018,42 @@
 			"name": "Facilities",
 			"item": [
 				{
-					"name": "Facility by Facility ID",
-					"item": [
-						{
-							"name": "Get Facility by Facility ID",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "999"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										},
-										{
-											"key": "facilityId",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Post Facility by Facility ID",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"pk\": \"facility::999\",\r\n  \"sk\": \"parking::1\",\r\n  \"orcs\": 999,\r\n  \"displayName\": \"Cheakamus Main Parking Lot\",\r\n  \"description\": \"Where you park your car\",\r\n  \"schema\": \"facility\",\r\n  \"facilityType\": \"parking\",\r\n  \"address\": \"8675 Road St.\",\r\n  \"identifier\": 1 ,\r\n  \"facilityId\": 1,\r\n  \"geozone\": \"geozone::bcparks::7#3\",\r\n  \"activities\": [\"dayuse::1\"],\r\n  \"isVisible\": true,\r\n  \"timezone\": \"America\/Vancouver\",\r\n  \"location\": {\r\n    \"type\": \"Point\",\r\n    \"coordinates\": [\r\n        89,\r\n        -89\r\n    ]\r\n  },\r\n  \"minMapZoom\": 123,\r\n  \"maxMapZoom\": 456,\r\n  \"showOnMap\": true,\r\n  \"imageUrl\": \"www.example.com\",\r\n  \"searchTerms\": [\"Cheakamus\", \"Parking\", \"Dayuse parking\"]\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "999"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										},
-										{
-											"key": "facilityId",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Put Facility by Facility ID",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n    \"sk\": \"parking::1\",\r\n    \"displayName\": \"New Name for Cheakamus Main Parking Lot\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "999"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										},
-										{
-											"key": "facilityId",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Delete Facility by Facility ID",
-							"request": {
-								"method": "DELETE",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "999"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										},
-										{
-											"key": "facilityId",
-											"value": "1"
-										}
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Facility by Facility Type",
-					"item": [
-						{
-							"name": "Get Facility by Facility Type",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Post Facilities by Facility Type",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Put Facilities by Facility Type",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus Side Parking Lot\",\r\n        \"facilityId\": 1,\r\n        \"sk\": \"parking::1\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										}
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
 					"name": "Facility by ORCS",
 					"item": [
 						{
-							"name": "Get Facility by ORCS",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "997"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Batch Post Facilities by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -997,12 +1081,27 @@
 						},
 						{
 							"name": "Batch Put Facilities by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "PUT",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"New Musacheak Side Parking Lot\",\r\n        \"sk\": \"parking::1\" ,\r\n        \"facilityType\": \"parking\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Musacheak Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Musacheak Side Parking Lot\",\r\n        \"facilityType\": \"parking\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Musacheak Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1027,7 +1126,531 @@
 								}
 							},
 							"response": []
-						}					]
+						},
+						{
+							"name": "Get Facility by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Facility by Facility Type",
+					"item": [
+						{
+							"name": "Batch Post Facilities by Facility Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Facilities by Facility Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update geozones",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus Side Parking Lot\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Facility by Facility Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Facility by Facility ID",
+					"item": [
+						{
+							"name": "Post Facility by Facility ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"pk\": \"facility::999\",\r\n  \"sk\": \"parking::1\",\r\n  \"orcs\": 999,\r\n  \"displayName\": \"Cheakamus Main Parking Lot\",\r\n  \"description\": \"Where you park your car\",\r\n  \"schema\": \"facility\",\r\n  \"facilityType\": \"parking\",\r\n  \"address\": \"8675 Road St.\",\r\n  \"identifier\": 1 ,\r\n  \"facilityId\": 1,\r\n  \"geozone\": \"geozone::bcparks::7#3\",\r\n  \"activities\": [\"dayuse::1\"],\r\n  \"isVisible\": true,\r\n  \"timezone\": \"America/Vancouver\",\r\n  \"location\": {\r\n    \"type\": \"Point\",\r\n    \"coordinates\": [\r\n        89,\r\n        -89\r\n    ]\r\n  },\r\n  \"minMapZoom\": 123,\r\n  \"maxMapZoom\": 456,\r\n  \"showOnMap\": true,\r\n  \"imageUrl\": \"www.example.com\",\r\n  \"searchTerms\": [\"Cheakamus\", \"Parking\", \"Dayuse parking\"]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Put Facility by Facility ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update geozones",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"sk\": \"parking::1\",\r\n    \"displayName\": \"New Name for Cheakamus Main Parking Lot\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Facility by Facility ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data).to.be.an('object');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Facility by Facility ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response body has expected properties\", function () {",
+											"    pm.response.to.have.jsonBody('code', 200);",
+											"    pm.response.to.have.jsonBody('data', true);",
+											"    pm.response.to.have.jsonBody('msg', \"Success\");",
+											"    pm.response.to.have.jsonBody('error', null);",
+											"    pm.response.to.have.jsonBody('context');",
+											"});",
+											"",
+											"const bearerToken = pm.environment.get('bearer_token');",
+											"const facilityType = 'parking';",
+											"",
+											"// Run the DELETEs for batch requests",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/facilities/998/?facilityType=${facilityType}&facilityId=1`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/facilities/998/?facilityType=${facilityType}&facilityId=2`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/facilities/997/?facilityType=${facilityType}&facilityId=1`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/facilities/997/?facilityType=${facilityType}&facilityId=2`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		},
@@ -1252,15 +1875,219 @@
 			"name": "Activities",
 			"item": [
 				{
-					"name": "Activity by Activity ID",
+					"name": "Activity by ORCS",
 					"item": [
 						{
-							"name": "Get Activity by Activity ID",
+							"name": "Batch Post Activities by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::997\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Activities by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Hiking trail renamed\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed here too\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity by ORCS",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Activity by Activity Type",
+					"item": [
+						{
+							"name": "Batch Post Activities by Activity Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 1 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
@@ -1272,16 +2099,12 @@
 										{
 											"key": "activityType",
 											"value": "dayuse"
-										},
-										{
-											"key": "activityId",
-											"value": "1"
 										}
 									],
 									"variable": [
 										{
 											"key": "orcs",
-											"value": "999"
+											"value": "998"
 										}
 									]
 								}
@@ -1289,7 +2112,153 @@
 							"response": []
 						},
 						{
+							"name": "Batch Put Activities by Activity Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Dayuse Spot 1 New Name Here\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity by Activity Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has items with schema, identifier, and displayName\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array').that.is.not.empty;",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('schema');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('identifier');",
+											"    pm.expect(pm.response.json().data.items[0]).to.have.property('displayName');",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data.items).to.be.an('array');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Activity by Activity ID",
+					"item": [
+						{
 							"name": "Post Activity by Activity ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for response body properties",
+											"pm.test(\"Response body has data, msg, and context\", function () {",
+											"    pm.response.to.have.jsonBody(\"data\");",
+											"    pm.response.to.have.jsonBody(\"msg\");",
+											"    pm.response.to.have.jsonBody(\"context\");",
+											"});",
+											"",
+											"// Test for response body data field value",
+											"pm.test(\"Data field value is true\", function () {",
+											"    pm.expect(pm.response.json().data).to.equal(true);",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -1333,6 +2302,21 @@
 						},
 						{
 							"name": "Put Activity by Activity ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for the PUT request to update protected areas",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "PUT",
 								"header": [],
@@ -1375,7 +2359,124 @@
 							"response": []
 						},
 						{
+							"name": "Get Activity by Activity ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Test for status code",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"// Test for data items array",
+											"pm.test(\"Data items array is empty\", function () {",
+											"    pm.expect(pm.response.json().data).to.be.an('object');",
+											"});",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Delete Activity by Activity ID",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Response body has expected properties\", function () {",
+											"    pm.response.to.have.jsonBody('code', 200);",
+											"    pm.response.to.have.jsonBody('data', true);",
+											"    pm.response.to.have.jsonBody('msg', \"Success\");",
+											"    pm.response.to.have.jsonBody('error', null);",
+											"    pm.response.to.have.jsonBody('context');",
+											"});",
+											"",
+											"const bearerToken = pm.environment.get('bearer_token');",
+											"const activityType = 'dayuse';",
+											"",
+											"// Run the DELETEs for batch requests",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/activities/998/?activityType=${activityType}&activityId=1`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/activities/998/?activityType=${activityType}&activityId=2`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/activities/997/?activityType=${activityType}&activityId=1`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});",
+											"",
+											"pm.sendRequest({",
+											"    url: pm.variables.replaceIn(`{{base_url}}/activities/997/?activityType=${activityType}&activityId=2`),",
+											"    method: 'DELETE',",
+											"    header: {",
+											"        'Content-Type': 'application/json',",
+											"        'Authorization': `Bearer ${bearerToken}`",
+											"    }",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -1409,242 +2510,6 @@
 							"response": []
 						}
 					]
-				},
-				{
-					"name": "Activity by Activity Type",
-					"item": [
-						{
-							"name": "Get Activity by Activity Type",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"query": [
-										{
-											"key": "activityType",
-											"value": "dayuse"
-										}
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Post Activities by Activity Type",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 1 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"query": [
-										{
-											"key": "activityType",
-											"value": "dayuse"
-										}
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Put Activities by Activity Type",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Dayuse Spot 1 New Name Here\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"query": [
-										{
-											"key": "activityType",
-											"value": "dayuse"
-										}
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "Activity by ORCS",
-					"item": [
-						{
-							"name": "Get Activity by ORCS",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "997"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Post Activities by ORCS",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::997\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "997"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Batch Put Activities by ORCS",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Hiking trail renamed\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed here too\"\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"activities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "997"
-										}
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "Facilties",
-			"item": [
-				{
-					"name": "Get Facilities",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/facilities?orcs=363",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"facilities"
-							],
-							"query": [
-								{
-									"key": "orcs",
-									"value": "363"
-								}
-							]
-						}
-					},
-					"response": []
 				}
 			]
 		},
