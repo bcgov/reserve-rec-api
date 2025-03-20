@@ -78,6 +78,7 @@
 								"body": {
 									"mode": "raw",
 									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus 4\",\r\n        \"geozoneId\": \"4\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus 5\",\r\n        \"activities\": [\r\n            \"boating::5\"\r\n        ],\r\n        \"sk\": \"5\"\r\n    }\r\n]",
+
 									"options": {
 										"raw": {
 											"language": "json"
@@ -660,6 +661,377 @@
 			]
 		},
 		{
+			"name": "Facilities",
+			"item": [
+				{
+					"name": "Facility by Facility ID",
+					"item": [
+						{
+							"name": "Get Facility by Facility ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Post Facility by Facility ID",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"pk\": \"facility::999\",\r\n  \"sk\": \"parking::1\",\r\n  \"orcs\": 999,\r\n  \"displayName\": \"Cheakamus Main Parking Lot\",\r\n  \"description\": \"Where you park your car\",\r\n  \"schema\": \"facility\",\r\n  \"facilityType\": \"parking\",\r\n  \"address\": \"8675 Road St.\",\r\n  \"identifier\": 1 ,\r\n  \"facilityId\": 1,\r\n  \"geozone\": \"geozone::bcparks::7#3\",\r\n  \"activities\": [\"dayuse::1\"],\r\n  \"isVisible\": true,\r\n  \"timezone\": \"America\/Vancouver\",\r\n  \"location\": {\r\n    \"type\": \"Point\",\r\n    \"coordinates\": [\r\n        89,\r\n        -89\r\n    ]\r\n  },\r\n  \"minMapZoom\": 123,\r\n  \"maxMapZoom\": 456,\r\n  \"showOnMap\": true,\r\n  \"imageUrl\": \"www.example.com\",\r\n  \"searchTerms\": [\"Cheakamus\", \"Parking\", \"Dayuse parking\"]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Put Facility by Facility ID",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"sk\": \"parking::1\",\r\n    \"displayName\": \"New Name for Cheakamus Main Parking Lot\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Facility by Facility ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking&facilityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										},
+										{
+											"key": "facilityId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Facility by Facility Type",
+					"item": [
+						{
+							"name": "Get Facility by Facility Type",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs/?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Post Facilities by Facility Type",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Facilities by Facility Type",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus Side Parking Lot\",\r\n        \"facilityId\": 1,\r\n        \"sk\": \"parking::1\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									],
+									"query": [
+										{
+											"key": "facilityType",
+											"value": "parking"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Facility by ORCS",
+					"item": [
+						{
+							"name": "Get Facility by ORCS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Post Facilities by ORCS",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America\/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Facilities by ORCS",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Musacheak Side Parking Lot\",\r\n        \"sk\": \"parking::1\" ,\r\n        \"facilityType\": \"parking\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Musacheak Overflow Parking Lot\",\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/facilities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"facilities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						}					]
+				}
+			]
+		},
+		{
 			"name": "Policies",
 			"item": [
 				{
@@ -880,27 +1252,371 @@
 			"name": "Activities",
 			"item": [
 				{
-					"name": "Get Activities",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/activities?orcs=7",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"activities"
-							],
-							"query": [
-								{
-									"key": "orcs",
-									"value": "7"
+					"name": "Activity by Activity ID",
+					"item": [
+						{
+							"name": "Get Activity by Activity ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
 								}
-							]
+							},
+							"response": []
+						},
+						{
+							"name": "Post Activity by Activity ID",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"orcs\": 999,\r\n    \"displayName\": \"Dayuse Spot 1 at Cheakamus\",\r\n    \"description\": \"Hiking trail north side\",\r\n    \"schema\": \"activity\",\r\n    \"activityType\": \"dayuse\",\r\n    \"subActivityType\": \"vehicleParking\",\r\n    \"identifier\": 1,\r\n    \"activityId\": 1,\r\n    \"geozone\": \"geozone::bcparks::999#1\",\r\n    \"facilities\": [\r\n        \"parking::1\"\r\n    ],\r\n    \"isVisible\": true,\r\n    \"imageUrl\": \"www.example.com\",\r\n    \"searchTerms\": [\r\n        \"Cheakamus\",\r\n        \"Activity\",\r\n        \"Dayuse\"\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Put Activity by Activity ID",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"sk\": \"dayuse::1\",\r\n    \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Activity by Activity ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "999"
+										}
+									]
+								}
+							},
+							"response": []
 						}
-					},
-					"response": []
+					]
+				},
+				{
+					"name": "Activity by Activity Type",
+					"item": [
+						{
+							"name": "Get Activity by Activity Type",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Post Activities by Activity Type",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 1 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::998\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Activities by Activity Type",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Dayuse Spot 1 New Name Here\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"query": [
+										{
+											"key": "activityType",
+											"value": "dayuse"
+										}
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "998"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Activity by ORCS",
+					"item": [
+						{
+							"name": "Get Activity by ORCS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Post Activities by ORCS",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 1,\r\n        \"activityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#1\",\r\n        \"facilities\": [\r\n            \"parking::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"activity::997\",\r\n        \"sk\": \"dayuse::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"identifier\": 2,\r\n        \"activityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#2\",\r\n        \"facilities\": [\r\n            \"parking::2\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Activity\",\r\n            \"Dayuse\"\r\n        ]\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Batch Put Activities by ORCS",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\r\n    {\r\n        \"sk\": \"dayuse::1\",\r\n        \"displayName\": \"Hiking trail renamed\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed here too\"\r\n    }\r\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/activities/:orcs",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"activities",
+										":orcs"
+									],
+									"variable": [
+										{
+											"key": "orcs",
+											"value": "997"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		},
