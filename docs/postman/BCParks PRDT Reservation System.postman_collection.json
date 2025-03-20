@@ -1000,45 +1000,6 @@
 								}
 							},
 							"response": []
-						},
-						{
-							"name": "Batch Delete Facility by Facility Type",
-							"request": {
-								"method": "DELETE",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"sk\": \"parking::1\"\r\n    },\r\n    {\r\n        \"facilityType\": \"parking\",\r\n        \"facilityId\": 2,\r\n        \"sk\": \"parking::2\"\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "998"
-										}
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "parking"
-										}
-									]
-								}
-							},
-							"response": []
 						}
 					]
 				},
@@ -1134,41 +1095,7 @@
 								}
 							},
 							"response": []
-						},
-						{
-							"name": "Batch Delete Facility by ORCS",
-							"request": {
-								"method": "DELETE",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"sk\": \"parking::1\"\r\n    },\r\n    {\r\n        \"sk\": \"parking::2\",\r\n        \"facilityType\": \"parking\",\r\n        \"facilityId\": 2\r\n    }\r\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:orcs",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":orcs"
-									],
-									"variable": [
-										{
-											"key": "orcs",
-											"value": "997"
-										}
-									]
-								}
-							},
-							"response": []
-						}
-					]
+						}					]
 				}
 			]
 		},
