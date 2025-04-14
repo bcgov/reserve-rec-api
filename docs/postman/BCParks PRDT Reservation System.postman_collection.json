@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "397e9c9e-d85f-49d9-993a-128fddd15ad8",
+		"_postman_id": "9ad99818-ce00-4a69-92b2-6aaa63ba2e1b",
 		"name": "BCParks PRDT Reservation System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_collection_link": "https://bcparks-dup.postman.co/workspace/BCParks-Day-Use-Pass~c6a232b9-cbde-4bc3-aa2c-906ab8c015e7/collection/14509064-d5314b6f-3178-44eb-9a6f-e3111e217cf5?action=share&source=collection_link&creator=14509064",
-		"_exporter_id": "43291325"
+		"_exporter_id": "14509064",
+		"_collection_link": "https://bcparks-dup.postman.co/workspace/BCParks-Day-Use-Pass~c6a232b9-cbde-4bc3-aa2c-906ab8c015e7/collection/14509064-9ad99818-ce00-4a69-92b2-6aaa63ba2e1b?action=share&source=collection_link&creator=14509064"
 	},
 	"item": [
 		{
@@ -1018,10 +1018,10 @@
 			"name": "Facilities",
 			"item": [
 				{
-					"name": "Facility by ORCS",
+					"name": "Facility by Facility Collection Id",
 					"item": [
 						{
-							"name": "Batch Post Facilities by ORCS",
+							"name": "Batch Post Facilities by Facility Collection Id",
 							"event": [
 								{
 									"listen": "test",
@@ -1053,7 +1053,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::997\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Musacheak Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::bcparks_997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 997,\r\n        \"fcCollectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::bcparks_997\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 997,\r\n        \"fcCollectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [\r\n            \"dayuse::997\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Musacheak\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1061,18 +1061,18 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs",
+									"raw": "{{base_url}}/facilities/:fcCollectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "997"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1080,7 +1080,7 @@
 							"response": []
 						},
 						{
-							"name": "Batch Put Facilities by ORCS",
+							"name": "Batch Put Facilities by Facility Collection Id",
 							"event": [
 								{
 									"listen": "test",
@@ -1109,18 +1109,18 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs",
+									"raw": "{{base_url}}/facilities/:fcCollectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "997"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1128,7 +1128,7 @@
 							"response": []
 						},
 						{
-							"name": "Get Facility by ORCS",
+							"name": "Get Facility by Facility Collection Id",
 							"event": [
 								{
 									"listen": "test",
@@ -1162,18 +1162,18 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs",
+									"raw": "{{base_url}}/facilities/:fcCollectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "997"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1220,7 +1220,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"Point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"pk\": \"facility::bcparks_997\",\r\n        \"sk\": \"parking::1\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"fcCollectionId\": \"bcparks_997\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 1,\r\n        \"facilityId\": 1,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Side parking\"\r\n        ]\r\n    },\r\n    {\r\n        \"pk\": \"facility::998\",\r\n        \"sk\": \"parking::2\",\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Cheakamus Overflow Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"fcCollectionId\": \"bcparks_998\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"parking\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"identifier\": 2,\r\n        \"facilityId\": 2,\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"activities\": [\r\n            \"dayuse::998\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.123,\r\n                -89.123\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": [\r\n            \"Cheakamus\",\r\n            \"Parking\",\r\n            \"Overflow parking\"\r\n        ]\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1228,13 +1228,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1244,8 +1244,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "998"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1282,13 +1282,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1298,8 +1298,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "998"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1341,13 +1341,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1357,8 +1357,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "998"
+											"key": "fcCollectionId",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1405,7 +1405,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"pk\": \"facility::999\",\r\n  \"sk\": \"parking::1\",\r\n  \"orcs\": 999,\r\n  \"displayName\": \"Cheakamus Main Parking Lot\",\r\n  \"description\": \"Where you park your car\",\r\n  \"schema\": \"facility\",\r\n  \"facilityType\": \"parking\",\r\n  \"address\": \"8675 Road St.\",\r\n  \"identifier\": 1 ,\r\n  \"facilityId\": 1,\r\n  \"geozone\": \"geozone::bcparks::7#3\",\r\n  \"activities\": [\"dayuse::1\"],\r\n  \"isVisible\": true,\r\n  \"timezone\": \"America/Vancouver\",\r\n  \"location\": {\r\n    \"type\": \"Point\",\r\n    \"coordinates\": [\r\n        89,\r\n        -89\r\n    ]\r\n  },\r\n  \"minMapZoom\": 123,\r\n  \"maxMapZoom\": 456,\r\n  \"showOnMap\": true,\r\n  \"imageUrl\": \"www.example.com\",\r\n  \"searchTerms\": [\"Cheakamus\", \"Parking\", \"Dayuse parking\"]\r\n}",
+									"raw": "{\r\n  \"pk\": \"facility::bcparks_999\",\r\n  \"sk\": \"parking::1\",\r\n  \"orcs\": 999,\r\n  \"displayName\": \"Cheakamus Main Parking Lot\",\r\n  \"description\": \"Where you park your car\",\r\n  \"schema\": \"facility\",\r\n  \"facilityType\": \"parking\",\r\n  \"address\": \"8675 Road St.\",\r\n  \"fcCollectionId\": \"bcparks_999\",\r\n  \"identifier\": 1 ,\r\n  \"facilityId\": 1,\r\n  \"geozone\": \"geozone::bcparks::7#3\",\r\n  \"activities\": [\"dayuse::1\"],\r\n  \"isVisible\": true,\r\n  \"timezone\": \"America/Vancouver\",\r\n  \"location\": {\r\n    \"type\": \"point\",\r\n    \"coordinates\": [\r\n        89,\r\n        -89\r\n    ]\r\n  },\r\n  \"minMapZoom\": 123,\r\n  \"maxMapZoom\": 456,\r\n  \"showOnMap\": true,\r\n  \"imageUrl\": \"www.example.com\",\r\n  \"searchTerms\": [\"Cheakamus\", \"Parking\", \"Dayuse parking\"]\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1413,13 +1413,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1433,8 +1433,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "fcCollectionId",
+											"value": "bcparks_999"
 										}
 									]
 								}
@@ -1471,13 +1471,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1491,8 +1491,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "fcCollectionId",
+											"value": "bcparks_999"
 										}
 									]
 								}
@@ -1526,13 +1526,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":fcCollectionId"
 									],
 									"query": [
 										{
@@ -1546,8 +1546,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "fcCollectionId",
+											"value": "bcparks_999"
 										}
 									]
 								}
@@ -1622,13 +1622,13 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:orcs?facilityType=parking&facilityId=1",
+									"raw": "{{base_url}}/facilities/:facCollectionId?facilityType=parking&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":orcs"
+										":facCollectionId"
 									],
 									"query": [
 										{
@@ -1642,8 +1642,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "facCollectionId",
+											"value": "bcparks_999"
 										}
 									]
 								}
@@ -2559,16 +2559,14 @@
 		},
 		{
 			"name": "Search",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [
 					{
 						"key": "x-api-key",
 						"value": "{{x-api-key}}",
-						"type": "text"
+						"type": "text",
+						"disabled": true
 					}
 				],
 				"body": {
@@ -2581,7 +2579,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/search?limit=20&type=opDate&startDate=2024-11-06&endDate=2024-11-08&category=permit",
+					"raw": "{{base_url}}/search",
 					"host": [
 						"{{base_url}}"
 					],
@@ -2600,13 +2598,9 @@
 							"disabled": true
 						},
 						{
-							"key": "text",
-							"value": "date",
-							"disabled": true
-						},
-						{
 							"key": "limit",
-							"value": "20"
+							"value": "20",
+							"disabled": true
 						},
 						{
 							"key": "status",
@@ -2620,19 +2614,23 @@
 						},
 						{
 							"key": "type",
-							"value": "opDate"
+							"value": "opDate",
+							"disabled": true
 						},
 						{
 							"key": "startDate",
-							"value": "2024-11-06"
+							"value": "2024-11-06",
+							"disabled": true
 						},
 						{
 							"key": "endDate",
-							"value": "2024-11-08"
+							"value": "2024-11-08",
+							"disabled": true
 						},
 						{
 							"key": "category",
-							"value": "permit"
+							"value": "permit",
+							"disabled": true
 						}
 					]
 				}
@@ -2722,6 +2720,11 @@
 		"type": "oauth2",
 		"oauth2": [
 			{
+				"key": "useBrowser",
+				"value": false,
+				"type": "boolean"
+			},
+			{
 				"key": "clientId",
 				"value": "{{cognito_client_id}}",
 				"type": "string"
@@ -2735,11 +2738,6 @@
 				"key": "accessTokenUrl",
 				"value": "{{cognito_auth_url}}/oauth2/token",
 				"type": "string"
-			},
-			{
-				"key": "useBrowser",
-				"value": true,
-				"type": "boolean"
 			},
 			{
 				"key": "grant_type",
