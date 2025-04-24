@@ -95,7 +95,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus 41\",\r\n        \"geozoneId\": \"41\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus 42\",\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ],\r\n        \"geozoneId\": \"42\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus 1\",\r\n        \"geozoneId\": \"1\"\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus 2\",\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ],\r\n        \"geozoneId\": \"2\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -209,7 +209,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=41",
+									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=1",
 									"host": [
 										"{{base_url}}"
 									],
@@ -220,7 +220,7 @@
 									"query": [
 										{
 											"key": "geozoneId",
-											"value": "41"
+											"value": "1"
 										}
 									],
 									"variable": [
@@ -341,7 +341,7 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=42",
+									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=1",
 									"host": [
 										"{{base_url}}"
 									],
@@ -352,7 +352,7 @@
 									"query": [
 										{
 											"key": "geozoneId",
-											"value": "42"
+											"value": "1"
 										}
 									],
 									"variable": [
@@ -1035,7 +1035,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"New Musacheak Side Parking Lot\",\r\n        \"facilityType\": \"structure\",\r\n        \"facilityId\": 13\r\n    },\r\n    {\r\n        \"displayName\": \"New Musacheak Overflow Parking Lot\",\r\n        \"facilityType\": \"structure\",\r\n        \"facilityId\": 14\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Musacheak Side Parking Lot\",\r\n        \"facilityType\": \"structure\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Musacheak Overflow Parking Lot\",\r\n        \"facilityType\": \"structure\",\r\n        \"facilityId\": 2\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1208,7 +1208,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus Side Parking Lot\",\r\n        \"facilityId\": 87\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus Overflow Parking Lot\",\r\n        \"facilityId\": 88\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"New Cheakamus Side Parking Lot\",\r\n        \"facilityId\": 1\r\n    },\r\n    {\r\n        \"displayName\": \"New Cheakamus Overflow Parking Lot\",\r\n        \"facilityId\": 2\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1305,78 +1305,6 @@
 					"name": "Facility by Facility ID",
 					"item": [
 						{
-							"name": "Post Facility by Facility ID",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"// Test for status code",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"// Test for response body properties",
-											"pm.test(\"Response body has data, msg, and context\", function () {",
-											"    pm.response.to.have.jsonBody(\"data\");",
-											"    pm.response.to.have.jsonBody(\"msg\");",
-											"    pm.response.to.have.jsonBody(\"context\");",
-											"});",
-											"",
-											"// Test for response body data field value",
-											"pm.test(\"Data field value is true\", function () {",
-											"    pm.expect(pm.response.json().data).to.equal(true);",
-											"});",
-											""
-										],
-										"type": "text/javascript",
-										"packages": {}
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n    \"orcs\": 999,\r\n    \"fcCollectionId\": \"bcparks_999\",\r\n    \"displayName\": \"Musacheak Side Parking Lot\",\r\n    \"description\": \"Where you park your car\",\r\n    \"schema\": \"facility\",\r\n    \"facilitySubType\": \"parkingLot\",\r\n    \"address\": \"8675 Road St.\",\r\n    \"geozone\": \"geozone::bcparks::999#3\",\r\n    \"activities\": [\r\n        { \"pk\":\"dayuse\", \"sk\": \"1\" }\r\n    ],\r\n    \"isVisible\": true,\r\n    \"timezone\": \"America/Vancouver\",\r\n    \"location\": {\r\n        \"type\": \"point\",\r\n        \"coordinates\": [\r\n            89.234,\r\n            -89.234\r\n        ]\r\n    },\r\n    \"minMapZoom\": 123,\r\n    \"maxMapZoom\": 456,\r\n    \"showOnMap\": true,\r\n    \"imageUrl\": \"www.example.com\",\r\n    \"searchTerms\": \"Musacheak\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=structure",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"facilities",
-										":fcCollectionId"
-									],
-									"query": [
-										{
-											"key": "facilityType",
-											"value": "structure"
-										},
-										{
-											"key": "facilityId",
-											"value": "1",
-											"disabled": true
-										}
-									],
-									"variable": [
-										{
-											"key": "fcCollectionId",
-											"value": "bcparks_999"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Put Facility by Facility ID",
 							"event": [
 								{
@@ -1406,7 +1334,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure&facilityId=89",
+									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
@@ -1421,13 +1349,13 @@
 										},
 										{
 											"key": "facilityId",
-											"value": "89"
+											"value": "1"
 										}
 									],
 									"variable": [
 										{
 											"key": "fccollectionid",
-											"value": "bcparks_999"
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -1482,7 +1410,7 @@
 									"variable": [
 										{
 											"key": "fcCollectionId",
-											"value": "bcparks_999"
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -1578,7 +1506,7 @@
 									"variable": [
 										{
 											"key": "facCollectionId",
-											"value": "bcparks_999"
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -1810,10 +1738,10 @@
 			"name": "Activities",
 			"item": [
 				{
-					"name": "Activity by ORCS",
+					"name": "Activity by Activity Collection ID",
 					"item": [
 						{
-							"name": "Batch Post Activities by ORCS",
+							"name": "Batch Post Activities Activity Collection ID",
 							"event": [
 								{
 									"listen": "test",
@@ -1847,7 +1775,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::997#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::997#2\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::997#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::997#2\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1866,7 +1794,7 @@
 									"variable": [
 										{
 											"key": "orcs",
-											"value": "997"
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1874,7 +1802,7 @@
 							"response": []
 						},
 						{
-							"name": "Batch Put Activities by ORCS",
+							"name": "Batch Put Activities Activity Collection ID",
 							"event": [
 								{
 									"listen": "test",
@@ -1895,7 +1823,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"activityId\": \"7\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed\"\r\n    },\r\n    {\r\n        \"activityId\": \"8\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed here too\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"activityId\": \"1\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"activityType\": \"dayuse\",\r\n        \"displayName\": \"Hiking trail renamed here too\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1903,18 +1831,18 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
+									"raw": "{{base_url}}/activities/:accollectionid",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "997"
+											"key": "accollectionid",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -1922,7 +1850,7 @@
 							"response": []
 						},
 						{
-							"name": "Get Activity by ORCS",
+							"name": "Get Activity Activity Collection ID",
 							"event": [
 								{
 									"listen": "test",
@@ -1956,18 +1884,18 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
+									"raw": "{{base_url}}/activities/:accollectionid",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "997"
+											"key": "accollectionid",
+											"value": "bcparks_997"
 										}
 									]
 								}
@@ -2014,7 +1942,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"subActivityType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": \"geozone::bcparks::998#1\",\r\n        \"facilities\": [\r\n            { \"pk\":\"parkingLot\", \"sk\": \"1\" }\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2022,13 +1950,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"query": [
 										{
@@ -2038,8 +1966,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "998"
+											"key": "accollectionid",
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -2068,7 +1996,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"activityId\": \"9\",\r\n        \"displayName\": \"Dayuse Spot 1 New Name Here\"\r\n    },\r\n    {\r\n        \"activityId\": \"10\",\r\n        \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"activityId\": \"1\",\r\n        \"displayName\": \"Dayuse Spot 1 New Name Here\"\r\n    },\r\n    {\r\n        \"activityId\": \"2\",\r\n        \"displayName\": \"Dayuse Spot 2 New Name Here\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2076,13 +2004,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"query": [
 										{
@@ -2092,8 +2020,8 @@
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "998"
+											"key": "accollectionid",
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -2194,13 +2122,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=13",
+									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse&activityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"query": [
 										{
@@ -2209,13 +2137,13 @@
 										},
 										{
 											"key": "activityId",
-											"value": "13"
+											"value": "1"
 										}
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "accollectionid",
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -2249,13 +2177,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=13",
+									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse&activityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":accollectionid"
 									],
 									"query": [
 										{
@@ -2264,13 +2192,13 @@
 										},
 										{
 											"key": "activityId",
-											"value": "13"
+											"value": "1"
 										}
 									],
 									"variable": [
 										{
-											"key": "orcs",
-											"value": "999"
+											"key": "accollectionid",
+											"value": "bcparks_998"
 										}
 									]
 								}
@@ -2366,7 +2294,7 @@
 									"variable": [
 										{
 											"key": "orcs",
-											"value": "999"
+											"value": "bcparks_998"
 										}
 									]
 								}
