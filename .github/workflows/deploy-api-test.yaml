@@ -93,6 +93,10 @@ jobs:
           PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
           PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
 
+          # Admin Cognito
+          ADMIN_USER_POOL_NAME: ${{ vars.ADMIN_USER_POOL_NAME }}
+          ADMIN_USER_POOL_CLIENT_NAME: ${{ vars.ADMIN_USER_POOL_CLIENT_NAME }}
+          ADMIN_COGNITO_CALLBACK_URLS: ${{ vars.ADMIN_COGNITO_CALLBACK_URLS }}
 
         run: |
           echo "Deploying $STACK_NAME"
