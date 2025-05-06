@@ -68,5 +68,10 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     publicUserPoolName: process.env.PUBLIC_USER_POOL_NAME || 'public',
     publicUserPoolClientName: process.env.PUBLIC_USER_POOL_CLIENT_NAME || 'public-web-app',
     publicCognitoCallbackURLs: process.env.PUBLIC_COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
+
+    // Admin Cognito
+    adminUserPoolName: process.env.ADMIN_USER_POOL_NAME || 'admin',
+    adminUserPoolClientName: process.env.ADMIN_USER_POOL_CLIENT_NAME || 'admin-web-app',
+    adminCognitoCallbackURLs: process.env.ADMIN_COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
   },
 });
