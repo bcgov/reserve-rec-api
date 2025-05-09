@@ -61,7 +61,7 @@ jobs:
           AZURE_CALLBACK_URLS: ${{ secrets.AZURE_CALLBACK_URLS }}
           AZURE_LOGOUT_URLS: ${{ secrets.AZURE_LOGOUT_URLS }}
           AZURE_ALLOWED_OAUTH_FLOWS: ${{ secrets.AZURE_ALLOWED_OAUTH_FLOWS }}
-          AZURE_ISSUER_URL: ${{ secrets.AZURE_ISSUER_URL }}
+          AZURE_ISSUER_URL: ${{ vars.AZURE_ISSUER_URL }}
           DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
