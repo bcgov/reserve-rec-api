@@ -66,6 +66,7 @@ jobs:
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
           OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
+          COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
 
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}

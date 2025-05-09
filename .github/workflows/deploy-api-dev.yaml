@@ -61,6 +61,7 @@ jobs:
           JWKS: ${{ secrets.JWKS }}
           KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
           OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
+          COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
 
           # Variables
           ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
@@ -88,7 +89,6 @@ jobs:
           PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
 
           # Admin Cognito
-          COGNITO_DOMAIN: ${{ vars.COGNITO_DOMAIN }}
           ADMIN_USER_POOL_NAME: ${{ vars.ADMIN_USER_POOL_NAME }}
           ADMIN_USER_POOL_CLIENT_NAME: ${{ vars.ADMIN_USER_POOL_CLIENT_NAME }}
           ADMIN_COGNITO_CALLBACK_URLS: ${{ vars.ADMIN_COGNITO_CALLBACK_URLS }}
