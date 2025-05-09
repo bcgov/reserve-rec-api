@@ -20,6 +20,52 @@ concurrency:
   group: deploy-reserve-rec-api
   cancel-in-progress: false
 
+env:
+  # Secrets
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_APP_CLIENT_NAME: ${{ secrets.AZURE_APP_CLIENT_NAME }}
+  AZURE_PROVIDER_NAME: ${{ secrets.AZURE_PROVIDER_NAME }}
+  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  AZURE_CALLBACK_URLS: ${{ secrets.AZURE_CALLBACK_URLS }}
+  AZURE_LOGOUT_URLS: ${{ secrets.AZURE_LOGOUT_URLS }}
+  AZURE_ALLOWED_OAUTH_FLOWS: ${{ secrets.AZURE_ALLOWED_OAUTH_FLOWS }}
+  AZURE_ISSUER_URL: ${{ vars.AZURE_ISSUER_URL }}
+  DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
+  JWKS: ${{ secrets.JWKS }}
+  KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
+  OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
+  COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
+
+  # Variables
+  ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
+  COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
+  DATA_REGISTER_URL: ${{ vars.DATA_REGISTER_URL}}
+  DOMAIN_ENDPOINT: ${{ vars.DOMAIN_ENDPOINT }}
+  EBS_IOPS: ${{ vars.EBS_IOPS }}
+  INSTANCE_COUNT: ${{ vars.INSTANCE_COUNT }}
+  INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
+  OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
+  OPENSEARCH_DOMAIN_URL: $${{ vars.OPENSEARCH_DOMAIN_URL }}
+  SAML_IDP_ENTITY_ID: $${{ vars.SAML_IDP_ENTITY_ID }}
+  STACK_NAME: ${{ vars.STACK_NAME }}
+  API_STAGE: ${{ vars.API_STAGE }}
+  TABLE_NAME: ${{ vars.TABLE_NAME }}
+  AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
+  PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
+  IS_OFFLINE: 'false'
+  DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
+  LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+
+  # Public Cognito
+  PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
+  PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
+  PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
+
+  # Admin Cognito
+  ADMIN_USER_POOL_NAME: ${{ vars.ADMIN_USER_POOL_NAME }}
+  ADMIN_USER_POOL_CLIENT_NAME: ${{ vars.ADMIN_USER_POOL_CLIENT_NAME }}
+  ADMIN_COGNITO_CALLBACK_URLS: ${{ vars.ADMIN_COGNITO_CALLBACK_URLS }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -52,53 +98,6 @@ jobs:
 
       ## CDK Deploy
       - name: CDK Deploy
-        env:
-          # Secrets
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_APP_CLIENT_NAME: ${{ secrets.AZURE_APP_CLIENT_NAME }}
-          AZURE_PROVIDER_NAME: ${{ secrets.AZURE_PROVIDER_NAME }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_CALLBACK_URLS: ${{ secrets.AZURE_CALLBACK_URLS }}
-          AZURE_LOGOUT_URLS: ${{ secrets.AZURE_LOGOUT_URLS }}
-          AZURE_ALLOWED_OAUTH_FLOWS: ${{ secrets.AZURE_ALLOWED_OAUTH_FLOWS }}
-          AZURE_ISSUER_URL: ${{ vars.AZURE_ISSUER_URL }}
-          DATA_REGISTER_API_KEY: ${{ secrets.DATA_REGISTER_API_KEY }}
-          JWKS: ${{ secrets.JWKS }}
-          KMS_KEY_ID: ${{ secrets.KMS_KEY_ID }}
-          OPENSEARCH_ADMIN_PASSWORD: $${{ secrets.OPENSEARCH_ADMIN_PASSWORD }}
-          COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
-
-          # Variables
-          ALLOW_ORIGIN: ${{ vars.ALLOW_ORIGIN }}
-          COGNITO_CALLBACK_URLS: ${{ vars.COGNITO_CALLBACK_URLS }}
-          DATA_REGISTER_URL: ${{ vars.DATA_REGISTER_URL}}
-          DOMAIN_ENDPOINT: ${{ vars.DOMAIN_ENDPOINT }}
-          EBS_IOPS: ${{ vars.EBS_IOPS }}
-          INSTANCE_COUNT: ${{ vars.INSTANCE_COUNT }}
-          INSTANCE_TYPE: ${{ vars.INSTANCE_TYPE }}
-          OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
-          OPENSEARCH_DOMAIN_URL: $${{ vars.OPENSEARCH_DOMAIN_URL }}
-          SAML_IDP_ENTITY_ID: $${{ vars.SAML_IDP_ENTITY_ID }}
-          STACK_NAME: ${{ vars.STACK_NAME }}
-          API_STAGE: ${{ vars.API_STAGE }}
-          TABLE_NAME: ${{ vars.TABLE_NAME }}
-          AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
-          PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
-          IS_OFFLINE: 'false'
-          DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
-          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
-          S3_BUCKET_GEOSPATIAL: ${{ vars.S3_BUCKET_GEOSPATIAL }}
-
-          # Public Cognito
-          PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
-          PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
-          PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
-
-          # Admin Cognito
-          ADMIN_USER_POOL_NAME: ${{ vars.ADMIN_USER_POOL_NAME }}
-          ADMIN_USER_POOL_CLIENT_NAME: ${{ vars.ADMIN_USER_POOL_CLIENT_NAME }}
-          ADMIN_COGNITO_CALLBACK_URLS: ${{ vars.ADMIN_COGNITO_CALLBACK_URLS }}
-
         run: |
           echo "Deploying $STACK_NAME"
           cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
