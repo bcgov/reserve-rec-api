@@ -51,6 +51,7 @@ env:
   IS_OFFLINE: 'false'
   DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
   LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+  ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}
 
   # Public Cognito
   PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
