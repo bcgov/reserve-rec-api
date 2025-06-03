@@ -1,8 +1,4 @@
 [
-    "PublicUserPoolId",
-    "PublicUserPoolClientId",
-    "PublicIdentityPoolId",
-    "PublicUserPoolDomainUrl",
     "ApiLocation",
     "ApiPath"
 ]
