@@ -1,5 +1,5 @@
 {
-  "name": "Reserve Rec API",
+  "name": "reserve-rec-api",
   "version": "0.1.0",
   "bin": {
     "reserve-rec-cdk": "bin/reserve-rec-cdk.js"
