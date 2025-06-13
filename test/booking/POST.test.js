@@ -1,4 +1,3 @@
-// lib/handlers/bookings/POST/index.test.js
 "use strict";
 
 
@@ -35,7 +34,7 @@ jest.mock("/opt/dynamodb", () => ({
   batchTransactData: jest.fn(),
 }));
 
-const { handler } = require("../lib/handlers/bookings/POST/index");
+const { handler } = require("../../lib/handlers/bookings/POST/index");
 const { createBooking } = require("/opt/bookings/methods");
 const { quickApiPutHandler } = require("/opt/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
