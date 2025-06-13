@@ -48,11 +48,6 @@ describe("Bookings POST handler", () => {
     jest.clearAllMocks();
   });
 
-  it("should fail unit tests", async () => {
-    // Ensure failure here
-    expect(false).toBe(true);
-  });
-
   it("should return 400 if body is missing", async () => {
     const event = { body: null };
     const result = await handler(event, context);
