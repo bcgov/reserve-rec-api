@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "ccbc1197-496c-425b-bd89-497e76af3237",
+		"_postman_id": "1a00cba5-f730-4116-b15b-bba1b70500a7",
 		"name": "BCParks PRDT Reservation System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "43291325"
+		"_exporter_id": "14509064",
+		"_collection_link": "https://bcparks-dup.postman.co/workspace/BCParks-Day-Use-Pass~c6a232b9-cbde-4bc3-aa2c-906ab8c015e7/collection/14509064-1a00cba5-f730-4116-b15b-bba1b70500a7?action=share&source=collection_link&creator=14509064"
 	},
 	"item": [
 		{
@@ -2093,6 +2094,60 @@
 					"name": "Activity by Activity ID",
 					"item": [
 						{
+							"name": "Bookings",
+							"item": [
+								{
+									"name": "Post Booking by ActivityId Copy",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"startDate\": \"2025-05-14\",\r\n    \"endDate\": \"2025-05-16\",\r\n    \"timezone\": \"America/Vancouver\",\r\n    \"bookedAt\": \"2025-06-12T21:57:28.675Z\",\r\n    \"user\": \"user_brucewayne\",\r\n    \"partyInformation\": {\r\n        \"adult\": 1,\r\n        \"senior\": 0,\r\n        \"child\": 0,\r\n        \"youth\": 0\r\n    },\r\n    \"rateClass\": \"standard\",\r\n    \"namedOccupant\": {\r\n        \"firstName\": \"Bruce\",\r\n        \"lastName\": \"Wayne\",\r\n        \"age\": 16,\r\n        \"contactInfo\": {\r\n            \"email\": \"bruce@waynetech.com\"\r\n        }\r\n    },\r\n    \"feeInformation\": {\r\n        \"registrationFees\": 20,\r\n        \"transactionFees\": 6,\r\n        \"tax\": 3.12,\r\n        \"total\": 29.12\r\n    },\r\n    \"vehicleInformation\": [\r\n        {\r\n            \"licensePlate\": \"1351351\",\r\n            \"licensePlateRegistrationRegion\": \"British Columbia\"\r\n        }\r\n    ],\r\n    \"bookingStatus\": \"confirmed\",\r\n    \"entryPoint\": {\r\n        \"pk\": \"facility::bcparks_250\",\r\n        \"sk\": \"accessPoint::1\"\r\n    },\r\n    \"exitPoint\": {\r\n        \"pk\": \"facility::bcparks_250\",\r\n        \"sk\": \"accessPoint::2\"\r\n    },\r\n    \"location\": {\r\n        \"type\": \"point\",\r\n        \"coordinates\": [\r\n            -118.29509590549388,\r\n            50.504610666560396\r\n        ]\r\n    }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{vanity_url}}/activities/:acCollectionId/:activityType/:activityId/:startDate/bookings",
+											"host": [
+												"{{vanity_url}}"
+											],
+											"path": [
+												"activities",
+												":acCollectionId",
+												":activityType",
+												":activityId",
+												":startDate",
+												"bookings"
+											],
+											"variable": [
+												{
+													"key": "acCollectionId",
+													"value": "bcparks_1"
+												},
+												{
+													"key": "activityType",
+													"value": "backcountryCamp"
+												},
+												{
+													"key": "activityId",
+													"value": "1"
+												},
+												{
+													"key": "startDate",
+													"value": "2025-05-12"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
 							"name": "Put Activity by Activity ID",
 							"event": [
 								{
@@ -2346,6 +2401,95 @@
 						}
 					},
 					"response": []
+				}
+			]
+		},
+		{
+			"name": "Bookings",
+			"item": [
+				{
+					"name": "Booking ID",
+					"item": [
+						{
+							"name": "Post Booking",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"startDate\": \"2025-05-14\",\r\n    \"endDate\": \"2025-05-16\",\r\n    \"timezone\": \"America/Vancouver\",\r\n    \"bookedAt\": \"2025-06-12T21:57:28.675Z\",\r\n    \"user\": \"user_brucewayne\",\r\n    \"partyInformation\": {\r\n        \"adult\": 1,\r\n        \"senior\": 0,\r\n        \"child\": 0,\r\n        \"youth\": 0\r\n    },\r\n    \"rateClass\": \"standard\",\r\n    \"namedOccupant\": {\r\n        \"firstName\": \"Bruce\",\r\n        \"lastName\": \"Wayne\",\r\n        \"age\": 16,\r\n        \"contactInfo\": {\r\n            \"email\": \"bruce@waynetech.com\"\r\n        }\r\n    },\r\n    \"feeInformation\": {\r\n        \"registrationFees\": 20,\r\n        \"transactionFees\": 6,\r\n        \"tax\": 3.12,\r\n        \"total\": 29.12\r\n    },\r\n    \"vehicleInformation\": [\r\n        {\r\n            \"licensePlate\": \"1351351\",\r\n            \"licensePlateRegistrationRegion\": \"British Columbia\"\r\n        }\r\n    ],\r\n    \"bookingStatus\": \"confirmed\",\r\n    \"entryPoint\": {\r\n        \"pk\": \"facility::bcparks_250\",\r\n        \"sk\": \"accessPoint::1\"\r\n    },\r\n    \"exitPoint\": {\r\n        \"pk\": \"facility::bcparks_250\",\r\n        \"sk\": \"accessPoint::2\"\r\n    },\r\n    \"location\": {\r\n        \"type\": \"point\",\r\n        \"coordinates\": [\r\n            -118.29509590549388,\r\n            50.504610666560396\r\n        ]\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{vanity_url}}/bookings?acCollectionId=bcparks_250&activityType=backcountryCamp&activityId=1",
+									"host": [
+										"{{vanity_url}}"
+									],
+									"path": [
+										"bookings"
+									],
+									"query": [
+										{
+											"key": "acCollectionId",
+											"value": "bcparks_250"
+										},
+										{
+											"key": "activityType",
+											"value": "backcountryCamp"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Bookings",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/bookings?acCollectionId=bcparks_250&activityType=backcountryCamp&activityId=1&startDate=2025-05-13&endDate=2025-05-17",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"bookings"
+									],
+									"query": [
+										{
+											"key": "acCollectionId",
+											"value": "bcparks_250"
+										},
+										{
+											"key": "activityType",
+											"value": "backcountryCamp"
+										},
+										{
+											"key": "activityId",
+											"value": "1"
+										},
+										{
+											"key": "startDate",
+											"value": "2025-05-13"
+										},
+										{
+											"key": "endDate",
+											"value": "2025-05-17"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		},
