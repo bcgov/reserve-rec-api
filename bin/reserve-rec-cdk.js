@@ -58,12 +58,15 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     AUDIT_TABLE_NAME: process.env.AUDIT_TABLE_NAME || 'reserve-rec-audit',
     TABLE_NAME: process.env.TABLE_NAME || 'reserve-rec-main',
     PUBSUB_TABLE_NAME: process.env.PUBSUB_TABLE_NAME || 'reserve-rec-pubsub',
-    COUNTER_TABLE_NAME: process.env.TABLE_NAME_COUNTER || 'reserve-rec-counter',
     tantalisEndpointUrl: process.env.TANTALIS_ENDPOINT_URL || 'https://openmaps.gov.bc.ca/geo/pub/WHSE_TANTALIS.TA_PARK_ECORES_PA_SVW/ows',
     SAML_IDP_ENTITY_ID: process.env.SAML_IDP_ENTITY_ID || 'saml-idp-entity-id',
     SAML_IDP_METADATA_CONTENT: process.env.SAML_IDP_METADATA_CONTENT || 'saml-idp-metadata-content',
     DATA_REGISTER_URL: process.env.DATA_REGISTER_URL || 'https://dev-data.bcparks.ca/api',
     S3_BUCKET_GEOSPATIAL: process.env.S3_BUCKET_GEOSPATIAL || 'reserve-rec-geospatial',
+    
+    // Bambora
+    MERCHANT_ID: process.env.MERCHANT_ID || "123123123",
+    HASH_KEY: process.env.HASH_KEY || "abcd1234-123a-123a-1234-1234abcd",
 
     // Public Cognito
     publicUserPoolName: process.env.PUBLIC_USER_POOL_NAME || 'public',
