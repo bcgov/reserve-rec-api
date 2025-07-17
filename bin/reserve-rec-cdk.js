@@ -67,6 +67,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     // Bambora
     MERCHANT_ID: process.env.MERCHANT_ID || "123123123",
     HASH_KEY: process.env.HASH_KEY || "abcd1234-123a-123a-1234-1234abcd",
+    WORLDLINE_WEBHOOK_SECRET: process.env.WORLDLINE_WEBHOOK_SECRET || "1234-1234-1234-1234-1234abcd",
 
     // Public Cognito
     publicUserPoolName: process.env.PUBLIC_USER_POOL_NAME || 'public',
