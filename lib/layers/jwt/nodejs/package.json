@@ -1,0 +1,9 @@
+{
+  "name": "jwt-layer",
+  "version": "1.0.0",
+  "description": "JWT utilities layer for Lambda functions",
+  "dependencies": {
+    "node-rsa": "^1.0.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

@@ -32,10 +32,12 @@
     "@opensearch-project/opensearch": "^3.2.0",
     "aws-cdk-lib": "2.173.2",
     "aws-sdk": "^2.1692.0",
-    "constructs": "^10.0.0",
     "axios": "^1.9.0",
+    "constructs": "^10.0.0",
     "crypto": "^1.0.1",
+    "jsonwebtoken": "^9.0.2",
     "luxon": "^3.6.1",
+    "node-rsa": "^1.0.2",
     "winston": "^3.17.0",
     "xlsx": "^0.18.5"
   }
