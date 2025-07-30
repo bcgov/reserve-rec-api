@@ -78,5 +78,9 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     adminUserPoolName: process.env.ADMIN_USER_POOL_NAME || 'admin',
     adminUserPoolClientName: process.env.ADMIN_USER_POOL_CLIENT_NAME || 'admin-web-app',
     adminCognitoCallbackURLs: process.env.ADMIN_COGNITO_CALLBACK_URLS || 'http://localhost:4200,http://localhost:4300',
+    adminUserPoolId: process.env.ADMIN_USER_POOL_ID || 'ChangeToAdminUserPoolID', 
+    adminUserPoolClientId: process.env.ADMIN_CLIENT_ID || 'ChangeToAdminClientID', 
+    cognitoRegion: process.env.COGNITO_REGION || 'ca-central-1', 
+    JWT_KEY_ID: process.env.JWT_KEY_ID || 'bcscencryption', 
   },
 });

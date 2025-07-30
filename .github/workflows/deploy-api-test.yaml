@@ -62,6 +62,7 @@ env:
   LOG_LEVEL: ${{ vars.LOG_LEVEL }}
   S3_BUCKET_GEOSPATIAL: ${{ vars.S3_BUCKET_GEOSPATIAL }}
   ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}
+  JWT_KEY_ID: ${{ vars.JWT_KEY_ID }}
 
   # Public Cognito
   PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
