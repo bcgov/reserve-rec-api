@@ -81,6 +81,7 @@ new ReserveRecCdkStack(app, 'ReserveRecCdkStack', {
     adminUserPoolId: process.env.ADMIN_USER_POOL_ID || 'ChangeToAdminUserPoolID', 
     adminUserPoolClientId: process.env.ADMIN_CLIENT_ID || 'ChangeToAdminClientID', 
     cognitoRegion: process.env.COGNITO_REGION || 'ca-central-1', 
-    JWT_KEY_ID: process.env.JWT_KEY_ID || 'bcscencryption', 
-  },
+    JWT_KEY_ID: process.env.JWT_KEY_ID || 'bcscencryption',
+    BCSC_KEY_ID: process.env.BCSC_KEY_ID || 'ChangeToBCSCKeyID',
+    },
 });
