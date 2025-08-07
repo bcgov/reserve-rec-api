@@ -57,6 +57,7 @@ env:
   LOG_LEVEL: ${{ vars.LOG_LEVEL }}
   ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}
   JWT_KEY_ID: ${{ vars.JWT_KEY_ID }}
+  BCSC_KEY_ID: ${{ secrets.BCSC_KEY_ID }}
 
   # Public Cognito
   PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
