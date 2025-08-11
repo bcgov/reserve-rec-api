@@ -4,6 +4,7 @@
   "description": "JWT utilities layer for Lambda functions",
   "dependencies": {
     "node-rsa": "^1.0.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "@aws-sdk/client-kms": "^3.0.0"
   }
 }
