@@ -17,11 +17,11 @@ jest.mock("/opt/base", () => ({
   })),
 }));
 
-jest.mock("/opt/bookings/methods", () => ({
+jest.mock("../methods", () => ({
   createBooking: jest.fn(),
 }));
 
-jest.mock("/opt/bookings/configs", () => ({
+jest.mock("../configs", () => ({
   BOOKING_PUT_CONFIG: {},
 }));
 
@@ -35,7 +35,7 @@ jest.mock("/opt/dynamodb", () => ({
 }));
 
 const { handler } = require("../../lib/handlers/bookings/POST/index");
-const { createBooking } = require("/opt/bookings/methods");
+const { createBooking } = require("../methods");
 const { quickApiPutHandler } = require("/opt/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 
