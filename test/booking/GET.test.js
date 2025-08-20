@@ -18,14 +18,14 @@ jest.mock("/opt/base", () => ({
     context,
   })),
 }));
-jest.mock('../methods', () => ({
+jest.mock('../../lib/handlers/bookings/methods', () => ({
   getBookingByBookingId: jest.fn(),
   getBookingsByActivityDetails: jest.fn(),
   getBookingsByUserSub: jest.fn(),
 }));
 
 // Import the mocked functions after jest.mock
-({ getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require('../methods'));
+({ getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require('../../lib/handlers/bookings/methods'));
 
 
 describe('Bookings GET handler', () => {
