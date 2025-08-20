@@ -6,14 +6,10 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest'
   },
   moduleNameMapper: {
-    '^/opt/activities/configs$': '<rootDir>/lib/layers/dataUtils/activities/configs.js',
-    '^/opt/activities/methods$': '<rootDir>/lib/layers/dataUtils/activities/methods.js',
     '^/opt/awsUtils/s3$': '<rootDir>/lib/layers/awsUtils/s3.js',
     '^/opt/awsUtils/ses$': '<rootDir>/lib/layers/awsUtils/ses.js',
     '^/opt/awsUtils/sns$': '<rootDir>/lib/layers/awsUtils/sns.js',
     '^/opt/base$': '<rootDir>/lib/layers/base/base.js',
-    '^/opt/bookings/configs$': '<rootDir>/lib/layers/dataUtils/bookings/configs.js',
-    '^/opt/bookings/methods$': '<rootDir>/lib/layers/dataUtils/bookings/methods.js',
     '^/opt/clients/configs$': '<rootDir>/lib/layers/dataUtils/clients/configs.js',
     '^/opt/clients/methods$': '<rootDir>/lib/layers/dataUtils/clients/methods.js',
     '^/opt/data-utils$': '<rootDir>/lib/layers/dataUtils/data-utils.js',
