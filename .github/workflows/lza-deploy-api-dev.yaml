@@ -47,7 +47,7 @@ env:
   OPENSEARCH_MAIN_INDEX: $${{ vars.OPENSEARCH_MAIN_INDEX }}
   OPENSEARCH_DOMAIN_URL: $${{ vars.OPENSEARCH_DOMAIN_URL }}
   SAML_IDP_ENTITY_ID: $${{ vars.SAML_IDP_ENTITY_ID }}
-  STACK_NAME: ${{ vars.LZA_STACK_NAME }}
+  STACK_NAME: ${{ vars.STACK_NAME }}
   API_STAGE: ${{ vars.API_STAGE }}
   TABLE_NAME: ${{ vars.TABLE_NAME }}
   AUDIT_TABLE_NAME: ${{ vars.AUDIT_TABLE_NAME }}
@@ -93,7 +93,7 @@ jobs:
       - name: Get AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.LZA_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
 
@@ -113,7 +113,7 @@ jobs:
       - name: Update Config
         env:
           TABLE_NAME: ${{ vars.TABLE_NAME }}
-          STACK_NAME: ${{ vars.LZA_STACK_NAME }}
+          STACK_NAME: ${{ vars.STACK_NAME }}
         run: |
           node lib/tools/cicd/updateConfig.js cfn-outputs.json lib/tools/cicd/valid_admin_attributes.json admin $STACK_NAME
           node lib/tools/cicd/updateConfig.js cfn-outputs.json lib/tools/cicd/valid_public_attributes.json public $STACK_NAME
