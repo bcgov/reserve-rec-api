@@ -63,6 +63,9 @@ env:
   S3_BUCKET_GEOSPATIAL: ${{ vars.S3_BUCKET_GEOSPATIAL }}
   ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}
   JWT_KEY_ID: ${{ vars.JWT_KEY_ID }}
+  BCSC_KEY_ID: ${{ secrets.BCSC_KEY_ID }}
+  ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID }}
+  ADMIN_CLIENT_ID: ${{ secrets.ADMIN_CLIENT_ID }}
 
   # Public Cognito
   PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
