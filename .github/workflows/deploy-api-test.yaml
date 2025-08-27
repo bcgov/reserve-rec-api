@@ -107,6 +107,21 @@ jobs:
       - name: CDK Synth
         run: cdk synth
 
+      ### Deploy Table Manager (one-time setup)
+      - name: Deploy Table Manager
+        run: |
+          echo "Deploying Table Manager infrastructure..."
+          cdk deploy ReserveRecTableManager --app 'node bin/table-manager.js' --require-approval never || echo "Table Manager already exists"
+
+      ### Manage Tables (register existing tables in Parameter Store for the stack)
+      - name: Manage Tables
+        env:
+          TABLE_NAME: ${{ vars.TABLE_NAME }}
+          STACK_NAME: ${{ vars.STACK_NAME }}
+        run: |
+          echo "Registering tables for stack: $STACK_NAME"
+          npm run quick-tables manage $STACK_NAME || echo "Tables already managed or don't exist yet"
+
       ## CDK Deploy
       - name: CDK Deploy
         run: |
