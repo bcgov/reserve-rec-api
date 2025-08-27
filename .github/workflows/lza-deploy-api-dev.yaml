@@ -97,10 +97,6 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
 
-      ### CDK Synth
-      - name: CDK Synth
-        run: cdk synth
-
       ### Deploy Table Manager (one time setup)
       - name: Deploy Table Manager
         run: |
@@ -115,6 +111,10 @@ jobs:
         run: |
           echo "Registering tables for stack: $STACK_NAME"
           npm run quick-tables manage $STACK_NAME || echo "Tables already managed or don't exist yet"
+
+      ### CDK Synth
+      - name: CDK Synth
+        run: cdk synth
 
       ## CDK Deploy
       - name: CDK Deploy
