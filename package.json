@@ -14,7 +14,10 @@
     "invoke-lambda-full": "yarn build && yarn invoke-lambda-event $1",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "deploy:table-manager": "cdk deploy ReserveRecTableManager --app 'node bin/table-manager.js'",
+    "manage-tables": "node scripts/manage-tables.js",
+    "quick-tables": "node scripts/quick-tables.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -26,7 +29,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.828.0",
+    "@aws-sdk/client-cloudformation": "^3.828.0",
     "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/client-lambda": "^3.828.0",
+    "@aws-sdk/client-ssm": "^3.828.0",
     "@aws-sdk/credential-provider-node": "^3.743.0",
     "@aws-sdk/util-dynamodb": "^3.828.0",
     "@opensearch-project/opensearch": "^3.2.0",
