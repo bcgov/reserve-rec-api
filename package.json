@@ -28,6 +28,7 @@
     "typescript": "~5.6.3"
   },
   "dependencies": {
+    "@aws-cdk/aws-ssm": "^1.204.0",
     "@aws-sdk/client-apigatewaymanagementapi": "^3.828.0",
     "@aws-sdk/client-cloudformation": "^3.828.0",
     "@aws-sdk/client-dynamodb": "^3.751.0",
