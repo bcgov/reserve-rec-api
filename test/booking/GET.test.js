@@ -76,7 +76,7 @@ describe('Bookings GET handler', () => {
   //   const event = {
   //     httpMethod: 'GET',
   //     pathParameters: {
-  //       acCollectionId: 'ac1',
+  //       collectionId: 'ac1',
   //       activityType: 'type1',
   //       activityId: 'act1',
   //       startDate: '2024-01-01',
@@ -93,7 +93,7 @@ describe('Bookings GET handler', () => {
   //   const event = {
   //     httpMethod: 'GET',
   //     pathParameters: {
-  //       acCollectionId: 'ac1',
+  //       collectionId: 'ac1',
   //       activityType: 'type1',
   //       activityId: 'act1',
   //       startDate: '2024-01-01'
