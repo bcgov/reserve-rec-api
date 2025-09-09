@@ -63,7 +63,7 @@ describe("Bookings POST handler", () => {
 
   it("should create booking and return 200 on success", async () => {
     const body = {
-      acCollectionId: "ac1",
+      collectionId: "ac1",
       activityType: "type1",
       activityId: "id1",
       startDate: "2024-01-01",
@@ -98,7 +98,7 @@ describe("Bookings POST handler", () => {
     const event = {
       body: JSON.stringify(body),
       pathParameters: {
-        acCollectionId: "ac2",
+        collectionId: "ac2",
         activityType: "type2",
         activityId: "id2",
         startDate: "2024-02-02",
@@ -125,7 +125,7 @@ describe("Bookings POST handler", () => {
 
   it("should handle errors thrown in try block", async () => {
     const body = {
-      acCollectionId: "ac1",
+      collectionId: "ac1",
       activityType: "type1",
       activityId: "id1",
       startDate: "2024-01-01",
