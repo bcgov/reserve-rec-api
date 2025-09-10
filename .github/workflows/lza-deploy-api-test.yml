@@ -1,18 +1,23 @@
-name: Deploy reserve-rec-api Dev
+name: Deploy LZA reserve-rec-api Test
 
-run-name: Deploying ${{ github.ref_name }} (API) to dev
+run-name: Deploying ${{ github.ref_name }} (API) to LZA test environment
 
 on:
   push:
-    branches: [main]
+    tags:
+      - '*'
   workflow_dispatch:
+    inputs:
+      releaseTag:
+        description: "Tag of version to be promoted to test"
+        required: true
 
 permissions:
   id-token: write
   contents: read
 
 concurrency:
-  group: deploy-reserve-rec-api
+  group: deploy-lza-reserve-rec-api
   cancel-in-progress: false
 
 env:
@@ -54,6 +59,7 @@ env:
   PUBSUB_TABLE_NAME: ${{ vars.PUBSUB_TABLE_NAME }}
   IS_OFFLINE: 'false'
   DYNAMODB_ENDPOINT_URL: ${{ vars.DYNAMODB_ENDPOINT_URL }}
+  S3_BUCKET_GEOSPATIAL: ${{ vars.S3_BUCKET_GEOSPATIAL }}
   LOG_LEVEL: ${{ vars.LOG_LEVEL }}
   ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}
   JWT_KEY_ID: ${{ vars.JWT_KEY_ID }}
@@ -74,7 +80,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: lzatest
     strategy:
       max-parallel: 1
       matrix:
@@ -97,10 +103,6 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
 
-      ### CDK Synth
-      - name: CDK Synth
-        run: cdk synth
-
       ### Deploy Table Manager (one time setup)
       - name: Deploy Table Manager
         run: |
@@ -115,6 +117,10 @@ jobs:
         run: |
           echo "Registering tables for stack: $STACK_NAME"
           npm run quick-tables manage $STACK_NAME || echo "Tables already managed or don't exist yet"
+
+      ### CDK Synth
+      - name: CDK Synth
+        run: cdk synth
 
       ## CDK Deploy
       - name: CDK Deploy
