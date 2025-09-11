@@ -42,7 +42,7 @@ new ReserveRecCdkStack(app, process.env.STACK_NAME, {
     domainName: process.env.DOMAIN_NAME || 'reserve-rec',
     DYNAMODB_ENDPOINT_URL: process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000',
     EBS_IOPS: process.env.EBS_IOPS || '3000',
-    environmentName: process.env.ENVIRONMENT_NAME || 'dev',
+    environmentName: process.env.ENVIRONMENT || 'dev',
     identityPoolName: process.env.IDENTITY_POOL_NAME || 'ReserveRecIdentity',
     instanceCount: process.env.INSTANCE_COUNT || '1',
     instanceType: process.env.INSTANCE_TYPE || 't3.small.search',
