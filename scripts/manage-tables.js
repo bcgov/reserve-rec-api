@@ -184,26 +184,15 @@ This will:
     }
   }
   
-  // Define expected table names based on stack naming strategy
-  let tableNames;
-  if (stackName === 'ReserveRecCdkStack') {
-    // Default stack uses base names
-    tableNames = {
-      main: 'reserve-rec-main',
-      audit: 'reserve-rec-audit',
-      pubsub: 'reserve-rec-pubsub'
-    };
-  } else {
-    // Custom stacks (should) use suffixed names
-    tableNames = {
-      main: `reserve-rec-main-${stackName}`,
-      audit: `reserve-rec-audit-${stackName}`,
-      pubsub: `reserve-rec-pubsub-${stackName}`
-    };
-  }
-
+  // Get table names from environment variables (same as CDK deployment)
+  const tableNames = {
+    main: process.env.TABLE_NAME || 'reserve-rec-main',
+    audit: process.env.AUDIT_TABLE_NAME || 'reserve-rec-audit', 
+    pubsub: process.env.PUBSUB_TABLE_NAME || 'reserve-rec-pubsub'
+  };
+  
   console.log(`Managing tables for stack: ${stackName}`);
-  console.log(`Expected table names:`, tableNames);
+  console.log(`Table names from environment:`, tableNames);
 
   try {
     const result = await invokeLambda(functionName, stackName, tableNames);
