@@ -139,7 +139,8 @@ jobs:
             echo "This is an adoption deployment - will register existing tables"
           fi
 
-      ### Manage Tables (only if not first deployment)
+      ### Manage Tables
+      ## Only for ADOPTION deployments - register existing tables for future use
       - name: Manage Tables
         if: steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST'
         env:
@@ -154,14 +155,19 @@ jobs:
         run: cdk synth
 
       ## CDK Deploy
+      ## Use Parameter Store for table references if not a first deployment, otherwise create tables via CDK
       - name: CDK Deploy
+        env:
+          USE_PARAMETER_STORE: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST' && 'true' || 'false' }}
         run: |
           echo "Deploying $STACK_NAME"
           echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
+          echo "Use Parameter Store: $USE_PARAMETER_STORE"
           cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
           cat cfn-outputs.json
 
-      ### Post-deployment: Register newly created tables (only for first deployments)
+      ### Post-deployment: Register newly created tables
+      ## Only for FIRST deployments - register newly created tables for future use
       - name: Register New Tables
         if: steps.deployment-type.outputs.DEPLOYMENT_TYPE == 'FIRST'
         env:
