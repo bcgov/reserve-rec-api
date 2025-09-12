@@ -104,14 +104,48 @@ jobs:
           echo "Deploying Table Manager infrastructure..."
           cdk deploy ReserveRecTableManager --app 'node bin/table-manager.js' --require-approval never || echo "Table Manager already exists"
 
-      ### Manage Tables (register existing tables in Parameter Store for the stack)
+      ### Check if this is a first deployment
+      - name: Detect Deployment Type
+        id: deployment-type
+        env:
+          STACK_NAME: ${{ vars.STACK_NAME }}
+        run: |
+          echo "Checking deployment type for stack: $STACK_NAME"
+          
+          # Check if the main stack exists
+          STACK_EXISTS=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NOT_EXISTS")
+          
+          # Check if Parameter Store entries exist
+          PARAM_PATH="/reserve-rec/${STACK_NAME}/tables/main/arn"
+          if [ "$STACK_NAME" = "ReserveRecCdkStack" ]; then
+            PARAM_PATH="/reserve-rec/main/tables/main/arn"
+          fi
+          
+          PARAM_EXISTS=$(aws ssm get-parameter --name "$PARAM_PATH" --query 'Parameter.Value' --output text 2>/dev/null || echo "NOT_EXISTS")
+          
+          echo "Stack exists: $STACK_EXISTS"
+          echo "Parameters exist: $PARAM_EXISTS"
+          
+          if [ "$STACK_EXISTS" = "NOT_EXISTS" ] && [ "$PARAM_EXISTS" = "NOT_EXISTS" ]; then
+            echo "DEPLOYMENT_TYPE=FIRST" >> $GITHUB_OUTPUT
+            echo "This is a first deployment - will create tables via CDK"
+          elif [ "$STACK_EXISTS" != "NOT_EXISTS" ] && [ "$PARAM_EXISTS" != "NOT_EXISTS" ]; then
+            echo "DEPLOYMENT_TYPE=NORMAL" >> $GITHUB_OUTPUT
+            echo "This is a normal deployment - will use Parameter Store"
+          else
+            echo "DEPLOYMENT_TYPE=ADOPTION" >> $GITHUB_OUTPUT
+            echo "This is an adoption deployment - will register existing tables"
+          fi
+
+      ### Manage Tables (only if not first deployment)
       - name: Manage Tables
+        if: steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST'
         env:
           TABLE_NAME: ${{ vars.TABLE_NAME }}
           STACK_NAME: ${{ vars.STACK_NAME }}
         run: |
           echo "Registering tables for stack: $STACK_NAME"
-          npm run quick-tables manage $STACK_NAME || echo "Tables already managed or don't exist yet"
+          npm run quick-tables manage $STACK_NAME || echo "Table management failed - will proceed with table creation"
 
       ### CDK Synth
       - name: CDK Synth
@@ -119,11 +153,24 @@ jobs:
 
       ## CDK Deploy
       - name: CDK Deploy
+        env:
+          FORCE_CREATE_TABLES: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE == 'FIRST' && 'true' || 'false' }}
         run: |
           echo "Deploying $STACK_NAME"
+          echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
+          echo "Force create tables: $FORCE_CREATE_TABLES"
           cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
           cat cfn-outputs.json
-        # cdk deploy $STACK_NAME --require-approval never --rollback
+
+      ### Post-deployment: Register newly created tables (only for first deployments)
+      - name: Register New Tables
+        if: steps.deployment-type.outputs.DEPLOYMENT_TYPE == 'FIRST'
+        env:
+          TABLE_NAME: ${{ vars.TABLE_NAME }}
+          STACK_NAME: ${{ vars.STACK_NAME }}
+        run: |
+          echo "Registering newly created tables for future deployments..."
+          npm run quick-tables manage $STACK_NAME || echo "Post-deployment table registration failed"
 
       ## Update Config
       - name: Update Config
