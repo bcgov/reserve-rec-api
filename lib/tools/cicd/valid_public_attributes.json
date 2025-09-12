@@ -1,4 +1,8 @@
 [
-    "ApiLocation",
-    "ApiPath"
+    "PublicUserPoolId-${ENVIRONMENT}",
+    "PublicUserPoolClientId-${ENVIRONMENT}",
+    "PublicIdentityPoolId-${ENVIRONMENT}",
+    "PublicUserPoolDomainUrl-${ENVIRONMENT}",
+    "ApiLocation-${ENVIRONMENT}",
+    "ApiPath-${ENVIRONMENT}"
 ]
