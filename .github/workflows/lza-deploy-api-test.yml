@@ -155,12 +155,9 @@ jobs:
 
       ## CDK Deploy
       - name: CDK Deploy
-        env:
-          FORCE_CREATE_TABLES: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE == 'FIRST' && 'true' || 'false' }}
         run: |
           echo "Deploying $STACK_NAME"
           echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
-          echo "Force create tables: $FORCE_CREATE_TABLES"
           cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
           cat cfn-outputs.json
 
