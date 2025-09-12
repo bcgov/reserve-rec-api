@@ -1,8 +1,8 @@
 [
-    "AdminUserPoolId",
-    "AdminUserPoolClientId",
-    "AdminIdentityPoolId",
-    "AdminUserPoolDomainUrl",
-    "ApiLocation",
-    "ApiPath"
+    "AdminUserPoolId-${ENVIRONMENT}",
+    "AdminUserPoolClientId-${ENVIRONMENT}", 
+    "AdminIdentityPoolId-${ENVIRONMENT}",
+    "AdminUserPoolDomainUrl-${ENVIRONMENT}",
+    "ApiLocation-${ENVIRONMENT}",
+    "ApiPath-${ENVIRONMENT}"
 ]
