@@ -30,10 +30,11 @@
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.828.0",
     "@aws-sdk/client-cloudformation": "^3.828.0",
-    "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/client-dynamodb": "^3.879.0",
     "@aws-sdk/client-lambda": "^3.828.0",
     "@aws-sdk/client-ssm": "^3.828.0",
     "@aws-sdk/credential-provider-node": "^3.743.0",
+    "@aws-sdk/lib-dynamodb": "^3.879.0",
     "@aws-sdk/util-dynamodb": "^3.828.0",
     "@opensearch-project/opensearch": "^3.2.0",
     "aws-cdk-lib": "2.173.2",
