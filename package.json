@@ -1,31 +1,19 @@
 {
   "name": "reserve-rec-api",
   "version": "0.1.0",
-  "license": "Apache-2.0",
   "bin": {
-    "reserve-rec-cdk": "bin/reserve-rec-cdk.js"
+    "app": "bin/app.js"
   },
   "scripts": {
-    "start": "sam local start-api -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
-    "build": "cdk synth",
-    "start-full": "yarn build && yarn start",
-    "invoke-lambda": "sam local invoke $1 --no-event -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json",
-    "invoke-lambda-event": "sam local invoke $1 --event lib/handlers/events/event.json -t ./cdk.out/ReserveRecCdkStack.template.json --env-vars env.json",
-    "invoke-lambda-full": "yarn build && yarn invoke-lambda-event $1",
-    "watch": "tsc -w",
-    "test": "jest",
+    "build": "echo \"The build step is not required when using JavaScript!\" && exit 0",
     "cdk": "cdk",
-    "deploy:table-manager": "cdk deploy ReserveRecTableManager --app 'node bin/table-manager.js'",
-    "manage-tables": "node scripts/manage-tables.js",
-    "quick-tables": "node scripts/quick-tables.js"
+    "test": "jest",
+    "synth:local": "cdk synth -c @context=local --all",
+    "synth:dev": "cdk synth -c @context=dev --all",
+    "deploy:dev": "cdk deploy -c @context=dev --all"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
-    "@types/node": "22.7.9",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "typescript": "~5.6.3"
+    "jest": "^29.7.0"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.828.0",

@@ -54,7 +54,7 @@ async function sendEmail(params) {
   try {
     const command = new SendEmailCommand(emailParams);
     const result = await sesClient.send(command);
-    
+
     logger.info('Email sent successfully via SES', {
       messageId: result.MessageId,
       destination: destination.ToAddresses
@@ -90,7 +90,7 @@ async function sendRawEmail(params) {
   try {
     const command = new SendRawEmailCommand(rawEmailParams);
     const result = await sesClient.send(command);
-    
+
     logger.info('Raw email sent successfully via SES', {
       messageId: result.MessageId,
       destinations
@@ -114,7 +114,7 @@ async function getSendQuota() {
   try {
     const command = new GetSendQuotaCommand({});
     const result = await sesClient.send(command);
-    
+
     logger.info('Retrieved SES send quota', {
       max24HourSend: result.Max24HourSend,
       maxSendRate: result.MaxSendRate,
@@ -137,7 +137,7 @@ async function getSendQuota() {
  */
 function formatDestination(params) {
   const { to = [], cc = [], bcc = [] } = params;
-  
+
   return {
     ...(to.length > 0 && { ToAddresses: Array.isArray(to) ? to : [to] }),
     ...(cc.length > 0 && { CcAddresses: Array.isArray(cc) ? cc : [cc] }),
@@ -152,7 +152,7 @@ function formatDestination(params) {
  */
 function createEmailTags(metadata = {}) {
   const tags = [];
-  
+
   Object.entries(metadata).forEach(([key, value]) => {
     if (value && typeof value === 'string' && value.length <= 256) {
       tags.push({
