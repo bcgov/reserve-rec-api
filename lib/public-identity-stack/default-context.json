@@ -1,0 +1,18 @@
+{
+  "COGNITO_AUTHENTICATED_ROLE_NAME": "CognitoAuthRole",
+  "COGNITO_UNAUTHENTICATED_ROLE_NAME": "CognitoUnauthRole",
+  "COGNITO_DOMAIN_PREFIX": "reserve-rec-public-identity",
+  "PUBLIC_COGNITO_CALLBACK_URLS": [
+    "http://localhost:4200"
+  ],
+  "PUBLIC_COGNITO_LOGOUT_URLS": [
+    "http://localhost:4200/logout"
+  ],
+  "PUBLIC_IDENTITY_POOL_NAME": "IdentityPool",
+  "PUBLIC_USER_POOL_CLIENT_NAME": "PublicAppClient",
+  "PUBLIC_USER_POOL_DOMAIN_NAME": "UserPoolDomain",
+  "PUBLIC_USER_POOL_NAME": "UserPool",
+  "POOL_DELETION_PROTECTION": false,
+  "SSM_CONSTRUCT_OVERRIDES": {},
+  "STACK_OWNER": "osprey"
+}

@@ -1,0 +1,30 @@
+.banner-customizable {
+  background-color: #013366;
+  padding: 2em 0;
+  border-bottom: 2px solid;
+  border-color: #FCBA19;
+}
+
+.background-customizable {
+  background-color: white;
+}
+
+.submitButton-customizable {
+  background-color: #013366;
+}
+
+.submitButton-customizable:hover {
+  background-color: #1E5189;
+}
+
+.inputField-customizable {
+  border-color: white;
+}
+
+.inputField-customizable:focus {
+  border-color: #EDEBE9;
+}
+
+.logo-customizable {
+  max-width: 24rem;
+}
