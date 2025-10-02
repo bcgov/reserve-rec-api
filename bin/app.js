@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 const cdk = require('aws-cdk-lib');
+const { createCoreStack } = require('../lib/core-stack/core-stack');
 const { createAdminIdentityStack } = require('../lib/admin-identity-stack/admin-identity-stack');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack');
-const { APP_NAME, STACK_NAMES, LOCAL_CONTEXT_PATH, SSM_CONTEXT_PARAM_NAME } = require('../lib/constants');
+const { createAdminApiStack } = require('../lib/admin-api-stack/admin-api-stack');
+const { CONSTANTS } = require('../lib/constants.js');
 
 // Main function to build the CDK app
 async function buildApp() {
@@ -15,21 +17,19 @@ async function buildApp() {
 
     // Initialize context objects
     let context = {
-      APP_NAME: APP_NAME, // The application name. This should not be changed as it is part of the SSM Parameter path.
-      LOCAL_CONTEXT_PATH: LOCAL_CONTEXT_PATH, // Path to local environment configuration file for offline/local development
-      SSM_CONTEXT_PARAM_NAME: SSM_CONTEXT_PARAM_NAME, // The name of the SSM Parameter that holds environment-specific configuration, not including the full path (excludes app name, environment name, stack name)
-      IS_OFFLINE: 'true' // remote deployments must explicitly set IS_OFFLINE to 'false' in their context
+      CONSTANTS: CONSTANTS
     };
 
     // Try to get context from cdk.json file
     try {
       let contextName = app.node.getContext('@context');
       console.debug('Retrieving context for:', contextName);
-      contextData = app.node.tryGetContext(contextName);
-      context = { ...context, ...contextData }; // Merge retrieved context into default context, with precedence to retrieved context
+      context = { ...context, ...app.node.tryGetContext(contextName) };
     } catch (error) {
       throw error;
     }
+
+
 
     const stacks = await createStacks(app, context);
 
@@ -43,15 +43,25 @@ async function buildApp() {
 async function createStacks(app, context) {
   try {
 
+    let appConstants = context?.CONSTANTS;
+
+    // Core Stack
+    const coreStack = await createCoreStack(app, appConstants?.STACKS?.CORE_STACK?.STACK_NAME, context);
+
     // Admin Identity Stack
-    const adminIdentityStack = await createAdminIdentityStack(app, STACK_NAMES.ADMIN_IDENTITY_STACK, context);
+    const adminIdentityStack = await createAdminIdentityStack(app, appConstants?.STACKS?.ADMIN_IDENTITY_STACK?.STACK_NAME, context);
 
     // Public Identity Stack
-    const publicIdentityStack = await createPublicIdentityStack(app, STACK_NAMES.PUBLIC_IDENTITY_STACK, context);
+    const publicIdentityStack = await createPublicIdentityStack(app, appConstants?.STACKS?.PUBLIC_IDENTITY_STACK?.STACK_NAME, context);
+
+    // Admin API Stack
+    const adminApiStack = await createAdminApiStack(app, appConstants?.STACKS?.ADMIN_API_STACK?.STACK_NAME, context);
 
     return {
+      coreStack: coreStack,
       adminIdentityStack: adminIdentityStack,
-      publicIdentityStack: publicIdentityStack
+      publicIdentityStack: publicIdentityStack,
+      adminApiStack: adminApiStack
     };
 
   } catch (error) {
@@ -63,7 +73,9 @@ async function createStacks(app, context) {
 function configureDeploymentOrder(stacks) {
   try {
     // Order the stacks
+    stacks?.adminIdentityStack.addDependency(stacks?.coreStack);
     stacks?.publicIdentityStack.addDependency(stacks?.adminIdentityStack);
+    stacks?.adminApiStack.addDependency(stacks?.adminIdentityStack);
   } catch (error) {
     console.error('Error establishing stack dependencies:', error);
   }

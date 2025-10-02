@@ -1,13 +1,8 @@
 {
-  "ADMIN_USER_POOL_DOMAIN_NAME": "UserPoolDomain",
-  "ADMIN_USER_POOL_NAME": "UserPool",
-  "ADMIN_IDENTITY_POOL_NAME": "IdentityPool",
-  "ADMINISTRATOR_GROUP_NAME": "Sysadmins",
   "AZURE_ALLOWED_OAUTH_FLOWS": [
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_CUSTOM_AUTH"
   ],
-  "AZURE_APP_CLIENT_NAME": "AzureAppClient",
   "AZURE_CALLBACK_URLS": [
     "http://localhost:4300"
   ],
@@ -17,18 +12,10 @@
   "AZURE_LOGOUT_URLS": [
     "http://localhost:4300/logout"
   ],
-  "AZURE_OIDC_PROVIDER_NAME": "AzureIDIRProvider",
   "BCSC_CLIENT_ID": "bcsc-client-id",
   "BCSC_CLIENT_SECRET_NAME": "BCSCClientSecret",
-  "BCSC_OIDC_PROVIDER_NAME": "BCSCProvider",
   "BCSC_ISSUER_URL": "bcsc-oidc-url",
-  "COGNITO_AUTHENTICATED_ROLE_NAME": "CognitoAuthRole",
-  "COGNITO_DOMAIN_PREFIX": "reserve-rec-admin-identity",
-  "COGNITO_UNAUTHENTICATED_ROLE_NAME": "CognitoUnauthRole",
-  "PARK_OPERATOR_GROUP_NAME": "ParkOperators",
   "POOL_DELETION_PROTECTION": false,
-  "SSM_CONSTRUCT_OVERRIDES": {
-
-  },
+  "SSM_CONSTRUCT_OVERRIDES": {},
   "STACK_OWNER": "osprey"
 }
