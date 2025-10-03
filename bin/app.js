@@ -61,7 +61,7 @@ async function createStacks(app, context) {
       coreStack: coreStack,
       adminIdentityStack: adminIdentityStack,
       publicIdentityStack: publicIdentityStack,
-      adminApiStack: adminApiStack
+      adminApiStack: adminApiStack,
     };
 
   } catch (error) {
@@ -74,7 +74,8 @@ function configureDeploymentOrder(stacks) {
   try {
     // Order the stacks
     stacks?.adminIdentityStack.addDependency(stacks?.coreStack);
-    stacks?.publicIdentityStack.addDependency(stacks?.adminIdentityStack);
+    stacks?.publicIdentityStack.addDependency(stacks?.coreStack);
+    stacks?.adminApiStack.addDependency(stacks?.coreStack);
     stacks?.adminApiStack.addDependency(stacks?.adminIdentityStack);
   } catch (error) {
     console.error('Error establishing stack dependencies:', error);

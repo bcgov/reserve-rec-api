@@ -84,27 +84,32 @@
     "dev": {
       "ENVIRONMENT_NAME": "dev",
       "AWS_REGION": "ca-central-1",
-      "IS_OFFLINE": "false"
+      "IS_OFFLINE": "false",
+      "FAIL_ON_ERROR": "true"
     },
     "staging": {
       "ENVIRONMENT_NAME": "staging",
       "AWS_REGION": "ca-central-1",
-      "IS_OFFLINE": "false"
+      "IS_OFFLINE": "false",
+      "FAIL_ON_ERROR": "true"
     },
     "prod": {
       "ENVIRONMENT_NAME": "prod",
       "AWS_REGION": "ca-central-1",
-      "IS_OFFLINE": "false"
+      "IS_OFFLINE": "false",
+      "FAIL_ON_ERROR": "true"
     },
     "local": {
       "ENVIRONMENT_NAME": "local",
       "AWS_REGION": "local",
-      "IS_OFFLINE": "true"
+      "IS_OFFLINE": "true",
+      "FAIL_ON_ERROR": "true"
     },
     "cameron": {
       "ENVIRONMENT_NAME": "cameron",
       "AWS_REGION": "ca-central-1",
-      "IS_OFFLINE": "false"
+      "IS_OFFLINE": "false",
+      "FAIL_ON_ERROR": "true"
     }
   }
 }

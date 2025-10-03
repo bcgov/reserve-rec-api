@@ -1,4 +1,3 @@
-const { Construct } = require('constructs');
 const lambda = require('aws-cdk-lib/aws-lambda');
 const { RemovalPolicy } = require('aws-cdk-lib');
 const path = require('path');

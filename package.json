@@ -8,9 +8,11 @@
     "build": "echo \"The build step is not required when using JavaScript!\" && exit 0",
     "cdk": "cdk",
     "test": "jest",
-    "synth:local": "cdk synth -c @context=local --all",
+    "synth:local": "cdk synth -c @context=local --all && node ./scripts/generate-sam-templates.js",
     "synth:dev": "cdk synth -c @context=dev --all",
-    "deploy:dev": "cdk deploy -c @context=dev --all"
+    "deploy:dev": "cdk deploy -c @context=dev --all",
+    "run-admin": "sam local start-api -t cdk.out/sam-AdminApiStack-Local-AdminApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
+    "run-admin-full": "yarn synth:local && yarn run-admin"
   },
   "devDependencies": {
     "jest": "^29.7.0"
