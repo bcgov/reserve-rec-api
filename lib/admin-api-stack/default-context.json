@@ -6,5 +6,6 @@
     "X-Api-Key",
     "X-Amz-Security-Token"
   ],
-  "CORS_PREFLIGHT_MAX_AGE_SECONDS": 600
+  "CORS_PREFLIGHT_MAX_AGE_SECONDS": 600,
+  "SSM_CONSTRUCT_OVERRIDES": {}
 }

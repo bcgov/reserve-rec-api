@@ -11,7 +11,7 @@ const { resolveBaseLayer } = require("../../layers/resolvers");
 
 function createAuthorizerFunction(scope, id, props) {
   // Import base layers
-  const baseLayer = resolveBaseLayer(props);
+  const baseLayer = resolveBaseLayer(scope, props);
 
   // Authorizer lambda
   const authorizerFn = new NodejsFunction(scope, id, {
