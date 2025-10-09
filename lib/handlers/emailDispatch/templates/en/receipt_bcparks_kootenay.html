@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BC Parks - Booking Receipt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background-color: {{branding.primaryColor}};
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header img {
+            max-height: 60px;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: {{branding.primaryColor}};
+            margin-bottom: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .total-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: {{branding.primaryColor}};
+        }
+        
+        .booking-reference {
+            background-color: #f8f9fa;
+            border: 2px solid {{branding.primaryColor}};
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .booking-reference-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: {{branding.primaryColor}};
+            font-family: monospace;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+        
+        .contact-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .kootenay-specific {
+            background: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .detail-value {
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            {{#if branding.logoUrl}}
+            <img src="{{branding.logoUrl}}" alt="BC Parks Kootenay Region" />
+            {{/if}}
+            <h1>Booking Receipt</h1>
+            <p>{{location.parkName}} - Kootenay Region</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Booking Reference -->
+            <div class="booking-reference">
+                <div style="margin-bottom: 10px;">Your Booking Reference</div>
+                <div class="booking-reference-number">{{booking.bookingReference}}</div>
+            </div>
+            
+            <!-- Kootenay Region Welcome -->
+            <div class="kootenay-specific">
+                <h3>TBD!</h3>
+                <p>TBD.</p>
+            </div>
+            
+            <!-- Booking Details -->
+            <div class="section">
+                <h2 class="section-title">{{t 'booking.details'}}</h2>
+                <div class="detail-row">
+                    <span class="detail-label">Booking ID:</span>
+                    <span class="detail-value">{{booking.bookingId}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Number:</span>
+                    <span class="detail-value">{{booking.orderNumber}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Date:</span>
+                    <span class="detail-value">{{formatDate booking.orderDate 'long'}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Check-in:</span>
+                    <span class="detail-value">{{formatDate booking.startDate 'long'}}</span>
+                </div>
+                {{#if booking.endDate}}
+                <div class="detail-row">
+                    <span class="detail-label">Check-out:</span>
+                    <span class="detail-value">{{formatDate booking.endDate 'long'}}</span>
+                </div>
+                {{/if}}
+                <div class="detail-row">
+                    <span class="detail-label">Duration:</span>
+                    <span class="detail-value">{{booking.numberOfNights}} {{pluralize booking.numberOfNights 'night' 'nights'}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Guests:</span>
+                    <span class="detail-value">{{booking.numberOfGuests}} {{pluralize booking.numberOfGuests 'guest' 'guests'}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value">{{booking.status}}</span>
+                </div>
+            </div>
+            
+            <!-- Location Details -->
+            <div class="section">
+                <h2 class="section-title">Location Details</h2>
+                <div class="detail-row">
+                    <span class="detail-label">Park:</span>
+                    <span class="detail-value">{{location.parkName}}</span>
+                </div>
+                {{#if location.facilityName}}
+                <div class="detail-row">
+                    <span class="detail-label">Facility:</span>
+                    <span class="detail-value">{{location.facilityName}}</span>
+                </div>
+                {{/if}}
+                {{#if location.siteNumber}}
+                <div class="detail-row">
+                    <span class="detail-label">Site Number:</span>
+                    <span class="detail-value">{{location.siteNumber}}</span>
+                </div>
+                {{/if}}
+                {{#if location.address}}
+                <div class="detail-row">
+                    <span class="detail-label">Address:</span>
+                    <span class="detail-value">{{location.address}}</span>
+                </div>
+                {{/if}}
+            </div>
+            
+            <!-- Customer Information -->
+            <div class="section">
+                <h2 class="section-title">{{t 'customer.info'}}</h2>
+                <div class="detail-row">
+                    <span class="detail-label">Name:</span>
+                    <span class="detail-value">{{customer.firstName}} {{customer.lastName}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">{{customer.email}}</span>
+                </div>
+                {{#if customer.phone}}
+                <div class="detail-row">
+                    <span class="detail-label">Phone:</span>
+                    <span class="detail-value">{{customer.phone}}</span>
+                </div>
+                {{/if}}
+            </div>
+            
+            <!-- Payment Information -->
+            <div class="section">
+                <h2 class="section-title">Payment Summary</h2>
+                {{#if payment.itemBreakdown}}
+                {{#each payment.itemBreakdown}}
+                <div class="detail-row">
+                    <span class="detail-label">{{this.description}}:</span>
+                    <span class="detail-value">{{currency this.amount payment.currency}}</span>
+                </div>
+                {{/each}}
+                {{/if}}
+                <div class="detail-row" style="border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
+                    <span class="detail-label">{{t 'payment.total'}}:</span>
+                    <span class="detail-value total-amount">{{currency payment.totalAmount payment.currency}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID:</span>
+                    <span class="detail-value">{{payment.transactionId}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Method:</span>
+                    <span class="detail-value">{{payment.paymentMethod}}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>{{t 'thank.you'}}</strong></p>
+            <div class="contact-info">
+                <p><strong>{{t 'contact.us'}}</strong></p>
+                {{#if branding.contactEmail}}
+                <p>Email: <a href="mailto:{{branding.contactEmail}}">{{branding.contactEmail}}</a></p>
+                {{/if}}
+                {{#if branding.contactPhone}}
+                <p>Phone: {{branding.contactPhone}}</p>
+                {{/if}}
+                {{#if branding.websiteUrl}}
+                <p>Website: <a href="{{branding.websiteUrl}}">{{branding.websiteUrl}}</a></p>
+                {{/if}}
+                <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                    This email was sent from BC Parks Reservation System.<br>
+                    Please keep this receipt for your records.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
