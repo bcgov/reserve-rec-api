@@ -18,8 +18,8 @@ const logger = createLogger({
       if (symbols.length == 2) {
         meta = JSON.stringify(info[symbols[1]]);
       }
-      return `${info.timestamp} ${[info.level.toUpperCase()]}: ${info.message
-        } ${meta}`;
+      let msg = typeof info.message === "string" ? info.message : JSON.stringify(info.message);
+      return `${info.timestamp} ${[info.level.toUpperCase()]}: ${msg} ${meta}`;
     })
   ),
   transports: [new transports.Console()],

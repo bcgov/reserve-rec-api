@@ -9,7 +9,17 @@ exports.handler = async function (event, context, callback) {
   logger.debug('Admin Authorizer', JSON.stringify(event));
 
   // Get config creds
-  const config = await getOne('config', 'admin');
+  const config = {
+    ADMIN_USER_POOL_CLIENT_ID: process.env.ADMIN_USER_POOL_CLIENT_ID || '',
+    ADMIN_USER_POOL_ID: process.env.ADMIN_USER_POOL_ID || ''
+  };
+  if (!config.ADMIN_USER_POOL_ID || !config.ADMIN_USER_POOL_CLIENT_ID) {
+    const dbConfig = await getOne('config', 'admin');
+    if (!dbConfig) {
+      throw new Error("No config found for admin authorizer.");
+    }
+    config = { ...dbConfig, ...config };
+  }
 
   // default admin verifier
   let verifier = CognitoJwtVerifier.create({
