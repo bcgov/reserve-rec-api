@@ -6,7 +6,7 @@ const { logger } = require('../lib/utils');
 const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
 
-class ReserveRecApiApp {
+class CDKProject {
   constructor() {
     this.app = new cdk.App();
     this.appName = 'ReserveRecApi';
@@ -19,7 +19,13 @@ class ReserveRecApiApp {
       currentStackKey: null,
     };
 
-    this.createStacks();
+    try {
+      this.createStacks();
+    } catch (error) {
+      logger.error('Error during CDK application synthesis:', error);
+    }
+
+    this.summarizeProgress();
   }
 
   getAppName() {
@@ -121,8 +127,8 @@ class ReserveRecApiApp {
     await this.addStack('coreStack', createCoreStack);
     await this.addStack('adminIdentityStack', createAdminIdentityStack);
     await this.addStack('publicIdentityStack', createPublicIdentityStack);
-    // await this.addStack('adminIdentityStack', createAdminIdentityStack);
-    // await this.addStack('adminApiStack', createAdminApiStack);
+    await this.addStack('adminApiStack', createAdminApiStack);
+
 
   }
 
@@ -163,13 +169,25 @@ class ReserveRecApiApp {
     return this.getStackScope(stackKey);
   }
 
-  createScopedId(id, suffix = '-Construct') {
+  createScopedId(id, suffix = 'Construct') {
     return id + suffix;
+  }
+
+  summarizeProgress() {
+    logger.info('CDK Application Synthesis Complete.');
+    logger.info(`Total Stacks: ${this.progress.totalStacks}`);
+    logger.info(`Completed Stacks: ${this.progress.completedStacks.length}`);
+    if (this.progress.failedStacks.length > 0) {
+      logger.warn(`Failed Stacks: ${this.progress.failedStacks.length}`);
+      logger.warn(`Failed Stack Keys: ${this.progress.failedStacks.join(', ')}`);
+    } else {
+      logger.info('All stacks created successfully.');
+    }
   }
 }
 
-new ReserveRecApiApp();
+new CDKProject();
 
 module.exports = {
-  ReserveRecApiApp
+  CDKProject,
 };
