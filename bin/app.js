@@ -5,6 +5,7 @@ const { createAdminIdentityStack } = require('../lib/admin-identity-stack/admin-
 const { logger } = require('../lib/utils');
 const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
+const { createAdminLambdaStack } = require('../lib/admin-lambda-stack/admin-lambda-stack.js');
 
 class CDKProject {
   constructor() {
@@ -19,13 +20,10 @@ class CDKProject {
       currentStackKey: null,
     };
 
-    try {
-      this.createStacks();
-    } catch (error) {
-      logger.error('Error during CDK application synthesis:', error);
-    }
+  }
 
-    this.summarizeProgress();
+  async buildProject() {
+    await this.createStacks();
   }
 
   getAppName() {
@@ -34,10 +32,6 @@ class CDKProject {
 
   getDeploymentName() {
     return this.context?.DEPLOYMENT_NAME || 'local';
-  }
-
-  getEnv() {
-
   }
 
   isOffline() {
@@ -65,6 +59,18 @@ class CDKProject {
       logger.warn(`Config key ${key} not found in stack ${self?.stackKey}`);
     }
     return config[key];
+  }
+
+  setConfigValue(key, value, stackKey = null) {
+    // 'this' pertains to the current/bound stack
+    let self = this;
+    if (stackKey) {
+      self = this.getStackByKey(stackKey);
+    }
+    if (!self?.config) {
+      self.config = {};
+    }
+    self.config[key] = value;
   }
 
   getSecretValue(key, stackKey = null) {
@@ -128,7 +134,7 @@ class CDKProject {
     await this.addStack('adminIdentityStack', createAdminIdentityStack);
     await this.addStack('publicIdentityStack', createPublicIdentityStack);
     await this.addStack('adminApiStack', createAdminApiStack);
-
+    await this.addStack('adminLambdaStack', createAdminLambdaStack);
 
   }
 
@@ -142,7 +148,11 @@ class CDKProject {
       logger.info(`Stack created: ${stackKey}\n`);
     } catch (error) {
       this.progress.failedStacks.push(stackKey);
-      logger.error(`Error creating stack ${stackKey}:`, error);
+      if (this.context?.FAIL_FAST === 'true') {
+        throw new Error(`Error creating stack ${stackKey}: ${error}`);
+      } else {
+        logger.error(`Error creating stack ${stackKey}:`, error);
+      }
     }
   }
 
@@ -186,7 +196,16 @@ class CDKProject {
   }
 }
 
-new CDKProject();
+async function run() {
+  const project = new CDKProject();
+  try {
+    await project.buildProject();
+  } catch (error) {
+    logger.error('Error during CDK application synthesis:', error);
+  }
+}
+
+run();
 
 module.exports = {
   CDKProject,

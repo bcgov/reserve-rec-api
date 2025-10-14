@@ -1,6 +1,6 @@
-const { BatchGetItemCommand, DynamoDB, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
+const { BatchGetItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-const { Exception, logger } = require('/opt/base');
+const { logger } = require('/opt/base');
 
 const TABLE_NAME = process.env.TABLE_NAME || 'reserve-rec';
 const GLOBALID_INDEX_NAME = 'globalId-index';
@@ -17,11 +17,23 @@ const options = {
 
 if (process.env?.IS_OFFLINE === 'true') {
   options.endpoint = DYNAMODB_ENDPOINT_URL;
+  // Add dummy credentials for local development
+  options.credentials = {
+    accessKeyId: 'dummy',
+    secretAccessKey: 'dummy'
+  };
 }
 
-const dynamodb = new DynamoDB(options);
+// Lazy initialization of DynamoDB clients
+let dynamodb;
+let dynamodbClient;
 
-const dynamodbClient = new DynamoDBClient(options);
+function getDynamoDBClient() {
+  if (!dynamodbClient) {
+    dynamodbClient = new DynamoDBClient(options);
+  }
+  return dynamodbClient;
+}
 
 // simple way to return a single Item by primary key.
 async function getOne(pk, sk, tableName = TABLE_NAME) {
@@ -30,7 +42,7 @@ async function getOne(pk, sk, tableName = TABLE_NAME) {
     TableName: tableName,
     Key: marshall({ pk, sk }),
   };
-  let item = await dynamodbClient.send(new GetItemCommand(params));
+  let item = await getDynamoDBClient().send(new GetItemCommand(params));
   if (item?.Item) {
     return unmarshall(item.Item);
   }
@@ -55,7 +67,7 @@ async function incrementCounter(pk, collectionType = []) {
   // be used as part of the sk of the item.
   let skType = '';
   if (collectionType?.length > 0) {
-    skType = collectionType.join('::')
+    skType = collectionType.join('::');
   }
 
   try {
@@ -68,7 +80,7 @@ async function incrementCounter(pk, collectionType = []) {
       },
     };
 
-    const getRes = await dynamodb.send(new GetItemCommand(getCounterParams));
+    const getRes = await getDynamoDBClient().send(new GetItemCommand(getCounterParams));
 
     // If we don't return an Item, it means there's no counter to begin with
     // Track whether the counter was missing and set counter to 0
@@ -94,23 +106,23 @@ async function incrementCounter(pk, collectionType = []) {
         : "pk = :pk",
       ExpressionAttributeValues: skType
         ? {
-            ":pk": { S: pk },
-            ":sk": { S: skType },
-          }
+          ":pk": { S: pk },
+          ":sk": { S: skType },
+        }
         : {
-            ":pk": { S: pk },
-          },
+          ":pk": { S: pk },
+        },
       Select: "COUNT",
     };
 
-    const countRes = await dynamodb.send(new QueryCommand(countParams));
+    const countRes = await getDynamoDBClient().send(new QueryCommand(countParams));
     let countActual = countRes?.Count;
-    
+
     // If no skType, we need to exclude the counter item from the count
     if (!skType && countActual > 0) {
       countActual = countActual - 1;
     }
-    
+
     logger.debug(`The actual count of items is: ${countActual}`);
 
     // Compare the actualCount to the counter's counterValue. If the countActual is
@@ -143,7 +155,7 @@ async function incrementCounter(pk, collectionType = []) {
         ReturnValues: "ALL_NEW",
       };
 
-      const incrementRes = await dynamodb.send(
+      const incrementRes = await getDynamoDBClient().send(
         new UpdateItemCommand(incrementParams)
       );
       const newCounterValue = unmarshall(incrementRes?.Attributes);
@@ -179,11 +191,11 @@ async function resetCounter(pk, skType) {
         : "pk = :pk",
       ExpressionAttributeValues: skType
         ? {
-            ":pk": { S: pk },
-            ":sk": { S: skType },
+          ":pk": { S: pk },
+          ":sk": { S: skType },
         }
         : {
-            ":pk": { S: pk },
+          ":pk": { S: pk },
         },
       ProjectionExpression: "identifier",
     };
@@ -192,12 +204,12 @@ async function resetCounter(pk, skType) {
     // Through all the items pulled, just find the highest identifier
     const res = await runQuery(identifierQuery, null, null, false); // no pagination, return all
     let items = res.items || [];
-    
+
     // If no skType, filter out the counter item manually
     if (!skType) {
       items = items.filter(item => item.sk !== 'counter');
     }
-    
+
     const identifiers = items.map(item => Number(item.identifier || 0));
     const maxIdentifier = identifiers.length > 0 ? Math.max(...identifiers) : 0;
     logger.debug(`Max identifier found: ${maxIdentifier}`);
@@ -206,20 +218,20 @@ async function resetCounter(pk, skType) {
     const counterParams = {
       TableName: TABLE_NAME,
       Key: {
-          pk: { S: `${pk}${skType ? '::' + skType : ''}` },
-          sk: { S: `counter` }
+        pk: { S: `${pk}${skType ? '::' + skType : ''}` },
+        sk: { S: `counter` }
       },
       UpdateExpression: "SET counterValue = :initialValue",
       ExpressionAttributeValues: {
-          ":initialValue": { N: `${maxIdentifier}` },
+        ":initialValue": { N: `${maxIdentifier}` },
       },
       ReturnValues: "ALL_NEW",
     };
     logger.debug(`Resetting counter with max identifier: ${counterParams}`);
 
-    await dynamodb.send(new UpdateItemCommand(counterParams));
+    await getDynamoDBClient().send(new UpdateItemCommand(counterParams));
   } catch (error) {
-    logger.error("Error with resetCounter: ", error)
+    logger.error("Error with resetCounter: ", error);
     throw error;
   }
 }
@@ -273,7 +285,7 @@ async function getByGSI(gsiName, gsiValue, tableName = TABLE_NAME, indexName, so
   // If sort key condition is provided, add it to the query
   if (sortKeyCondition) {
     const { operator, value, attributeName = 'sk' } = sortKeyCondition;
-    
+
     switch (operator) {
       case '=':
       case 'equals':
@@ -312,7 +324,7 @@ async function getByGSI(gsiName, gsiValue, tableName = TABLE_NAME, indexName, so
       default:
         throw new Error(`Unsupported sort key operator: ${operator}`);
     }
-    
+
     expressionAttributeNames[`#${attributeName}`] = attributeName;
   }
 
@@ -349,7 +361,7 @@ async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated 
     if (limit && paginated) {
       query.Limit = limit;
     }
-    pageData = await dynamodbClient.send(new QueryCommand(query));
+    pageData = await getDynamoDBClient().send(new QueryCommand(query));
     data = data.concat(
       pageData.Items.map(item => {
         return unmarshall(item);
@@ -394,7 +406,7 @@ async function runScan(query, limit = null, lastEvaluatedKey = null, paginated =
     if (limit && paginated) {
       query.Limit = limit;
     }
-    pageData = await dynamodb.scan(query);
+    pageData = await getDynamoDBClient().scan(query);
     data = data.concat(
       pageData.Items.map(item => {
         return unmarshall(item);
@@ -428,7 +440,7 @@ async function deleteItem(pk, sk, tableName = TABLE_NAME) {
     ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
   };
   try {
-    await dynamodbClient.send(new DeleteItemCommand(params));
+    await getDynamoDBClient().send(new DeleteItemCommand(params));
     logger.info(`Item with pk: ${pk} and sk: ${sk} deleted successfully.`);
   } catch (error) {
     logger.error(`Error deleting item with pk: ${pk} and sk: ${sk}:`, error);
@@ -444,7 +456,7 @@ async function putItem(obj, tableName = TABLE_NAME) {
   };
 
   logger.debug("Putting putObj:", putObj);
-  await dynamodb.putItem(putObj);
+  await getDynamoDBClient().putItem(putObj);
 }
 
 /**
@@ -484,7 +496,7 @@ function batchGetDataPromise(groupName, keys, tableName) {
       }
     };
     const command = new BatchGetItemCommand(params);
-    dynamodbClient.send(command, (err, res) => {
+    getDynamoDBClient().send(command, (err, res) => {
       if (err) {
         reject(err);
       } else {
@@ -528,7 +540,7 @@ async function batchWriteData(dataToInsert, chunkSize, tableName) {
 
     try {
       logger.info(JSON.stringify(params));
-      const data = await dynamodb.batchWriteItem(params);
+      const data = await getDynamoDBClient().batchWriteItem(params);
       logger.info(`BatchWriteItem response for chunk ${index}:`, data);
     } catch (err) {
       logger.info(`Error batch writing items in chunk ${index}:`, err);
@@ -584,7 +596,7 @@ async function batchTransactData(data, action = 'Put') {
 
       logger.debug(JSON.stringify(TransactItems, null, 2));
 
-      const data = await dynamodbClient.send(
+      const data = await getDynamoDBClient().send(
         new TransactWriteItemsCommand({ TransactItems: TransactItems })
       );
       if (data.$metadata.httpStatusCode !== 200) {

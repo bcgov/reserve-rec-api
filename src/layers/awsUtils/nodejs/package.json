@@ -4,10 +4,10 @@
   "author": "Team Osprey",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.540.0",
-    "@aws-sdk/client-secrets-manager": "^3.741.0",
-    "@aws-sdk/credential-provider-node": "^3.540.0",
-    "@aws-sdk/util-dynamodb": "^3.540.0",
+    "@aws-sdk/client-dynamodb": "^3.910.0",
+    "@aws-sdk/client-secrets-manager": "^3.910.0",
+    "@aws-sdk/credential-provider-node": "^3.910.0",
+    "@aws-sdk/util-dynamodb": "^3.910.0",
     "@opensearch-project/opensearch": "^2.4.0",
     "axios": "^1.7.9",
     "fast-xml-parser": "4.2.5"

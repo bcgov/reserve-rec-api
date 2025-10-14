@@ -1,12 +1,14 @@
 const { logger } = require('/opt/base');
 
+const API_STAGE = process.env.API_STAGE || 'api';
+
 async function authorizeAll(event) {
   const arnPrefix = event.methodArn.split(':').slice(0, 6);
   const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
   const apiIDString = arnPrefix[5];
   const apiString = apiIDString.split('/')[0];
-  const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.API_STAGE + '/*';
-  console.log("fullAPIMethods:", fullAPIMethods);
+  const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/*';
+  logger.debug("fullAPIMethods:", fullAPIMethods);
   return generatePolicy('pub', 'Allow', fullAPIMethods);
 }
 
@@ -63,10 +65,10 @@ async function getDenyPolicy(methodArn) {
 async function validateToken(verifier, token) {
   try {
     const payload = await verifier.verify(token);
-    console.log("Token is valid.");
+    logger.info("Token is valid.");
     return payload;
   } catch {
-    console.log("Token is invalid");
+    logger.info("Token is invalid");
     throw 'Token is invalid.';
   }
 }
@@ -74,7 +76,8 @@ async function validateToken(verifier, token) {
 async function parseToken(headers, authorization) {
   let response = { 'valid': false };
 
-  if (!headers?.Authorization || headers.Authorization === 'None') {
+  if (!authorization || authorization === 'None' || authorization === '') {
+    logger.error('No authorization header found');
     return response;
   }
 
@@ -84,6 +87,7 @@ async function parseToken(headers, authorization) {
   // or the header does not have the Bearer token and the
   // first string is not 'Bearer'
   if (authHeader.length !== 2 || authHeader[0] !== 'Bearer') {
+    logger.error('Invalid authorization header format');
     return response;
   }
 
