@@ -10,6 +10,7 @@ class SAMTemplateGenerator {
         this.apis = new Map();
         this.lambdaFunctions = new Map();
         this.lambdaLayers = new Map();
+        this.apiAuthorizers = new Map();
         this.assetMapping = new Map();
         this.layerImportMapping = new Map();
     }
@@ -62,10 +63,11 @@ class SAMTemplateGenerator {
                 return;
             }
 
-            // Extract APIs, Lambda functions, layers, and assets
+            // Extract APIs, Lambda functions, layers, authorizers, and assets
             this.extractAPIs(template, templateFile);
             this.extractLambdaFunctions(template, templateFile);
             this.extractLambdaLayers(template, templateFile);
+            this.extractAPIAuthorizers(template, templateFile);
             this.extractAssets(template, templateFile);
 
         } catch (error) {
@@ -126,6 +128,7 @@ class SAMTemplateGenerator {
                     resourceId,
                     httpMethod: resource.Properties.HttpMethod,
                     authorizationType: resource.Properties.AuthorizationType,
+                    authorizerId: resource.Properties.AuthorizerId,
                     apiResourceId: resource.Properties.ResourceId,
                     integration: resource.Properties.Integration
                 };
@@ -308,6 +311,111 @@ class SAMTemplateGenerator {
     }
 
     /**
+     * Map layer description to source directory
+     */
+    mapLayerToSourceDirectory(layerInfo) {
+        const description = layerInfo.description || '';
+        const projectRoot = path.resolve(this.cdkOutDir, '..');
+
+        if (description.includes('Base layer')) {
+            return path.join(projectRoot, 'src/layers/base');
+        } else if (description.includes('AWS Utils layer')) {
+            return path.join(projectRoot, 'src/layers/awsUtils');
+        } else if (description.includes('Data Utils layer')) {
+            return path.join(projectRoot, 'src/layers/dataUtils');
+        } else if (description.includes('JWT layer')) {
+            return path.join(projectRoot, 'src/layers/jwt');
+        }
+
+        // Fallback to asset path if no mapping found
+        return layerInfo.contentUri || './';
+    }
+
+    /**
+     * Get layer-required environment variables for functions that use layers
+     */
+    getLayerRequiredEnvironmentVariables() {
+        return {
+            // AWS SDK Configuration - required by awsUtils layer
+            AWS_ACCESS_KEY_ID: 'dummy',
+            AWS_SECRET_ACCESS_KEY: 'dummy',
+            AWS_DEFAULT_REGION: 'ca-central-1',
+            AWS_REGION: 'ca-central-1',
+
+            // DynamoDB Configuration - required by awsUtils layer
+            DYNAMODB_ENDPOINT_URL: 'http://localhost:8000',
+            TABLE_NAME: 'reserve-rec-local',
+            AUDIT_TABLE_NAME: 'Audit-local',
+            PUBSUB_TABLE_NAME: 'reserve-rec-pubsub-local',
+
+            // Local development flags - required by layer conditional logic
+            IS_OFFLINE: 'true',
+            NODE_ENV: 'development',
+
+            // Logging - used by base layer
+            LOG_LEVEL: 'debug',
+
+            // Other common environment variables
+            TZ: 'America/Vancouver'
+        };
+    }
+
+    /**
+     * Ensure functions using layers have all required environment variables
+     */
+    ensureLayerEnvironmentVariables(functionEnvironment, layers) {
+        const layerRequiredVars = this.getLayerRequiredEnvironmentVariables();
+        const mergedEnvironment = { ...layerRequiredVars, ...functionEnvironment };
+
+        if (layers && layers.length > 0) {
+            console.log(`     🔧 Function uses ${layers.length} layer(s), ensuring layer-required environment variables are available`);
+
+            // Check if any critical layer variables are missing
+            const criticalVars = ['AWS_REGION', 'IS_OFFLINE', 'TABLE_NAME', 'DYNAMODB_ENDPOINT_URL'];
+            const missingVars = criticalVars.filter(varName => !mergedEnvironment[varName]);
+
+            if (missingVars.length > 0) {
+                console.log(`     ⚠️  Adding missing critical environment variables for layers: ${missingVars.join(', ')}`);
+            }
+        }
+
+        return mergedEnvironment;
+    }
+
+    /**
+     * Merge global environment variables with function-specific ones
+     * Function-specific variables take precedence over global ones
+     */
+    mergeEnvironmentVariables(functionEnvironment = {}, layers = []) {
+        return this.ensureLayerEnvironmentVariables(functionEnvironment, layers);
+    }
+
+    /**
+     * Extract API Gateway authorizers from template
+     */
+    extractAPIAuthorizers(template, templateFile) {
+        const stackName = path.basename(templateFile, '.template.json');
+
+        Object.entries(template.Resources).forEach(([resourceId, resource]) => {
+            if (resource.Type === 'AWS::ApiGateway::Authorizer') {
+                const authorizerInfo = {
+                    resourceId,
+                    stackName,
+                    templateFile,
+                    properties: resource.Properties,
+                    name: resource.Properties.Name,
+                    type: resource.Properties.Type,
+                    authorizerUri: resource.Properties.AuthorizerUri,
+                    identitySource: resource.Properties.IdentitySource,
+                    authorizerResultTtlInSeconds: resource.Properties.AuthorizerResultTtlInSeconds,
+                    restApiId: resource.Properties.RestApiId
+                };
+
+                this.apiAuthorizers.set(resourceId, authorizerInfo);
+                console.log(`   🔐 Found Authorizer: ${resource.Properties.Name || resourceId} (Type: ${resource.Properties.Type})`);
+            }
+        });
+    }    /**
      * Resolve Lambda function code URI from CDK assets
      */
     resolveCodeUri(codeProperty) {
@@ -393,9 +501,7 @@ class SAMTemplateGenerator {
                     Runtime: 'nodejs20.x',
                     Timeout: 30,
                     Environment: {
-                        Variables: {
-                            IS_OFFLINE: 'true'
-                        }
+                        Variables: this.getLayerRequiredEnvironmentVariables()
                     }
                 },
                 Api: {
@@ -403,7 +509,7 @@ class SAMTemplateGenerator {
                         AllowMethods: "\"'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'\"",
                         AllowHeaders: "\"'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'\"",
                         AllowOrigin: "\"'*'\"",
-                        MaxAge: 600
+                        MaxAge: "\"'600'\""
                     }
                 }
             },
@@ -411,7 +517,7 @@ class SAMTemplateGenerator {
         };
 
         // Add API Gateway
-        samTemplate.Resources[apiInfo.resourceId] = {
+        const apiDefinition = {
             Type: 'AWS::Serverless::Api',
             Properties: {
                 StageName: 'local',
@@ -420,11 +526,24 @@ class SAMTemplateGenerator {
             }
         };
 
-        // Add Lambda functions and API events
+        // Add authorizers to API definition if any exist
+        const apiAuthorizers = this.getAuthorizersForAPI(apiInfo);
+        if (Object.keys(apiAuthorizers).length > 0) {
+            apiDefinition.Properties.Auth = {
+                Authorizers: apiAuthorizers
+            };
+        }
+
+        samTemplate.Resources[apiInfo.resourceId] = apiDefinition;
+
+                // Add Lambda functions and API events
         this.addLambdaFunctionsToSAM(samTemplate, apiInfo);
 
         // Add Lambda layers
         this.addLambdaLayersToSAM(samTemplate, apiInfo);
+
+        // Add API Gateway authorizers
+        this.addAuthorizersToSAM(samTemplate, apiInfo);
 
         return samTemplate;
     }
@@ -458,6 +577,9 @@ class SAMTemplateGenerator {
                     // Add Lambda function to SAM template
                     const resolvedLayers = this.resolveLambdaLayers(lambdaFunction.layers);
 
+                    // Merge global environment variables with function-specific ones, considering layer requirements
+                    const mergedEnvironment = this.mergeEnvironmentVariables(lambdaFunction.environment, lambdaFunction.layers);
+
                     samTemplate.Resources[lambdaFunction.resourceId] = {
                         Type: 'AWS::Serverless::Function',
                         Properties: {
@@ -465,7 +587,7 @@ class SAMTemplateGenerator {
                             Handler: lambdaFunction.handler,
                             Runtime: lambdaFunction.runtime,
                             Environment: {
-                                Variables: lambdaFunction.environment
+                                Variables: mergedEnvironment
                             },
                             Events: {}
                         }
@@ -484,7 +606,7 @@ class SAMTemplateGenerator {
                 if (lambdaFunction) {
                     const eventName = `${method.httpMethod}${path.replace(/[\/\-]/g, '')}Event`;
                     if (!samTemplate.Resources[lambdaFunction.resourceId].Properties.Events[eventName]) {
-                        samTemplate.Resources[lambdaFunction.resourceId].Properties.Events[eventName] = {
+                        const eventProperties = {
                             Type: 'Api',
                             Properties: {
                                 RestApiId: { Ref: apiInfo.resourceId },
@@ -492,6 +614,20 @@ class SAMTemplateGenerator {
                                 Method: method.httpMethod
                             }
                         };
+
+                        // Add authorizer reference if method uses custom authorization
+                        if (method.authorizationType === 'CUSTOM' && method.authorizerId) {
+                            const authorizerResourceId = method.authorizerId.Ref;
+                            const authorizerInfo = this.apiAuthorizers.get(authorizerResourceId);
+                            if (authorizerInfo && authorizerInfo.samAuthorizerName) {
+                                eventProperties.Properties.Auth = {
+                                    Authorizer: authorizerInfo.samAuthorizerName
+                                };
+                                console.log(`     🔐 Added authorizer to event: ${authorizerInfo.samAuthorizerName}`);
+                            }
+                        }
+
+                        samTemplate.Resources[lambdaFunction.resourceId].Properties.Events[eventName] = eventProperties;
                         console.log(`     📌 Added event: ${eventName} (${method.httpMethod} ${path})`);
                     }
                 }
@@ -536,7 +672,7 @@ class SAMTemplateGenerator {
         const processedLayers = new Set();
         const referencedLayers = new Set();
 
-        // Collect all layer references from Lambda functions in this API
+        // Collect layers from API integration Lambda functions
         apiInfo.methods.forEach(method => {
             if (method.httpMethod === 'OPTIONS') return;
 
@@ -548,14 +684,22 @@ class SAMTemplateGenerator {
                 const lambdaFunction = this.findLambdaByReference(lambdaReference);
                 if (lambdaFunction && lambdaFunction.layers) {
                     lambdaFunction.layers.forEach(layerRef => {
-                        if (layerRef.type === 'import') {
-                            const layerResourceId = this.layerImportMapping.get(layerRef.value);
-                            if (layerResourceId) {
-                                referencedLayers.add(layerResourceId);
-                            }
-                        } else if (layerRef.type === 'ref' || layerRef.type === 'getatt') {
-                            referencedLayers.add(layerRef.value);
-                        }
+                        this.collectLayerReference(layerRef, referencedLayers);
+                    });
+                }
+            }
+        });
+
+        // Collect layers from authorizer Lambda functions associated with this API
+        this.apiAuthorizers.forEach((authorizerInfo, authorizerId) => {
+            if (authorizerInfo.restApiId &&
+                authorizerInfo.restApiId.Ref === apiInfo.resourceId) {
+
+                const lambdaFunction = this.findAuthorizerLambda(authorizerInfo.authorizerUri);
+                if (lambdaFunction && lambdaFunction.layers) {
+                    console.log(`     📦 Collecting layers from authorizer function: ${lambdaFunction.resourceId}`);
+                    lambdaFunction.layers.forEach(layerRef => {
+                        this.collectLayerReference(layerRef, referencedLayers);
                     });
                 }
             }
@@ -565,10 +709,13 @@ class SAMTemplateGenerator {
         referencedLayers.forEach(layerResourceId => {
             const layerInfo = this.lambdaLayers.get(layerResourceId);
             if (layerInfo && !processedLayers.has(layerResourceId)) {
+                // Use source directory mapping for local development
+                const sourceContentUri = this.mapLayerToSourceDirectory(layerInfo);
+
                 samTemplate.Resources[layerResourceId] = {
                     Type: 'AWS::Serverless::LayerVersion',
                     Properties: {
-                        ContentUri: layerInfo.contentUri,
+                        ContentUri: sourceContentUri,
                         CompatibleRuntimes: layerInfo.compatibleRuntimes,
                         Description: layerInfo.description || `Layer from ${layerInfo.stackName}`
                     }
@@ -579,12 +726,32 @@ class SAMTemplateGenerator {
                 }
 
                 processedLayers.add(layerResourceId);
-                console.log(`   📦 Added layer to SAM template: ${layerResourceId}`);
+                console.log(`   📦 Added layer to SAM template: ${layerResourceId} -> ${sourceContentUri}`);
+            } else if (!layerInfo) {
+                console.log(`   ⚠️  Layer ${layerResourceId} not found in collected layers - may be from external stack`);
             }
         });
 
         if (processedLayers.size > 0) {
             console.log(`   📊 Added ${processedLayers.size} unique Lambda layers to SAM template`);
+        }
+    }
+
+    /**
+     * Helper method to collect layer references consistently
+     */
+    collectLayerReference(layerRef, referencedLayers) {
+        if (layerRef.type === 'import') {
+            const layerResourceId = this.layerImportMapping.get(layerRef.value);
+            if (layerResourceId) {
+                referencedLayers.add(layerResourceId);
+                console.log(`     📦 Found imported layer: ${layerRef.value} -> ${layerResourceId}`);
+            } else {
+                console.log(`     ⚠️  Import mapping not found for layer: ${layerRef.value}`);
+            }
+        } else if (layerRef.type === 'ref' || layerRef.type === 'getatt') {
+            referencedLayers.add(layerRef.value);
+            console.log(`     📦 Found direct layer reference: ${layerRef.value}`);
         }
     }
 
@@ -640,6 +807,162 @@ class SAMTemplateGenerator {
         return Array.from(this.lambdaFunctions.values()).find(func =>
             func.stackName.includes(stackName) || stackName.includes(func.stackName)
         );
+    }
+
+    /**
+     * Get authorizers for a specific API
+     */
+    getAuthorizersForAPI(apiInfo) {
+        const authorizers = {};
+
+        // Find authorizers that belong to this API
+        this.apiAuthorizers.forEach((authorizerInfo, authorizerId) => {
+            if (authorizerInfo.restApiId &&
+                authorizerInfo.restApiId.Ref === apiInfo.resourceId) {
+
+                // Create a SAM-compatible authorizer name (alphanumeric only)
+                const authorizerName = (authorizerInfo.name || authorizerId)
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .substring(0, 50); // Limit length
+
+                if (authorizerInfo.type === 'REQUEST') {
+                    // Lambda REQUEST authorizer
+                    const lambdaFunction = this.findAuthorizerLambda(authorizerInfo.authorizerUri);
+
+                    authorizers[authorizerName] = {
+                        FunctionArn: lambdaFunction ? { 'Fn::GetAtt': [lambdaFunction.resourceId, 'Arn'] } :
+                                   this.extractLambdaArnFromUri(authorizerInfo.authorizerUri),
+                        Identity: {
+                            Headers: [authorizerInfo.identitySource.replace('method.request.header.', '')]
+                        }
+                    };
+
+                    if (authorizerInfo.authorizerResultTtlInSeconds) {
+                        authorizers[authorizerName].AuthorizerPayloadFormatVersion = '2.0';
+                        authorizers[authorizerName].EnableSimpleResponses = true;
+                    }
+                } else if (authorizerInfo.type === 'TOKEN') {
+                    // Lambda TOKEN authorizer
+                    const lambdaFunction = this.findAuthorizerLambda(authorizerInfo.authorizerUri);
+
+                    authorizers[authorizerName] = {
+                        FunctionArn: lambdaFunction ? { 'Fn::GetAtt': [lambdaFunction.resourceId, 'Arn'] } :
+                                   this.extractLambdaArnFromUri(authorizerInfo.authorizerUri),
+                        Identity: {
+                            Header: authorizerInfo.identitySource.replace('method.request.header.', '')
+                        }
+                    };
+                }
+
+                // Store the mapping for event references
+                authorizerInfo.samAuthorizerName = authorizerName;
+
+                console.log(`   🔐 Added authorizer to API: ${authorizerName} (${authorizerInfo.type})`);
+            }
+        });
+
+        return authorizers;
+    }
+
+    /**
+     * Find Lambda function for authorizer URI
+     */
+    findAuthorizerLambda(authorizerUri) {
+        if (!authorizerUri) {
+            return null;
+        }
+
+        // Handle direct Fn::GetAtt reference
+        if (authorizerUri['Fn::GetAtt']) {
+            const resourceRef = authorizerUri['Fn::GetAtt'][0];
+            return this.lambdaFunctions.get(resourceRef);
+        }
+
+        // Handle Fn::Join structure that contains Fn::GetAtt
+        if (authorizerUri['Fn::Join']) {
+            const joinParts = authorizerUri['Fn::Join'][1];
+
+            // Look for any Fn::GetAtt references in the join parts
+            for (const part of joinParts) {
+                if (part['Fn::GetAtt'] && part['Fn::GetAtt'][1] === 'Arn') {
+                    const resourceRef = part['Fn::GetAtt'][0];
+                    const lambdaFunction = this.lambdaFunctions.get(resourceRef);
+                    if (lambdaFunction) {
+                        return lambdaFunction;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract Lambda ARN from complex authorizer URI
+     */
+    extractLambdaArnFromUri(authorizerUri) {
+        if (authorizerUri && authorizerUri['Fn::Join']) {
+            // For complex Fn::Join structures, try to find the Lambda ARN part
+            const joinParts = authorizerUri['Fn::Join'][1];
+            const lambdaArnPart = joinParts.find(part =>
+                part['Fn::GetAtt'] && part['Fn::GetAtt'][1] === 'Arn'
+            );
+
+            if (lambdaArnPart) {
+                const lambdaResourceId = lambdaArnPart['Fn::GetAtt'][0];
+                const lambdaFunction = this.lambdaFunctions.get(lambdaResourceId);
+                return lambdaFunction ? { Ref: lambdaFunction.resourceId } : lambdaArnPart;
+            }
+        }
+
+        return authorizerUri;
+    }
+
+    /**
+     * Add authorizers to SAM template (for authorizer functions)
+     */
+    addAuthorizersToSAM(samTemplate, apiInfo) {
+        const processedAuthorizerFunctions = new Set();
+
+        // Add any Lambda functions used by authorizers
+        this.apiAuthorizers.forEach((authorizerInfo, authorizerId) => {
+            if (authorizerInfo.restApiId &&
+                authorizerInfo.restApiId.Ref === apiInfo.resourceId) {
+
+                const lambdaFunction = this.findAuthorizerLambda(authorizerInfo.authorizerUri);
+
+                if (lambdaFunction && !processedAuthorizerFunctions.has(lambdaFunction.resourceId)) {
+                    // Add the authorizer Lambda function to the template
+                    // Merge global environment variables with function-specific ones, considering layer requirements
+                    const mergedEnvironment = this.mergeEnvironmentVariables(lambdaFunction.environment, lambdaFunction.layers);
+
+                    samTemplate.Resources[lambdaFunction.resourceId] = {
+                        Type: 'AWS::Serverless::Function',
+                        Properties: {
+                            CodeUri: lambdaFunction.codeUri,
+                            Handler: lambdaFunction.handler,
+                            Runtime: lambdaFunction.runtime,
+                            Environment: {
+                                Variables: mergedEnvironment
+                            }
+                        }
+                    };
+
+                    // Add layers if any
+                    const resolvedLayers = this.resolveLambdaLayers(lambdaFunction.layers);
+                    if (resolvedLayers.length > 0) {
+                        samTemplate.Resources[lambdaFunction.resourceId].Properties.Layers = resolvedLayers;
+                    }
+
+                    processedAuthorizerFunctions.add(lambdaFunction.resourceId);
+                    console.log(`   🔐 Added authorizer Lambda function: ${lambdaFunction.resourceId}`);
+                }
+            }
+        });
+
+        if (processedAuthorizerFunctions.size > 0) {
+            console.log(`   📊 Added ${processedAuthorizerFunctions.size} authorizer Lambda functions to SAM template`);
+        }
     }
 
     /**

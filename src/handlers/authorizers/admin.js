@@ -5,16 +5,91 @@ const { logger } = require('/opt/base');
 const { getOne, USER_ID_PARTITION } = require('/opt/dynamodb');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
+/**
+ * Normalize event format to handle both API Gateway v1.0 and v2.0 payload formats
+ * and both TOKEN and REQUEST authorizer types
+ */
+function normalizeAuthorizerEvent(event) {
+  // Detect the authorizer type and payload format
+
+  if (event.type === 'TOKEN') {
+    // TOKEN authorizer format
+    return {
+      headers: {}, // TOKEN authorizers don't have headers in the event
+      authorizationToken: event.authorizationToken,
+      methodArn: event.methodArn,
+      requestContext: event.requestContext,
+      authorizerType: 'TOKEN',
+      payloadVersion: '1.0' // TOKEN authorizers are always v1.0
+    };
+  } else if (event.type === 'REQUEST' || event.headers || event.requestContext) {
+    // REQUEST authorizer format
+    const isV2 = event.version === '2.0' || event.routeArn || event.routeKey;
+
+    if (isV2) {
+      // API Gateway v2.0 format (HTTP API)
+      return {
+        headers: event.headers || {},
+        methodArn: event.routeArn || event.methodArn,
+        requestContext: event.requestContext,
+        authorizerType: 'REQUEST',
+        payloadVersion: '2.0'
+      };
+    } else {
+      // API Gateway v1.0 format (REST API) - this is the default
+      return {
+        headers: event.headers || {},
+        methodArn: event.methodArn,
+        requestContext: event.requestContext,
+        authorizerType: 'REQUEST',
+        payloadVersion: '1.0'
+      };
+    }
+  } else {
+    // Fallback - assume REQUEST v1.0
+    return {
+      headers: event.headers || {},
+      methodArn: event.methodArn,
+      requestContext: event.requestContext,
+      authorizerType: 'REQUEST',
+      payloadVersion: '1.0'
+    };
+  }
+}
+
+/**
+ * Get authorization header/token from normalized event
+ */
+function getAuthorizationToken(normalizedEvent) {
+  if (normalizedEvent.authorizerType === 'TOKEN') {
+    // For TOKEN authorizers, the token is directly in authorizationToken
+    return normalizedEvent.authorizationToken;
+  } else {
+    // For REQUEST authorizers, extract from headers (case-insensitive)
+    const headers = normalizedEvent.headers;
+    return headers.Authorization ||
+           headers.authorization ||
+           headers.AUTHORIZATION ||
+           null;
+  }
+}
+
 exports.handler = async function (event, context, callback) {
   logger.debug('Admin Authorizer', JSON.stringify(event));
 
+  // Normalize the event format
+  const normalizedEvent = normalizeAuthorizerEvent(event);
+  logger.debug('Normalized event authorizer type:', normalizedEvent.authorizerType);
+  logger.debug('Normalized event payload version:', normalizedEvent.payloadVersion);
+  logger.debug('Normalized headers:', normalizedEvent.headers);
+
   // Get config creds
-  const config = {
+  let config = {
     ADMIN_USER_POOL_CLIENT_ID: process.env.ADMIN_USER_POOL_CLIENT_ID || '',
     ADMIN_USER_POOL_ID: process.env.ADMIN_USER_POOL_ID || ''
   };
   if (!config.ADMIN_USER_POOL_ID || !config.ADMIN_USER_POOL_CLIENT_ID) {
-    const dbConfig = await getOne('config', 'admin');
+    let dbConfig = await getOne('config', 'admin');
     if (!dbConfig) {
       throw new Error("No config found for admin authorizer.");
     }
@@ -29,12 +104,12 @@ exports.handler = async function (event, context, callback) {
   });
 
   try {
-    const headers = event?.headers;
-    const authorization = event?.headers?.Authorization;
+    const headers = normalizedEvent.headers;
+    const authorization = getAuthorizationToken(normalizedEvent);
 
     // Parse the input for methodArn
-    logger.debug('event.methodArn', event?.methodArn);
-    const tmp = event?.methodArn.split(':');
+    logger.debug('event.methodArn', normalizedEvent.methodArn);
+    const tmp = normalizedEvent.methodArn.split(':');
     const apiGatewayArnTmp = tmp[5].split('/');
     const region = tmp[3];
     const restApiId = apiGatewayArnTmp[0];
@@ -71,7 +146,7 @@ exports.handler = async function (event, context, callback) {
 
       // Generate the methodArn for the user to access the API
       if (userData.claims?.includes('sysadmin')) {
-        const arnPrefix = event.methodArn.split(':').slice(0, 6);
+        const arnPrefix = normalizedEvent.methodArn.split(':').slice(0, 6);
         const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
         const apiIDString = arnPrefix[5];
         const apiString = apiIDString.split('/')[0];
@@ -80,16 +155,16 @@ exports.handler = async function (event, context, callback) {
         return generatePolicy(sub, 'Allow', fullAPIMethods);
       } else {
         console.log("Deny");
-        return generatePolicy(sub, 'Deny', event.methodArn);
+        return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
       }
     } else {
       console.log("Invalid token");
-      return await getDenyPolicy(event.methodArn);
+      return await getDenyPolicy(normalizedEvent.methodArn);
     }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }
 
   console.log("Deny");
-  return getDenyPolicy(event.methodArn);
+  return getDenyPolicy(normalizedEvent.methodArn);
 };
