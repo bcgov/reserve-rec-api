@@ -1,0 +1,72 @@
+======================================
+BC PARKS
+BOOKING RECEIPT
+======================================
+
+{{location.parkName}} - Kootenay Region
+
+Your Booking Reference: {{booking.bookingReference}}
+
+======================================
+WELCOME TBD!
+======================================
+
+TBD.
+
+======================================
+BOOKING DETAILS
+======================================
+
+Booking ID: {{booking.bookingId}}
+Order Number: {{booking.orderNumber}}
+Order Date: {{formatDate booking.orderDate 'long'}}
+Check-in: {{formatDate booking.startDate 'long'}}
+{{#if booking.endDate}}Check-out: {{formatDate booking.endDate 'long'}}{{/if}}
+Duration: {{booking.numberOfNights}} {{pluralize booking.numberOfNights 'night' 'nights'}}
+Guests: {{booking.numberOfGuests}} {{pluralize booking.numberOfGuests 'guest' 'guests'}}
+Status: {{booking.status}}
+
+======================================
+LOCATION DETAILS
+======================================
+
+Park: {{location.parkName}}
+{{#if location.facilityName}}Facility: {{location.facilityName}}{{/if}}
+{{#if location.siteNumber}}Site Number: {{location.siteNumber}}{{/if}}
+{{#if location.address}}Address: {{location.address}}{{/if}}
+
+======================================
+CUSTOMER INFORMATION
+======================================
+
+Name: {{customer.firstName}} {{customer.lastName}}
+Email: {{customer.email}}
+{{#if customer.phone}}Phone: {{customer.phone}}{{/if}}
+
+======================================
+PAYMENT SUMMARY
+======================================
+
+{{#if payment.itemBreakdown}}
+{{#each payment.itemBreakdown}}
+{{this.description}}: {{currency this.amount payment.currency}}
+{{/each}}
+
+{{/if}}
+Total Amount: {{currency payment.totalAmount payment.currency}}
+Transaction ID: {{payment.transactionId}}
+Payment Method: {{payment.paymentMethod}}
+
+======================================
+CONTACT INFORMATION
+======================================
+
+{{t 'thank.you'}}
+
+{{t 'contact.us'}}
+{{#if branding.contactEmail}}Email: {{branding.contactEmail}}{{/if}}
+{{#if branding.contactPhone}}Phone: {{branding.contactPhone}}{{/if}}
+{{#if branding.websiteUrl}}Website: {{branding.websiteUrl}}{{/if}}
+
+This email was sent from BC Parks Reservation System.
+Please keep this receipt for your records.
