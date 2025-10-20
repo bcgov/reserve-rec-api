@@ -1,0 +1,8 @@
+{
+  "public": {
+    "key": "public",
+    "roleName": "PublicUserRole",
+    "description": "Role for public users with limited access",
+    "groupName": "PublicUserGroup"
+  }
+}

@@ -6,6 +6,9 @@ const { logger } = require('../lib/utils');
 const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
 const { createAdminLambdaStack } = require('../lib/admin-lambda-stack/admin-lambda-stack.js');
+const { createOpenSearchStack } = require('../lib/opensearch-stack/opensearch-stack.js');
+const { createReferenceDataStack } = require('../lib/reference-data-stack/reference-data-stack.js');
+const { createRoleAggregatorStack } = require('../lib/role-aggregator-stack/role-aggregator-stack.js');
 
 class CDKProject {
   constructor() {
@@ -13,6 +16,8 @@ class CDKProject {
     this.appName = 'ReserveRecApi';
     this.context = this.getContext();
     this.stacks = {};
+    this.roles = {};
+    this.groups = {};
     this.progress = {
       completedStacks: [],
       failedStacks: [],
@@ -32,6 +37,10 @@ class CDKProject {
 
   getDeploymentName() {
     return this.context?.DEPLOYMENT_NAME || 'local';
+  }
+
+  getRegion() {
+    return this.context?.AWS_REGION || 'ca-central-1';
   }
 
   isOffline() {
@@ -108,6 +117,27 @@ class CDKProject {
     return construct?.id || null;
   }
 
+  /**
+   * Retrieves the local name (stack specific) of a construct by its key from the current stack or a specified stack.
+   *
+   * @param {string} constructKey - The key identifier of the construct to find
+   * @param {string|null} [stackKey=null] - Optional stack key to search in. If null, uses current stack
+   * @returns {string|null} The name of the construct if found, null otherwise
+   * @description If the construct is not found, a warning is logged and null is returned
+   */
+  getConstructName(constructKey, stackKey = null) {
+    // 'this' pertains to the current/bound stack
+    let self = this;
+    if (stackKey) {
+      self = this.getStackByKey(stackKey);
+    }
+    const construct = self.getConstructByKey(constructKey);
+    if (!construct) {
+      logger.warn(`Construct ${constructKey} not found in stack ${self.stackKey}`);
+    }
+    return construct?.name || null;
+  }
+
   getStackByKey(stackKey) {
     return this.stacks[stackKey];
   }
@@ -135,6 +165,9 @@ class CDKProject {
     await this.addStack('publicIdentityStack', createPublicIdentityStack);
     await this.addStack('adminApiStack', createAdminApiStack);
     await this.addStack('adminLambdaStack', createAdminLambdaStack);
+    await this.addStack('openSearchStack', createOpenSearchStack);
+    await this.addStack('referenceDataStack', createReferenceDataStack);
+    await this.addStack('roleAggregatorStack', createRoleAggregatorStack);
 
   }
 
@@ -154,6 +187,40 @@ class CDKProject {
         logger.error(`Error creating stack ${stackKey}:`, error);
       }
     }
+  }
+
+  addGroupWithRole(key, group, role) {
+    this.groups[key] = group;
+    this.groups[key]['role'] = key;
+    this.roles[key] = role;
+    this.roles[key]['group'] = key;
+  }
+
+  addRole(roleKey, role) {
+    this.roles[roleKey] = role;
+  }
+
+  getRoles() {
+    return this.roles;
+  }
+
+  getRoleByKey(roleKey) {
+    return this.roles[roleKey];
+  }
+
+  addGroup(groupKey, group, expectedRoleArn = null) {
+    if (expectedRoleArn) {
+      group['expectedRoleArn'] = expectedRoleArn;
+    }
+    this.groups[groupKey] = group;
+  }
+
+  getGroups() {
+    return this.groups;
+  }
+
+  getGroupByKey(groupKey) {
+    return this.groups[groupKey];
   }
 
   createStackId(stackKey) {

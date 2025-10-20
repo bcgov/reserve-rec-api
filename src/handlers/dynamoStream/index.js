@@ -1,6 +1,6 @@
 const { logger, sendMessage } = require('/opt/base');
 const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall, USER_ID_PARTITION, runQuery, PUBSUB_TABLE_NAME } = require('/opt/dynamodb');
-const { OPENSEARCH_MAIN_INDEX, OPENSEARCH_BOOKING_INDEX, bulkWriteDocuments, OPENSEARCH_DOMAIN_NAME } = require('/opt/opensearch');
+const { OPENSEARCH_MAIN_INDEX, OPENSEARCH_BOOKING_INDEX, bulkWriteDocuments } = require('/opt/opensearch');
 const API_STAGE = process.env.API_STAGE;
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL;
 
@@ -28,7 +28,7 @@ exports.handler = async function (event, context) {
     let mainIndexDeleteDocs = [];
     let bookingIndexUpsertDocs = [];
     let bookingIndexDeleteDocs = [];
-    
+
     for (const record of event?.Records) {
       const eventName = record.eventName;
       let newImage = record.dynamodb.NewImage;
@@ -50,7 +50,7 @@ exports.handler = async function (event, context) {
       // Check if schema should go to main index or booking index
       const isMainIndexSchema = schemasTransferrable.includes(schema);
       const isBookingIndexSchema = bookingSchemasTransferrable.includes(schema);
-      
+
       // If the schema is not in any list of schemas to transfer, skip
       // We only care about publicly searchable data for now.
       // TODO: We may want to revisit this later for admin purposes
