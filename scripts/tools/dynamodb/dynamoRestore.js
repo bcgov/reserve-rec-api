@@ -7,7 +7,7 @@ const TABLE_NAME = process.env.TABLE_NAME || 'ReserveRecApi-Local-ReferenceDataT
 const MAX_TRANSACTION_SIZE = 25;
 
 const options = {
-  region: 'local',
+  region: process.env.AWS_REGION || 'local',
   endpoint: process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000'
 }
 

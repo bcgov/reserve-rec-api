@@ -1,11 +1,12 @@
-const { BatchGetItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
+const { BatchGetItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, BatchWriteItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { logger } = require('/opt/base');
 
-const TABLE_NAME = process.env.TABLE_NAME || 'reserve-rec';
+
+const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'reference-data';
 const GLOBALID_INDEX_NAME = 'globalId-index';
-const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'Audit';
-const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'reserve-rec-pubsub';
+const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
+const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
 const DYNAMODB_ENDPOINT_URL = process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000';
 const USER_ID_PARTITION = 'userid';
@@ -36,7 +37,7 @@ function getDynamoDBClient() {
 }
 
 // simple way to return a single Item by primary key.
-async function getOne(pk, sk, tableName = TABLE_NAME) {
+async function getOne(pk, sk, tableName = REFERENCE_DATA_TABLE_NAME) {
   logger.info(`getItem: { pk: ${pk}, sk: ${sk} }`);
   const params = {
     TableName: tableName,
@@ -73,7 +74,7 @@ async function incrementCounter(pk, collectionType = []) {
   try {
     // Get current counter value. Built using pk and partial sk.
     const getCounterParams = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       Key: {
         pk: { S: `${pk}${skType ? "::" + skType : ""}` },
         sk: { S: `counter` },
@@ -100,7 +101,7 @@ async function incrementCounter(pk, collectionType = []) {
     // Check what this item's actual count on the main table is, or if this
     // item even exists.
     const countParams = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: skType
         ? "pk = :pk AND begins_with (sk, :sk)"
         : "pk = :pk",
@@ -143,7 +144,7 @@ async function incrementCounter(pk, collectionType = []) {
 
       // Attempt to increment the counter's value. If it doesn't exist the this creates it.
       const incrementParams = {
-        TableName: TABLE_NAME,
+        TableName: REFERENCE_DATA_TABLE_NAME,
         Key: {
           pk: { S: `${pk}${skType ? "::" + skType : ""}` },
           sk: { S: `counter` },
@@ -185,7 +186,7 @@ async function resetCounter(pk, skType) {
     // If skType exists, we want to search with begins_with, otherwise we
     // are just searching with the pk.
     const identifierQuery = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: skType
         ? "pk = :pk AND begins_with (sk, :sk)"
         : "pk = :pk",
@@ -216,7 +217,7 @@ async function resetCounter(pk, skType) {
 
     // The we set the counter to the max identifier to be the initial value
     const counterParams = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       Key: {
         pk: { S: `${pk}${skType ? '::' + skType : ''}` },
         sk: { S: `counter` }
@@ -235,7 +236,7 @@ async function resetCounter(pk, skType) {
     throw error;
   }
 }
-async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', tableName = TABLE_NAME, indexName = GLOBALID_INDEX_NAME) {
+async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', tableName = REFERENCE_DATA_TABLE_NAME, indexName = GLOBALID_INDEX_NAME) {
   logger.info(`getItem by index: { ${globalIdAttributeName}: ${globalId}, indexName: ${indexName} }`);
 
   // GetItem operation is not supported on GSIs, so we need to use Query instead.
@@ -262,7 +263,7 @@ async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', ta
  * Generic function to get items by a GSI with optional sort key condition.
  * @param {string} gsiName - The name of the GSI partition key attribute.
  * @param {string} gsiValue - The value of the GSI partition key to query.
- * @param {string} tableName - The name of the DynamoDB table (default is TABLE_NAME).
+ * @param {string} tableName - The name of the DynamoDB table (default is REFERENCE_DATA_TABLE_NAME).
  * @param {string} indexName - The name of the GSI index to use.
  * @param {object} sortKeyCondition.operator: 'begins_with'|'='|'<','<='|'>'|'>='|'between'
  * @param {object} sortKeyCondition.value: string|number|object (for between: {start: val1, end: val2})
@@ -271,7 +272,7 @@ async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', ta
  * @returns {Array} Array of items matching the GSI query and optional sort key condition.
  */
 
-async function getByGSI(gsiName, gsiValue, tableName = TABLE_NAME, indexName, sortKeyCondition = null) {
+async function getByGSI(gsiName, gsiValue, tableName = REFERENCE_DATA_TABLE_NAME, indexName, sortKeyCondition = null) {
   console.log(`getItem by index: { ${gsiName}: ${gsiValue}, indexName: ${indexName}, sortKeyCondition: ${JSON.stringify(sortKeyCondition)} }`);
 
   let keyConditionExpression = `#${gsiName} = :${gsiName}`;
@@ -432,7 +433,7 @@ async function runScan(query, limit = null, lastEvaluatedKey = null, paginated =
   }
 }
 
-async function deleteItem(pk, sk, tableName = TABLE_NAME) {
+async function deleteItem(pk, sk, tableName = REFERENCE_DATA_TABLE_NAME) {
   logger.info(`deleteItem: { pk: ${pk}, sk: ${sk} }`);
   const params = {
     TableName: tableName,
@@ -448,7 +449,7 @@ async function deleteItem(pk, sk, tableName = TABLE_NAME) {
   }
 }
 
-async function putItem(obj, tableName = TABLE_NAME) {
+async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
   let putObj = {
     TableName: tableName,
     Item: obj,
@@ -466,7 +467,7 @@ async function putItem(obj, tableName = TABLE_NAME) {
  * @param {string} tableName - The name of the DynamoDB table to query.
  * @returns {Object} An object where each key is a group of results from the batch get requests.
  */
-async function parallelizedBatchGetData(groups, tableName) {
+async function parallelizedBatchGetData(groups, tableName = REFERENCE_DATA_TABLE_NAME) {
   // create array from groups
   const keys = Object.keys(groups);
   const promises = await Promise.all(keys.map(key => batchGetDataPromise(key, groups[key], tableName)));
@@ -480,12 +481,12 @@ async function parallelizedBatchGetData(groups, tableName) {
  * @param {string} tableName - The name of the DynamoDB table.
  * @returns {Object} An array of items retrieved from the table.
  */
-async function batchGetData(keys, tableName) {
+async function batchGetData(keys, tableName = REFERENCE_DATA_TABLE_NAME) {
   const res = await batchGetDataPromise('batch', keys, tableName);
   return res?.data;
 }
 
-function batchGetDataPromise(groupName, keys, tableName) {
+function batchGetDataPromise(groupName, keys, tableName = REFERENCE_DATA_TABLE_NAME) {
   return new Promise((resolve, reject) => {
     let data = [];
     const params = {
@@ -514,7 +515,7 @@ function batchGetDataPromise(groupName, keys, tableName) {
 }
 
 
-async function batchWriteData(dataToInsert, chunkSize, tableName) {
+async function batchWriteData(dataToInsert, chunkSize, tableName = REFERENCE_DATA_TABLE_NAME) {
   logger.debug(JSON.stringify(dataToInsert));
 
   const dataChunks = chunkArray(dataToInsert, chunkSize);
@@ -540,10 +541,12 @@ async function batchWriteData(dataToInsert, chunkSize, tableName) {
 
     try {
       logger.info(JSON.stringify(params));
-      const data = await getDynamoDBClient().batchWriteItem(params);
+      const command = new BatchWriteItemCommand(params);
+      const data = await getDynamoDBClient().send(command);
       logger.info(`BatchWriteItem response for chunk ${index}:`, data);
     } catch (err) {
-      logger.info(`Error batch writing items in chunk ${index}:`, err);
+      console.log('err:', err);
+      throw new Error(`Error batch writing items in chunk ${index}: ${err}`);
     }
   }
 }
@@ -620,7 +623,7 @@ module.exports = {
   UpdateItemCommand,
   PutItemCommand,
   QueryCommand,
-  TABLE_NAME,
+  REFERENCE_DATA_TABLE_NAME,
   USER_ID_PARTITION,
   batchGetData,
   batchGetDataPromise,

@@ -3,13 +3,12 @@ const { defaultProvider } = require('@aws-sdk/credential-provider-node'); // V3 
 const { Client } = require('@opensearch-project/opensearch');
 const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws');
 const { logger } = require('/opt/base');
-const axios = require('axios');
 
 // Import necessary libraries and modules
-const OPENSEARCH_DOMAIN_URL = process.env.OPENSEARCH_DOMAIN_URL || 'http://localhost:9200';
-const OPENSEARCH_MAIN_INDEX = process.env.OPENSEARCH_MAIN_INDEX || 'main-index';
-const OPENSEARCH_AUDIT_INDEX = process.env.OPENSEARCH_MAIN_INDEX || 'audit-index';
-const OPENSEARCH_BOOKING_INDEX = process.env.OPENSEARCH_BOOKING_INDEX || 'booking-index';
+const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
+const OPENSEARCH_REFERENCE_DATA_INDEX_NAME = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'reference-data-index';
+const OPENSEARCH_AUDIT_INDEX_NAME = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'audit-index';
+const OPENSEARCH_BOOKING_INDEX_NAME = process.env.OPENSEARCH_BOOKING_INDEX_NAME || 'booking-index';
 const OPENSEARCH_DEFAULT_SORT_ORDER = 'asc'; // asc or desc
 const DEFAULT_RESULT_SIZE = 10;
 const MAX_RESULT_SIZE = 100;
@@ -44,13 +43,13 @@ let client = new Client({
       return credentialsProvider();
     }
   }),
-  node: OPENSEARCH_DOMAIN_URL // OpenSearch domain URL
+  node: OPENSEARCH_DOMAIN_ENDPOINT // OpenSearch domain URL
 });
 
 // For offline development
 if (process.env.IS_OFFLINE === 'true') {
   client = new Client({
-    node: OPENSEARCH_DOMAIN_URL,
+    node: OPENSEARCH_DOMAIN_ENDPOINT,
     ssl: {
       rejectUnauthorized: false
     }
@@ -462,7 +461,7 @@ async function deleteIndex(indexName) {
   return await client.indices.delete({ index: indexName });
 }
 
-async function bulkWriteDocuments(items, indexName = OPENSEARCH_MAIN_INDEX, action = 'update') {
+async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_INDEX_NAME, action = 'update') {
   // actions: [create, update, delete, index]
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
@@ -543,11 +542,11 @@ function checkBBox(bbox) {
 }
 
 module.exports = {
-  OPENSEARCH_AUDIT_INDEX,
+  OPENSEARCH_AUDIT_INDEX_NAME,
   OPENSEARCH_DOMAIN_NAME,
-  OPENSEARCH_DOMAIN_URL,
-  OPENSEARCH_MAIN_INDEX,
-  OPENSEARCH_BOOKING_INDEX,
+  OPENSEARCH_DOMAIN_ENDPOINT,
+  OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
+  OPENSEARCH_BOOKING_INDEX_NAME,
   OSQuery,
   buildIdFromPkSk,
   bulkWriteDocuments,

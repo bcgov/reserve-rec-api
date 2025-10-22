@@ -1,6 +1,6 @@
-const { logger, sendMessage } = require('/opt/base');
+const { logger, sendMessage, sendResponse } = require('/opt/base');
 const { batchWriteData, AUDIT_TABLE_NAME, marshall, unmarshall, USER_ID_PARTITION, runQuery, PUBSUB_TABLE_NAME } = require('/opt/dynamodb');
-const { OPENSEARCH_MAIN_INDEX, OPENSEARCH_BOOKING_INDEX, bulkWriteDocuments } = require('/opt/opensearch');
+const { OPENSEARCH_REFERENCE_DATA_INDEX_NAME, OPENSEARCH_BOOKING_INDEX_NAME, bulkWriteDocuments } = require('/opt/opensearch');
 const API_STAGE = process.env.API_STAGE;
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL;
 
@@ -40,6 +40,7 @@ exports.handler = async function (event, context) {
 
       const gsipk = record.dynamodb.Keys.pk;
       const schema = newImage?.schema?.S;
+      console.log('schema:', schema);
 
       // If pk === USER_ID_PARTITION then skip
       if (gsipk.S === USER_ID_PARTITION) {
@@ -117,27 +118,31 @@ exports.handler = async function (event, context) {
 
     // Process main index documents
     if (mainIndexDeleteDocs.length > 0) {
-      await bulkWriteDocuments(mainIndexDeleteDocs, OPENSEARCH_MAIN_INDEX, 'delete');
+      logger.debug(`Deleting ${mainIndexDeleteDocs.length} documents from ${OPENSEARCH_REFERENCE_DATA_INDEX_NAME}`);
+      await bulkWriteDocuments(mainIndexDeleteDocs, OPENSEARCH_REFERENCE_DATA_INDEX_NAME, 'delete');
     }
     if (mainIndexUpsertDocs.length > 0) {
-      await bulkWriteDocuments(mainIndexUpsertDocs, OPENSEARCH_MAIN_INDEX);
+      logger.debug(`Writing ${mainIndexUpsertDocs.length} documents to ${OPENSEARCH_REFERENCE_DATA_INDEX_NAME}`);
+      await bulkWriteDocuments(mainIndexUpsertDocs, OPENSEARCH_REFERENCE_DATA_INDEX_NAME);
     }
 
     // Process booking index documents
     if (bookingIndexDeleteDocs.length > 0) {
-      await bulkWriteDocuments(bookingIndexDeleteDocs, OPENSEARCH_BOOKING_INDEX, 'delete');
+      await bulkWriteDocuments(bookingIndexDeleteDocs, OPENSEARCH_BOOKING_INDEX_NAME, 'delete');
     }
     if (bookingIndexUpsertDocs.length > 0) {
-      await bulkWriteDocuments(bookingIndexUpsertDocs, OPENSEARCH_BOOKING_INDEX);
+      await bulkWriteDocuments(bookingIndexUpsertDocs, OPENSEARCH_BOOKING_INDEX_NAME);
     }
 
     // Write it all out to the Audit table
+    // Todo: reenable audit tables once we have tested
     logger.info(`Writing batch data`);
     await batchWriteData(auditRecordsToCreate, 25, AUDIT_TABLE_NAME);
-    await sendToAllConnections();
+    // await sendToAllConnections();
+    return sendResponse(200, [], `Stream processing complete.`, null, context);
   } catch (e) {
-    logger.info(e);
     logger.error(JSON.stringify(e));
+    return sendResponse(500, [], 'Error processing stream.', e?.message, context);
   }
 };
 

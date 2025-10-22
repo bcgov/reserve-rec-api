@@ -13,13 +13,23 @@ const logger = createLogger({
   format: combine(
     timestamp(),
     format.printf((info) => {
-      let meta = "";
-      let symbols = Object.getOwnPropertySymbols(info);
-      if (symbols.length == 2) {
-        meta = JSON.stringify(info[symbols[1]]);
+      // Normalize the message
+      let msg = '';
+      if (typeof info.message === "string") {
+        msg = info.message;
+      } else {
+        try {
+          msg = JSON.stringify(info.message);
+        } catch {
+          msg = String(info.message);
+        }
       }
-      let msg = typeof info.message === "string" ? info.message : JSON.stringify(info.message);
-      return `${info.timestamp} ${[info.level.toUpperCase()]}: ${msg} ${meta}`;
+
+      // Handle metadata
+      const { level, message, timestamp, ...rest } = info;
+      let meta = Object.keys(rest).length > 0 ? JSON.stringify(rest) : "";
+
+      return `${info.timestamp} [${info.level.toUpperCase()}]: ${msg}${meta ? " " + meta : ""}`;
     })
   ),
   transports: [new transports.Console()],
@@ -77,7 +87,7 @@ const getNowISO = function (tz = null) {
 
 const getNow = function (tz = null) {
   if (!tz) {
-    tz = 'UTC'
+    tz = 'UTC';
   }
   return DateTime.now().setZone(tz);
 };
@@ -106,7 +116,7 @@ async function httpGet(url, params = null, headers = null) {
 
 const buildDateTimeFromShortDate = function (shortDate, tz = DEFAULT_TIMEZONE) {
   return DateTime.fromFormat(shortDate, 'yyyy-LL-dd', { zone: tz });
-}
+};
 
 const buildDateRange = function (startDate, endDate, format = 'yyyy-LL-dd') {
   let dateRange = [];
@@ -119,7 +129,7 @@ const buildDateRange = function (startDate, endDate, format = 'yyyy-LL-dd') {
     currentDate = currentDate.plus({ days: 1 });
   }
   return dateRange;
-}
+};
 
 /**
  * Sends a message to a specified WebSocket connection using AWS API Gateway.
@@ -174,4 +184,4 @@ module.exports = {
   sendMessage,
   sendResponse,
   httpGet
-}
+};

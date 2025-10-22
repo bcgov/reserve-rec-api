@@ -1,5 +1,4 @@
 const cdk = require('aws-cdk-lib');
-const { StackContext } = require('../lib/stack-context.js');
 const { createAdminApiStack } = require('../lib/admin-api-stack/admin-api-stack.js');
 const { createAdminIdentityStack } = require('../lib/admin-identity-stack/admin-identity-stack.js');
 const { logger } = require('../lib/utils');
@@ -18,6 +17,7 @@ class CDKProject {
     this.stacks = {};
     this.roles = {};
     this.groups = {};
+    this.registeredRefs = new Map();
     this.progress = {
       completedStacks: [],
       failedStacks: [],
@@ -160,14 +160,24 @@ class CDKProject {
   async createStacks() {
     logger.info('Starting CDK application synthesis...\n');
 
-    await this.addStack('coreStack', createCoreStack);
-    await this.addStack('adminIdentityStack', createAdminIdentityStack);
-    await this.addStack('publicIdentityStack', createPublicIdentityStack);
-    await this.addStack('adminApiStack', createAdminApiStack);
-    await this.addStack('adminLambdaStack', createAdminLambdaStack);
-    await this.addStack('openSearchStack', createOpenSearchStack);
-    await this.addStack('referenceDataStack', createReferenceDataStack);
-    await this.addStack('roleAggregatorStack', createRoleAggregatorStack);
+    const coreStack = await this.addStack('coreStack', createCoreStack);
+    const adminIdentityStack = await this.addStack('adminIdentityStack', createAdminIdentityStack);
+    const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
+    const openSearchStack = await this.addStack('openSearchStack', createOpenSearchStack);
+    const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
+    const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
+    // const roleAggregatorStack = await this.addStack('roleAggregatorStack', createRoleAggregatorStack);
+
+    adminApiStack.addDependency(referenceDataStack);
+    openSearchStack.addDependency(adminIdentityStack);
+    openSearchStack.addDependency(publicIdentityStack);
+    referenceDataStack.addDependency(coreStack);
+    referenceDataStack.addDependency(openSearchStack);
+    adminIdentityStack.addDependency(coreStack);
+    publicIdentityStack.addDependency(coreStack);
+    // roleAggregatorStack.addDependency(adminIdentityStack);
+    // roleAggregatorStack.addDependency(publicIdentityStack);
+    // roleAggregatorStack.addDependency(openSearchStack);
 
   }
 
@@ -179,6 +189,7 @@ class CDKProject {
       this.stacks[stackKey] = await stackCreateFn(this, stackKey);
       this.progress.completedStacks.push(stackKey);
       logger.info(`Stack created: ${stackKey}\n`);
+      return this.stacks[stackKey];
     } catch (error) {
       this.progress.failedStacks.push(stackKey);
       if (this.context?.FAIL_FAST === 'true') {
