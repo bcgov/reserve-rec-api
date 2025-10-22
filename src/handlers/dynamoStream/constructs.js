@@ -25,6 +25,7 @@ class DynamoStreamConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_20_X,
       environment: props?.environment,
       role: props?.role,
+      layers: props?.layers || [],
     });
 
     // Add the stream event source to the function

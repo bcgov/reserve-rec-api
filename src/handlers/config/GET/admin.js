@@ -9,10 +9,8 @@ exports.handler = async (event, context) => {
   }
   try {
 
-    // assume public config if not specified
-    const configType = event.queryStringParameters?.config || 'public';
 
-    const configItem = await getOne('config', configType);
+    const configItem = await getOne('config', 'admin');
     return sendResponse(200, configItem, 'Success', null, context);
   } catch (err) {
     logger.error(err);
