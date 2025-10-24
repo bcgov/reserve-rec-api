@@ -2,7 +2,7 @@ const { Construct } = require('constructs');
 const lambda = require('aws-cdk-lib/aws-lambda');
 const lambdaEventSources = require('aws-cdk-lib/aws-lambda-event-sources');
 const { NodejsFunction } = require('aws-cdk-lib/aws-lambda-nodejs');
-const { logger } = require('../../../lib/utils');
+const { logger } = require('../../../lib/helpers/utils');
 
 class DynamoStreamConstruct extends Construct {
   constructor(scope, id, props) {
