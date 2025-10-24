@@ -1,7 +1,7 @@
 const cdk = require('aws-cdk-lib');
 const { createAdminApiStack } = require('../lib/admin-api-stack/admin-api-stack.js');
 const { createAdminIdentityStack } = require('../lib/admin-identity-stack/admin-identity-stack.js');
-const { logger } = require('../lib/utils');
+const { logger } = require('../lib/helpers/utils.js');
 const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
 const { createAdminLambdaStack } = require('../lib/admin-lambda-stack/admin-lambda-stack.js');
@@ -28,7 +28,16 @@ class CDKProject {
   }
 
   async buildProject() {
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`\x1b[36mAPP NAME:\x1b[0m ${this.getAppName()}`);
+    console.log(`\x1b[36mDEPLOYMENT NAME:\x1b[0m ${this.getDeploymentName()}`);
+    console.log(`\x1b[36mAWS REGION:\x1b[0m ${this.getRegion()}`);
+    console.log(`${'='.repeat(50)}\n`);
+    console.log(`Starting CDK application synthesis...\n`);
     await this.createStacks();
+    console.log(`\n${'='.repeat(50)}`);
+    this.summarizeProgress();
+    console.log(`${'='.repeat(50)}\n`);
   }
 
   getAppName() {
@@ -112,7 +121,7 @@ class CDKProject {
     }
     const construct = self.getConstructByKey(constructKey);
     if (!construct) {
-      logger.warn(`Construct ${constructKey} not found in stack ${self.stackKey}`);
+      throw new Error(`Construct ${constructKey} not found in stack ${self.stackKey}`);
     }
     return construct?.id || null;
   }
@@ -262,14 +271,14 @@ class CDKProject {
   }
 
   summarizeProgress() {
-    logger.info('CDK Application Synthesis Complete.');
-    logger.info(`Total Stacks: ${this.progress.totalStacks}`);
-    logger.info(`Completed Stacks: ${this.progress.completedStacks.length}`);
+    console.log('\x1b[32mCDK Application Synthesis Complete.\x1b[0m');
+    console.log(`\x1b[36mTotal Stacks:\x1b[0m ${this.progress.totalStacks}`);
+    console.log(`\x1b[36mCompleted Stacks:\x1b[0m ${this.progress.completedStacks.length}`);
     if (this.progress.failedStacks.length > 0) {
-      logger.warn(`Failed Stacks: ${this.progress.failedStacks.length}`);
-      logger.warn(`Failed Stack Keys: ${this.progress.failedStacks.join(', ')}`);
+      console.log(`\x1b[33mFailed Stacks:\x1b[0m ${this.progress.failedStacks.length}`);
+      console.log(`\x1b[33mFailed Stack Keys:\x1b[0m ${this.progress.failedStacks.join(', ')}`);
     } else {
-      logger.info('All stacks created successfully.');
+      console.log('\x1b[32mAll stacks created successfully.\x1b[0m');
     }
   }
 }
@@ -278,6 +287,7 @@ async function run() {
   const project = new CDKProject();
   try {
     await project.buildProject();
+    // await updateAppConfigItems(project);
   } catch (error) {
     logger.error('Error during CDK application synthesis:', error);
   }

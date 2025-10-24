@@ -37,14 +37,16 @@ class SAMTemplateGenerator {
 
     /**
      * Find all CloudFormation template files in the cdk.out directory
+     * Only includes templates for the local environment (containing "-Local-" in the name)
      */
     findTemplateFiles() {
         const files = fs.readdirSync(this.cdkOutDir);
         this.templateFiles = files
             .filter(file => file.endsWith('.template.json'))
+            .filter(file => file.includes('-Local-'))
             .map(file => path.join(this.cdkOutDir, file));
 
-        console.log(`📁 Found ${this.templateFiles.length} CloudFormation template files:`);
+        console.log(`📁 Found ${this.templateFiles.length} local environment CloudFormation template files:`);
         this.templateFiles.forEach(file => console.log(`   - ${path.basename(file)}`));
     }
 

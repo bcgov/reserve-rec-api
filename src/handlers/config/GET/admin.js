@@ -8,8 +8,6 @@ exports.handler = async (event, context) => {
     return sendResponse(200, {}, 'Success', null, context);
   }
   try {
-
-
     const configItem = await getOne('config', 'admin');
     return sendResponse(200, configItem, 'Success', null, context);
   } catch (err) {

@@ -27,7 +27,13 @@ const logger = createLogger({
 
       // Handle metadata
       const { level, message, timestamp, ...rest } = info;
-      let meta = Object.keys(rest).length > 0 ? JSON.stringify(rest) : "";
+      let restStr = '';
+      try {
+        restStr = JSON.stringify(rest)
+      } catch {
+        restStr = String(rest)
+      }
+      let meta = Object.keys(rest).length > 0 ? restStr : "";
 
       return `${info.timestamp} [${info.level.toUpperCase()}]: ${msg}${meta ? " " + meta : ""}`;
     })
