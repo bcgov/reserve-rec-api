@@ -39,7 +39,7 @@ exports.handler = async function (event, context) {
     logger.debug('Response:', response); // Log the response
 
     // Send a success response
-    return sendResponse(200, response.body.hits, 'Success', null, context);
+    return sendResponse(200, response?.body?.hits, 'Success', null, context);
   } catch (err) {
     logger.error(JSON.stringify(err)); // Log the error
 
