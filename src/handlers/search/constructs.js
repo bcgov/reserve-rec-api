@@ -2,14 +2,13 @@ const lambda = require('aws-cdk-lib/aws-lambda');
 const { Duration } = require('aws-cdk-lib');
 const apigateway = require('aws-cdk-lib/aws-apigateway');
 const iam = require('aws-cdk-lib/aws-iam');
-const { Construct } = require('constructs');
+const { LambdaConstruct } = require('../../../lib/helpers/base-lambda');
 
-class AdminSearchLambda extends Construct {
+class AdminSearchLambda extends LambdaConstruct {
   constructor(scope, id, props) {
-    const constructId = scope.createScopedId(id);
-    super(scope, constructId, props);
+    super(scope, id, props);
 
-    const api = props?.api;
+    const api = this.resolveApi();
     const domainArn = props?.opensearchDomainArn;
 
     if (!api) {
@@ -20,8 +19,8 @@ class AdminSearchLambda extends Construct {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'admin.handler',
       code: lambda.Code.fromAsset('src/handlers/search/POST'),
-      layers: props?.layers || [],
-      environment: props?.environment || {},
+      layers: this.resolveLayers(),
+      environment: this.resolveEnvironment(),
       description: `Handles search requests for the api: ${api?.restApiName}`,
       functionName: id,
       timeout: Duration.seconds(10),
@@ -31,7 +30,10 @@ class AdminSearchLambda extends Construct {
     this.searchResource = api.root.addResource('search');
 
     // Add POST method to /search resource
-    this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchFunction), {});
+    this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchFunction), {
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
     // Add OpenSearch policy to the function
     const openSearchPostPolicy = new iam.PolicyStatement({
