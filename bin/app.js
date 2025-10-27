@@ -4,10 +4,8 @@ const { createAdminIdentityStack } = require('../lib/admin-identity-stack/admin-
 const { logger } = require('../lib/helpers/utils.js');
 const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
-const { createAdminLambdaStack } = require('../lib/admin-lambda-stack/admin-lambda-stack.js');
 const { createOpenSearchStack } = require('../lib/opensearch-stack/opensearch-stack.js');
 const { createReferenceDataStack } = require('../lib/reference-data-stack/reference-data-stack.js');
-const { createRoleAggregatorStack } = require('../lib/role-aggregator-stack/role-aggregator-stack.js');
 
 class CDKProject {
   constructor() {
@@ -267,7 +265,7 @@ class CDKProject {
   }
 
   createScopedId(id, suffix = 'Construct') {
-    return id + suffix;
+    return id + '-' + suffix;
   }
 
   summarizeProgress() {

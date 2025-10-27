@@ -4,6 +4,10 @@ const { TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
 exports.handler = async (event, context) => {
   logger.info('Batch Delete Protected Areas by ORCS', event);
   try {
+
+    // TODO: reimplement when we know we want this
+    return sendResponse(200, null, 'Not Implemented', null, context);
+
     const body = JSON.parse(event?.body);
     if (!body) {
       throw new Exception('Body is required', { code: 400 });
