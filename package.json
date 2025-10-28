@@ -4,18 +4,20 @@
   "bin": {
     "app": "bin/app.js"
   },
+  "license": "Apache-2.0",
   "scripts": {
     "build": "echo \"The build step is not required when using JavaScript!\" && exit 0",
     "cdk": "cdk",
     "test": "jest",
     "synth:local": "cdk synth -c @context=local --all",
-    "build:admin": "node ./scripts/generate-sam-templates.js",
-    "synth:dev": "cdk synth -c @context=dev --all",
-    "deploy:dev": "cdk deploy -c @context=dev --all",
+    "build:admin": "node ./src/scripts/tools/local-testing/generate-sam-templates.js",
+    "synth:dev": "cdk synth -c @context=dev -q --all",
+    "deploy:dev": "cdk deploy -q -c @context=dev --all",
     "run:admin": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-AdminApiStack-AdminApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "run:admin:full": "yarn synth:local && yarn build:admin && yarn run:admin"
   },
   "devDependencies": {
+    "esbuild": "^0.25.11",
     "jest": "^29.7.0"
   },
   "dependencies": {

@@ -2,7 +2,7 @@
  * Functionality & utils for protected areas
  */
 
-const { TABLE_NAME, getOne, runQuery } = require('/opt/dynamodb');
+const { REFERENCE_DATA_TABLE_NAME, getOne, runQuery } = require('/opt/dynamodb');
 const { Exception, logger } = require('/opt/base');
 
 /**
@@ -17,24 +17,26 @@ const { Exception, logger } = require('/opt/base');
  * @throws {Exception} If there is an error retrieving protected areas.
  */
 async function getProtectedAreas(params) {
-  logger.info('Get Protected Areas: params = ', params);
+  logger.info(`Get Protected Areas: params = ${params}`);
   try {
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     // Get protected areas
     const queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: 'pk = :pk',
       ExpressionAttributeValues: {
         ':pk': { S: 'protectedArea' },
       },
     };
+    console.log('queryObj:', queryObj);
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
+    console.log('res:', res);
     logger.info(`Protected Areas: ${res?.items?.length} found.`);
     return res;
   } catch (error) {
-    throw new Exception('Error getting protected areas', { code: 400, error: error });
+    throw new Exception('Error getting protected areas', { code: 400, error: JSON.stringify(error) });
   }
 }
 

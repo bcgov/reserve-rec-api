@@ -1,5 +1,5 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
   logger.info('Batch Delete Protected Areas by ORCS', event);
@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
       let deleteCommand = {
         action: 'Delete',
         data: {
-          TableName: TABLE_NAME,
+          TableName: REFERENCE_DATA_TABLE_NAME,
           Key: marshall({ pk: pk, sk: sk }),
           ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
         }

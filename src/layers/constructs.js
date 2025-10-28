@@ -2,7 +2,7 @@ const lambda = require('aws-cdk-lib/aws-lambda');
 const { RemovalPolicy } = require('aws-cdk-lib');
 const { Construct } = require('constructs');
 const path = require('path');
-const { buildDist } = require('../tools/bundling/yarnBundler');
+const { buildDist } = require('../scripts/tools/bundling/yarnBundler');
 
 const LAMBDA_BASE_LAYER_PATH = './base';
 const LAMBDA_AWS_LAYER_PATH = './awsUtils';

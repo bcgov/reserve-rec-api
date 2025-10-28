@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiPutHandler } = require("/opt/data-utils");
 const { PROTECTED_AREA_API_PUT_CONFIG } = require("../../configs");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
   logger.info('Post single Protected Area ID', event);
@@ -12,7 +12,7 @@ exports.handler = async (event, context) => {
     }
 
     const orcs = Number(event?.pathParameters?.orcs);
-    
+
     if (!orcs) {
       throw new Exception('ORCS is required', { code: 400 });
     }
@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
     };
 
     // Use quickApiUpdateHandler to create the update item
-    const postItems = await quickApiPutHandler(TABLE_NAME, [postItem], PROTECTED_AREA_API_PUT_CONFIG);
+    const postItems = await quickApiPutHandler(REFERENCE_DATA_TABLE_NAME, [postItem], PROTECTED_AREA_API_PUT_CONFIG);
 
     // Use batchTransactData to update the database
     const res = await batchTransactData(postItems);

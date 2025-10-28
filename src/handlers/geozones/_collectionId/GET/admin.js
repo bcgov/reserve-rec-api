@@ -41,6 +41,8 @@ exports.handler = async (event, context) => {
       }
     });
 
+    let res = null;
+
     if (geozoneId) {
       res = await getGeozonesByGeozoneId(
         collectionId,
@@ -57,6 +59,8 @@ exports.handler = async (event, context) => {
         event?.queryStringParameters || null
       );
     }
+
+    console.log('res:', res);
 
     return sendResponse(200, res, "Success", null, context);
   } catch (error) {

@@ -1,5 +1,5 @@
 const {
-  TABLE_NAME,
+  REFERENCE_DATA_TABLE_NAME,
   runQuery,
   marshall,
   incrementCounter
@@ -78,7 +78,7 @@ async function getGeozonesByCollectionId(
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
         ":pk": { S: `geozone::${collectionId}` },
@@ -88,12 +88,12 @@ async function getGeozonesByCollectionId(
     queryObj = addFilters(queryObj, filters);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
-    
+
     // Filter out the counter item
     if (res?.items) {
       res.items = res.items.filter(item => item.sk !== 'counter');
     }
-    
+
     logger.info(`Geozones: ${res?.items?.length} found.`);
     return res;
   } catch (error) {
@@ -135,7 +135,7 @@ async function getGeozonesByGeozoneId(
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
         ":pk": { S: `geozone::${collectionId}` },

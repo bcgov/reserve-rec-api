@@ -1,9 +1,5 @@
-const { NodejsFunction } = require("aws-cdk-lib/aws-lambda-nodejs");
 const { LambdaConstruct } = require("../../../lib/helpers/base-lambda");
-const { logger } = require("../../../lib/helpers/utils");
 const apigw = require("aws-cdk-lib/aws-apigateway");
-const lambda = require("aws-cdk-lib/aws-lambda");
-const { Duration } = require("aws-cdk-lib");
 
 const defaults = {
   resources: {

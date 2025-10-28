@@ -6,7 +6,7 @@ const { NodejsFunction } = require("aws-cdk-lib/aws-lambda-nodejs");
 const apigw = require('aws-cdk-lib/aws-apigateway');
 const { Duration } = require('aws-cdk-lib');
 const { Code, Runtime } = require('aws-cdk-lib/aws-lambda');
-const { buildDist } = require('../../tools/bundling/yarnBundler');
+const { buildDist } = require('../../scripts/tools/bundling/yarnBundler');
 const { Construct } = require('constructs');
 const path = require('path');
 
@@ -44,6 +44,9 @@ class AdminAuthorizerConstruct extends Construct {
       authorizerName: requestAuthorizerId,
       handler: this.adminAuthorizerFunction,
       identitySources: [apigw.IdentitySource.header('Authorization')],
+      // TODO: Adjust the TTL values as needed.
+      // TTL is currently disabled to ensure each request is freshly authorized.
+      resultsCacheTtl: Duration.seconds(0),
     });
 
   }

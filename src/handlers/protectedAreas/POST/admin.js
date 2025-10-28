@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiPutHandler } = require("/opt/data-utils");
 const { PROTECTED_AREA_API_PUT_CONFIG } = require("../configs");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
   logger.info('Put batch Protected Areas', event);
@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
       if (!item?.orcs) {
         throw new Exception('ORCS is required for each item', { code: 400 });
       }
-      
+
       const sk = String(item?.orcs);
 
       item.pk = 'protectedArea';
@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
     }
 
     // Use quickApiPutHandler to create the put items
-    const putItems = await quickApiPutHandler(TABLE_NAME, putRequests, PROTECTED_AREA_API_PUT_CONFIG);
+    const putItems = await quickApiPutHandler(REFERENCE_DATA_TABLE_NAME, putRequests, PROTECTED_AREA_API_PUT_CONFIG);
 
     // Use batchTransactData to put the database
     const res = await batchTransactData(putItems);

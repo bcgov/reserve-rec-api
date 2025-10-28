@@ -1,5 +1,5 @@
-const { rulesFns } = require('/opt/validation-rules');
-const { TIMEZONE_ENUMS } = require('/opt/data-constants');
+const { rulesFns } = require('../../common/validation-rules');
+const { TIMEZONE_ENUMS } = require('../../common/data-constants');
 
 const rf = new rulesFns();
 
