@@ -7,7 +7,7 @@ const { logger } = require('/opt/base');
 // Import necessary libraries and modules
 const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
 const OPENSEARCH_REFERENCE_DATA_INDEX_NAME = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'reference-data-index';
-const OPENSEARCH_AUDIT_INDEX_NAME = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'audit-index';
+const OPENSEARCH_AUDIT_INDEX_NAME = process.env.OPENSEARCH_AUDIT_INDEX_NAME || 'audit-index';
 const OPENSEARCH_BOOKING_INDEX_NAME = process.env.OPENSEARCH_BOOKING_INDEX_NAME || 'booking-index';
 const OPENSEARCH_DEFAULT_SORT_ORDER = 'asc'; // asc or desc
 const DEFAULT_RESULT_SIZE = 10;

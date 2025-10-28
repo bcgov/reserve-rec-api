@@ -75,13 +75,13 @@ function getAuthorizationToken(normalizedEvent) {
 }
 
 exports.handler = async function (event, context, callback) {
-  logger.debug('Admin Authorizer', JSON.stringify(event));
+  logger.debug(`Admin Authorizer: ${JSON.stringify(event)}`);
 
   // Normalize the event format
   const normalizedEvent = normalizeAuthorizerEvent(event);
-  logger.debug('Normalized event authorizer type:', normalizedEvent.authorizerType);
-  logger.debug('Normalized event payload version:', normalizedEvent.payloadVersion);
-  logger.debug('Normalized headers:', normalizedEvent.headers);
+  logger.debug(`Normalized event authorizer type: ${normalizedEvent.authorizerType}`);
+  logger.debug(`Normalized event payload version: ${JSON.stringify(normalizedEvent.payloadVersion)}`);
+  logger.debug(`Normalized headers: ${JSON.stringify(normalizedEvent.headers)}`);
 
   // Get config creds
   let config = {
@@ -108,7 +108,7 @@ exports.handler = async function (event, context, callback) {
     const authorization = getAuthorizationToken(normalizedEvent);
 
     // Parse the input for methodArn
-    logger.debug('event.methodArn', normalizedEvent.methodArn);
+    logger.debug(`event.methodArn, ${normalizedEvent.methodArn}`);
     const tmp = normalizedEvent.methodArn.split(':');
     const apiGatewayArnTmp = tmp[5].split('/');
     const region = tmp[3];
@@ -118,6 +118,7 @@ exports.handler = async function (event, context, callback) {
     // determine the resource path
     let resource = '/'; // root resource
     let pathParams = tmp[5].split('/');
+    logger.debug(`pathParams: ${pathParams}`);
     for (let i = 3; i < pathParams.length; i++) {
       resource += pathParams[i];
       if (i + 1 < pathParams.length) {
@@ -127,10 +128,10 @@ exports.handler = async function (event, context, callback) {
 
     logger.info("Parse Token");
     const tokenData = await parseToken(headers, authorization);
-    logger.debug("tokenData:", tokenData);
+    logger.debug(`tokenData: ${tokenData}`);
     if (tokenData?.valid && tokenData?.valid === true) {
       const payload = await validateToken(verifier, tokenData.token);
-      logger.debug("payload:", payload);
+      logger.debug(`payload: ${payload}`);
 
       // For now, so long as the token is valid, we will allow the user.
       // Later we will check group membership.

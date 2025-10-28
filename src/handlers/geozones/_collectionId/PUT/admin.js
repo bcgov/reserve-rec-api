@@ -1,8 +1,8 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { GEOZONE_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {put} /geozones/{collectionId} PUT
@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
 
     // Use quickApiPutHandler to create the put items
     const updateItems = await quickApiUpdateHandler(
-      TABLE_NAME,
+      REFERENCE_DATA_TABLE_NAME,
       updateRequests,
       GEOZONE_API_UPDATE_CONFIG
     );

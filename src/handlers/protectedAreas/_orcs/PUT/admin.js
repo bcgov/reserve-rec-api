@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { PROTECTED_AREA_API_UPDATE_CONFIG } = require("../../configs");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
   logger.info('Put single Protected Areas', event);
@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
     };
 
     // Use quickApiUpdateHandler to create the update item
-    const updateItems = await quickApiUpdateHandler(TABLE_NAME, [updateItem], PROTECTED_AREA_API_UPDATE_CONFIG);
+    const updateItems = await quickApiUpdateHandler(REFERENCE_DATA_TABLE_NAME, [updateItem], PROTECTED_AREA_API_UPDATE_CONFIG);
 
     // Use batchTransactData to update the database
     const res = await batchTransactData(updateItems);

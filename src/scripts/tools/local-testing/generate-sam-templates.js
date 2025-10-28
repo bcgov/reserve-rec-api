@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 class SAMTemplateGenerator {
-    constructor(cdkOutDir) {
+    constructor(cdkOutDir, options = {}) {
         this.cdkOutDir = cdkOutDir;
         this.templateFiles = [];
         this.apis = new Map();
@@ -13,6 +13,66 @@ class SAMTemplateGenerator {
         this.apiAuthorizers = new Map();
         this.assetMapping = new Map();
         this.layerImportMapping = new Map();
+
+        // Environment configuration options
+        this.environmentConfig = this.buildEnvironmentConfig(options);
+    }
+
+    /**
+     * Build environment configuration with defaults and overrides
+     */
+    buildEnvironmentConfig(options = {}) {
+        // Load default local configuration from file
+        const defaultConfig = this.loadDefaultConfiguration();
+
+        // Start with base local configuration
+        let config = { ...defaultConfig };
+
+        // Override with any custom environment variables provided via CLI
+        if (options.customEnvironment) {
+            config = { ...config, ...options.customEnvironment };
+        }
+
+        return config;
+    }
+
+    /**
+     * Load default local configuration from sam-config.json
+     */
+    loadDefaultConfiguration() {
+        const configPath = path.join(__dirname, 'sam-config.json');
+
+        try {
+            if (fs.existsSync(configPath)) {
+                const content = fs.readFileSync(configPath, 'utf8');
+                return JSON.parse(content);
+            }
+        } catch (error) {
+            console.warn(`⚠️  Warning: Could not load default config from ${configPath}: ${error.message}`);
+        }
+
+        // Fallback to hardcoded local defaults if config file doesn't exist
+        return {
+            AWS_ACCESS_KEY_ID: 'dummy',
+            AWS_SECRET_ACCESS_KEY: 'dummy',
+            AWS_DEFAULT_REGION: 'ca-central-1',
+            AWS_REGION: 'ca-central-1',
+            DYNAMODB_ENDPOINT_URL: 'http://localhost:8000',
+            TABLE_NAME: 'reserve-rec-local',
+            AUDIT_TABLE_NAME: 'Audit-local',
+            PUBSUB_TABLE_NAME: 'reserve-rec-pubsub-local',
+            REFERENCE_DATA_TABLE_NAME: 'reference-data-local',
+            GLOBALID_INDEX_NAME: 'globalId-index',
+            OPENSEARCH_DOMAIN_ENDPOINT: 'http://localhost:9200',
+            OPENSEARCH_REFERENCE_DATA_INDEX_NAME: 'reference-data-index',
+            OPENSEARCH_AUDIT_INDEX_NAME: 'audit-index',
+            OPENSEARCH_BOOKING_INDEX_NAME: 'booking-index',
+            OPENSEARCH_DOMAIN_NAME: 'local-opensearch-domain',
+            IS_OFFLINE: 'true',
+            NODE_ENV: 'development',
+            LOG_LEVEL: 'debug',
+            TZ: 'America/Vancouver'
+        };
     }
 
     /**
@@ -117,7 +177,7 @@ class SAMTemplateGenerator {
                 apiInfo.resources.push({
                     resourceId,
                     pathPart: resource.Properties.PathPart,
-                    parentId: resource.Properties.ParentId
+                    parentId: this.extractParentId(resource.Properties.ParentId)
                 });
             }
 
@@ -143,6 +203,22 @@ class SAMTemplateGenerator {
                 apiInfo.methods.push(methodInfo);
             }
         });
+    }
+
+    /**
+     * Extract parent ID from CloudFormation reference
+     */
+    extractParentId(parentIdRef) {
+        if (!parentIdRef) return null;
+
+        if (parentIdRef.Ref) {
+            return parentIdRef.Ref;
+        } else if (parentIdRef['Fn::GetAtt']) {
+            // This is the root resource, we'll treat it as null parent
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -192,11 +268,20 @@ class SAMTemplateGenerator {
             return '/';
         }
 
-        // Build path by traversing up the resource hierarchy
-        let path = '/' + resource.pathPart;
-        // For simplicity, just return the immediate path part
-        // In a full implementation, you'd recursively build the full path
-        return path;
+        // Recursively build the full path by traversing up the parent resources
+        let parts = [];
+        let current = resource;
+        while (current) {
+            if (current.pathPart) {
+                parts.unshift(current.pathPart);
+            }
+            if (current.parentId) {
+                current = apiInfo.resources.find(r => r.resourceId === current.parentId);
+            } else {
+                break;
+            }
+        }
+        return '/' + parts.join('/');
     }
 
     /**
@@ -313,6 +398,26 @@ class SAMTemplateGenerator {
     }
 
     /**
+     * Get layer source path for simplified layer names
+     */
+    getLayerSourcePath(layerType) {
+        const projectRoot = path.resolve(this.cdkOutDir, '..');
+
+        switch(layerType) {
+            case 'BaseLayer':
+                return path.join(projectRoot, 'src/layers/base');
+            case 'AwsUtilsLayer':
+                return path.join(projectRoot, 'src/layers/awsUtils');
+            case 'DataUtilsLayer':
+                return path.join(projectRoot, 'src/layers/dataUtils');
+            case 'JwtLayer':
+                return path.join(projectRoot, 'src/layers/jwt');
+            default:
+                return './';
+        }
+    }
+
+    /**
      * Map layer description to source directory
      */
     mapLayerToSourceDirectory(layerInfo) {
@@ -337,29 +442,7 @@ class SAMTemplateGenerator {
      * Get layer-required environment variables for functions that use layers
      */
     getLayerRequiredEnvironmentVariables() {
-        return {
-            // AWS SDK Configuration - required by awsUtils layer
-            AWS_ACCESS_KEY_ID: 'dummy',
-            AWS_SECRET_ACCESS_KEY: 'dummy',
-            AWS_DEFAULT_REGION: 'ca-central-1',
-            AWS_REGION: 'ca-central-1',
-
-            // DynamoDB Configuration - required by awsUtils layer
-            DYNAMODB_ENDPOINT_URL: 'http://localhost:8000',
-            TABLE_NAME: 'reserve-rec-local',
-            AUDIT_TABLE_NAME: 'Audit-local',
-            PUBSUB_TABLE_NAME: 'reserve-rec-pubsub-local',
-
-            // Local development flags - required by layer conditional logic
-            IS_OFFLINE: 'true',
-            NODE_ENV: 'development',
-
-            // Logging - used by base layer
-            LOG_LEVEL: 'debug',
-
-            // Other common environment variables
-            TZ: 'America/Vancouver'
-        };
+        return { ...this.environmentConfig };
     }
 
     /**
@@ -529,11 +612,14 @@ class SAMTemplateGenerator {
         };
 
         // Add authorizers to API definition if any exist
+        // Skip authorizers for local development to bypass authentication
         const apiAuthorizers = this.getAuthorizersForAPI(apiInfo);
         if (Object.keys(apiAuthorizers).length > 0) {
-            apiDefinition.Properties.Auth = {
-                Authorizers: apiAuthorizers
-            };
+            // For local development, skip adding authorizers to bypass authentication
+            console.log(`   🔓 Skipping ${Object.keys(apiAuthorizers).length} API authorizer(s) for local development`);
+            // apiDefinition.Properties.Auth = {
+            //     Authorizers: apiAuthorizers
+            // };
         }
 
         samTemplate.Resources[apiInfo.resourceId] = apiDefinition;
@@ -618,14 +704,17 @@ class SAMTemplateGenerator {
                         };
 
                         // Add authorizer reference if method uses custom authorization
+                        // Skip authorizers for local development to bypass authentication
                         if (method.authorizationType === 'CUSTOM' && method.authorizerId) {
                             const authorizerResourceId = method.authorizerId.Ref;
                             const authorizerInfo = this.apiAuthorizers.get(authorizerResourceId);
                             if (authorizerInfo && authorizerInfo.samAuthorizerName) {
-                                eventProperties.Properties.Auth = {
-                                    Authorizer: authorizerInfo.samAuthorizerName
-                                };
-                                console.log(`     🔐 Added authorizer to event: ${authorizerInfo.samAuthorizerName}`);
+                                // For local development, skip adding authorizers to bypass authentication
+                                console.log(`     🔓 Skipping authorizer for local development: ${authorizerInfo.samAuthorizerName}`);
+                                // eventProperties.Properties.Auth = {
+                                //     Authorizer: authorizerInfo.samAuthorizerName
+                                // };
+                                // console.log(`     🔐 Added authorizer to event: ${authorizerInfo.samAuthorizerName}`);
                             }
                         }
 
@@ -650,13 +739,47 @@ class SAMTemplateGenerator {
                 // Find the corresponding layer resource ID
                 const layerResourceId = this.layerImportMapping.get(layerRef.value);
                 if (layerResourceId) {
-                    return { Ref: layerResourceId };
+                    // For local development, check if this is an SSM parameter reference
+                    if (layerResourceId.includes('SsmParameterValue')) {
+                        // For SSM parameter references, create a simplified local layer reference
+                        // Extract the layer type from the parameter name
+                        let layerType = 'unknown';
+                        if (layerResourceId.includes('baseLayer')) {
+                            layerType = 'BaseLayer';
+                        } else if (layerResourceId.includes('awsUtilsLayer')) {
+                            layerType = 'AwsUtilsLayer';
+                        } else if (layerResourceId.includes('dataUtilsLayer')) {
+                            layerType = 'DataUtilsLayer';
+                        } else if (layerResourceId.includes('jwtLayer')) {
+                            layerType = 'JwtLayer';
+                        }
+
+                        // Return a simplified reference that SAM can understand
+                        return { Ref: layerType };
+                    } else {
+                        return { Ref: layerResourceId };
+                    }
                 } else {
                     console.log(`     ⚠️  Could not resolve layer import: ${layerRef.value}`);
                     return null;
                 }
             } else if (layerRef.type === 'ref') {
-                return { Ref: layerRef.value };
+                // Check if this is an SSM parameter reference
+                if (layerRef.value.includes('SsmParameterValue')) {
+                    let layerType = 'unknown';
+                    if (layerRef.value.includes('baseLayer')) {
+                        layerType = 'BaseLayer';
+                    } else if (layerRef.value.includes('awsUtilsLayer')) {
+                        layerType = 'AwsUtilsLayer';
+                    } else if (layerRef.value.includes('dataUtilsLayer')) {
+                        layerType = 'DataUtilsLayer';
+                    } else if (layerRef.value.includes('jwtLayer')) {
+                        layerType = 'JwtLayer';
+                    }
+                    return { Ref: layerType };
+                } else {
+                    return { Ref: layerRef.value };
+                }
             } else if (layerRef.type === 'getatt') {
                 return { Ref: layerRef.value };
             } else if (layerRef.type === 'direct') {
@@ -709,28 +832,46 @@ class SAMTemplateGenerator {
 
         // Add each referenced layer to the SAM template
         referencedLayers.forEach(layerResourceId => {
-            const layerInfo = this.lambdaLayers.get(layerResourceId);
-            if (layerInfo && !processedLayers.has(layerResourceId)) {
-                // Use source directory mapping for local development
-                const sourceContentUri = this.mapLayerToSourceDirectory(layerInfo);
-
-                samTemplate.Resources[layerResourceId] = {
-                    Type: 'AWS::Serverless::LayerVersion',
-                    Properties: {
-                        ContentUri: sourceContentUri,
-                        CompatibleRuntimes: layerInfo.compatibleRuntimes,
-                        Description: layerInfo.description || `Layer from ${layerInfo.stackName}`
-                    }
-                };
-
-                if (layerInfo.licenseInfo) {
-                    samTemplate.Resources[layerResourceId].Properties.LicenseInfo = layerInfo.licenseInfo;
+            // Check if this is a simplified layer name
+            if (['BaseLayer', 'AwsUtilsLayer', 'DataUtilsLayer', 'JwtLayer'].includes(layerResourceId)) {
+                if (!processedLayers.has(layerResourceId)) {
+                    const sourceContentUri = this.getLayerSourcePath(layerResourceId);
+                    samTemplate.Resources[layerResourceId] = {
+                        Type: 'AWS::Serverless::LayerVersion',
+                        Properties: {
+                            ContentUri: sourceContentUri,
+                            CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x'],
+                            Description: `${layerResourceId} for local development`
+                        }
+                    };
+                    processedLayers.add(layerResourceId);
+                    console.log(`   📦 Added simplified layer to SAM template: ${layerResourceId} -> ${sourceContentUri}`);
                 }
+            } else {
+                // Handle regular layer resources
+                const layerInfo = this.lambdaLayers.get(layerResourceId);
+                if (layerInfo && !processedLayers.has(layerResourceId)) {
+                    // Use source directory mapping for local development
+                    const sourceContentUri = this.mapLayerToSourceDirectory(layerInfo);
 
-                processedLayers.add(layerResourceId);
-                console.log(`   📦 Added layer to SAM template: ${layerResourceId} -> ${sourceContentUri}`);
-            } else if (!layerInfo) {
-                console.log(`   ⚠️  Layer ${layerResourceId} not found in collected layers - may be from external stack`);
+                    samTemplate.Resources[layerResourceId] = {
+                        Type: 'AWS::Serverless::LayerVersion',
+                        Properties: {
+                            ContentUri: sourceContentUri,
+                            CompatibleRuntimes: layerInfo.compatibleRuntimes,
+                            Description: layerInfo.description || `Layer from ${layerInfo.stackName}`
+                        }
+                    };
+
+                    if (layerInfo.licenseInfo) {
+                        samTemplate.Resources[layerResourceId].Properties.LicenseInfo = layerInfo.licenseInfo;
+                    }
+
+                    processedLayers.add(layerResourceId);
+                    console.log(`   📦 Added layer to SAM template: ${layerResourceId} -> ${sourceContentUri}`);
+                } else if (!layerInfo) {
+                    console.log(`   ⚠️  Layer ${layerResourceId} not found in collected layers - may be from external stack`);
+                }
             }
         });
 
@@ -746,14 +887,58 @@ class SAMTemplateGenerator {
         if (layerRef.type === 'import') {
             const layerResourceId = this.layerImportMapping.get(layerRef.value);
             if (layerResourceId) {
-                referencedLayers.add(layerResourceId);
-                console.log(`     📦 Found imported layer: ${layerRef.value} -> ${layerResourceId}`);
+                // Check if this is an SSM parameter reference and convert to simplified name
+                if (layerResourceId.includes('SsmParameterValue')) {
+                    let simplifiedLayerName = null;
+                    if (layerResourceId.includes('baseLayer')) {
+                        simplifiedLayerName = 'BaseLayer';
+                    } else if (layerResourceId.includes('awsUtilsLayer')) {
+                        simplifiedLayerName = 'AwsUtilsLayer';
+                    } else if (layerResourceId.includes('dataUtilsLayer')) {
+                        simplifiedLayerName = 'DataUtilsLayer';
+                    } else if (layerResourceId.includes('jwtLayer')) {
+                        simplifiedLayerName = 'JwtLayer';
+                    }
+
+                    if (simplifiedLayerName) {
+                        referencedLayers.add(simplifiedLayerName);
+                        console.log(`     📦 Found imported layer (simplified): ${layerRef.value} -> ${simplifiedLayerName}`);
+                    } else {
+                        referencedLayers.add(layerResourceId);
+                        console.log(`     📦 Found imported layer: ${layerRef.value} -> ${layerResourceId}`);
+                    }
+                } else {
+                    referencedLayers.add(layerResourceId);
+                    console.log(`     📦 Found imported layer: ${layerRef.value} -> ${layerResourceId}`);
+                }
             } else {
                 console.log(`     ⚠️  Import mapping not found for layer: ${layerRef.value}`);
             }
         } else if (layerRef.type === 'ref' || layerRef.type === 'getatt') {
-            referencedLayers.add(layerRef.value);
-            console.log(`     📦 Found direct layer reference: ${layerRef.value}`);
+            // Check if this is an SSM parameter reference
+            if (layerRef.value.includes('SsmParameterValue')) {
+                let simplifiedLayerName = null;
+                if (layerRef.value.includes('baseLayer')) {
+                    simplifiedLayerName = 'BaseLayer';
+                } else if (layerRef.value.includes('awsUtilsLayer')) {
+                    simplifiedLayerName = 'AwsUtilsLayer';
+                } else if (layerRef.value.includes('dataUtilsLayer')) {
+                    simplifiedLayerName = 'DataUtilsLayer';
+                } else if (layerRef.value.includes('jwtLayer')) {
+                    simplifiedLayerName = 'JwtLayer';
+                }
+
+                if (simplifiedLayerName) {
+                    referencedLayers.add(simplifiedLayerName);
+                    console.log(`     📦 Found direct layer reference (simplified): ${layerRef.value} -> ${simplifiedLayerName}`);
+                } else {
+                    referencedLayers.add(layerRef.value);
+                    console.log(`     📦 Found direct layer reference: ${layerRef.value}`);
+                }
+            } else {
+                referencedLayers.add(layerRef.value);
+                console.log(`     📦 Found direct layer reference: ${layerRef.value}`);
+            }
         }
     }
 
@@ -922,6 +1107,7 @@ class SAMTemplateGenerator {
 
     /**
      * Add authorizers to SAM template (for authorizer functions)
+     * Skip for local development to bypass authentication
      */
     addAuthorizersToSAM(samTemplate, apiInfo) {
         const processedAuthorizerFunctions = new Set();
@@ -934,30 +1120,34 @@ class SAMTemplateGenerator {
                 const lambdaFunction = this.findAuthorizerLambda(authorizerInfo.authorizerUri);
 
                 if (lambdaFunction && !processedAuthorizerFunctions.has(lambdaFunction.resourceId)) {
-                    // Add the authorizer Lambda function to the template
-                    // Merge global environment variables with function-specific ones, considering layer requirements
-                    const mergedEnvironment = this.mergeEnvironmentVariables(lambdaFunction.environment, lambdaFunction.layers);
-
-                    samTemplate.Resources[lambdaFunction.resourceId] = {
-                        Type: 'AWS::Serverless::Function',
-                        Properties: {
-                            CodeUri: lambdaFunction.codeUri,
-                            Handler: lambdaFunction.handler,
-                            Runtime: lambdaFunction.runtime,
-                            Environment: {
-                                Variables: mergedEnvironment
-                            }
-                        }
-                    };
-
-                    // Add layers if any
-                    const resolvedLayers = this.resolveLambdaLayers(lambdaFunction.layers);
-                    if (resolvedLayers.length > 0) {
-                        samTemplate.Resources[lambdaFunction.resourceId].Properties.Layers = resolvedLayers;
-                    }
-
+                    // Skip adding authorizer Lambda functions for local development
                     processedAuthorizerFunctions.add(lambdaFunction.resourceId);
-                    console.log(`   🔐 Added authorizer Lambda function: ${lambdaFunction.resourceId}`);
+                    console.log(`   🔓 Skipping authorizer Lambda function for local development: ${lambdaFunction.resourceId}`);
+
+                    // // Add the authorizer Lambda function to the template
+                    // // Merge global environment variables with function-specific ones, considering layer requirements
+                    // const mergedEnvironment = this.mergeEnvironmentVariables(lambdaFunction.environment, lambdaFunction.layers);
+
+                    // samTemplate.Resources[lambdaFunction.resourceId] = {
+                    //     Type: 'AWS::Serverless::Function',
+                    //     Properties: {
+                    //         CodeUri: lambdaFunction.codeUri,
+                    //         Handler: lambdaFunction.handler,
+                    //         Runtime: lambdaFunction.runtime,
+                    //         Environment: {
+                    //             Variables: mergedEnvironment
+                    //         }
+                    //     }
+                    // };
+
+                    // // Add layers if any
+                    // const resolvedLayers = this.resolveLambdaLayers(lambdaFunction.layers);
+                    // if (resolvedLayers.length > 0) {
+                    //     samTemplate.Resources[lambdaFunction.resourceId].Properties.Layers = resolvedLayers;
+                    // }
+
+                    // processedAuthorizerFunctions.add(lambdaFunction.resourceId);
+                    // console.log(`   🔐 Added authorizer Lambda function: ${lambdaFunction.resourceId}`);
                 }
             }
         });
@@ -1007,16 +1197,147 @@ class SAMTemplateGenerator {
     }
 }
 
+// Argument parsing helper
+function parseArguments() {
+    const args = process.argv.slice(2);
+    const options = {
+        customEnvironment: {}, // Custom environment variable overrides
+        configFile: null,
+        help: false
+    };
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        if (arg === '--help' || arg === '-h') {
+            options.help = true;
+        } else if (arg === '--config' || arg === '-c') {
+            options.configFile = args[++i];
+        } else if (arg.startsWith('--var.') || arg.startsWith('-v.')) {
+            // Parse custom environment variable: --var.TABLE_NAME=my-table
+            const varPart = arg.startsWith('--var.') ? arg.substring(6) : arg.substring(3);
+            const [key, value] = varPart.split('=');
+            if (key && value !== undefined) {
+                options.customEnvironment[key] = value;
+            }
+        } else if (arg.includes('=')) {
+            // Parse key=value pairs as custom variables
+            const [key, value] = arg.split('=');
+            if (key && value !== undefined) {
+                options.customEnvironment[key.toUpperCase()] = value;
+            }
+        }
+    }
+
+    return options;
+}// Load configuration from file
+function loadConfigFile(configPath) {
+    if (!configPath || !fs.existsSync(configPath)) {
+        return {};
+    }
+
+    try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const config = JSON.parse(content);
+        return config;
+    } catch (error) {
+        console.warn(`⚠️  Warning: Could not load config file ${configPath}: ${error.message}`);
+        return {};
+    }
+}
+
+// Show help information
+function showHelp() {
+    console.log(`
+🔧 SAM Template Generator - Local Development
+
+Usage: node generate-sam-templates.js [options]
+
+Options:
+  -h, --help                    Show this help message
+  -c, --config <file>          Load additional configuration from JSON file
+  --var.<KEY>=<value>          Override environment variable (e.g., --var.TABLE_NAME=my-table)
+  <KEY>=<value>                Override environment variable (e.g., TABLE_NAME=my-table)
+
+Environment Variables (defined in sam-config.json):
+  TABLE_NAME                           Main DynamoDB table name
+  AUDIT_TABLE_NAME                     Audit table name
+  PUBSUB_TABLE_NAME                    PubSub table name
+  REFERENCE_DATA_TABLE_NAME            Reference data table name
+  GLOBALID_INDEX_NAME                  Global ID index name for DynamoDB
+  DYNAMODB_ENDPOINT_URL                DynamoDB endpoint
+  OPENSEARCH_DOMAIN_ENDPOINT           OpenSearch domain endpoint
+  OPENSEARCH_REFERENCE_DATA_INDEX_NAME Reference data index name for OpenSearch
+  OPENSEARCH_AUDIT_INDEX_NAME          Audit index name for OpenSearch
+  OPENSEARCH_BOOKING_INDEX_NAME        Booking index name for OpenSearch
+  OPENSEARCH_DOMAIN_NAME               OpenSearch domain name
+  AWS_REGION                           AWS region
+  LOG_LEVEL                            Logging level
+  NODE_ENV                             Node environment
+  TZ                                   Timezone
+
+Examples:
+  # Use default local configuration
+  node generate-sam-templates.js
+
+  # Override specific variables
+  node generate-sam-templates.js TABLE_NAME=my-custom-table AUDIT_TABLE_NAME=my-audit
+
+  # Use variable override syntax
+  node generate-sam-templates.js --var.TABLE_NAME=my-custom-test-table
+
+  # Use custom config file (legacy support)
+  node generate-sam-templates.js --config ./custom-config.json
+
+Configuration:
+- Default settings are defined in: sam-config.json
+- CLI variables (--var.* or KEY=value) override defaults
+- External config files override both defaults and CLI settings
+- Only processes CDK templates for local environment (-Local- in filename)
+`);
+}
+
 // Main execution
 async function main() {
-    const cdkOutDir = path.join(__dirname, '..', 'cdk.out');
+    const options = parseArguments();
+
+    if (options.help) {
+        showHelp();
+        return;
+    }
+
+    console.log('📋 Using local development environment');
+
+    // Load additional configuration from file if provided (for legacy support)
+    const fileConfig = loadConfigFile(options.configFile);
+
+    // Prepare options for the generator
+    const generatorOptions = {
+        customEnvironment: {
+            ...fileConfig.environment, // Legacy config file format
+            ...options.customEnvironment // CLI overrides
+        }
+    };
+
+    if (options.configFile) {
+        console.log(`📋 Loaded additional configuration from: ${options.configFile}`);
+    }
+
+    if (Object.keys(generatorOptions.customEnvironment).length > 0) {
+        console.log('🔧 Environment variable overrides:');
+        Object.entries(generatorOptions.customEnvironment).forEach(([key, value]) => {
+            console.log(`   ${key}=${value}`);
+        });
+    }
+
+    const cdkOutDir = path.join(__dirname, '..', '..', '..', '..', 'cdk.out');
 
     if (!fs.existsSync(cdkOutDir)) {
         console.error('❌ CDK output directory not found. Please run "cdk synth" first.');
         process.exit(1);
     }
 
-    const generator = new SAMTemplateGenerator(cdkOutDir);
+    const generator = new SAMTemplateGenerator(cdkOutDir, generatorOptions);
     await generator.generate();
 }
 

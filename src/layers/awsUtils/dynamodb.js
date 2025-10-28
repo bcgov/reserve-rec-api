@@ -4,7 +4,7 @@ const { logger } = require('/opt/base');
 
 
 const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'reference-data';
-const GLOBALID_INDEX_NAME = 'globalId-index';
+const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
 const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
 const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
