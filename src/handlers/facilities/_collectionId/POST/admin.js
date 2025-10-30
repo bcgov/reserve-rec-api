@@ -1,15 +1,15 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {post} /facilities/{collectionId} POST
  * Create Facilities
  */
 exports.handler = async (event, context) => {
-  logger.info("POST Facilities", event);
+  logger.info(`POST Facilities: ${event}`);
   try {
     const collectionId = String(event?.pathParameters?.collectionId);
     const facilityType = event?.pathParameters?.facilityType || event?.queryStringParameters?.facilityType || null;
@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
 
       // Use quickApiPutHandler to create the put items
       const putItems = await quickApiPutHandler(
-        TABLE_NAME,
+        REFERENCE_DATA_TABLE_NAME,
         postRequests,
         FACILITY_API_PUT_CONFIG
       );

@@ -11,7 +11,7 @@ const { ALLOWED_FILTERS } = require("../../configs");
  * Fetch Activities
  */
 exports.handler = async (event, context) => {
-  logger.info("GET Activities", event);
+  logger.info(`GET Activities: ${event}`);
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);
@@ -26,6 +26,7 @@ exports.handler = async (event, context) => {
     const { activityType, activityId, ...queryParams } =
       event?.queryStringParameters || {};
 
+    let res = null;
     let filters = {};
     let allowedFilters = ALLOWED_FILTERS;
     // Loop through each allowed filter to check if it's in queryParams
@@ -36,8 +37,8 @@ exports.handler = async (event, context) => {
           queryParams[filter.name] === "true"
             ? true
             : queryParams[filter.name] === "false"
-            ? false
-            : queryParams[filter.name];
+              ? false
+              : queryParams[filter.name];
       }
     });
 

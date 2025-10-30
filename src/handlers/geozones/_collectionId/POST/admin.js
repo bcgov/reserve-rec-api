@@ -2,7 +2,7 @@ const { Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { GEOZONE_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {post} /geozones/{collectionId} POST
@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
     // If it fails, reset the counter on reserve-rec-counter table and try again.
     let postRequests;
     let success = false;
-    let attempt = 1;
+    let attempt = 0;
     const MAX_RETRIES = 3;
     while (attempt <= MAX_RETRIES && !success) {
       // Create the geozoneId / identifier
@@ -38,15 +38,14 @@ exports.handler = async (event, context) => {
 
       // Use quickApiPutHandler to create the put items
       const putItems = await quickApiPutHandler(
-        TABLE_NAME,
+        REFERENCE_DATA_TABLE_NAME,
         postRequests,
         GEOZONE_API_PUT_CONFIG
       );
 
       try {
         attempt++;
-        res = await batchTransactData(putItems);
-
+        await batchTransactData(putItems);
         success = true;
         logger.info(`Transaction succeeded on attempt ${attempt}`);
       } catch (error) {

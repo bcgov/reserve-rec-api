@@ -11,7 +11,7 @@ const { ALLOWED_FILTERS } = require("../../configs");
  * Fetch Facilities
  */
 exports.handler = async (event, context) => {
-  logger.info("GET Facilities", event);
+  logger.info(`GET Facilities: ${event}`);
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);
@@ -31,6 +31,7 @@ exports.handler = async (event, context) => {
       event?.queryStringParameters || {};
 
     let filters = {};
+    let res = null;
     let allowedFilters = ALLOWED_FILTERS;
     // Loop through each allowed filter to check if it's in queryParams
     allowedFilters.forEach((filter) => {

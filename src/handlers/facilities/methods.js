@@ -1,4 +1,4 @@
-const { TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
 
@@ -69,7 +69,7 @@ async function getFacilitiesByCollectionId(collectionId, filters, params = null)
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
         ":pk": { S: `facility::${collectionId}` },
@@ -121,7 +121,7 @@ async function getFacilitiesByFacilityType(
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
         ":pk": { S: `facility::${collectionId}` },
@@ -167,7 +167,7 @@ async function getFacilityByFacilityId(collectionId, facilityType, facilityId, f
     if (fetchActivities && res?.activities?.length) {
       logger.debug(`Fetching activities: ${JSON.stringify(res.activities, null, 2)}`);
       // Batch get the activities and staple them to the response
-      res.activities = await batchGetData(res.activities, TABLE_NAME);
+      res.activities = await batchGetData(res.activities, REFERENCE_DATA_TABLE_NAME);
     }
     logger.debug(`Facility: ${JSON.stringify(res, null, 2)}`);
     return res;

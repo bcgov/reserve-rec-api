@@ -452,7 +452,7 @@ async function createIndex(indexName, mappings = {}) {
     });
 
   } catch (error) {
-    logger.error('Error creating index:', error);
+    logger.error(`Error creating index: ${error}`);
     throw error;
   }
 }
@@ -466,9 +466,9 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_I
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
 
-  logger.info('indexName:', indexName);
-  logger.info('Documents:', items.length);
-  logger.info('Transactions:', dataChunks.length);
+  logger.info(`indexName: ${indexName}`);
+  logger.info(`Documents: ${items.length}`);
+  logger.info(`Transactions: ${dataChunks.length}`);
 
   try {
     for (let i = 0; i < dataChunks.length; i++) {
@@ -528,7 +528,7 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_I
       logger.info(`BatchWriteItem response for chunk ${i}: complete`);
     }
   } catch (error) {
-    logger.error('Error updating documents:', error);
+    logger.error(`Error updating documents: ${error}`);
     throw error;
   }
 }

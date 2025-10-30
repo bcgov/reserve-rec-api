@@ -369,7 +369,7 @@ async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated 
       })
     );
     if (page < 2) {
-      logger.debug(`Page ${page} data:`, data);
+      logger.debug(`Page ${page} data: ${data}`);
     } else {
       logger.info(`Page ${page} contains ${pageData.Items.length} additional query results...`);
     }
@@ -444,7 +444,7 @@ async function deleteItem(pk, sk, tableName = REFERENCE_DATA_TABLE_NAME) {
     await getDynamoDBClient().send(new DeleteItemCommand(params));
     logger.info(`Item with pk: ${pk} and sk: ${sk} deleted successfully.`);
   } catch (error) {
-    logger.error(`Error deleting item with pk: ${pk} and sk: ${sk}:`, error);
+    logger.error(`Error deleting item with pk: ${pk} and sk: ${sk}: ${error}`);
     throw error;
   }
 }
@@ -456,7 +456,7 @@ async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
     ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
   };
 
-  logger.debug("Putting putObj:", putObj);
+  logger.debug(`Putting putObj: ${putObj}`);
   await getDynamoDBClient().putItem(putObj);
 }
 
@@ -543,7 +543,7 @@ async function batchWriteData(dataToInsert, chunkSize, tableName = REFERENCE_DAT
       logger.info(JSON.stringify(params));
       const command = new BatchWriteItemCommand(params);
       const data = await getDynamoDBClient().send(command);
-      logger.info(`BatchWriteItem response for chunk ${index}:`, data);
+      logger.info(`BatchWriteItem response for chunk ${index}: ${data}`);
     } catch (err) {
       console.log('err:', err);
       throw new Error(`Error batch writing items in chunk ${index}: ${err}`);
@@ -575,8 +575,8 @@ async function batchTransactData(data, action = 'Put') {
 
   const dataChunks = chunkArray(data, TRANSACTION_MAX_SIZE);
 
-  logger.info('Data items:', data.length);
-  logger.info('Transactions:', dataChunks.length);
+  logger.info(`Data items: ${data.length}`);
+  logger.info(`Transactions: ${dataChunks.length}`);
 
   try {
     for (let index = 0; index < dataChunks.length; index++) {
@@ -597,7 +597,7 @@ async function batchTransactData(data, action = 'Put') {
         }
       });
 
-      logger.debug(JSON.stringify(TransactItems, null, 2));
+      logger.debug(JSON.stringify(TransactItems));
 
       const data = await getDynamoDBClient().send(
         new TransactWriteItemsCommand({ TransactItems: TransactItems })
@@ -605,10 +605,10 @@ async function batchTransactData(data, action = 'Put') {
       if (data.$metadata.httpStatusCode !== 200) {
         throw new Error(`BatchTransactItems failed with status code: ${data.$metadata.httpStatusCode}`);
       }
-      logger.info(`BatchWriteItem response for chunk ${index}:`, data);
+      logger.info(`BatchWriteItem response for chunk ${index}: ${JSON.stringify(data)}`);
     }
   } catch (error) {
-    logger.error(`Error batch writing items:`, error);
+    logger.error(`Error batch writing items: ${error}`);
     throw error;
   }
   return true;
