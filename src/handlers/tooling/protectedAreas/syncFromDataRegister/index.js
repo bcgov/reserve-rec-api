@@ -4,8 +4,9 @@
  */
 
 const { getNowISO, httpGet, logger, sendResponse } = require('/opt/base');
-const { TABLE_NAME, batchTransactData, getOne, marshall } = require('/opt/dynamodb');
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData, getOne, marshall } = require('/opt/dynamodb');
 const { getSecretValue } = require('/opt/secretsManager');
+
 
 const DATA_REGISTER_URL = process.env.DATA_REGISTER_URL || 'https://dev-data.bcparks.ca/api';
 const DATA_REGISTER_SUBDIRECTORY = '/parks/names';
@@ -138,7 +139,7 @@ function createUpdatePAItem(protectedArea, fieldsToSync, timestamp) {
   const updateItem = {
     action: 'Update',
     data: {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       Key: {
         pk: { S: 'protectedArea' },
         sk: { S: `${protectedArea.pk}` }

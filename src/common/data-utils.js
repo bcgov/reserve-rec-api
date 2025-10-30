@@ -20,8 +20,8 @@ const FIELD_ACTIONS = ['set', 'add', 'append', 'remove'];
  * @throws {Error} - Throws an error if the primary key is malformed or if no field data is provided.
  */
 async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API_UPDATE_CONFIG) {
-  logger.debug('Table name', tableName);
-  logger.debug('Update list', JSON.stringify(updateList, null, 2));
+  logger.debug(`Table name: ${tableName}`);
+  logger.debug(`Update list:  ${JSON.stringify(updateList, null, 2)}`);
 
   let now = getNowISO();
   let updateItems = [];
@@ -174,7 +174,7 @@ function validateRequestData(itemData, itemConfig) {
           // validate each item in the array
           for (const item of itemData[field].value) {
             try {
-              validateRequestData(item, {fields: fieldRules.fields[0] || fieldRules.fields});
+              validateRequestData(item, { fields: fieldRules.fields[0] || fieldRules.fields });
             } catch (error) {
               throw new Exception(`Validation failed for nested array item with index [${itemData[field].value.indexOf(item)}] in '${field}'`, { code: 400, error: error });
             }
@@ -219,8 +219,8 @@ function validateRequestData(itemData, itemConfig) {
  */
 async function quickApiPutHandler(tableName, createList, config) {
   // We need to ensure that the 'set' action is used for all fields.
-  logger.debug('Table name', tableName);
-  logger.debug('Create list', JSON.stringify(createList, null, 2));
+  logger.debug(`Table name: ${tableName}`);
+  logger.debug(`Create list: ${JSON.stringify(createList, null, 2)}`);
 
   let now = getNowISO();
   let createItems = [];
@@ -385,9 +385,9 @@ function updateExpressionBuilder(itemData) {
   const expressionAttributeNames = { ...setNames, ...removeNames };
   const expressionAttributeValues = { ...setValues };
 
-  logger.debug('Update expression:', updateExpression);
-  logger.debug('Expression Attribute Names:', expressionAttributeNames);
-  logger.debug('Expression Attribute Values:', expressionAttributeValues);
+  logger.debug(`Update expression: ${updateExpression}`);
+  logger.debug(`Expression Attribute Names: ${expressionAttributeNames}`);
+  logger.debug(`Expression Attribute Values: ${expressionAttributeValues}`);
 
   return { updateExpression, expressionAttributeNames, expressionAttributeValues };
 }
@@ -464,7 +464,7 @@ async function getAndAttachNestedProperties(item, properties) {
     try {
       let keys = item?.[property];
       if (!keys || keys?.length === 0) {
-        logger.warn(`Property '${property}' not found in item.`, { item: item });
+        logger.warn(`Property '${property}' not found in item.: ${item}`);
         continue;
       }
       // Check if the property is an object or an array

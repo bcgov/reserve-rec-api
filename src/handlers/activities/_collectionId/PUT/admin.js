@@ -1,15 +1,15 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { ACTIVITY_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {put} /activities/{collectionId} PUT
  * Update Activities
  */
 exports.handler = async (event, context) => {
-  logger.info("PUT Activities", event);
+  logger.info(`PUT Activities: ${event}`);
   try {
     const collectionId = event?.pathParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters || {};
@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
 
     // Use quickApiPutHandler to create the put items
     const updateItems = await quickApiUpdateHandler(
-      TABLE_NAME,
+      REFERENCE_DATA_TABLE_NAME,
       updateRequests,
       ACTIVITY_API_UPDATE_CONFIG
     );

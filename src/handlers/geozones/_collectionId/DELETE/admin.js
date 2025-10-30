@@ -1,5 +1,5 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {delete} /geozones/{collectionId}/{geozoneId} DELETE
@@ -40,7 +40,7 @@ function createDeleteCommand(collectionId, geozoneId) {
   return {
     action: "Delete",
     data: {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
         pk: `geozone::${collectionId}`,
         sk: `${geozoneId}`

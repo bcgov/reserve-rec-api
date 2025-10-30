@@ -1,4 +1,4 @@
-const { TABLE_NAME, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
 /**
@@ -71,7 +71,7 @@ async function getActivitiesByCollectionId(collectionId, filters, params = null)
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE,
       KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
         ":pk": { S: `activity::${collectionId}` },
@@ -123,7 +123,7 @@ async function getActivitiesByActivityType(
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
         ":pk": { S: `activity::${collectionId}` },

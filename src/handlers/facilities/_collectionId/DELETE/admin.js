@@ -1,27 +1,27 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
 
 /**
- * @api {delete} /activities/{collectionId}/ DELETE
- * Delete Activities
+ * @api {delete} /facilities/{collectionId}/ DELETE
+ * Delete Facilities
  */
 exports.handler = async (event, context) => {
-  logger.info("DELETE Activities", event);
+  logger.info(`DELETE Facilities: ${event}`);
   try {
     const collectionId = event?.pathParameters?.collectionId;
-    const activityType = event?.pathParameters?.activityType;
-    const activityId = event?.pathParameters?.activityId;
+    const facilityType = event?.pathParameters?.facilityType || event?.queryStringParameters?.facilityType;
+    const facilityId = event?.pathParameters?.facilityId || event?.queryStringParameters?.facilityId;
     const body = JSON.parse(event?.body);
 
-    if (!collectionId || !activityType || !activityId) {
-      throw new Exception("Activity Collection ID, Activity Type, and Activity ID are required", { code: 400 });
+    if (!collectionId || !facilityType || !facilityId) {
+      throw new Exception("Facility Collection ID, Facility Type, and Facility ID are required", { code: 400 });
     }
 
     if (body) {
       throw new Exception("Body is not allowed", { code: 400 });
     }
 
-    const deleteItem = createDeleteCommand(collectionId, activityType, activityId)
+    const deleteItem = createDeleteCommand(collectionId, facilityType, facilityId)
 
     // Use batchTransactData to delete the database item
     const res = await batchTransactData([deleteItem]);
@@ -37,16 +37,16 @@ exports.handler = async (event, context) => {
   }
 };
 
-function createDeleteCommand(collectionId, activityType, activityId) {
+function createDeleteCommand(collectionId, facilityType, facilityId, sk = undefined) {
   // Use sk if provided in a batch request, otherwise there won't be an sk
   // so use the pathParams to create sk
-  const sortKey = `${activityType}::${activityId}`;
+  const sortKey = sk || `${facilityType}::${facilityId}`;
   return {
     action: "Delete",
     data: {
-      TableName: TABLE_NAME,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
-        pk: `activity::${collectionId}`,
+        pk: `facility::${collectionId}`,
         sk: sortKey,
       }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",

@@ -1,9 +1,9 @@
-const { rulesFns } = require('/opt/validation-rules');
-const { ACTIVITY_TYPE_ENUMS, SUB_ACTIVITY_TYPE_ENUMS } = require('/opt/data-constants');
+const { rulesFns } = require('../../common/validation-rules');
+const { ACTIVITY_TYPE_ENUMS, SUB_ACTIVITY_TYPE_ENUMS } = require('../../common/data-constants');
 
 const rf = new rulesFns();
 
-ALLOWED_FILTERS = [
+const ALLOWED_FILTERS = [
   { name: "isVisible", type: "boolean" },
   { name: "activityType", type: "list" },
   { name: "activityId", type: "number" },

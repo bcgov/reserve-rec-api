@@ -1,15 +1,15 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { ACTIVITY_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE, batchTransactData } = require("/opt/dynamodb");
 
 /**
  * @api {post} /activities/{collectionId} POST
  * Create Activities
  */
 exports.handler = async (event, context) => {
-  logger.info("POST Activities", event);
+  logger.info(`POST Activities: ${event}`);
   try {
     const collectionId = String(event?.pathParameters?.collectionId);
     if (!collectionId) {
@@ -34,10 +34,10 @@ exports.handler = async (event, context) => {
       // Grab the activityType if provided
       const { activityType } = event?.queryStringParameters || {};
       postRequests = await parseRequest(collectionId, body, "POST", activityType);
-      
+
       // Use quickApiPutHandler to create the put items
       const putItems = await quickApiPutHandler(
-        TABLE_NAME,
+        REFERENCE_DATA_TABLE,
         postRequests,
         ACTIVITY_API_PUT_CONFIG
       );
@@ -53,7 +53,7 @@ exports.handler = async (event, context) => {
           logger.error(`Failed after ${MAX_RETRIES} attempts.`);
           throw error;
         }
-        
+
         // Short pause before attempting again
         await new Promise((r) => setTimeout(r, attempt * 100));
       }
