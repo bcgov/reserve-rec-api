@@ -6,6 +6,8 @@ const { createCoreStack } = require('../lib/core-stack/core-stack.js');
 const { createPublicIdentityStack } = require('../lib/public-identity-stack/public-identity-stack.js');
 const { createOpenSearchStack } = require('../lib/opensearch-stack/opensearch-stack.js');
 const { createReferenceDataStack } = require('../lib/reference-data-stack/reference-data-stack.js');
+const { createPublicApiStack } = require('../lib/public-api-stack/public-api-stack.js');
+const { createTransactionalDataStack } = require('../lib/transactional-data-stack/transactional-data-stack.js');
 
 class CDKProject {
   constructor() {
@@ -97,7 +99,7 @@ class CDKProject {
     }
     const secret = self?.secrets?.[key];
     if (secret === null || secret === undefined) {
-      logger.warn(`Secret key ${key} not found in stack ${self?.stackKey}`);
+      logger.warn(`Secret key ${key} not found in stack ${self?.stackKey}. Check configured stack defaults.secrets for ${key} property.`);
     }
     return secret?.value || null;
   }
@@ -119,7 +121,7 @@ class CDKProject {
     }
     const construct = self.getConstructByKey(constructKey);
     if (!construct) {
-      throw new Error(`Construct ${constructKey} not found in stack ${self.stackKey}`);
+      throw new Error(`Construct ${constructKey} not found in stack ${self.stackKey}. Check configured stack defaults.constructs for 'name' property for ${constructKey}.`);
     }
     return construct?.id || null;
   }
@@ -140,7 +142,7 @@ class CDKProject {
     }
     const construct = self.getConstructByKey(constructKey);
     if (!construct) {
-      logger.warn(`Construct ${constructKey} not found in stack ${self.stackKey}`);
+      logger.warn(`Construct ${constructKey} not found in stack ${self.stackKey}. Check configured stack defaults.config for ${constructKey} property.`);
     }
     return construct?.name || null;
   }
@@ -172,14 +174,19 @@ class CDKProject {
     const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
     const openSearchStack = await this.addStack('openSearchStack', createOpenSearchStack);
     const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
+    const transactionalDataStack = await this.addStack('transactionalDataStack', createTransactionalDataStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
+    const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
     // const roleAggregatorStack = await this.addStack('roleAggregatorStack', createRoleAggregatorStack);
 
+    publicApiStack.addDependency(referenceDataStack);
     adminApiStack.addDependency(referenceDataStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
     referenceDataStack.addDependency(coreStack);
     referenceDataStack.addDependency(openSearchStack);
+    transactionalDataStack.addDependency(coreStack);
+    transactionalDataStack.addDependency(openSearchStack);
     adminIdentityStack.addDependency(coreStack);
     publicIdentityStack.addDependency(coreStack);
     // roleAggregatorStack.addDependency(adminIdentityStack);

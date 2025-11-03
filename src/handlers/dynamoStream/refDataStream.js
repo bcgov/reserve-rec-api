@@ -16,7 +16,7 @@ const schemasTransferrable = [
 
 
 exports.handler = async function (event, context) {
-  logger.info('Stream Handler');
+  logger.info('Reference Data Stream Handler');
   logger.debug(JSON.stringify(event));
   try {
     let auditRecordsToCreate = [];
@@ -120,10 +120,10 @@ exports.handler = async function (event, context) {
     logger.info(`Writing batch data`);
     await batchWriteData(auditRecordsToCreate, 25, AUDIT_TABLE_NAME);
     // await sendToAllConnections();
-    return sendResponse(200, [], `Stream processing complete.`, null, context);
+    return sendResponse(200, [], `Reference Data Stream processing complete.`, null, context);
   } catch (e) {
     logger.error(JSON.stringify(e));
-    return sendResponse(500, [], 'Error processing stream.', e?.message, context);
+    return sendResponse(500, [], 'Error processing Reference Data stream.', e?.message, context);
   }
 };
 

@@ -25,6 +25,9 @@ class GeozonesConstruct extends LambdaConstruct {
       defaults: defaults
     });
 
+    const handlerPrefix = props?.handlerPrefix || 'public';
+    const handlerName = `${handlerPrefix}.handler`;
+
     // Add /geozones resource
     this.geozonesResource = this.resolveApi().root.addResource('geozones');
 
@@ -39,7 +42,7 @@ class GeozonesConstruct extends LambdaConstruct {
       scope,
       'geozonesCollectionIdGetFunction',
       'src/handlers/geozones/_collectionId/GET',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -62,7 +65,7 @@ class GeozonesConstruct extends LambdaConstruct {
       scope,
       'geozonesCollectionIdPostFunction',
       'src/handlers/geozones/_collectionId/POST',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -79,7 +82,7 @@ class GeozonesConstruct extends LambdaConstruct {
       scope,
       'geozonesCollectionIdPutFunction',
       'src/handlers/geozones/_collectionId/PUT',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -102,7 +105,7 @@ class GeozonesConstruct extends LambdaConstruct {
       scope,
       'geozonesCollectionIdDeleteFunction',
       'src/handlers/geozones/_collectionId/DELETE',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }

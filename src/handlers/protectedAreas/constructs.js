@@ -34,6 +34,9 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       defaults: defaults
     });
 
+    const handlerPrefix = props?.handlerPrefix || 'public';
+    const handlerName = `${handlerPrefix}.handler`;
+
     // Add /protected-areas resource
     this.protectedAreasResource = this.resolveApi().root.addResource('protected-areas');
 
@@ -42,7 +45,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasGetFunction',
       'src/handlers/protectedAreas/GET',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -58,7 +61,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasPostFunction',
       'src/handlers/protectedAreas/POST',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -74,7 +77,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasDeleteFunction',
       'src/handlers/protectedAreas/DELETE',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -93,7 +96,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasOrcsGetFunction',
       'src/handlers/protectedAreas/_orcs/GET',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -109,7 +112,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasOrcsPostFunction',
       'src/handlers/protectedAreas/_orcs/POST',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -125,7 +128,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasOrcsPutFunction',
       'src/handlers/protectedAreas/_orcs/PUT',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -141,7 +144,7 @@ class ProtectedAreasConstruct extends LambdaConstruct {
       scope,
       'protectedAreasOrcsDeleteFunction',
       'src/handlers/protectedAreas/_orcs/DELETE',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
