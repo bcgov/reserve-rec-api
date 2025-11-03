@@ -25,6 +25,9 @@ class ActivitiesConstruct extends LambdaConstruct {
       defaults: defaults
     });
 
+    const handlerPrefix = props?.handlerPrefix || 'admin';
+    const handlerName = `${handlerPrefix}.handler`;
+
     // Add /activities resource
     this.activitiesResource = this.resolveApi().root.addResource('activities');
 
@@ -39,7 +42,7 @@ class ActivitiesConstruct extends LambdaConstruct {
       scope,
       'activitiesCollectionIdGetFunction',
       'src/handlers/activities/_collectionId/GET',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -62,7 +65,7 @@ class ActivitiesConstruct extends LambdaConstruct {
       scope,
       'activitiesCollectionIdPostFunction',
       'src/handlers/activities/_collectionId/POST',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -79,7 +82,7 @@ class ActivitiesConstruct extends LambdaConstruct {
       scope,
       'activitiesCollectionIdPutFunction',
       'src/handlers/activities/_collectionId/PUT',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -102,7 +105,7 @@ class ActivitiesConstruct extends LambdaConstruct {
       scope,
       'activitiesCollectionIdDeleteFunction',
       'src/handlers/activities/_collectionId/DELETE',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }

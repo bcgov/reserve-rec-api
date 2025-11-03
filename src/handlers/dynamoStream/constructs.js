@@ -6,22 +6,26 @@ const { logger } = require('../../../lib/helpers/utils');
 
 class DynamoStreamConstruct extends Construct {
   constructor(scope, id, props) {
-    const constructId = scope.createScopedId(id);
+    const constructId = scope.createScopedId(id, 'Fn');
     super(scope, constructId, props);
+
+    const handlerPrefix = props?.handlerPrefix || 'DynamoStream';
+    const handlerName = `${handlerPrefix}.handler`;
 
     logger.info(`Creating Dynamo Stream Construct: ${constructId}`);
 
-    if (!props?.refDataTable) {
-      throw new Error('DynamoStreamConstruct requires a tableName property in props');
+    if (!props?.table) {
+      throw new Error('DynamoStreamConstruct requires a table property in props');
     }
 
     // Create the DynamoDB Stream processing Lambda function
     const streamFunctionId = scope.createScopedId(id, 'Function');
+    console.log('streamFunctionId:', streamFunctionId);
     this.streamFunction = new NodejsFunction(this, streamFunctionId, {
       functionName: streamFunctionId,
       description: props?.description || `DynamoDB Stream processor for ${scope.getAppName()} - ${scope.getDeploymentName()} environment`,
       code: lambda.Code.fromAsset('src/handlers/dynamoStream'),
-      handler: 'index.handler',
+      handler: handlerName,
       runtime: lambda.Runtime.NODEJS_20_X,
       environment: props?.environment,
       role: props?.role,
@@ -40,7 +44,7 @@ class DynamoStreamConstruct extends Construct {
     if (shouldAttachStream) {
       logger.debug('Attaching DynamoDB stream event source (tables created by CDK)...');
       this.streamFunction.addEventSource(new lambdaEventSources.DynamoEventSource(
-        props.refDataTable,
+        props.table,
         {
           startingPosition: lambda.StartingPosition.TRIM_HORIZON,
           batchSize: 10,

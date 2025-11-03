@@ -25,6 +25,9 @@ class FacilitiesConstruct extends LambdaConstruct {
       defaults: defaults
     });
 
+    const handlerPrefix = props?.handlerPrefix || 'public';
+    const handlerName = `${handlerPrefix}.handler`;
+
     // Add /facilities resource
     this.facilitiesResource = this.resolveApi().root.addResource('facilities');
 
@@ -42,7 +45,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdGetFunction',
       'src/handlers/facilities/_collectionId/GET',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -71,7 +74,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdPostFunction',
       'src/handlers/facilities/_collectionId/POST',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -94,7 +97,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdPutFunction',
       'src/handlers/facilities/_collectionId/PUT',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
@@ -123,7 +126,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdDeleteFunction',
       'src/handlers/facilities/_collectionId/DELETE',
-      'admin.handler',
+      handlerName,
       {
         basicReadWrite: true,
       }
