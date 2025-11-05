@@ -8,7 +8,7 @@ const MAX_TRANSACTION_SIZE = 25;
 
 const options = {
   region: process.env.AWS_REGION || 'local',
-  endpoint: process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000'
+  endpoint: process.env.DYNAMODB_ENDPOINT_URL || 'http://dynamodb.proxmox.ds:8000'
 }
 
 console.log("USING CONFIG:", options);

@@ -1,0 +1,21 @@
+{
+  "AWS_ACCESS_KEY_ID": "dummy",
+  "AWS_SECRET_ACCESS_KEY": "dummy",
+  "AWS_DEFAULT_REGION": "ca-central-1",
+  "AWS_REGION": "ca-central-1",
+  "DYNAMODB_ENDPOINT_URL": "http://dynamodb.proxmox.ds:8000",
+  "REFERENCE_DATA_TABLE_NAME": "ReserveRecApi-Local-ReferenceDataTable",
+  "TRANSACTIONAL_DATA_TABLE_NAME": "ReserveRecApi-Local-TransactionalDataTable",
+  "AUDIT_TABLE_NAME": "Audit-local",
+  "PUBSUB_TABLE_NAME": "reserve-rec-pubsub-local",
+  "GLOBALID_INDEX_NAME": "globalId-index",
+  "OPENSEARCH_DOMAIN_ENDPOINT": "http://opensearch.proxmox.ds:9200",
+  "OPENSEARCH_REFERENCE_DATA_INDEX_NAME": "main-index",
+  "OPENSEARCH_AUDIT_INDEX_NAME": "audit-index",
+  "OPENSEARCH_BOOKING_INDEX_NAME": "booking-index",
+  "OPENSEARCH_DOMAIN_NAME": "local-opensearch-domain",
+  "IS_OFFLINE": "true",
+  "NODE_ENV": "development",
+  "LOG_LEVEL": "debug",
+  "TZ": "America/Vancouver"
+}
