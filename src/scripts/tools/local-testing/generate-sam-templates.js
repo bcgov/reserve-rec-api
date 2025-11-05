@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const LayerBuilder = require('./build-lambda-layers');
 
 class SAMTemplateGenerator {
     constructor(cdkOutDir, options = {}) {
@@ -16,6 +17,10 @@ class SAMTemplateGenerator {
 
         // Environment configuration options
         this.environmentConfig = this.buildEnvironmentConfig(options);
+
+        // Layer caching options
+        this.useLayerCache = options.useLayerCache || false;
+        this.layerCacheDir = options.layerCacheDir || null;
     }
 
     /**
@@ -401,6 +406,19 @@ class SAMTemplateGenerator {
      * Get layer source path for simplified layer names
      */
     getLayerSourcePath(layerType) {
+        // Check if we should use cached layers
+        if (this.useLayerCache) {
+            const cachedPath = LayerBuilder.getCachePathForLayer(layerType, this.layerCacheDir);
+
+            if (LayerBuilder.isCached(layerType, this.layerCacheDir)) {
+                console.log(`     🚀 Using cached layer: ${layerType} -> ${cachedPath}`);
+                return cachedPath;
+            } else {
+                console.log(`     ⚠️  Cached layer not found: ${layerType}, falling back to source`);
+            }
+        }
+
+        // Fallback to original source paths
         const projectRoot = path.resolve(this.cdkOutDir, '..');
 
         switch(layerType) {
@@ -446,11 +464,82 @@ class SAMTemplateGenerator {
     }
 
     /**
+     * Resolve SSM parameter references and CloudFormation intrinsic functions
+     * to use values from sam-config.json instead
+     */
+    resolveEnvironmentVariableReferences(environmentVariables) {
+        const resolved = {};
+
+        for (const [key, value] of Object.entries(environmentVariables)) {
+            if (typeof value === 'object' && value !== null) {
+                // Check for CloudFormation Ref to SSM parameters
+                if (value.Ref && value.Ref.includes('SsmParameterValue')) {
+                    // Map SSM parameter references to sam-config values
+                    const configValue = this.mapSsmParameterToConfigValue(key, value.Ref);
+                    if (configValue !== undefined) {
+                        resolved[key] = configValue;
+                        console.log(`     🔧 Resolved SSM parameter ${key}: ${value.Ref} -> ${configValue}`);
+                    } else {
+                        // Fallback to sam-config value if available
+                        resolved[key] = this.environmentConfig[key] || value;
+                    }
+                } else if (value['Fn::Join']) {
+                    // Handle Fn::Join constructs
+                    const configValue = this.mapSsmParameterToConfigValue(key);
+                    if (configValue !== undefined) {
+                        resolved[key] = configValue;
+                        console.log(`     🔧 Resolved Fn::Join ${key} -> ${configValue}`);
+                    } else {
+                        resolved[key] = this.environmentConfig[key] || value;
+                    }
+                } else {
+                    // Other object types - try to resolve from config
+                    resolved[key] = this.environmentConfig[key] || value;
+                }
+            } else {
+                // Simple string/number values - use as-is unless overridden in config
+                resolved[key] = this.environmentConfig[key] || value;
+            }
+        }
+
+        return resolved;
+    }
+
+    /**
+     * Map SSM parameter references to corresponding sam-config.json values
+     */
+    mapSsmParameterToConfigValue(envVarName, ssmParameterRef = '') {
+        // Map environment variable names to their sam-config equivalents
+        const mappings = {
+            'OPENSEARCH_DOMAIN_ENDPOINT': 'OPENSEARCH_DOMAIN_ENDPOINT',
+            'OPENSEARCH_REFERENCE_DATA_INDEX_NAME': 'OPENSEARCH_REFERENCE_DATA_INDEX_NAME',
+            'OPENSEARCH_AUDIT_INDEX_NAME': 'OPENSEARCH_AUDIT_INDEX_NAME',
+            'OPENSEARCH_BOOKING_INDEX_NAME': 'OPENSEARCH_BOOKING_INDEX_NAME',
+            'REFERENCE_DATA_TABLE_NAME': 'REFERENCE_DATA_TABLE_NAME',
+            'TRANSACTIONAL_DATA_TABLE_NAME': 'TRANSACTIONAL_DATA_TABLE_NAME',
+            'AUDIT_TABLE_NAME': 'AUDIT_TABLE_NAME',
+            'PUBSUB_TABLE_NAME': 'PUBSUB_TABLE_NAME'
+        };
+
+        const configKey = mappings[envVarName];
+        if (configKey && this.environmentConfig[configKey] !== undefined) {
+            return this.environmentConfig[configKey];
+        }
+
+        return undefined;
+    }
+
+    /**
      * Ensure functions using layers have all required environment variables
      */
     ensureLayerEnvironmentVariables(functionEnvironment, layers) {
         const layerRequiredVars = this.getLayerRequiredEnvironmentVariables();
-        const mergedEnvironment = { ...layerRequiredVars, ...functionEnvironment };
+
+        // First resolve any SSM parameter references in function environment
+        const resolvedFunctionEnvironment = this.resolveEnvironmentVariableReferences(functionEnvironment);
+
+        // Then merge with layer-required variables (sam-config takes precedence)
+        const mergedEnvironment = { ...layerRequiredVars, ...resolvedFunctionEnvironment };
 
         if (layers && layers.length > 0) {
             console.log(`     🔧 Function uses ${layers.length} layer(s), ensuring layer-required environment variables are available`);
@@ -469,7 +558,7 @@ class SAMTemplateGenerator {
 
     /**
      * Merge global environment variables with function-specific ones
-     * Function-specific variables take precedence over global ones
+     * sam-config.json values take precedence over CDK template SSM references
      */
     mergeEnvironmentVariables(functionEnvironment = {}, layers = []) {
         return this.ensureLayerEnvironmentVariables(functionEnvironment, layers);
@@ -588,14 +677,6 @@ class SAMTemplateGenerator {
                     Environment: {
                         Variables: this.getLayerRequiredEnvironmentVariables()
                     }
-                },
-                Api: {
-                    Cors: {
-                        AllowMethods: "\"'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'\"",
-                        AllowHeaders: "\"'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'\"",
-                        AllowOrigin: "\"'*'\"",
-                        MaxAge: "\"'600'\""
-                    }
                 }
             },
             Resources: {}
@@ -607,7 +688,13 @@ class SAMTemplateGenerator {
             Properties: {
                 StageName: 'local',
                 Name: apiInfo.properties.Name || apiInfo.resourceId,
-                Description: apiInfo.properties.Description || 'Generated from CDK template'
+                Description: apiInfo.properties.Description || 'Generated from CDK template',
+                Cors: {
+                    AllowMethods: "\"'*'\"",
+                    AllowHeaders: "\"'*'\"",
+                    AllowOrigin: "\"'*'\"",
+                    MaxAge: "\"'600'\""
+                }
             }
         };
 
@@ -630,8 +717,9 @@ class SAMTemplateGenerator {
         // Add Lambda layers
         this.addLambdaLayersToSAM(samTemplate, apiInfo);
 
-        // Add API Gateway authorizers
-        this.addAuthorizersToSAM(samTemplate, apiInfo);
+        // Skip API Gateway authorizers for local development
+        // this.addAuthorizersToSAM(samTemplate, apiInfo);
+        console.log('   🔓 Skipping authorizers for local development (no authentication required)');
 
         return samTemplate;
     }
@@ -1203,7 +1291,9 @@ function parseArguments() {
     const options = {
         customEnvironment: {}, // Custom environment variable overrides
         configFile: null,
-        help: false
+        help: false,
+        useLayerCache: false,
+        layerCacheDir: null
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -1213,6 +1303,10 @@ function parseArguments() {
             options.help = true;
         } else if (arg === '--config' || arg === '-c') {
             options.configFile = args[++i];
+        } else if (arg === '--use-layer-cache') {
+            options.useLayerCache = true;
+        } else if (arg === '--layer-cache-dir') {
+            options.layerCacheDir = args[++i];
         } else if (arg.startsWith('--var.') || arg.startsWith('-v.')) {
             // Parse custom environment variable: --var.TABLE_NAME=my-table
             const varPart = arg.startsWith('--var.') ? arg.substring(6) : arg.substring(3);
@@ -1256,8 +1350,16 @@ Usage: node generate-sam-templates.js [options]
 Options:
   -h, --help                    Show this help message
   -c, --config <file>          Load additional configuration from JSON file
+  --use-layer-cache            Use pre-built cached layers (much faster)
+  --layer-cache-dir <path>     Custom directory for cached layers (default: ./.layer-cache)
   --var.<KEY>=<value>          Override environment variable (e.g., --var.TABLE_NAME=my-table)
   <KEY>=<value>                Override environment variable (e.g., TABLE_NAME=my-table)
+
+Layer Performance:
+  To dramatically improve startup time, pre-build layers first:
+    node build-lambda-layers.js
+  Then use cached layers:
+    node generate-sam-templates.js --use-layer-cache
 
 Environment Variables (defined in sam-config.json):
   TABLE_NAME                           Main DynamoDB table name
@@ -1316,7 +1418,9 @@ async function main() {
         customEnvironment: {
             ...fileConfig.environment, // Legacy config file format
             ...options.customEnvironment // CLI overrides
-        }
+        },
+        useLayerCache: options.useLayerCache,
+        layerCacheDir: options.layerCacheDir
     };
 
     if (options.configFile) {
@@ -1328,6 +1432,28 @@ async function main() {
         Object.entries(generatorOptions.customEnvironment).forEach(([key, value]) => {
             console.log(`   ${key}=${value}`);
         });
+    }
+
+    // Show layer caching status
+    if (generatorOptions.useLayerCache) {
+        const cacheDir = generatorOptions.layerCacheDir ||
+            path.join(__dirname, '..', '..', '..', '.layer-cache');
+        console.log(`🚀 Using cached layers from: ${cacheDir}`);
+
+        // Check if layers exist
+        const layerTypes = ['BaseLayer', 'AwsUtilsLayer', 'DataUtilsLayer', 'JwtLayer'];
+        const availableLayers = layerTypes.filter(layer =>
+            LayerBuilder.isCached(layer, generatorOptions.layerCacheDir)
+        );
+
+        if (availableLayers.length === 0) {
+            console.log('⚠️  No cached layers found. Run "node build-lambda-layers.js" first.');
+        } else {
+            console.log(`   Available: ${availableLayers.join(', ')}`);
+        }
+    } else {
+        console.log('🐌 Using source directories (will trigger Docker builds)');
+        console.log('💡 For faster startup, use: node build-lambda-layers.js && node generate-sam-templates.js --use-layer-cache');
     }
 
     const cdkOutDir = path.join(__dirname, '..', '..', '..', '..', 'cdk.out');
