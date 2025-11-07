@@ -72,6 +72,7 @@ const sendResponse = function (code, data, message, error, context, other = null
         "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
+      "Access-Control-Allow-Credentials": true
     },
     body: JSON.stringify(body),
   };
@@ -168,6 +169,14 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
+function getRequestClaimsFromEvent(event) {
+  try {
+    return event.requestContext.authorizer.claims;
+  } catch (error) {
+    throw new Error(`Unable to retrieve request claims from event ${event}`);
+  }
+}
+
 const Exception = class extends Error {
   constructor(message, errorData) {
     super(message);
@@ -186,6 +195,7 @@ module.exports = {
   checkWarmup,
   getNow,
   getNowISO,
+  getRequestClaimsFromEvent,
   logger,
   sendMessage,
   sendResponse,

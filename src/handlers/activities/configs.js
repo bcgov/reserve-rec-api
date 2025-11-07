@@ -8,7 +8,8 @@ const ALLOWED_FILTERS = [
   { name: "activityType", type: "list" },
   { name: "activityId", type: "number" },
   { name: "subActivityType", type: "list" },
-  { name: "facilities", type: "list" }
+  { name: "facilities", type: "list" },
+  { name: "fetchFacilities", type: "boolean" }
 ];
 
 const ACTIVITY_API_PUT_CONFIG = {
@@ -89,16 +90,15 @@ const ACTIVITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    geozone: {
+    geozones: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectPrimaryKeyArray(value);
         rf.expectAction(action, ['set']);
       }
     },
     facilities: {
-      isMandatory: true,
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectPrimaryKeyArray(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -176,15 +176,15 @@ const ACTIVITY_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    geozone: {
+    geozones: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectPrimaryKeyArray(value);
         rf.expectAction(action, ['set']);
       }
     },
     facilities: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectPrimaryKeyArray(value);
         rf.expectAction(action, ['set']);
       }
     },

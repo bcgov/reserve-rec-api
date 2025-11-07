@@ -35,7 +35,7 @@ class ActivitiesConstruct extends LambdaConstruct {
     this.activitiesCollectionIdResource = this.activitiesResource.addResource('{collectionId}');
 
     // Add /activities/{collectionId}/{activityType}/{activitiyId} resource
-    this.activitiesActivityIdResource = this.activitiesCollectionIdResource.addResource('{actvityType}').addResource('{activityId}');
+    this.activitiesActivityIdResource = this.activitiesCollectionIdResource.addResource('{activityType}').addResource('{activityId}');
 
     // Activities GET by Collection ID Lambda Function
     this.activitiesCollectionIdGetFunction = this.generateBasicLambdaFn(

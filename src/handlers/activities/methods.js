@@ -1,4 +1,4 @@
-const { REFERENCE_DATA_TABLE, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
 /**
@@ -39,7 +39,7 @@ function addFilters(queryObj, filters) {
         }
       }
     });
-
+console.log('queryObj333:', queryObj);
     return queryObj;
   } catch (error) {
     throw error;
@@ -71,7 +71,7 @@ async function getActivitiesByCollectionId(collectionId, filters, params = null)
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: REFERENCE_DATA_TABLE,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
         ":pk": { S: `activity::${collectionId}` },
@@ -123,7 +123,7 @@ async function getActivitiesByActivityType(
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
     let queryObj = {
-      TableName: REFERENCE_DATA_TABLE,
+      TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
         ":pk": { S: `activity::${collectionId}` },
@@ -159,21 +159,25 @@ async function getActivitiesByActivityType(
  *
  * @throws {Exception} With code 400 if database operation fails
  */
-async function getActivityByActivityId(collectionId, activityType, activityId, fetchGeozone = false) {
+async function getActivityByActivityId(collectionId, activityType, activityId, fetchFacilities = false, fetchGeozones = false) {
   logger.info("Get Activity By activity type and ID");
   try {
     let res = await getOne(
       `activity::${collectionId}`,
       `${activityType}::${activityId}`
     );
-    if (fetchGeozone && res?.geozone?.pk && res?.geozone?.sk) {
-      const geozone = await getOne(res.geozone.pk, res.geozone.sk);
-      res.geozone = geozone;
+    // if (fetchGeozones && res?.geozone?.pk && res?.geozone?.sk) {
+    //   const geozone = await getOne(res.geozone.pk, res.geozone.sk);
+    //   res.geozone = geozone;
+    // }
+    if (fetchFacilities && res?.facilities && res?.facilities.length > 0) {
+      let temp = await batchGetData(res.facilities, REFERENCE_DATA_TABLE_NAME);
+      res.facilities = temp;
     }
     return res;
-
   } catch (error) {
-    throw new Exception("Error getting activity", { code: 400, error: error });
+    logger.error(`Error getting activity: ${error}`);
+    throw new Exception(`Error getting activity ${error}`, { code: 400, error: error });
   }
 }
 

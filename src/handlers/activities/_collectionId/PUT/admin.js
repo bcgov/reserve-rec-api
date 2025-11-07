@@ -38,6 +38,7 @@ exports.handler = async (event, context) => {
 
     return sendResponse(200, res, "Success", null, context);
   } catch (error) {
+    logger.error(`Error in PUT Activities: ${error}`);
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,

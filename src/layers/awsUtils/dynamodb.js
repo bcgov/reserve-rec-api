@@ -4,7 +4,11 @@ const { logger } = require('/opt/base');
 
 
 const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'reference-data';
+const TRANSACTIONAL_DATA_TABLE_NAME = process.env.TRANSACTIONAL_DATA_TABLE_NAME || 'transactional-data';
 const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
+const GLOBALID_PROPERTY_NAME = process.env.GLOBALID_PROPERTY_NAME || 'globalId';
+const USERSUB_INDEX_NAME = process.env.USERSUB_INDEX_NAME || 'userId-index';
+const USERSUB_PROPERTY_NAME = process.env.USERSUB_PROPERTY_NAME || 'userId';
 const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
 const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
@@ -236,7 +240,7 @@ async function resetCounter(pk, skType) {
     throw error;
   }
 }
-async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', tableName = REFERENCE_DATA_TABLE_NAME, indexName = GLOBALID_INDEX_NAME) {
+async function getOneByGlobalId(globalId, tableName = REFERENCE_DATA_TABLE_NAME, globalIdAttributeName = GLOBALID_PROPERTY_NAME, indexName = GLOBALID_INDEX_NAME) {
   logger.info(`getItem by index: { ${globalIdAttributeName}: ${globalId}, indexName: ${indexName} }`);
 
   // GetItem operation is not supported on GSIs, so we need to use Query instead.
@@ -272,15 +276,15 @@ async function getOneByGlobalId(globalId, globalIdAttributeName = 'globalId', ta
  * @returns {Array} Array of items matching the GSI query and optional sort key condition.
  */
 
-async function getByGSI(gsiName, gsiValue, tableName = REFERENCE_DATA_TABLE_NAME, indexName, sortKeyCondition = null) {
-  console.log(`getItem by index: { ${gsiName}: ${gsiValue}, indexName: ${indexName}, sortKeyCondition: ${JSON.stringify(sortKeyCondition)} }`);
+async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_NAME, indexName, sortKeyCondition = null) {
+  console.log(`getItem by index: { ${gsiProperty}: ${gsiValue}, indexName: ${indexName}, sortKeyCondition: ${JSON.stringify(sortKeyCondition)} }`);
 
-  let keyConditionExpression = `#${gsiName} = :${gsiName}`;
+  let keyConditionExpression = `#${gsiProperty} = :${gsiProperty}`;
   const expressionAttributeValues = {
-    [':' + gsiName]: marshall(gsiValue),
+    [':' + gsiProperty]: marshall(gsiValue),
   };
   const expressionAttributeNames = {
-    ['#' + gsiName]: gsiName,
+    ['#' + gsiProperty]: gsiProperty,
   };
 
   // If sort key condition is provided, add it to the query
@@ -482,7 +486,9 @@ async function parallelizedBatchGetData(groups, tableName = REFERENCE_DATA_TABLE
  * @returns {Object} An array of items retrieved from the table.
  */
 async function batchGetData(keys, tableName = REFERENCE_DATA_TABLE_NAME) {
+  console.log('doin it');
   const res = await batchGetDataPromise('batch', keys, tableName);
+  console.log('res:', res);
   return res?.data;
 }
 
@@ -496,6 +502,7 @@ function batchGetDataPromise(groupName, keys, tableName = REFERENCE_DATA_TABLE_N
         }
       }
     };
+    console.log('params:', params);
     const command = new BatchGetItemCommand(params);
     getDynamoDBClient().send(command, (err, res) => {
       if (err) {
@@ -618,12 +625,16 @@ module.exports = {
   AUDIT_TABLE_NAME,
   AWS_REGION,
   GLOBALID_INDEX_NAME,
+  GLOBALID_PROPERTY_NAME,
   PUBSUB_TABLE_NAME,
+  USERSUB_INDEX_NAME,
+  USERSUB_PROPERTY_NAME,
   ScanCommand,
   UpdateItemCommand,
   PutItemCommand,
   QueryCommand,
   REFERENCE_DATA_TABLE_NAME,
+  TRANSACTIONAL_DATA_TABLE_NAME,
   USER_ID_PARTITION,
   batchGetData,
   batchGetDataPromise,
