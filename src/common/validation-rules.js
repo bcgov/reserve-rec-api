@@ -364,6 +364,13 @@ class rulesFns {
     }
   }
 
+  expectPrimaryKeyArray(value) {
+    this.expectArray(value, 'object');
+    value.forEach(obj => {
+      this.expectPrimaryKey(obj);
+    });
+  }
+
 
   // Expect the object to definitely have the properties provided (but may have more)
   expectObjectMustHaveProperties(value, properties) {

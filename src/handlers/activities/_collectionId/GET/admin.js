@@ -43,7 +43,7 @@ exports.handler = async (event, context) => {
     });
 
     if (activityType && activityId) {
-      res = await getActivityByActivityId(collectionId, activityType, activityId, queryParams?.fetchGeozone || null);
+      res = await getActivityByActivityId(collectionId, activityType, activityId, queryParams?.fetchFacilities || null, queryParams?.fetchGeozone || null);
     }
 
     if (activityType && !activityId) {
