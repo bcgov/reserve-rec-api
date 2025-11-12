@@ -1,9 +1,9 @@
 const AWS = require("aws-sdk");
-const data = require('./dump.json');
+const data = require('../dynamodb/dump.json');
 const { Client } = require('@opensearch-project/opensearch');
 const { updateConsoleProgress, finishConsoleUpdates, errorConsoleUpdates } = require('../dynamodb/progressIndicator');
-const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
-const OPENSEARCH_INDEX_NAME = process.env.OPENSEARCH_INDEX_NAME || 'main-index';
+const OPENSEARCH_DOMAIN_ENDPOINT = 'http://opensearch.proxmox.ds:9200';
+const OPENSEARCH_INDEX_NAME = 'reference-data-index';
 // Note: it is not clear what the bulk limit is for OpenSearch - based on performance.
 // Change the value for BULK_OPERATION_LIMIT as necessary.
 // https://repost.aws/knowledge-center/opensearch-indexing-performance

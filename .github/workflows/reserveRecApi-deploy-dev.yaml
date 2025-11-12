@@ -1,0 +1,136 @@
+name: Deploy ReserveRecApi Dev
+
+run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Dev Environment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-reserve-rec-api
+  cancel-in-progress: false
+
+env:
+  # Public Cognito
+  PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
+  PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
+  PUBLIC_COGNITO_CALLBACK_URLS: ${{ vars.PUBLIC_COGNITO_CALLBACK_URLS }}
+
+  # Admin Cognito
+  ADMIN_USER_POOL_NAME: ${{ vars.ADMIN_USER_POOL_NAME }}
+  ADMIN_USER_POOL_CLIENT_NAME: ${{ vars.ADMIN_USER_POOL_CLIENT_NAME }}
+  ADMIN_COGNITO_CALLBACK_URLS: ${{ vars.ADMIN_COGNITO_CALLBACK_URLS }}
+  ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID }}
+  ADMIN_CLIENT_ID: ${{ secrets.ADMIN_CLIENT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: reserveRecApiDev
+    strategy:
+      max-parallel: 1
+      matrix:
+        node-version: [20.x]
+    steps:
+      ### Checkout GitHub Repo
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install AWS CDK
+        run: |
+          yarn
+          yarn global add aws-cdk
+
+      ### Assume AWS IAM Role
+      - name: Get AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # ### Check if this is a first deployment
+      # - name: Detect Deployment Type
+      #   id: deployment-type
+      #   env:
+      #     STACK_NAME: ${{ vars.STACK_NAME }}
+      #   run: |
+      #     echo "Checking deployment type for stack: $STACK_NAME"
+
+      #     # Check if the main stack exists
+      #     STACK_EXISTS=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NOT_EXISTS")
+
+      #     # Check if Parameter Store entries exist
+      #     PARAM_PATH="/reserve-rec/${STACK_NAME}/tables/main/arn"
+
+      #     PARAM_EXISTS=$(aws ssm get-parameter --name "$PARAM_PATH" --query 'Parameter.Value' --output text 2>/dev/null || echo "NOT_EXISTS")
+
+      #     echo "Stack exists: $STACK_EXISTS"
+      #     echo "Parameters exist: $PARAM_EXISTS"
+
+      #     if [ "$STACK_EXISTS" = "NOT_EXISTS" ] && [ "$PARAM_EXISTS" = "NOT_EXISTS" ]; then
+      #       echo "DEPLOYMENT_TYPE=FIRST" >> $GITHUB_OUTPUT
+      #       echo "This is a first deployment - will create tables via CDK"
+      #     elif [ "$STACK_EXISTS" != "NOT_EXISTS" ] && [ "$PARAM_EXISTS" != "NOT_EXISTS" ]; then
+      #       echo "DEPLOYMENT_TYPE=NORMAL" >> $GITHUB_OUTPUT
+      #       echo "This is a normal deployment - will use Parameter Store"
+      #     else
+      #       echo "DEPLOYMENT_TYPE=ADOPTION" >> $GITHUB_OUTPUT
+      #       echo "This is an adoption deployment - will register existing tables"
+      #     fi
+
+      # ### Manage Tables
+      # ## Only for ADOPTION deployments - register existing tables for future use
+      # - name: Manage Tables
+      #   if: steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST'
+      #   env:
+      #     TABLE_NAME: ${{ vars.TABLE_NAME }}
+      #     STACK_NAME: ${{ vars.STACK_NAME }}
+      #   run: |
+      #     echo "Registering tables for stack: $STACK_NAME"
+      #     npm run quick-tables manage $STACK_NAME || echo "Table management failed - will proceed with table creation"
+
+      ### CDK Synth
+      - name: CDK Synth
+        run: cdk synth -c @context=dev
+
+      ### CDK Deploy
+      - name: CDK Deploy
+        run: cdk deploy -c @context=dev --require-approval never --rollback
+
+      # ## CDK Deploy
+      # ## Use Parameter Store for table references if not a first deployment, otherwise create tables via CDK
+      # - name: CDK Deploy
+      #   env:
+      #     USE_PARAMETER_STORE: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST' && 'true' || 'false' }}
+      #   run: |
+      #     echo "Deploying $STACK_NAME"
+      #     echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
+      #     echo "Use Parameter Store: $USE_PARAMETER_STORE"
+      #     cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
+      #     cat cfn-outputs.json
+
+      # ### Post-deployment: Register newly created tables
+      # ## Only for FIRST deployments - register newly created tables for future use
+      # - name: Register New Tables
+      #   if: steps.deployment-type.outputs.DEPLOYMENT_TYPE == 'FIRST'
+      #   env:
+      #     TABLE_NAME: ${{ vars.TABLE_NAME }}
+      #     STACK_NAME: ${{ vars.STACK_NAME }}
+      #   run: |
+      #     echo "Registering newly created tables for future deployments..."
+      #     npm run quick-tables manage $STACK_NAME || echo "Post-deployment table registration failed"
+
+      # ## Update Config
+      # - name: Update Config
+      #   env:
+      #     TABLE_NAME: ${{ vars.TABLE_NAME }}
+      #     STACK_NAME: ${{ vars.STACK_NAME }}
+      #   run: |
+      #     node lib/tools/cicd/updateConfig.js cfn-outputs.json lib/tools/cicd/valid_admin_attributes.json admin $STACK_NAME
+      #     node lib/tools/cicd/updateConfig.js cfn-outputs.json lib/tools/cicd/valid_public_attributes.json public $STACK_NAME

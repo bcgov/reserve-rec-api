@@ -3,8 +3,8 @@ name: Deploy LZA reserve-rec-api Dev
 run-name: Deploying ${{ github.ref_name }} (API) to LZA dev environment
 
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -111,18 +111,18 @@ jobs:
           STACK_NAME: ${{ vars.STACK_NAME }}
         run: |
           echo "Checking deployment type for stack: $STACK_NAME"
-          
+
           # Check if the main stack exists
           STACK_EXISTS=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NOT_EXISTS")
-          
+
           # Check if Parameter Store entries exist
           PARAM_PATH="/reserve-rec/${STACK_NAME}/tables/main/arn"
-          
+
           PARAM_EXISTS=$(aws ssm get-parameter --name "$PARAM_PATH" --query 'Parameter.Value' --output text 2>/dev/null || echo "NOT_EXISTS")
-          
+
           echo "Stack exists: $STACK_EXISTS"
           echo "Parameters exist: $PARAM_EXISTS"
-          
+
           if [ "$STACK_EXISTS" = "NOT_EXISTS" ] && [ "$PARAM_EXISTS" = "NOT_EXISTS" ]; then
             echo "DEPLOYMENT_TYPE=FIRST" >> $GITHUB_OUTPUT
             echo "This is a first deployment - will create tables via CDK"
