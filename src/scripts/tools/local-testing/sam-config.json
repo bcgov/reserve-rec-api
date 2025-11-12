@@ -10,7 +10,7 @@
   "PUBSUB_TABLE_NAME": "reserve-rec-pubsub-local",
   "GLOBALID_INDEX_NAME": "globalId-index",
   "OPENSEARCH_DOMAIN_ENDPOINT": "http://opensearch.proxmox.ds:9200",
-  "OPENSEARCH_REFERENCE_DATA_INDEX_NAME": "main-index",
+  "OPENSEARCH_REFERENCE_DATA_INDEX_NAME": "reference-data-index",
   "OPENSEARCH_AUDIT_INDEX_NAME": "audit-index",
   "OPENSEARCH_BOOKING_INDEX_NAME": "booking-index",
   "OPENSEARCH_DOMAIN_NAME": "local-opensearch-domain",
