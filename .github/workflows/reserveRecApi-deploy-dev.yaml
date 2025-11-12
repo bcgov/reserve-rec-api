@@ -95,11 +95,8 @@ jobs:
       #     echo "Registering tables for stack: $STACK_NAME"
       #     npm run quick-tables manage $STACK_NAME || echo "Table management failed - will proceed with table creation"
 
-      ### CDK Synth
-      - name: CDK Synth
-        run: cdk synth -c @context=dev
-
       ### CDK Deploy
+      ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
       - name: CDK Deploy
         run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
 
