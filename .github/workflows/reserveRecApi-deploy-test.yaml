@@ -1,6 +1,6 @@
-name: Deploy ReserveRecApi Dev
+name: Deploy ReserveRecApi Test
 
-run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Dev Environment
+run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Test Environment
 
 on:
   push:
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: reserveRecApiDev
+    environment: reserveRecApiTest
     strategy:
       max-parallel: 1
       matrix:
@@ -44,4 +44,4 @@ jobs:
       ### CDK Deploy
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
       - name: CDK Deploy
-        run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=staging --all --require-approval never --rollback
