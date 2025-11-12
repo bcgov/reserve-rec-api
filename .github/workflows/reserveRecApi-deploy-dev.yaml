@@ -101,7 +101,7 @@ jobs:
 
       ### CDK Deploy
       - name: CDK Deploy
-        run: cdk deploy -c @context=dev --require-approval never --rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
 
       # ## CDK Deploy
       # ## Use Parameter Store for table references if not a first deployment, otherwise create tables via CDK
