@@ -15,7 +15,7 @@ concurrency:
   group: deploy-reserve-rec-api
   cancel-in-progress: false
 
-env:
+# env:
   # # Public Cognito
   # PUBLIC_USER_POOL_NAME: ${{ vars.PUBLIC_USER_POOL_NAME }}
   # PUBLIC_USER_POOL_CLIENT_NAME: ${{ vars.PUBLIC_USER_POOL_CLIENT_NAME }}
