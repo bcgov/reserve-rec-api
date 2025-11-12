@@ -4,20 +4,56 @@ const {
   getByGSI,
   marshall,
   runQuery,
-  TABLE_NAME,
+  REFERENCE_DATA_TABLE_NAME,
+  TRANSACTIONAL_DATA_TABLE_NAME,
+  USERSUB_INDEX_NAME,
+  USERSUB_PROPERTY_NAME,
 } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
 } = require("../activities/methods");
-const { getAndAttachNestedProperties } = require("/opt/data-utils");
+const { getAndAttachNestedProperties } = require("../../common/data-utils");
 const { DateTime } = require("luxon");
 
-async function getBookingByBookingId(bookingId, fetchAccessPoints = false) {
+async function getBookingsByUserId(userId, props) {
+  logger.debug("Getting booking by userId:", userId);
+  try {
+    let params = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      IndexName: USERSUB_INDEX_NAME,
+      KeyConditionExpression: "#userId = :userId",
+      ExpressionAttributeNames: {
+        "#userId": USERSUB_PROPERTY_NAME,
+      },
+      ExpressionAttributeValues: {
+        ":userId": marshall(userId),
+      },
+      FilterExpression: "",
+    };
+
+    if (props?.bookingId) {
+      params.FilterExpression = "bookingId = :bookingId";
+    }
+    if (props?.startDate) {
+      params.FilterExpression = (params.FilterExpression ? params.FilterExpression + " AND " : "") + "startDate >= :startDate";
+    }
+    if (props?.endDate) {
+      params.FilterExpression = (params.FilterExpression ? params.FilterExpression + " AND " : "") + "endDate <= :endDate";
+    }
+
+    const result = await runQuery(params);
+
+  } catch (error) {
+    throw new Exception(`Error getting booking by userId: ${error}`);
+  }
+}
+
+async function getBookingByBookingId(bookingId, userId = null, fetchAccessPoints = false) {
   logger.debug("Getting booking by bookingId:", bookingId);
   try {
-    let data = await getOneByGlobalId(bookingId);
+    let data = await getOneByGlobalId(bookingId, TRANSACTIONAL_DATA_TABLE_NAME);
     if (fetchAccessPoints) {
       console.debug("Fetching access points for booking:", bookingId);
       await getAndAttachNestedProperties(data, ["entryPoint", "exitPoint"]);
@@ -34,7 +70,7 @@ async function getBookingByBookingId(bookingId, fetchAccessPoints = false) {
 async function getBookingsByUserSub(userSub) {
   logger.debug("Getting booking by userSub:", userSub);
   try {
-    return await getByGSI("user", userSub, TABLE_NAME, "bookingUserSub-index");
+    return await getByGSI("user", userSub, TRANSACTIONAL_DATA_TABLE_NAME, USERSUB_INDEX_NAME);
   } catch (error) {
     throw new Exception("Error getting booking by userSub", {
       code: 400,
@@ -64,7 +100,7 @@ async function getBookingsByActivityDetails(
   );
   try {
     let query = {
-      TableName: TABLE_NAME,
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
         ":pk": marshall(
@@ -664,7 +700,7 @@ async function fetchBookingsSortedByActivity(
       // Use the activityLastKey only if we're resuming from the exact same activity
       const lastKey =
         collectionIdx === currentCollectionIndex &&
-        activityIdx === currentActivityIndex
+          activityIdx === currentActivityIndex
           ? activityLastKey
           : null;
 
@@ -947,12 +983,12 @@ async function fetchBookingsSortedByDate(
   const nextPageKey =
     hasMore && items.length > 0
       ? {
-          sortBy: sortBy,
-          lastItemDate: items[items.length - 1][sortBy],
-          lastItemId: items[items.length - 1].globalId,
-          collectionIndex: 0,
-          activityIndex: 0,
-        }
+        sortBy: sortBy,
+        lastItemDate: items[items.length - 1][sortBy],
+        lastItemId: items[items.length - 1].globalId,
+        collectionIndex: 0,
+        activityIndex: 0,
+      }
       : null;
 
   return {
@@ -966,7 +1002,7 @@ module.exports = {
   createBooking,
   getBookingsByActivityDetails,
   getBookingByBookingId,
-  getBookingsByUserSub,
+  getBookingsByUserId,
   validateAdminRequirements,
   calculateDateRange,
   validateDateRange,

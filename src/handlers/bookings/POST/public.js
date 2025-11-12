@@ -21,8 +21,11 @@ exports.handler = async (event, context) => {
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || body?.activityId;
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
+    const claims = getRequestClaimsFromEvent(event);
+    body['userId'] = claims?.sub || null;
 
-    if (!collectionId || !activityType || !activityId || !startDate) {
+
+    if (!collectionId || !activityType || !activityId || !startDate || !body.user) {
       throw new Exception("Activity Collection ID (collectionId), Activity Type (activityType), Activity ID (activityId) and Start Date (startDate) are required", { code: 400 });
     }
 

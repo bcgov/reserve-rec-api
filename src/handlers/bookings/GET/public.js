@@ -1,7 +1,7 @@
-// Get booking
+// Public GET handlers for bookings. This is used to get bookings for the logged-in user. User can only see their own bookings, but they can filter by various parameters.
 
-const { Exception, logger, sendResponse } = require("/opt/base");
-const { getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require("../methods");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { getBookingsByUserId} = require("../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Bookings GET:", event);
@@ -15,7 +15,6 @@ exports.handler = async (event, context) => {
     // Get relevant data from the event
     // Search by ID
     const bookingId = event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId;
-    const userSub = event?.queryStringParameters?.user || null;
 
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
@@ -24,23 +23,23 @@ exports.handler = async (event, context) => {
     const endDate = event?.pathParameters?.endDate || event?.queryStringParameters?.endDate || null;
     const fetchAccessPoints = event?.queryStringParameters?.fetchAccessPoints || false;
 
-    if (bookingId) {
-      // Get booking by bookingId
-      const booking = await getBookingByBookingId(bookingId, fetchAccessPoints);
-      return sendResponse(200, booking, "Success", null, context);
+    const userId = getRequestClaimsFromEvent(event)?.sub || null;
+
+    if (!userId) {
+      throw new Exception("Unauthorized: User ID not found in request claims", { code: 401 });
     }
 
-    if (userSub) {
-      const booking = await getBookingsByUserSub(userSub, fetchAccessPoints);
-      return sendResponse(200, booking, "Success", null, context)
+    const filters = {
+      collectionId: collectionId,
+      activityType: activityType,
+      activityId: activityId,
+      startDate: startDate,
+      endDate: endDate,
+      bookingId: bookingId,
+      fetchAccessPoints: fetchAccessPoints,
     }
 
-    if (!collectionId || !activityType || !activityId || !startDate) {
-      throw new Exception("Booking ID (bookingId) OR Activity Collection ID (collectionId), Activity Type (activityType), Activity ID (activityId) and Start Date (startDate) are required", { code: 400 });
-    }
-
-    const bookings = await getBookingsByActivityDetails(collectionId, activityType, activityId, startDate, endDate);
-
+    const bookings = await getBookingsByUserId(userId, filters);
     return sendResponse(200, bookings, "Success", null, context);
 
   } catch (error) {
