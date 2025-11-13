@@ -30,9 +30,9 @@ jobs:
         with:
           path: cdk.out
           # cdk.out/manifest.json is created during cdk synth and changes when cdk.out/* changes
-          key: ${{ runner.os }}-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
+          key: ${{ runner.os }}-dev-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
           restore-keys: |
-            ${{ runner.os }}-cdk-out-
+            ${{ runner.os }}-dev-cdk-out-
 
       ### Checkout GitHub Repo
       - name: Checkout repo
@@ -61,4 +61,4 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cdk.out
-          key: ${{ runner.os }}-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
+          key: ${{ runner.os }}-dev-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
