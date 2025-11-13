@@ -34,8 +34,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cdk.out
-          # cdk.out/manifest.json is created during cdk synth and changes when cdk.out/* changes
-          key: ${{ runner.os }}-test-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
+          # A static cache key is fine since cdk deploy will overwrite files as needed
+          key: ${{ runner.os }}-test-cdk-out
           restore-keys: |
             ${{ runner.os }}-test-cdk-out-
 
@@ -66,4 +66,4 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cdk.out
-          key: ${{ runner.os }}-test-cdk-out-${{ hashFiles('cdk.out/manifest.json') }}
+          key: ${{ runner.os }}-test-cdk-out
