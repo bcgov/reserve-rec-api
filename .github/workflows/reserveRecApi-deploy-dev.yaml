@@ -24,6 +24,15 @@ jobs:
       matrix:
         node-version: [20.x]
     steps:
+      ### Restore cdk.out cache
+      - name: Restore cdk.out cache
+        uses: actions/cache@v4
+        with:
+          path: cdk.out
+          key: ${{ runner.os }}-cdk-out-${{ hashFiles(*cdk.out/manifest.json) }}
+          restore-keys: |
+            ${{ runner.os }}-cdk-out-
+
       ### Checkout GitHub Repo
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -45,3 +54,10 @@ jobs:
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
       - name: CDK Deploy
         run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
+
+      ### Save cdk.out cache
+      - name: Save cdk.out cache
+        uses: actions/cache@v4
+        with:
+          path: cdk.out
+          key: ${{ runner.os }}-cdk-out-${{ hashFiles(*cdk.out/manifest.json) }}
