@@ -13,7 +13,9 @@
     "build:admin": "node ./src/scripts/tools/local-testing/sam-quick-start.js",
     "build:layers": "node ./src/scripts/tools/local-testing/build-lambda-layers.js",
     "synth:dev": "cdk synth -c @context=dev -q --all",
+    "synth:test": "cdk synth -c @context=test -q --all",
     "deploy:dev": "cdk deploy -q -c @context=dev --all",
+    "deploy:test": "cdk deploy -q -c @context=test --all",
     "run:admin": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-AdminApiStack-AdminApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "run:admin:full": "yarn synth:local && yarn build:admin && yarn run:admin"
   },
