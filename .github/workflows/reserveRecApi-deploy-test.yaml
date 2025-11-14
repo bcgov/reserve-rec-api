@@ -59,7 +59,7 @@ jobs:
       ### CDK Deploy
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
       - name: CDK Deploy
-        run: export LOG_LEVEL=debug && cdk deploy -c @context=staging --all --require-approval never --rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=test --all --require-approval never --rollback
 
       ### Save cdk.out cache
       - name: Save cdk.out cache
