@@ -456,12 +456,12 @@ async function deleteItem(pk, sk, tableName = REFERENCE_DATA_TABLE_NAME) {
 async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
   let putObj = {
     TableName: tableName,
-    Item: obj,
+    Item: marshall(obj),
     ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
   };
 
-  logger.debug(`Putting putObj: ${putObj}`);
-  await getDynamoDBClient().putItem(putObj);
+  logger.debug(`Putting putObj:`, putObj);
+  await getDynamoDBClient().send(new PutItemCommand(putObj));
 }
 
 /**
@@ -647,10 +647,10 @@ module.exports = {
   incrementCounter,
   getOneByGlobalId,
   getByGSI,
-  marshall,
   parallelizedBatchGetData,
   putItem,
   runQuery,
   runScan,
+  marshall,
   unmarshall,
 };

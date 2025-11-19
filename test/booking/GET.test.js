@@ -1,4 +1,4 @@
-const { handler } = require("../../lib/handlers/bookings/GET/index");
+const { handler } = require("../../src/handlers/bookings/GET/index");
 const { sendResponse } = require('/opt/base');
 // Do not import getBookingByBookingId here, import it after jest.mock
 let getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub;
@@ -18,14 +18,14 @@ jest.mock("/opt/base", () => ({
     context,
   })),
 }));
-jest.mock('../../lib/handlers/bookings/methods', () => ({
+jest.mock('../../src/handlers/bookings/methods', () => ({
   getBookingByBookingId: jest.fn(),
   getBookingsByActivityDetails: jest.fn(),
   getBookingsByUserSub: jest.fn(),
 }));
 
 // Import the mocked functions after jest.mock
-({ getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require('../../lib/handlers/bookings/methods'));
+({ getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require('../../src/handlers/bookings/methods'));
 
 
 describe('Bookings GET handler', () => {

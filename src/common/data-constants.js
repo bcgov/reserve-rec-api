@@ -76,10 +76,21 @@ const RATE_CLASS_ENUMS = [
 ];
 
 const BOOKING_STATUS_ENUMS = [
+    'in progress',
     'confirmed',
     'cancelled',
     'expired'
 ]
+
+const TRANSACTION_STATUS_ENUMS = [
+  'in progress',
+  'paid',
+  'refund in progress',
+  'refunded',
+  'partial refund',
+  'void',
+  'unknown'
+];
 
 module.exports = {
     DEFAULT_API_UPDATE_CONFIG,
@@ -92,4 +103,5 @@ module.exports = {
     POLICY_TYPE_ENUMS,
     RATE_CLASS_ENUMS,
     TIMEZONE_ENUMS,
+    TRANSACTION_STATUS_ENUMS
 };
