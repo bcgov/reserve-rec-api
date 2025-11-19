@@ -1,5 +1,4 @@
-const { handler } = require("../../src/handlers/bookings/GET/index");
-const { sendResponse } = require('/opt/base');
+const { handler } = require("../../src/handlers/bookings/GET/public");
 // Do not import getBookingByBookingId here, import it after jest.mock
 let getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub;
 
@@ -9,7 +8,12 @@ jest.mock("/opt/base", () => ({
     this.code = data.code;
     this.data = data;
   }),
-  logger: { info: jest.fn() },
+  logger: {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
   sendResponse: jest.fn((status, data, message, error, context) => ({
     status,
     data,
@@ -38,7 +42,7 @@ describe('Bookings GET handler', () => {
   it('should handle CORS preflight OPTIONS request', async () => {
     const event = { httpMethod: 'OPTIONS' };
     const res = await handler(event, context);
-    expect(res.statusCode).toBe(200);
+    expect(res.status).toBe(200);
   });
 
   // it('should get booking by bookingId from pathParameters', async () => {
