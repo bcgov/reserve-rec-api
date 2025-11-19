@@ -1,12 +1,13 @@
 const { sendResponse, logger, Exception } = require('/opt/base');
 const { LIST_USER_FILTER_KEYS, listUsers, adminGetUser } = require('/opt/cognito');
+const { getOne } = require('/opt/dynamodb');
 
 const MAX_LIST_LIMIT = 60;
 
 exports.handler = async function (event, context) {
   logger.debug('User GET', JSON.stringify(event));
 
-  const userPoolId = event?.pathParameters?.userPoolId || null;
+  let userPoolId = event?.pathParameters?.userPoolId || null;
   let filter = null;
   if (event?.queryStringParameters && Object.keys(event?.queryStringParameters)?.length > 0) {
     for (const key of LIST_USER_FILTER_KEYS) {
@@ -23,6 +24,18 @@ exports.handler = async function (event, context) {
     return sendResponse(400, {}, 'User pool ID is required', null, context);
   }
 
+  if (userPoolId === 'admin' || userPoolId === 'public') {
+    // Shortform to get the approriate user pool ID from config variables
+    // Instead of passing the full user pool ID, clients can pass 'admin' or 'public'
+    const config = await getOne('config', userPoolId);
+    if (config && (config?.ADMIN_USER_POOL_ID)) {
+      userPoolId = config?.ADMIN_USER_POOL_ID;
+    }
+    if (config && (config?.PUBLIC_USER_POOL_ID)) {
+      userPoolId = config?.PUBLIC_USER_POOL_ID;
+    }
+  }
+
   try {
 
     const sub = event?.pathParameters?.sub || event?.queryStringParameters?.sub || null;
@@ -35,7 +48,6 @@ exports.handler = async function (event, context) {
         limit = 10;
       }
       const paginationToken = event?.queryStringParameters?.paginationToken || null;
-      console.log('filter:', filter);
       const userList = await listUsers(userPoolId, limit, paginationToken, filter);
       return sendResponse(200, userList, 'User list retrieved successfully', null, context);
     } else {
