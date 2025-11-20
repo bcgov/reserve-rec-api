@@ -25,7 +25,7 @@ jest.mock("../../src/handlers/bookings/configs", () => ({
   BOOKING_PUT_CONFIG: {},
 }));
 
-jest.mock("/opt/data-utils", () => ({
+jest.mock("../../common/data-utils", () => ({
   quickApiPutHandler: jest.fn(),
 }));
 
@@ -36,7 +36,7 @@ jest.mock("/opt/dynamodb", () => ({
 
 const { handler } = require("../../src/handlers/bookings/POST/public");
 const { createBooking } = require("../../src/handlers/bookings/methods");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../common/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -88,7 +88,6 @@ describe("Bookings POST handler", () => {
         activityId: "1",
         startDate: "2024-01-01",
         user: "test-user-123",
-        userId: "test-user-123"
       })
     );
     expect(quickApiPutHandler).toHaveBeenCalled();
@@ -126,7 +125,6 @@ describe("Bookings POST handler", () => {
       "2024-02-02",
       expect.objectContaining({
         user: "test-user-123",
-        userId: "test-user-123"
       })
     );
     expect(result.status).toBe(200);

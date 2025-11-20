@@ -3,7 +3,7 @@
 const { Exception, logger } = require("/opt/base");
 const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
-const { quickApiPutHandler, quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiPutHandler, quickApiUpdateHandler } = require("../../../../common/data-utils");
 const {
   createRefund,
   createAndCheckRefundHash,

@@ -40,7 +40,7 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TestTable",
 }));
 
-jest.mock("/opt/data-utils", () => ({
+jest.mock("../../../../common/data-utils", () => ({
   quickApiPutHandler: jest.fn(),
 }));
 
@@ -60,7 +60,7 @@ const {
   createAndCheckRefundHash,
   findAndVerifyTransactionOwnership,
 } = require("../../src/handlers/transactions/methods");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 
 describe("Transaction Refund POST handler", () => {
@@ -72,7 +72,7 @@ describe("Transaction Refund POST handler", () => {
     jest.clearAllMocks();
   });
 
-  it("should return 401 if userId is missing", async () => {
+  it("should return 401 if user is missing", async () => {
     const event = {
       pathParameters: { transactionId: mockTransactionId },
       body: JSON.stringify({ trnAmount: 50.0 }),
@@ -82,7 +82,7 @@ describe("Transaction Refund POST handler", () => {
     const result = await handler(event, context);
 
     expect(result.status).toBe(401);
-    expect(result.message).toBe("Cannot issue refund - missing required parameter(s): userId");
+    expect(result.message).toBe("Cannot issue refund - missing required parameter(s): user");
   });
 
   // Create a JWT token with the user sub

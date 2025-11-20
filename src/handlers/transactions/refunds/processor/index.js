@@ -5,7 +5,7 @@ const { Exception, logger } = require("/opt/base");
 const { TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
 const axios = require("axios");
 const crypto = require('crypto');
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 const { REFUND_UPDATE_CONFIG, TRANSACTION_UPDATE_CONFIG } = require("../../configs");
 

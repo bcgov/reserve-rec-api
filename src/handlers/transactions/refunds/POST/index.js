@@ -1,6 +1,6 @@
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../../common/data-utils");
 const {
   createRefund,
   createAndCheckRefundHash,

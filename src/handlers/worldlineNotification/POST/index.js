@@ -3,7 +3,7 @@ const querystring = require('querystring');
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { updateTransactionForPayment } = require("../../transactions/methods");
 const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../common/data-utils");
 const { TRANSACTION_UPDATE_CONFIG } = require("../../transactions/configs");
 
 const WORLDLINE_WEBHOOK_SECRET = process.env.WORLDLINE_WEBHOOK_SECRET || 'default-secret'

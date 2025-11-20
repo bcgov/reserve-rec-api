@@ -22,7 +22,7 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TestTable",
 }));
 
-jest.mock("/opt/data-utils", () => ({
+jest.mock("../../../../common/data-utils", () => ({
   quickApiUpdateHandler: jest.fn(),
 }));
 
@@ -41,7 +41,7 @@ const {
   refundPublishCommand,
 } = require("../../src/handlers/bookings/methods");
 const { batchTransactData } = require("/opt/dynamodb");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 
 describe("Booking Cancellation Subscriber", () => {
   const context = {};
