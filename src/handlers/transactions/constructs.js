@@ -122,12 +122,13 @@ class TransactionsConstruct extends LambdaConstruct {
     });
 
     // Add SNS permissions to the refunds POST function
-    const refundRequestTopicArn = this.appScope.resolveRefundRequestTopicArn(this);
-    const snsPolicy = new iam.PolicyStatement({
-      actions: ['sns:Publish'],
-      resources: [refundRequestTopicArn],
-    });
-    this.transactionsRefundsPostFunction.addToRolePolicy(snsPolicy);
+    if (props.refundRequestTopicArn) {
+      const snsPolicy = new iam.PolicyStatement({
+        actions: ['sns:Publish'],
+        resources: [props.refundRequestTopicArn],
+      });
+      this.transactionsRefundsPostFunction.addToRolePolicy(snsPolicy);
+    }
 
     // Add permissions to all functions
     const functions = [

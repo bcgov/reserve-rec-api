@@ -295,11 +295,12 @@ class CDKProject {
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
 
     publicApiStack.addDependency(referenceDataStack);
+    publicApiStack.addDependency(bookingWorkflowStack);
     adminApiStack.addDependency(referenceDataStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
     bookingWorkflowStack.addDependency(coreStack);
-    bookingWorkflowStack.addDependency(referenceDataStack);
+    bookingWorkflowStack.addDependency(transactionalDataStack);
     referenceDataStack.addDependency(coreStack);
     referenceDataStack.addDependency(openSearchStack);
     transactionalDataStack.addDependency(coreStack);
