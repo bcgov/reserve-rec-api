@@ -2,7 +2,7 @@
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { createBooking } = require("../methods");
 const { BOOKING_PUT_CONFIG } = require("../configs");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../common/data-utils");
 const { TRANSACTIONAL_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {

@@ -32,7 +32,7 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TestTable",
 }));
 
-jest.mock("../../../../common/data-utils", () => ({
+jest.mock("../../src/common/data-utils", () => ({
   quickApiPutHandler: jest.fn(),
   quickApiUpdateHandler: jest.fn(),
 }));
@@ -60,7 +60,7 @@ const {
   findAndVerifyTransactionOwnership,
   updateTransactionForRefund,
 } = require("../../src/handlers/transactions/methods");
-const { quickApiPutHandler, quickApiUpdateHandler } = require("../../../../common/data-utils");
+const { quickApiPutHandler, quickApiUpdateHandler } = require("../../src/common/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 
 describe("Refund Subscriber", () => {

@@ -2,7 +2,7 @@
 // This handler is triggered by SNS messages for booking cancellations
 const { Exception, logger, getNow } = require("/opt/base");
 const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { BOOKING_UPDATE_CONFIG } = require("../../configs");
 const { getBookingByBookingId, refundPublishCommand } = require("../../methods");
 
