@@ -1,8 +1,8 @@
 // Create new transaction
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { createTransaction } = require("../methods");
-const { batchTransactData, TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
+const { quickApiPutHandler } = require("../../../common/data-utils");
 const { TRANSACTION_PUT_CONFIG } = require("../configs");
 
 exports.handler = async (event, context) => {
@@ -13,14 +13,21 @@ exports.handler = async (event, context) => {
     const body = JSON.parse(event?.body);
     logger.debug("transaction body: ", body);
 
+    // Get the user sub from the authorizer context
+    let user = getRequestClaimsFromEvent(event)?.sub || null;
+    
+    if (!user) {
+      throw new Exception("Cannot create transaction - missing user sub", { code: 401 });
+    }
+
     if (!body?.trnAmount || !body?.bookingId || !body.sessionId) {
       throw new Exception("Missing required transaction fields", { code: 400 });
     }
 
-    const postRequests = await createTransaction(body);
+    const postRequests = await createTransaction(body, user);
 
     const putItems = await quickApiPutHandler(
-      TABLE_NAME,
+      TRANSACTIONAL_DATA_TABLE_NAME,
       [postRequests],
       TRANSACTION_PUT_CONFIG
     );

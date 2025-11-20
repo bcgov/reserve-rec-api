@@ -52,7 +52,7 @@ async function getProtectedAreaByOrcs(orcs) {
     const res = await getOne('protectedArea', `${orcs}`);
     return res;
   } catch (error) {
-    throw new Exception('Error getting protected area', { code: 400, error: error });
+    throw new Exception('Error getting protected area', { code: 400, error: error.message || String(error) });
   }
 }
 

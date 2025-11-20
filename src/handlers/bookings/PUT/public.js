@@ -1,6 +1,6 @@
 // Create new transaction
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { confirmBooking } = require("../methods")
+const { completeBooking } = require("../methods")
 const { BOOKING_UPDATE_CONFIG } = require("../configs");
 const { quickApiUpdateHandler } = require("/opt/data-utils");
 const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
@@ -19,10 +19,10 @@ exports.handler = async (event, context) => {
     }
 
     if (!sessionId) {
-      throw new Exception("Booking ID is required", { code: 400 });
+      throw new Exception("Session ID is required", { code: 400 });
     }
     
-    const updateRequests = await confirmBooking(bookingId, sessionId);
+    const updateRequests = await completeBooking(bookingId, sessionId);
 
     const putItems = await quickApiUpdateHandler(
       TABLE_NAME,

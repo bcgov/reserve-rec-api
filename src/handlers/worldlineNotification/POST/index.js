@@ -1,22 +1,27 @@
 // Await Worldline Notification push
 const querystring = require('querystring');
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { updateTransaction } = require("../../transactions/methods");
-const { batchTransactData, TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { updateTransactionForPayment } = require("../../transactions/methods");
+const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
+const { quickApiUpdateHandler } = require("../../../common/data-utils");
 const { TRANSACTION_UPDATE_CONFIG } = require("../../transactions/configs");
 
 const WORLDLINE_WEBHOOK_SECRET = process.env.WORLDLINE_WEBHOOK_SECRET || 'default-secret'
 
 // Update booking
-const { confirmBooking } = require("../../bookings/methods")
+const { completeBooking } = require("../../bookings/methods")
 const { BOOKING_UPDATE_CONFIG } = require("../../bookings/configs");
 
 // Email dispatch
-const { sendReceiptEmail, getRegionBranding } = require("../emailDispatch/utils");
+const { sendReceiptEmail, getRegionBranding } = require("../../../../lib/handlers/emailDispatch/utils");
 
 exports.handler = async (event, context) => {
   logger.info("Worldline Notification POST:", event);
+
+  // Allow CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return sendResponse(200, {}, 'Success', null, context);
+  }
 
   try {
     // Get relevant data from the event
@@ -39,10 +44,10 @@ exports.handler = async (event, context) => {
       throw new Exception("Incorrect webhook secret", { code: 400 });
     }
 
-    const updateRequestsTransaction = await updateTransaction(clientTransactionId, bookingId, sessionId, body);
+    const updateRequestsTransaction = await updateTransactionForPayment(clientTransactionId, bookingId, sessionId, body);
 
     const putItemsTransactions = await quickApiUpdateHandler(
-      TABLE_NAME,
+      TRANSACTIONAL_DATA_TABLE_NAME,
       [updateRequestsTransaction],
       TRANSACTION_UPDATE_CONFIG
     );
@@ -51,10 +56,10 @@ exports.handler = async (event, context) => {
 
     // TODO: Configure a better setup for retries and/or error handling
     // If the transaction successfully updates to "paid", confirm the booking now
-    const updateRequestsBooking = await confirmBooking(bookingId, sessionId);
+    const updateRequestsBooking = await completeBooking(bookingId, sessionId, clientTransactionId);
 
     const putItemsBooking = await quickApiUpdateHandler(
-      TABLE_NAME,
+      TRANSACTIONAL_DATA_TABLE_NAME,
       [updateRequestsBooking],
       BOOKING_UPDATE_CONFIG
     );
@@ -93,8 +98,8 @@ exports.handler = async (event, context) => {
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error",
-      error?.error || error,
+      error?.message || error?.msg || "Error",
+      error?.error || String(error),
       context
     );
   }
