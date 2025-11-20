@@ -21,7 +21,7 @@ class UsersConstruct extends LambdaConstruct {
     // Add /users resource
     this.usersResource = this.resolveApi().root.addResource('users');
 
-    // Add /Userpool identifier resource
+    // Add /UserPool identifier resource
     this.userPoolIdResource = this.usersResource.addResource('{userPoolId}');
 
     // Sub resource
