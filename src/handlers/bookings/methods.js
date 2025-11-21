@@ -4,17 +4,17 @@ const {
   getByGSI,
   marshall,
   runQuery,
-  REFERENCE_DATA_TABLE_NAME,
   TRANSACTIONAL_DATA_TABLE_NAME,
   USERSUB_INDEX_NAME,
   USERSUB_PROPERTY_NAME,
 } = require("/opt/dynamodb");
+const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
 const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
 } = require("../activities/methods");
-const { getAndAttachNestedProperties } = require("../../common/data-utils");
+const { getAndAttachNestedProperties } = require("/opt/data-utils");
 const { DateTime } = require("luxon");
 
 async function getBookingsByUserId(userId, props) {
@@ -62,19 +62,7 @@ async function getBookingByBookingId(bookingId, userId = null, fetchAccessPoints
   } catch (error) {
     throw new Exception("Error getting booking by bookingId", {
       code: 400,
-      error: error,
-    });
-  }
-}
-
-async function getBookingsByUserSub(userSub) {
-  logger.debug("Getting booking by userSub:", userSub);
-  try {
-    return await getByGSI("user", userSub, TRANSACTIONAL_DATA_TABLE_NAME, USERSUB_INDEX_NAME);
-  } catch (error) {
-    throw new Exception("Error getting booking by userSub", {
-      code: 400,
-      error: error,
+      error: error.message || String(error),
     });
   }
 }
@@ -214,7 +202,7 @@ async function createBooking(
   }
 }
 
-async function confirmBooking(bookingId, sessionId) {
+async function completeBooking(bookingId, sessionId, clientTransactionId) {
   try {
     const booking = await getBookingByBookingId(bookingId);
     console.log("booking: ", booking);
@@ -236,10 +224,48 @@ async function confirmBooking(bookingId, sessionId) {
     // Set the booking as complete and return the putItem
     return {
       key: { pk: booking.pk, sk: booking.sk },
-      data: { bookingStatus: "completed" },
+      data: { 
+        bookingStatus: "confirmed",
+        clientTransactionId: clientTransactionId,
+       },
     };
   } catch (error) {
-    throw new Exception("Error updating transaction", {
+    throw new Exception("Error updating booking", {
+      code: 400,
+      error: error,
+    });
+  }
+}
+
+async function cancelBooking(bookingId, userSub, reason = null) {
+  try {
+    const booking = await getBookingByBookingId(bookingId);
+
+    // Verify ownership
+    if (booking.userSub !== userSub) {
+      throw new Exception(`User ${userSub} does not own booking ${bookingId}`, {
+        code: 403,
+      });
+    }
+
+    // Check if already cancelled
+    if (booking.bookingStatus === "cancelled") {
+      throw new Exception(`Booking ${bookingId} is already cancelled`, {
+        code: 400,
+      });
+    }
+
+    // Return the putItem for cancellation
+    return {
+      key: { pk: booking.pk, sk: booking.sk },
+      data: {
+        bookingStatus: "cancelled",
+        cancellationReason: reason || "Customer requested cancellation",
+        cancelledAt: new Date().toISOString(),
+      },
+    };
+  } catch (error) {
+    throw new Exception("Error cancelling booking", {
       code: 400,
       error: error,
     });
@@ -251,7 +277,7 @@ async function confirmBooking(bookingId, sessionId) {
  */
 
 /*
- * Validates admin user requirements
+ * Validates admin userSub requirements
  */
 function validateAdminRequirements(userObject, collectionId) {
   if (userObject.isAdmin && !collectionId) {
@@ -262,7 +288,7 @@ function validateAdminRequirements(userObject, collectionId) {
 }
 
 /*
- * Calculates effective date range based on user type and provided dates
+ * Calculates effective date range based on userSub type and provided dates
  */
 function calculateDateRange(userObject, startDate, endDate) {
   let effectiveStartDate, effectiveEndDate;
@@ -700,7 +726,7 @@ async function fetchBookingsSortedByActivity(
       // Use the activityLastKey only if we're resuming from the exact same activity
       const lastKey =
         collectionIdx === currentCollectionIndex &&
-          activityIdx === currentActivityIndex
+        activityIdx === currentActivityIndex
           ? activityLastKey
           : null;
 
@@ -983,12 +1009,12 @@ async function fetchBookingsSortedByDate(
   const nextPageKey =
     hasMore && items.length > 0
       ? {
-        sortBy: sortBy,
-        lastItemDate: items[items.length - 1][sortBy],
-        lastItemId: items[items.length - 1].globalId,
-        collectionIndex: 0,
-        activityIndex: 0,
-      }
+          sortBy: sortBy,
+          lastItemDate: items[items.length - 1][sortBy],
+          lastItemId: items[items.length - 1].globalId,
+          collectionIndex: 0,
+          activityIndex: 0,
+        }
       : null;
 
   return {
@@ -997,17 +1023,111 @@ async function fetchBookingsSortedByDate(
   };
 }
 
+/**
+  * Publishes booking cancellation command to SNS
+  * @param {object} booking - The ID of the booking to cancel
+  * @param {string} booking.bookingId - The ID of the booking to cancel
+  * @param {string} booking.userSub - The userSub identifier requesting the cancellation
+  * @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
+  * @param {object} booking.feeInformation - The fee information associated with the booking
+  * @param {string} reason - The reason for cancellation
+  */
+async function cancellationPublishCommand(booking, reason) {
+  // Prepare cancellation message
+  const cancellationMessage = {
+    bookingId: booking.bookingId,
+    userSub: booking.userSub,
+    clientTransactionId: booking.clientTransactionId,
+    refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
+    reason: reason || 'Cancelled by user via self-serve',
+    timestamp: new Date().toISOString(),
+  };
+
+  const messageAttributes = {
+    eventType: {
+      DataType: 'String',
+      StringValue: 'BOOKING_CANCELLATION',
+    },
+    bookingId: {
+      DataType: 'String',
+      StringValue: booking.bookingId,
+    },
+  };
+
+  // Publish to SNS topic to trigger cancellation workflow
+  const publishCommand = snsPublishCommand(
+    process.env.BOOKING_NOTIFICATION_TOPIC_ARN,
+    cancellationMessage,
+    `Booking Cancellation: ${booking.bookingId}`,
+    {}
+  );
+
+  const result = await snsPublishSend(publishCommand);
+
+  return result;
+}
+
+/**
+  * Publishes transaction command to SNS
+  * @param {object} booking - The ID of the booking to cancel
+  *   @param {string} booking.bookingId - The ID of the booking to cancel
+  *   @param {string} booking.userSub - The userSub identifier requesting the cancellation
+  *   @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
+  *   @param {object} booking.feeInformation - The fee information associated with the booking
+  * @param {string} reason - The reason for cancellation
+  */
+async function refundPublishCommand(booking, reason) {
+
+  // TODO: trnAmount calculation based on booking details
+  // const trnAmount = calculateRefundAmount(booking);
+  
+  // Publish to refund topic if there's a transaction
+  const refundMessage = {
+    clientTransactionId: booking.clientTransactionId,
+    bookingId: booking.bookingId,
+    userSub: booking.userSub,
+    refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
+    reason: booking.cancellationReason || reason || 'Cancelled by user via self-serve',
+  };
+
+  const messageAttributes = {
+    eventType: {
+      DataType: 'String',
+      StringValue: 'TRANSACTION_CANCELLATION',
+    },
+    clientTransactionId: {
+      DataType: 'String',
+      StringValue: booking.clientTransactionId,
+    },
+  };
+
+  const publishCommand = snsPublishCommand(
+    process.env.REFUND_REQUEST_TOPIC_ARN,
+    refundMessage,
+    `Refund Request for Booking ${booking.bookingId}`,
+    messageAttributes
+  );
+
+  const result = await snsPublishSend(publishCommand);
+  logger.info(`Refund request published for transaction ${booking.clientTransactionId}`);
+
+  return result;
+}
+
+
 module.exports = {
-  confirmBooking,
+  buildActivityFilters,
+  calculateDateRange,
+  cancelBooking,
+  cancellationPublishCommand,
+  completeBooking,
   createBooking,
+  fetchAllActivities,
+  fetchBookingsWithPagination,
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
   validateAdminRequirements,
-  calculateDateRange,
   validateDateRange,
-  buildActivityFilters,
   validateCollectionAccess,
-  fetchAllActivities,
-  fetchBookingsWithPagination,
 };

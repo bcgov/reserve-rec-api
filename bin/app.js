@@ -8,6 +8,7 @@ const { createOpenSearchStack } = require('../lib/opensearch-stack/opensearch-st
 const { createReferenceDataStack } = require('../lib/reference-data-stack/reference-data-stack.js');
 const { createPublicApiStack } = require('../lib/public-api-stack/public-api-stack.js');
 const { createTransactionalDataStack } = require('../lib/transactional-data-stack/transactional-data-stack.js');
+const { createBookingWorkflowStack } = require('../lib/booking-workflow-stack/booking-workflow-stack.js');
 
 /**
  * Main CDK Project class that orchestrates the creation and management of all CDK stacks
@@ -287,15 +288,19 @@ class CDKProject {
     const adminIdentityStack = await this.addStack('adminIdentityStack', createAdminIdentityStack);
     const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
     const openSearchStack = await this.addStack('openSearchStack', createOpenSearchStack);
-    const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
     const transactionalDataStack = await this.addStack('transactionalDataStack', createTransactionalDataStack);
+    const bookingWorkflowStack = await this.addStack('bookingWorkflowStack', createBookingWorkflowStack);
+    const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
 
     publicApiStack.addDependency(referenceDataStack);
+    publicApiStack.addDependency(bookingWorkflowStack);
     adminApiStack.addDependency(referenceDataStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
+    bookingWorkflowStack.addDependency(coreStack);
+    bookingWorkflowStack.addDependency(transactionalDataStack);
     referenceDataStack.addDependency(coreStack);
     referenceDataStack.addDependency(openSearchStack);
     transactionalDataStack.addDependency(coreStack);

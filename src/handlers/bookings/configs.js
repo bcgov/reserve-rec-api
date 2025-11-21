@@ -369,7 +369,7 @@ const BOOKING_PUT_CONFIG = {
     bookingStatus: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, ['in progress', 'completed', 'failure']);
+        rf.expectValueInList(value, BOOKING_STATUS_ENUMS);
         rf.expectAction(action, ['set']);
       }
     },
@@ -380,6 +380,24 @@ const BOOKING_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    clientTransactionId: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancellationReason: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancelledAt: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    }
   }
 };
 
@@ -391,7 +409,25 @@ const BOOKING_UPDATE_CONFIG = {
     bookingStatus: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, ['in progress', 'completed', 'failure']);
+        rf.expectValueInList(value, BOOKING_STATUS_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    clientTransactionId: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancellationReason: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancelledAt: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     }

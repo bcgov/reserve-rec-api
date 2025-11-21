@@ -1,13 +1,12 @@
 "use strict";
 
-
 jest.mock("/opt/base", () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data.code;
     this.data = data;
   }),
-  logger: { info: jest.fn() },
+  logger: { info: jest.fn(), error: jest.fn() },
   sendResponse: jest.fn((status, data, message, error, context) => ({
     status,
     data,
@@ -15,17 +14,18 @@ jest.mock("/opt/base", () => ({
     error,
     context,
   })),
+  getRequestClaimsFromEvent: jest.fn(() => ({ sub: "test-user-123" })),
 }));
 
-jest.mock("../../lib/handlers/bookings/methods", () => ({
+jest.mock("../../src/handlers/bookings/methods", () => ({
   createBooking: jest.fn(),
 }));
 
-jest.mock("../../lib/handlers/bookings/configs", () => ({
+jest.mock("../../src/handlers/bookings/configs", () => ({
   BOOKING_PUT_CONFIG: {},
 }));
 
-jest.mock("/opt/data-utils", () => ({
+jest.mock("../../src/common/data-utils", () => ({
   quickApiPutHandler: jest.fn(),
 }));
 
@@ -34,9 +34,9 @@ jest.mock("/opt/dynamodb", () => ({
   batchTransactData: jest.fn(),
 }));
 
-const { handler } = require("../../lib/handlers/bookings/POST/index");
-const { createBooking } = require("../../lib/handlers/bookings/methods");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { handler } = require("../../src/handlers/bookings/POST/public");
+const { createBooking } = require("../../src/handlers/bookings/methods");
+const { quickApiPutHandler } = require("../../src/common/data-utils");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -63,10 +63,11 @@ describe("Bookings POST handler", () => {
 
   it("should create booking and return 200 on success", async () => {
     const body = {
-      collectionId: "ac1",
-      activityType: "type1",
-      activityId: "id1",
+      collectionId: "bcparks_123",
+      activityType: "backcountryCamp",
+      activityId: "1",
       startDate: "2024-01-01",
+      user: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };
 
@@ -77,11 +78,17 @@ describe("Bookings POST handler", () => {
     const result = await handler(event, context);
 
     expect(createBooking).toHaveBeenCalledWith(
-      "ac1",
-      "type1",
-      "id1",
+      "bcparks_123",
+      "backcountryCamp",
+      "1",
       "2024-01-01",
-      body
+      expect.objectContaining({
+        collectionId: "bcparks_123",
+        activityType: "backcountryCamp",
+        activityId: "1",
+        startDate: "2024-01-01",
+        user: "test-user-123",
+      })
     );
     expect(quickApiPutHandler).toHaveBeenCalled();
     expect(batchTransactData).toHaveBeenCalled();
@@ -94,7 +101,7 @@ describe("Bookings POST handler", () => {
   });
 
   it("should extract parameters from pathParameters and queryStringParameters", async () => {
-    const body = {};
+    const body = { user: "test-user-123" };
     const event = {
       body: JSON.stringify(body),
       pathParameters: {
@@ -116,7 +123,9 @@ describe("Bookings POST handler", () => {
       "type2",
       "id2",
       "2024-02-02",
-      body
+      expect.objectContaining({
+        user: "test-user-123",
+      })
     );
     expect(result.status).toBe(200);
     const data = typeof result.data === "string" ? JSON.parse(result.data) : result.data;
@@ -125,10 +134,11 @@ describe("Bookings POST handler", () => {
 
   it("should handle errors thrown in try block", async () => {
     const body = {
-      collectionId: "ac1",
-      activityType: "type1",
+      collectionId: "bcparks_123",
+      activityType: "backcountry",
       activityId: "id1",
       startDate: "2024-01-01",
+      user: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };
 

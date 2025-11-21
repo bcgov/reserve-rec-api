@@ -1,7 +1,7 @@
 // Public GET handlers for bookings. This is used to get bookings for the logged-in user. User can only see their own bookings, but they can filter by various parameters.
 
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { getBookingsByUserId} = require("../methods");
+const { getBookingsByUserId, getBookingByBookingId } = require("../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Bookings GET:", event);
@@ -15,13 +15,20 @@ exports.handler = async (event, context) => {
     // Get relevant data from the event
     // Search by ID
     const bookingId = event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId;
+    const fetchAccessPoints = event?.queryStringParameters?.fetchAccessPoints || false;
 
+    // If bookingId is provided, fetch that specific booking
+    if (bookingId) {
+      const booking = await getBookingByBookingId(bookingId, fetchAccessPoints);
+      return sendResponse(200, booking, "Success", null, context);
+    }
+
+    // Otherwise, fetch bookings by user with optional filters
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate;
     const endDate = event?.pathParameters?.endDate || event?.queryStringParameters?.endDate || null;
-    const fetchAccessPoints = event?.queryStringParameters?.fetchAccessPoints || false;
 
     const userId = getRequestClaimsFromEvent(event)?.sub || null;
 

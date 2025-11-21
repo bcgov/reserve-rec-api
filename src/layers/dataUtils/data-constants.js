@@ -76,6 +76,7 @@ const RATE_CLASS_ENUMS = [
 ];
 
 const BOOKING_STATUS_ENUMS = [
+    'in progress',
     'confirmed',
     'cancelled',
     'expired'
