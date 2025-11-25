@@ -5,8 +5,8 @@ const {
   marshall,
   runQuery,
   TRANSACTIONAL_DATA_TABLE_NAME,
-  USERSUB_INDEX_NAME,
-  USERSUB_PROPERTY_NAME,
+  USERID_INDEX_NAME,
+  USERID_PROPERTY_NAME,
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
@@ -14,7 +14,7 @@ const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
 } = require("../activities/methods");
-const { getAndAttachNestedProperties } = require("/opt/data-utils");
+const { getAndAttachNestedProperties } = require("../../common/data-utils");
 const { DateTime } = require("luxon");
 
 async function getBookingsByUserId(userId, props) {
@@ -22,28 +22,38 @@ async function getBookingsByUserId(userId, props) {
   try {
     let params = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
-      IndexName: USERSUB_INDEX_NAME,
+      IndexName: USERID_INDEX_NAME,
       KeyConditionExpression: "#userId = :userId",
       ExpressionAttributeNames: {
-        "#userId": USERSUB_PROPERTY_NAME,
+        "#userId": USERID_PROPERTY_NAME,
       },
       ExpressionAttributeValues: {
         ":userId": marshall(userId),
       },
-      FilterExpression: "",
     };
 
+    let filterExpression = "";
+
     if (props?.bookingId) {
-      params.FilterExpression = "bookingId = :bookingId";
+      filterExpression = "bookingId = :bookingId";
+      params.ExpressionAttributeValues[":bookingId"] = marshall(props.bookingId);
     }
     if (props?.startDate) {
-      params.FilterExpression = (params.FilterExpression ? params.FilterExpression + " AND " : "") + "startDate >= :startDate";
+      filterExpression = (filterExpression ? filterExpression + " AND " : "") + "startDate >= :startDate";
+      params.ExpressionAttributeValues[":startDate"] = marshall(props.startDate);
     }
     if (props?.endDate) {
-      params.FilterExpression = (params.FilterExpression ? params.FilterExpression + " AND " : "") + "endDate <= :endDate";
+      filterExpression = (filterExpression ? filterExpression + " AND " : "") + "endDate <= :endDate";
+      params.ExpressionAttributeValues[":endDate"] = marshall(props.endDate);
+    }
+
+    // Only add FilterExpression if it's not empty
+    if (filterExpression) {
+      params.FilterExpression = filterExpression;
     }
 
     const result = await runQuery(params);
+    return result;
 
   } catch (error) {
     throw new Exception(`Error getting booking by userId: ${error}`);
@@ -237,13 +247,13 @@ async function completeBooking(bookingId, sessionId, clientTransactionId) {
   }
 }
 
-async function cancelBooking(bookingId, userSub, reason = null) {
+async function cancelBooking(bookingId, userId, reason = null) {
   try {
     const booking = await getBookingByBookingId(bookingId);
 
     // Verify ownership
-    if (booking.userSub !== userSub) {
-      throw new Exception(`User ${userSub} does not own booking ${bookingId}`, {
+    if (booking.userId !== userId) {
+      throw new Exception(`User ${userId} does not own booking ${bookingId}`, {
         code: 403,
       });
     }
@@ -277,7 +287,7 @@ async function cancelBooking(bookingId, userSub, reason = null) {
  */
 
 /*
- * Validates admin userSub requirements
+ * Validates admin userId requirements
  */
 function validateAdminRequirements(userObject, collectionId) {
   if (userObject.isAdmin && !collectionId) {
@@ -288,7 +298,7 @@ function validateAdminRequirements(userObject, collectionId) {
 }
 
 /*
- * Calculates effective date range based on userSub type and provided dates
+ * Calculates effective date range based on userId type and provided dates
  */
 function calculateDateRange(userObject, startDate, endDate) {
   let effectiveStartDate, effectiveEndDate;
@@ -355,7 +365,7 @@ function validateCollectionAccess(collections, userObject) {
   for (const collectionId of collections) {
     if (!userObject.isAdmin && !userObject.collection.includes(collectionId)) {
       throw new Exception(
-        `User does not have access to collection ${collectionId}`,
+        `user does not have access to collection ${collectionId}`,
         {
           code: 403,
         }
@@ -1027,7 +1037,7 @@ async function fetchBookingsSortedByDate(
   * Publishes booking cancellation command to SNS
   * @param {object} booking - The ID of the booking to cancel
   * @param {string} booking.bookingId - The ID of the booking to cancel
-  * @param {string} booking.userSub - The userSub identifier requesting the cancellation
+  * @param {string} booking.userId - The userId identifier requesting the cancellation
   * @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
   * @param {object} booking.feeInformation - The fee information associated with the booking
   * @param {string} reason - The reason for cancellation
@@ -1036,7 +1046,7 @@ async function cancellationPublishCommand(booking, reason) {
   // Prepare cancellation message
   const cancellationMessage = {
     bookingId: booking.bookingId,
-    userSub: booking.userSub,
+    userId: booking.userId,
     clientTransactionId: booking.clientTransactionId,
     refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
     reason: reason || 'Cancelled by user via self-serve',
@@ -1071,7 +1081,7 @@ async function cancellationPublishCommand(booking, reason) {
   * Publishes transaction command to SNS
   * @param {object} booking - The ID of the booking to cancel
   *   @param {string} booking.bookingId - The ID of the booking to cancel
-  *   @param {string} booking.userSub - The userSub identifier requesting the cancellation
+  *   @param {string} booking.userId - The userId identifier requesting the cancellation
   *   @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
   *   @param {object} booking.feeInformation - The fee information associated with the booking
   * @param {string} reason - The reason for cancellation
@@ -1085,7 +1095,7 @@ async function refundPublishCommand(booking, reason) {
   const refundMessage = {
     clientTransactionId: booking.clientTransactionId,
     bookingId: booking.bookingId,
-    userSub: booking.userSub,
+    userId: booking.userId,
     refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
     reason: booking.cancellationReason || reason || 'Cancelled by user via self-serve',
   };
@@ -1127,6 +1137,7 @@ module.exports = {
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
+  refundPublishCommand,
   validateAdminRequirements,
   validateDateRange,
   validateCollectionAccess,

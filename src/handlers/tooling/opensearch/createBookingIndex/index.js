@@ -19,7 +19,7 @@ const bookingIndexMappingOptions = {
     },
     bookingStatus: { type: 'keyword' },
     bookedAt: { type: 'date' },
-    user: { type: 'keyword' },
+    userId: { type: 'keyword' },
     activityType: { type: 'keyword' },
     activityId: { type: 'keyword' },
     collectionId: { type: 'keyword' },

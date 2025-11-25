@@ -19,9 +19,9 @@ exports.handler = async (event, context) => {
         continue;
       }
 
-      // Extract message details, expected to contain bookingId, userSub, and reason
+      // Extract message details, expected to contain bookingId, userId, and reason
       const message = JSON.parse(record.Sns.Message);
-      const { bookingId, userSub, reason } = message;
+      const { bookingId, userId, reason } = message;
 
       logger.info(`Processing cancellation for booking: ${bookingId}`);
 
@@ -29,8 +29,8 @@ exports.handler = async (event, context) => {
       const booking = await getBookingByBookingId(bookingId);
       
       // Verify ownership
-      if (booking.userSub !== userSub) {
-        throw new Exception(`User ${userSub} does not own booking ${booking.bookingId}`, {
+      if (booking.userId !== userId) {
+        throw new Exception(`userId ${userId} does not own booking ${booking.bookingId}`, {
           code: 403,
         });
       }

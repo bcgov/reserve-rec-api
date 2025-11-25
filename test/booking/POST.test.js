@@ -58,7 +58,7 @@ describe("Bookings POST handler", () => {
     const event = { body: JSON.stringify({}) };
     const result = await handler(event, context);
     expect(result.status).toBe(400);
-    expect(result.message).toMatch(/Activity Collection ID/);
+    expect(result.message).toMatch("Cannot create booking - missing required parameter(s): collectionId, activityType, activityId, startDate");
   });
 
   it("should create booking and return 200 on success", async () => {
@@ -67,7 +67,7 @@ describe("Bookings POST handler", () => {
       activityType: "backcountryCamp",
       activityId: "1",
       startDate: "2024-01-01",
-      user: "test-user-123",
+      userId: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };
 
@@ -87,7 +87,7 @@ describe("Bookings POST handler", () => {
         activityType: "backcountryCamp",
         activityId: "1",
         startDate: "2024-01-01",
-        user: "test-user-123",
+        userId: "test-user-123",
       })
     );
     expect(quickApiPutHandler).toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe("Bookings POST handler", () => {
   });
 
   it("should extract parameters from pathParameters and queryStringParameters", async () => {
-    const body = { user: "test-user-123" };
+    const body = { userId: "test-user-123" };
     const event = {
       body: JSON.stringify(body),
       pathParameters: {
@@ -124,7 +124,7 @@ describe("Bookings POST handler", () => {
       "id2",
       "2024-02-02",
       expect.objectContaining({
-        user: "test-user-123",
+        userId: "test-user-123",
       })
     );
     expect(result.status).toBe(200);
@@ -138,7 +138,7 @@ describe("Bookings POST handler", () => {
       activityType: "backcountry",
       activityId: "id1",
       startDate: "2024-01-01",
-      user: "test-user-123",
+      userId: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };
 

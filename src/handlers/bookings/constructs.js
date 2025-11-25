@@ -9,6 +9,9 @@ const defaults = {
     bookingsPOSTFunction: {
       name: 'BookingsPOST',
     },
+    bookingsCancelPOSTFunction: {
+      name: 'BookingsCancelPOST',
+    },
     bookingsPUTFunction: {
       name: 'BookingsPUT',
     },
@@ -55,46 +58,63 @@ class PublicBookingsConstruct extends LambdaConstruct {
       }
     );
 
-    // // GET /bookings
-    // this.bookingsResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
-    //   authorizationType: apigw.AuthorizationType.CUSTOM,
-    //   authorizer: this.resolveAuthorizer(),
-    // });
+    // GET /bookings
+    this.bookingsResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
-    // // GET /bookings/{bookingId}
-    // this.bookingsByBookingIdResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
-    //   authorizationType: apigw.AuthorizationType.CUSTOM,
-    //   authorizer: this.resolveAuthorizer(),
-    // });
+    // GET /bookings/{bookingId}
+    this.bookingsByBookingIdResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
-    // // GET /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings
-    // this.bookingsByActivityResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
-    //   authorizationType: apigw.AuthorizationType.CUSTOM,
-    //   authorizer: this.resolveAuthorizer(),
-    // });
+    // GET /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings
+    this.bookingsByActivityResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
-    // // POST /bookings Lambda function
-    // this.bookingsPostFunction = this.generateBasicLambdaFn(
-    //   scope,
-    //   'bookingsPOSTFunction',
-    //   'src/handlers/bookings/POST',
-    //   'public.handler',
-    //   {
-    //     basicReadWrite: true,
-    //   }
-    // );
+    // POST /bookings Lambda function
+    this.bookingsPostFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsPOSTFunction',
+      'src/handlers/bookings/POST',
+      'public.handler',
+      {
+        basicReadWrite: true,
+      }
+    );
 
-    // // POST /bookings
-    // this.bookingsResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
-    //   authorizationType: apigw.AuthorizationType.CUSTOM,
-    //   authorizer: this.resolveAuthorizer(),
-    // });
+    // POST /bookings
+    this.bookingsResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
-    // // POST /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings
-    // this.bookingsByActivityResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
-    //   authorizationType: apigw.AuthorizationType.CUSTOM,
-    //   authorizer: this.resolveAuthorizer(),
-    // });
+    // POST /bookings/{bookingId}/cancel Lambda function
+    this.bookingsCancelPostFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsCancelPOSTFunction',
+      'src/handlers/bookings/cancel/POST',
+      'index.handler',
+      {
+        basicReadWrite: true,
+      }
+    );
+
+    // POST /bookings/{bookingId}/cancel
+    this.bookingsByBookingIdResource.addResource('cancel').addMethod('POST', new apigw.LambdaIntegration(this.bookingsCancelPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // POST /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings
+    this.bookingsByActivityResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
   }
 }

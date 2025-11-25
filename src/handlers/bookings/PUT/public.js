@@ -2,7 +2,7 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { completeBooking } = require("../methods")
 const { BOOKING_UPDATE_CONFIG } = require("../configs");
-const { quickApiUpdateHandler } = require("/opt/data-utils");
+const { quickApiUpdateHandler } = require("../../../common/data-utils");
 const { TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {

@@ -43,7 +43,7 @@ exports.handler = async (event, context) => {
     const booking = await getBookingByBookingId(bookingId);
 
     // Verify ownership
-    if (booking.user !== userId) {
+    if (booking.userId !== userId) {
       throw new Exception(`User ${userId} does not own booking ${bookingId}`, {
         code: 403,
       });

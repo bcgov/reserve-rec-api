@@ -78,7 +78,7 @@ const BOOKING_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    user: {
+    userId: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);

@@ -3,7 +3,7 @@ const { TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetDat
 const { Exception, buildDateRange, buildDateTimeFromShortDate, getNow, logger } = require('/opt/base');
 const { POLICY_TYPES } = require('../policies/configs');
 const { PRODUCT_DAILY_PROPERTIES_CONFIG, PRODUCT_DEFAULT_PROPERTY_NAMES, PRODUCT_DEFAULT_SCHEDULE_RANGE } = require('./configs');
-const { quickApiPutHandler } = require('/opt/data-utils');
+const { quickApiPutHandler } = require('../../common/data-utils');
 
 async function getProducts(collectionId, activityType, activityId, seasonId = null, productId = null, options = {}) {
   logger.info('Get Product(s)');
