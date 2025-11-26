@@ -26,7 +26,7 @@ exports.handler = async (event, context) => {
     const userId = getRequestClaimsFromEvent(event)?.sub || null;
 
     if (!userId) {
-      throw new Exception("Unauthorized: User ID not found in request claims", { code: 401 });
+      throw new Exception("Unauthorized: userId ID not found in request claims", { code: 401 });
     }
 
     if (bookingId) {

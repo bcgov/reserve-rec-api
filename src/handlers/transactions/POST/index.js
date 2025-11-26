@@ -14,17 +14,17 @@ exports.handler = async (event, context) => {
     logger.debug("transaction body: ", body);
 
     // Get the user sub from the authorizer context
-    let user = getRequestClaimsFromEvent(event)?.sub || null;
+    let userId = getRequestClaimsFromEvent(event)?.sub || null;
     
-    if (!user) {
-      throw new Exception("Cannot create transaction - missing user sub", { code: 401 });
+    if (!userId) {
+      throw new Exception("Cannot create transaction - missing userId", { code: 401 });
     }
 
     if (!body?.trnAmount || !body?.bookingId || !body.sessionId) {
       throw new Exception("Missing required transaction fields", { code: 400 });
     }
 
-    const postRequests = await createTransaction(body, user);
+    const postRequests = await createTransaction(body, userId);
 
     const putItems = await quickApiPutHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,

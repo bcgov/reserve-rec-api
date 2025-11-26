@@ -58,7 +58,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Test",
             }),
           },
@@ -77,7 +77,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2025-11-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
     };
@@ -94,7 +94,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Change of plans",
             }),
           },
@@ -125,7 +125,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "different-user",
+      userId: "different-user",
       bookingStatus: "confirmed",
     };
 
@@ -138,7 +138,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Test",
             }),
           },
@@ -158,7 +158,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "cancelled",
       clientTransactionId: "BCPR-abc123",
     };
@@ -172,7 +172,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Test",
             }),
           },
@@ -193,7 +193,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
     };
@@ -210,7 +210,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Emergency",
             }),
           },
@@ -235,7 +235,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "confirmed",
       clientTransactionId: null,
     };
@@ -251,7 +251,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Test",
             }),
           },
@@ -271,7 +271,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
     };
@@ -280,7 +280,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::2",
       sk: "2024-01-16",
       bookingId: "booking-456",
-      userSub: "user-456",
+      userId: "user-456",
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-def456",
     };
@@ -299,7 +299,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Reason 1",
             }),
           },
@@ -309,7 +309,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-456",
-              userSub: "user-456",
+              userId: "user-456",
               reason: "Reason 2",
             }),
           },
@@ -330,7 +330,7 @@ describe("Booking Cancellation Subscriber", () => {
       pk: "booking::bcparks_250::backcountryCamp::1",
       sk: "2024-01-15",
       bookingId: "booking-123",
-      userSub: "user-123",
+      userId: "user-123",
       bookingStatus: "confirmed",
     };
 
@@ -344,7 +344,7 @@ describe("Booking Cancellation Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               bookingId: "booking-123",
-              userSub: "user-123",
+              userId: "user-123",
               reason: "Test",
             }),
           },

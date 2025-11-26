@@ -145,7 +145,7 @@ describe("Transaction Refund POST handler", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: mockUser,
+      userId: mockUser,
     };
 
     const mockRefundHash = {
@@ -205,7 +205,7 @@ describe("Transaction Refund POST handler", () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
       transactionStatus: "refunded",
-      user: mockUser,
+      userId: mockUser,
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -250,7 +250,7 @@ describe("Transaction Refund POST handler", () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
       transactionStatus: "paid",
-      user: "anonymous",
+      userId: "anonymous",
     };
 
     // Mock should throw the error since the real function would throw it
@@ -277,7 +277,7 @@ describe("Transaction Refund POST handler", () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
       transactionStatus: "paid",
-      user: mockUser,
+      userId: mockUser,
     };
 
     const error = {
@@ -309,7 +309,7 @@ describe("Transaction Refund POST handler", () => {
       clientTransactionId: mockTransactionId,
       transactionStatus: "partial refund",
       amount: 100.0,
-      user: mockUser,
+      userId: mockUser,
     };
 
     const mockRefundHash = {
@@ -356,7 +356,7 @@ describe("Transaction Refund POST handler", () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
       transactionStatus: "paid",
-      user: mockUser,
+      userId: mockUser,
     };
 
     const mockRefundHash = {
@@ -401,7 +401,7 @@ describe("Transaction Refund POST handler", () => {
       clientTransactionId: mockTransactionId,
       transactionStatus: "paid",
       amount: 100.0,
-      user: mockUser,
+      userId: mockUser,
     };
 
     const mockRefundHash = {

@@ -1,4 +1,4 @@
-// Public GET handlers for bookings. This is used to get bookings for the logged-in user. User can only see their own bookings, but they can filter by various parameters.
+// Public GET handlers for bookings. This is used to get bookings for the logged-in userId. userId can only see their own bookings, but they can filter by various parameters.
 
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { getBookingsByUserId, getBookingByBookingId } = require("../methods");
@@ -23,7 +23,7 @@ exports.handler = async (event, context) => {
       return sendResponse(200, booking, "Success", null, context);
     }
 
-    // Otherwise, fetch bookings by user with optional filters
+    // Otherwise, fetch bookings by userId with optional filters
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     const userId = getRequestClaimsFromEvent(event)?.sub || null;
 
     if (!userId) {
-      throw new Exception("Unauthorized: User ID not found in request claims", { code: 401 });
+      throw new Exception("Unauthorized: userId ID not found in request claims", { code: 401 });
     }
 
     const filters = {

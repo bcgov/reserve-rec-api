@@ -25,8 +25,22 @@ exports.handler = async (event, context) => {
     body['userId'] = claims?.sub || null;
 
 
-    if (!collectionId || !activityType || !activityId || !startDate || !body.user) {
-      throw new Exception("Activity Collection ID (collectionId), Activity Type (activityType), Activity ID (activityId) and Start Date (startDate) are required", { code: 400 });
+    // Validate required parameters
+    const missingParams = [];
+    if (!body) missingParams.push("body");
+    if (!body.userId) missingParams.push("userId");
+    if (!collectionId) missingParams.push("collectionId");
+    if (!activityType) missingParams.push("activityType");
+    if (!activityId) missingParams.push("activityId");
+    if (!startDate) missingParams.push("startDate");
+
+    // 401 if userId is missing, 400 for others
+    if (missingParams.length > 0) {
+      const code = !body.userId ? 401 : 400;
+      throw new Exception(
+        `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
+        { code }
+      );
     }
 
     let postRequests = await createBooking(collectionId, activityType, activityId, startDate, body);

@@ -1,4 +1,4 @@
-const { rulesFns } = require('/opt/validation-rules');
+const { rulesFns } = require('../../common/validation-rules');
 const { TRANSACTION_STATUS_ENUMS } = require('../../common/data-constants');
 
 const rf = new rulesFns();
@@ -90,7 +90,7 @@ const TRANSACTION_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    user: {
+    userId: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
@@ -563,7 +563,7 @@ const REFUND_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    user: {
+    userId: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);

@@ -190,7 +190,7 @@ exports.handler = async (event, context) =&gt; {
     // Get relevant data from the event
     // Search by ID
     const bookingId = <span class="cstat-no" title="statement not covered" >event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId;</span>
-    const userSub = <span class="cstat-no" title="statement not covered" >event?.queryStringParameters?.user || null;</span>
+    const userId = <span class="cstat-no" title="statement not covered" >event?.queryStringParameters?.userId || null;</span>
 &nbsp;
     const acCollectionId = <span class="cstat-no" title="statement not covered" >event?.pathParameters?.acCollectionId || event?.queryStringParameters?.acCollectionId;</span>
     const activityType = <span class="cstat-no" title="statement not covered" >event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;</span>
@@ -204,8 +204,8 @@ exports.handler = async (event, context) =&gt; {
 <span class="cstat-no" title="statement not covered" >      return sendResponse(200, booking, "Success", null, context);</span>
     }
     
-<span class="cstat-no" title="statement not covered" >    if (userSub) {</span>
-      const booking = <span class="cstat-no" title="statement not covered" >await getBookingsByUserSub(userSub);</span>
+<span class="cstat-no" title="statement not covered" >    if (userId) {</span>
+      const booking = <span class="cstat-no" title="statement not covered" >await getBookingsByUserSub(userId);</span>
 <span class="cstat-no" title="statement not covered" >      return sendResponse(200, booking, "Success", null, context)</span>
     }
     

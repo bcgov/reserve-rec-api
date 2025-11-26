@@ -36,7 +36,7 @@ function createUrlWithHash(query, url) {
 
 // Creates the Worldline URL for a single-payment, and inserts the transaction
 // details into dynamo
-async function createTransaction(body, user) {
+async function createTransaction(body, userId) {
   try {
     // Use booking ID to create our transaction ID
     const clientTransactionId = createWorldlineUuidWithPrefix(body.bookingId, "BCPR-");
@@ -73,7 +73,7 @@ async function createTransaction(body, user) {
       schema: "transaction",
       transactionStatus: "in progress",
       transactionUrl: transactionUrl,
-      user: user,
+      userId: userId,
     };
     logger.info("transactionObj: ", transactionObj);
 
@@ -158,7 +158,7 @@ async function getTransactionByTransactionId(clientTransactionId) {
 // ====== REFUNDS ======
 
 // Finds, verifies, and returns the transaction if exists and belongs to the user
-async function findAndVerifyTransactionOwnership(clientTransactionId, user) {
+async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
   logger.info("Getting transaction by clientTransactionId:", clientTransactionId);
   try {
     // Pull the transaction
@@ -168,11 +168,11 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, user) {
       throw new Exception("Transaction not found", { code: 404 });
     }
 
-    // Verify that the transaction belongs to the user or they are an admin
+    // Verify that the transaction belongs to the userId or they are an admin
     // If the user is anonymous, we may need to handle differently
-    const isOwner = transaction.user === user;
+    const isOwner = transaction.userId === userId;
     const isAdmin = false; // TODO: Implement admin role check from JWT claims/context
-    const transactionIsAnonymous = transaction.user === 'anonymous';
+    const transactionIsAnonymous = transaction.userId === 'anonymous';
     
     // If user doesn't own it and isn't an admin, deny access
     if (!isOwner && !isAdmin) {
@@ -201,7 +201,7 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, user) {
 
 // Creates the refund hash and checks for duplicates
 // Uses time window + refund sequence to prevent duplicates (while allowing multiple refunds)
-async function createAndCheckRefundHash(user, clientTransactionId, trnAmount, windowMinutes = 3) {
+async function createAndCheckRefundHash(userId, clientTransactionId, trnAmount, windowMinutes = 3) {
   const now = getNow();
   const nowISO = now.toISO();
   const dateKey = now.toFormat("yyyy-LL-dd");
@@ -268,14 +268,14 @@ async function createAndCheckRefundHash(user, clientTransactionId, trnAmount, wi
   logger.info(`Refund sequence: ${refundCount + 1}, Total refunded so far: $${totalRefunded}`);
 
   // Generate unique hash with sequence number and timestamp to avoid collisions
-  const hashString = `${user}::${clientTransactionId}::${trnAmount}::${refundCount}::${now.toMillis()}`;
+  const hashString = `${userId}::${clientTransactionId}::${trnAmount}::${refundCount}::${now.toMillis()}`;
   const refundHash = crypto.createHash('sha256').update(hashString).digest('hex');
 
   // Store refund hash record with some metadata
   const refundHashRecord = {
     pk: `refundHash::${dateKey}`,
     sk: refundHash,
-    user: user,
+    userId: userId,
     clientTransactionId: clientTransactionId,
     trnAmount: trnAmount,
     refundSequence: refundCount + 1,
@@ -364,7 +364,7 @@ async function createRefund(transaction, refundAmount, refundHash, obj) {
       schema: "refund",
       transactionStatus: transactionStatus,
       transactionUrl: refundTransactionUrl,
-      user: transaction.user
+      userId: transaction.userId
     };
     logger.info("refundTransactionObj: ", refundTransactionObj);
 

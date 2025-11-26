@@ -88,6 +88,7 @@ const TRANSACTION_STATUS_ENUMS = [
   'refund in progress',
   'refunded',
   'partial refund',
+  'failed',
   'void',
   'unknown'
 ];

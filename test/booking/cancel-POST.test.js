@@ -98,7 +98,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should extract user from JWT Bearer token", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: "user-from-jwt",
+      userId: "user-from-jwt",
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
     };
@@ -132,7 +132,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should return 403 if user does not own the booking", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: "different-user",
+      userId: "different-user",
       bookingStatus: "confirmed",
     };
 
@@ -163,7 +163,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should successfully cancel a booking and publish to SNS", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: mockUser,
+      userId: mockUser,
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
       feeInformation: { total: 50.0 },
@@ -202,7 +202,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should return 400 if booking is already cancelled", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: mockUser,
+      userId: mockUser,
       bookingStatus: "cancelled",
     };
 
@@ -233,7 +233,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should handle cancellation without a reason", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: mockUser,
+      userId: mockUser,
       bookingStatus: "confirmed",
       clientTransactionId: "BCPR-abc123",
     };
@@ -298,7 +298,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should handle errors thrown by cancellationPublishCommand", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: mockUser,
+      userId: mockUser,
       bookingStatus: "confirmed",
     };
 
@@ -332,7 +332,7 @@ describe("Bookings Cancel POST handler", () => {
   it("should handle missing body gracefully", async () => {
     const mockBooking = {
       bookingId: mockBookingId,
-      user: mockUser,
+      userId: mockUser,
       bookingStatus: "confirmed",
     };
 

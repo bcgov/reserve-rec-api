@@ -1,5 +1,5 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiPutHandler } = require("/opt/data-utils");
+const { quickApiPutHandler } = require("../../../common/data-utils");
 const { PROTECTED_AREA_API_PUT_CONFIG } = require("../configs");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 

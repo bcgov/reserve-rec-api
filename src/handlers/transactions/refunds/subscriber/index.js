@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
       }
 
       const message = JSON.parse(record.Sns.Message);
-      const { clientTransactionId, bookingId, user, refundAmount, reason } = message;
+      const { clientTransactionId, bookingId, userId, refundAmount, reason } = message;
 
       logger.info(
         `Processing refund for transaction: ${clientTransactionId}, amount: ${refundAmount}`
@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
       // Verify ownership before proceeding
       const transaction = await findAndVerifyTransactionOwnership(
         clientTransactionId,
-        user
+        userId
       );
 
       // Additional refund validations
@@ -77,7 +77,7 @@ exports.handler = async (event, context) => {
       try {
         // This returns: { refundHash, refundSequence, totalRefunded, totalAfterRefund }
         refundMetadata = await createAndCheckRefundHash(
-          user,
+          userId,
           transaction.clientTransactionId,
           refundAmount
         );

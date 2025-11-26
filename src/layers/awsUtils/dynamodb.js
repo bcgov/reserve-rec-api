@@ -7,8 +7,8 @@ const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'refe
 const TRANSACTIONAL_DATA_TABLE_NAME = process.env.TRANSACTIONAL_DATA_TABLE_NAME || 'transactional-data';
 const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
 const GLOBALID_PROPERTY_NAME = process.env.GLOBALID_PROPERTY_NAME || 'globalId';
-const USERSUB_INDEX_NAME = process.env.USERSUB_INDEX_NAME || 'userId-index';
-const USERSUB_PROPERTY_NAME = process.env.USERSUB_PROPERTY_NAME || 'userId';
+const USERID_INDEX_NAME = process.env.USERID_INDEX_NAME || 'userId-index';
+const USERID_PROPERTY_NAME = process.env.USERID_PROPERTY_NAME || 'userId';
 const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
 const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
@@ -627,8 +627,8 @@ module.exports = {
   GLOBALID_INDEX_NAME,
   GLOBALID_PROPERTY_NAME,
   PUBSUB_TABLE_NAME,
-  USERSUB_INDEX_NAME,
-  USERSUB_PROPERTY_NAME,
+  USERID_INDEX_NAME,
+  USERID_PROPERTY_NAME,
   ScanCommand,
   UpdateItemCommand,
   PutItemCommand,

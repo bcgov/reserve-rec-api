@@ -100,7 +100,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockRefundMetadata = {
@@ -144,7 +144,7 @@ describe("Refund Subscriber", () => {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
               bookingId: "booking-123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
               reason: "Cancellation by user via self-serve",
             }),
@@ -193,7 +193,7 @@ describe("Refund Subscriber", () => {
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "refunded",
-      user: "user-123",
+      userId: "user-123",
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -205,7 +205,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -224,7 +224,7 @@ describe("Refund Subscriber", () => {
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "in progress",
-      user: "user-123",
+      userId: "user-123",
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -236,7 +236,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -258,7 +258,7 @@ describe("Refund Subscriber", () => {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "partial refund",
       amount: 100.0,
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockRefundMetadata = {
@@ -278,7 +278,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -301,7 +301,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockRefundMetadata = {
@@ -341,7 +341,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 100.0,
             }),
           },
@@ -374,7 +374,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockRefundMetadata = {
@@ -417,7 +417,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -442,7 +442,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockTransaction2 = {
@@ -452,7 +452,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 200.0,
       trnId: "worldline-456",
-      user: "user-456",
+      userId: "user-456",
     };
 
     const mockRefundMetadata1 = {
@@ -513,7 +513,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -523,7 +523,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-def456",
-              user: "user-456",
+              userId: "user-456",
               refundAmount: 75.0,
             }),
           },
@@ -547,7 +547,7 @@ describe("Refund Subscriber", () => {
       transactionStatus: "paid",
       amount: 100.0,
       trnId: "worldline-123",
-      user: "user-123",
+      userId: "user-123",
     };
 
     const mockRefundMetadata = {
@@ -587,7 +587,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 30.0,
             }),
           },
@@ -609,7 +609,7 @@ describe("Refund Subscriber", () => {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "paid",
       amount: 100.0,
-      user: "user-123",
+      userId: "user-123",
     };
 
     const error = new Error("Duplicate refund attempt detected");
@@ -625,7 +625,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0,
             }),
           },
@@ -650,7 +650,7 @@ describe("Refund Subscriber", () => {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "partial refund",
       amount: 100.0,
-      user: "user-123",
+      userId: "user-123",
       refundAmounts: [{ "RFND-old123": 30.0 }],
       // Show that an old refund exists with a timestamp outside the window
       existingRefunds: [
@@ -696,7 +696,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 30.0, // Same amount as old refund
             }),
           },
@@ -721,7 +721,7 @@ describe("Refund Subscriber", () => {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "partial refund",
       amount: 100.0,
-      user: "user-123",
+      userId: "user-123",
       refundAmounts: [{ "RFND-recent123": 30.0 }],
       // Show that a recent refund exists with a timestamp within the window
       existingRefunds: [
@@ -747,7 +747,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 30.0, // Same amount as recent refund
             }),
           },
@@ -774,7 +774,7 @@ describe("Refund Subscriber", () => {
       clientTransactionId: "BCPR-abc123",
       transactionStatus: "partial refund",
       amount: 100.0,
-      user: "user-123",
+      userId: "user-123",
       refundAmounts: [{ "RFND-first123": 20.0 }],
       // Show that a recent refund exists within the window but with a different amount
       existingRefunds: [
@@ -819,7 +819,7 @@ describe("Refund Subscriber", () => {
           Sns: {
             Message: JSON.stringify({
               clientTransactionId: "BCPR-abc123",
-              user: "user-123",
+              userId: "user-123",
               refundAmount: 50.0, // Different amount from existing 20.0
             }),
           },

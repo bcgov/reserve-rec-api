@@ -320,12 +320,12 @@ async function <span class="fstat-no" title="function not covered" >getBookingBy
   }
 }
 &nbsp;
-async function <span class="fstat-no" title="function not covered" >getBookingsByUserSub(</span>userSub) {
-<span class="cstat-no" title="statement not covered" >  logger.debug("Getting booking by userSub:", userSub);</span>
+async function <span class="fstat-no" title="function not covered" >getBookingsByUserSub(</span>userId) {
+<span class="cstat-no" title="statement not covered" >  logger.debug("Getting booking by userId:", userId);</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
-<span class="cstat-no" title="statement not covered" >    return await getByGSI("user", userSub, TABLE_NAME, "bookingUserSub-index");</span>
+<span class="cstat-no" title="statement not covered" >    return await getByGSI("userId", userId, TABLE_NAME, "bookingUserSub-index");</span>
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    throw new Exception("Error getting booking by userSub", {</span>
+<span class="cstat-no" title="statement not covered" >    throw new Exception("Error getting booking by userId", {</span>
       code: 400,
       error: error,
     });

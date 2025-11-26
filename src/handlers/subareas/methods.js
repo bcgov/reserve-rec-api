@@ -3,7 +3,7 @@
  */
 
 const { TABLE_NAME, getOne, parallelizedBatchGetData, runQuery } = require('/opt/dynamodb');
-const { buildCompKeysFromSkField } = require('/opt/data-utils');
+const { buildCompKeysFromSkField } = require('../../common/data-utils');
 const { Exception, logger } = require('/opt/base');
 
 async function getSubareasByOrcs(orcs, params = null) {
