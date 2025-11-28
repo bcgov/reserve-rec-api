@@ -1,6 +1,7 @@
 const { getOne, marshall, runQuery, batchGetData, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
 const { Exception, getNowISO, logger } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("../common/data-constants");
+const crypto = require("crypto");
 
 const DEFAULT_FIELD_ACTION = 'set';
 const FIELD_ACTIONS = ['set', 'add', 'append', 'remove'];
@@ -15,6 +16,7 @@ const FIELD_ACTIONS = ['set', 'add', 'append', 'remove'];
  * @param {Object} [config=DEFAULT_API_UPDATE_CONFIG] - Configuration options for the update.
  * @param {boolean} [config.autoTimestamp=false] - Whether to automatically add a timestamp to each item.
  * @param {boolean} [config.autoVersion=false] - Whether to automatically bump the version number of each item.
+ * @param {boolean} [config.autoGlobalId=false] - Automatically generate a globalId for each item.
  * @param {boolean} [config.failOnError=false] - Whether to throw an error if any item update fails.
  * @returns {Promise<Array<Object>>} - A promise that resolves to an array of update objects.
  * @throws {Error} - Throws an error if the primary key is malformed or if no field data is provided.
@@ -259,6 +261,10 @@ async function quickApiPutHandler(tableName, createList, config) {
           itemData['version'] = existingItem?.version ? existingItem.version + 1 : 1;
         }
 
+        if (itemConfig?.autoGlobalId) {
+          itemData['globalId'] = generateGlobalId();
+        }
+
         let createCommand = {
           action: 'Put',
           data: {
@@ -487,10 +493,15 @@ async function getAndAttachNestedProperties(item, properties) {
   }
 }
 
+function generateGlobalId() {
+  return crypto.randomUUID();
+}
+
 module.exports = {
   buildCompKeysFromSkField,
   getAndAttachNestedProperties,
   getNextIdentifier,
+  generateGlobalId,
   quickApiPutHandler,
   quickApiUpdateHandler,
 };

@@ -1,6 +1,6 @@
 const { getOne, marshall, runQuery, batchGetData, TABLE_NAME } = require("/opt/dynamodb");
 const { Exception, getNowISO, logger } = require("/opt/base");
-const { DEFAULT_API_UPDATE_CONFIG } = require("/opt/data-constants");
+const { DEFAULT_API_UPDATE_CONFIG } = require("./data-constants");
 
 const DEFAULT_FIELD_ACTION = 'set';
 const FIELD_ACTIONS = ['set', 'add', 'append', 'remove'];

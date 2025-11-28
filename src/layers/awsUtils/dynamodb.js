@@ -20,6 +20,8 @@ const options = {
   region: AWS_REGION,
 };
 
+console.log('DYNAMODB_ENDPOINT_URL:', DYNAMODB_ENDPOINT_URL);
+
 if (process.env?.IS_OFFLINE === 'true') {
   options.endpoint = DYNAMODB_ENDPOINT_URL;
   // Add dummy credentials for local development
@@ -349,12 +351,12 @@ async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_
 
 async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated = true) {
   let data = [];
-  let pageData = [];
+  let pageData = {};
   let page = 0;
 
   // If last evaluated key provided, start at the key.
   if (lastEvaluatedKey) {
-    pageData['LastEvaluatedKey'] = lastEvaluatedKey;
+    pageData.LastEvaluatedKey = lastEvaluatedKey;
   }
 
   do {

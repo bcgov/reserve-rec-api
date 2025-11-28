@@ -1,254 +1,12 @@
 const { rulesFns } = require('../../common/validation-rules');
-const { POLICY_TYPE_ENUMS } = require('../../common/data-constants');
+const { POLICY_TYPE_ENUMS, POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS, PARTY_UNIT_TYPE_ENUMS } = require('../../common/data-constants');
 
 const rf = new rulesFns();
 
-const POLICY_BOOKING_API_UPDATE_CONFIG = {
+const POLICY_BOOKING_API_PUT_CONFIG = {
   failOnError: true,
   autoTimestamp: true,
-  autoVersion: true,
-  fields: {
-    name: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    description: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    checkInTime: {
-      rulesFn: ({ value, action }) => {
-        rf.expect24hTimeObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    checkOutTime: {
-      rulesFn: ({ value, action }) => {
-        rf.expect24hTimeObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    noShowTime: {
-      rulesFn: ({ value, action }) => {
-        rf.expect24hTimeObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    closeBookingTime: {
-      rulesFn: ({ value, action }) => {
-        rf.expect24hTimeObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    resWindowType: {
-      rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, ['rolling', 'fixed']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    rollingWindowDuration: {
-      rulesFn: ({ value, action }) => {
-        rf.expectDurationObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    maxStayNights: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    minStayNights: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    fixedWindowOpenDate: {
-      rulesFn: ({ value, action }) => {
-        rf.expectISODateTimeObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    allDatesBookedIntervals: {
-      rulesFn: ({ value, action }) => {
-        rf.expectArray(value);
-        rf.expectAction(action, ['set']);
-        for (let item of value) {
-          rf.expectISODateObjFormat(item);
-        }
-      }
-    },
-  }
-};
-
-const POLICY_CHANGE_API_UPDATE_CONFIG = {
-  failOnError: true,
-  autoTimestamp: true,
-  autoVersion: true,
-  fields: {
-    name: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    description: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    changeRestrictedDuration: {
-      rulesFn: ({ value, action }) => {
-        rf.expectDurationObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    areChangesAllowed: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['boolean']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    changeWindowDuration: {
-      rulesFn: ({ value, action }) => {
-        rf.expectDurationObjFormat(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    isFeeWaivedInWindow: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['boolean']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    sameDayNightsForfeit: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    inWindowNightsForfeit: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    }
-  }
-};
-
-const POLICY_FEE_API_UPDATE_CONFIG = {
-  failOnError: true,
-  autoTimestamp: true,
-  autoVersion: true,
-  fields: {
-    name: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    description: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    childNightlyCampingFee: {
-      rulesFn: ({ value, action }) => {
-        rf.expectCurrency(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    adultNightlyCampingFee: {
-      rulesFn: ({ value, action }) => {
-        rf.expectCurrency(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    unitChangeFee: {
-      rulesFn: ({ value, action }) => {
-        rf.expectCurrency(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    unitReservationFee: {
-      rulesFn: ({ value, action }) => {
-        rf.expectCurrency(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    baseChangeFee: {
-      rulesFn: ({ value, action }) => {
-        rf.expectCurrency(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    isAcceptingPayment: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['boolean']);
-        rf.expectAction(action, ['set']);
-      }
-    }
-  }
-};
-
-const POLICY_PARTY_API_UPDATE_CONFIG = {
-  failOnError: true,
-  autoTimestamp: true,
-  autoVersion: true,
-  fields: {
-    name: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    description: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    maxSize: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    minSize: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    minOccupantAge: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    maxVehicles: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    maxCanoePeople: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-  }
-};
-
-const POLICY_POST_MANDATORY_FIELDS = {
+  autoGlobalId: true,
   fields: {
     pk: {
       isMandatory: true,
@@ -261,6 +19,27 @@ const POLICY_POST_MANDATORY_FIELDS = {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    displayName: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    schema: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, ['policy']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -278,35 +57,1159 @@ const POLICY_POST_MANDATORY_FIELDS = {
         rf.expectAction(action, ['set']);
       }
     },
-    category: {
+    identifier: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
-        if (value !== 'policy') {
-          throw new Exception('Invalid value: Expected category to be "policy"', { code: 400 });
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minStay: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxStay: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    reservationWindowType: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    rollingWindowDuration: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    fixedWindowLaunchDate: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectISODateObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    openBookingTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    closeBookingTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkInTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkOutTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    noShowTime: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    allDatesBookedIntervals: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['array']);
+        rf.expectAction(action, ['set']);
+        for (const interval of value) {
+          rf.expectType(interval, ['array']);
+          for (const dateStr of interval) {
+            rf.expectISODateString(dateStr);
+          }
+        }
+      }
+    },
+    creationDate: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    lastUpdated: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    globalId: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoGlobalId will set it appropriately)
+    }
+  }
+};
+
+const POLICY_BOOKING_API_UPDATE_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  fields: {
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    displayName: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minStay: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxStay: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    reservationWindowType: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    rollingWindowDuration: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    fixedWindowLaunchDate: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectISODateObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    openBookingTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    closeBookingTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkInTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkOutTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    noShowTime: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    allDatesBookedIntervals: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['array']);
+        rf.expectAction(action, ['set']);
+        for (const interval of value) {
+          rf.expectType(interval, ['array']);
+          for (const dateStr of interval) {
+            rf.expectISODateString(dateStr);
+          }
         }
       }
     }
   }
 };
 
-const POLICY_API_UPDATE_CONFIGS = {
-  booking: POLICY_BOOKING_API_UPDATE_CONFIG,
-  change: POLICY_CHANGE_API_UPDATE_CONFIG,
-  fee: POLICY_FEE_API_UPDATE_CONFIG,
-  party: POLICY_PARTY_API_UPDATE_CONFIG,
+const POLICY_CHANGE_API_PUT_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  autoGlobalId: true,
+  fields: {
+    pk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    sk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    displayName: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    schema: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, ['policy']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyType: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, POLICY_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyId: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    identifier: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    areChangesAllowed: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeWindowDuration: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeInWindowNightsForfeit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeSameDayNightsForfeit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isChangeFeeWaivedInWindow: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changesAcceptedUntilHour: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancellationsAcceptedUntilHour: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    restrictedWindowDuration: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    creationDate: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    lastUpdated: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    globalId: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoGlobalId will set it appropriately)
+    }
+  }
 };
 
-const POLICY_API_CREATE_CONFIGS = (() => {
-  let configs = {};
-  for (const policyType of POLICY_TYPE_ENUMS) {
-    let entry = { ...POLICY_API_UPDATE_CONFIGS[policyType] };
-    entry.fields = { ...entry.fields, ...POLICY_POST_MANDATORY_FIELDS.fields, };
-    configs[policyType] = entry;
+const POLICY_CHANGE_API_UPDATE_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  fields: {
+    displayName: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    areChangesAllowed: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeWindowDuration: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeInWindowNightsForfeit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeSameDayNightsForfeit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isChangeFeeWaivedInWindow: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changesAcceptedUntilHour: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    cancellationsAcceptedUntilHour: {
+      rulesFn: ({ value, action }) => {
+        rf.expect24hTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    restrictedWindowDuration: {
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    }
   }
-  return configs;
-})();
+};
+
+const POLICY_PARTY_API_PUT_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  autoGlobalId: true,
+  fields: {
+    pk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    sk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    displayName: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    schema: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, ['policy']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyType: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, POLICY_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyId: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    identifier: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minOccupantAge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minSize: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSize: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxUnitsPerBooking: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitType: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, PARTY_UNIT_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxAdultsTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxYouthTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxChildTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSeniorTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxAdultsPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxYouthPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxChildPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSeniorPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSizePerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxVehiclesPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    mustProvideAccessPoints: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    creationDate: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    lastUpdated: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    globalId: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoGlobalId will set it appropriately)
+    }
+  }
+};
+
+const POLICY_PARTY_API_UPDATE_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  fields: {
+    displayName: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minOccupantAge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minSize: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSize: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxUnitsPerBooking: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitType: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, PARTY_UNIT_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxAdultsTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxYouthTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxChildTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSeniorTotal: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxAdultsPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxYouthPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxChildPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSeniorPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxSizePerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxVehiclesPerUnit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    mustProvideAccessPoints: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    }
+  }
+};
+
+const POLICY_FEE_API_PUT_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  autoGlobalId: true,
+  fields: {
+    pk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    sk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    displayName: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    schema: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, ['policy']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyType: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, POLICY_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyId: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    identifier: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isAcceptingPayments: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      },
+    },
+    adultNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    youthNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    childNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    seniorNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    baseChangeFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitChangeFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    baseReservationFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitReservationFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitType: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, PARTY_UNIT_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxUnitCharge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeSSCFECharge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    hasSSCFEDiscount: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    additionalVehiclesFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    damageDeposit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    hasSeniorsDiscount: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    feeRegisterKey: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    creationDate: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    lastUpdated: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoTimestamp will set it appropriately)
+    },
+    globalId: {
+      // we only care that this is allowed to be set; value is ignored
+      // (autoGlobalId will set it appropriately)
+    }
+  }
+};
+
+const POLICY_FEE_API_UPDATE_CONFIG = {
+  failOnError: true,
+  autoTimestamp: true,
+  fields: {
+    displayName: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    description: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    policyIdVersion: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isAcceptingPayments: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      },
+    },
+    adultNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    youthNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    childNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    seniorNightlyCampingFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    baseChangeFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitChangeFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    baseReservationFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitReservationFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    unitType: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, PARTY_UNIT_TYPE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxUnitCharge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changeSSCFECharge: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    hasSSCFEDiscount: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    additionalVehiclesFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    damageDeposit: {
+      rulesFn: ({ value, action }) => {
+        rf.expectNumber(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    hasSeniorsDiscount: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    adminNotes: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    feeRegisterKey: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+  }
+};
 
 module.exports = {
-  POLICY_API_UPDATE_CONFIGS,
-  POLICY_API_CREATE_CONFIGS,
+  POLICY_BOOKING_API_PUT_CONFIG,
+  POLICY_BOOKING_API_UPDATE_CONFIG,
+  POLICY_CHANGE_API_PUT_CONFIG,
+  POLICY_CHANGE_API_UPDATE_CONFIG,
+  POLICY_PARTY_API_PUT_CONFIG,
+  POLICY_PARTY_API_UPDATE_CONFIG,
+  POLICY_FEE_API_PUT_CONFIG,
+  POLICY_FEE_API_UPDATE_CONFIG
 };
