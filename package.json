@@ -17,7 +17,7 @@
     "synth:test": "cdk synth -c @context=test -q --all",
     "deploy:dev": "cdk deploy -q -c @context=dev --all",
     "deploy:test": "cdk deploy -q -c @context=test --all",
-    "run:admin": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-AdminApiStack-AdminApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
+    "run:admin": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-AdminApiStack-AdminApi.yaml --warm-containers LAZY --skip-pull-image 2>&1 | tr '\r' '\n'",
     "run:public": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-PublicApiStack-PublicApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image --port 3001 2>&1 | tr '\r' '\n'",
     "run:admin:full": "yarn synth:local && yarn build:admin && yarn run:admin",
     "run:public:full": "yarn synth:local && yarn build:public && yarn run:public",
