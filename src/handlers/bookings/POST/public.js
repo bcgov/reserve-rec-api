@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
     // Validate required parameters
     const missingParams = [];
     if (!body) missingParams.push("body");
-    if (!body.userId) missingParams.push("userId");
+    if (!body.userId) missingParams.push("userId (authentication required)");
     if (!collectionId) missingParams.push("collectionId");
     if (!activityType) missingParams.push("activityType");
     if (!activityId) missingParams.push("activityId");
@@ -37,10 +37,10 @@ exports.handler = async (event, context) => {
     // 401 if userId is missing, 400 for others
     if (missingParams.length > 0) {
       const code = !body.userId ? 401 : 400;
-      throw new Exception(
-        `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
-        { code }
-      );
+      const message = !body.userId 
+        ? "Unauthorized: Authentication required to create booking"
+        : `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`;
+      throw new Exception(message, { code });
     }
 
     let postRequests = await createBooking(collectionId, activityType, activityId, startDate, body);
@@ -58,7 +58,13 @@ exports.handler = async (event, context) => {
       booking: postRequests,
     }
 
-    return sendResponse(200, response, "Success", null, context);
+    // If this is a guest user, prepare the response with guest sub header
+    const responseOptions = {};
+    if (body.userId && body.userId.startsWith('guest-')) {
+      responseOptions.guestSub = body.userId;
+    }
+
+    return sendResponse(200, response, "Success", null, context, responseOptions);
 
   } catch (error) {
     logger.error("Booking creation error:", error);

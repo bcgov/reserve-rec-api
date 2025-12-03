@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require("crypto");
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi');
 const { DateTime } = require('luxon');
 const { createLogger, format, transports } = require("winston");
@@ -60,20 +61,37 @@ const sendResponse = function (code, data, message, error, context, other = null
     error: error,
     context: context
   };
-  // If other fields are present, attach them to the body.
+  
+  // Prepare headers
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Headers":
+      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,x-guest-sub",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
+    "Access-Control-Allow-Credentials": true,
+    "Access-Control-Expose-Headers": "x-guest-sub"
+  };
+  
+  // If other fields are present, process them
   if (other) {
-    body = Object.assign(body, other);
+    // Extract guestSub if present and add to headers
+    if (other.guestSub) {
+      headers['x-guest-sub'] = other.guestSub;
+      // Remove guestSub from other so it doesn't get added to body
+      const { guestSub, ...remainingOther } = other;
+      if (Object.keys(remainingOther).length > 0) {
+        body = Object.assign(body, remainingOther);
+      }
+    } else {
+      // No guestSub, just add all fields to body
+      body = Object.assign(body, other);
+    }
   }
+  
   const response = {
     statusCode: code,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Headers":
-        "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
-      "Access-Control-Allow-Credentials": true
-    },
+    headers: headers,
     body: JSON.stringify(body),
   };
   return response;
@@ -169,11 +187,88 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
+// function getRequestClaimsFromEvent(event) {
+//   try {
+//     return event.requestContext.authorizer.claims;
+//   } catch (error) {
+//     throw new Error(`Unable to retrieve request claims from event: ${error.message}`);
+//   }
+// }
+
 function getRequestClaimsFromEvent(event) {
   try {
-    return event.requestContext.authorizer.claims;
+    // First check if this is an authenticated request via authorizer context
+    const authContext = event.requestContext?.authorizer;
+    
+    if (authContext) {
+      // Check if user is authenticated (new public authorizer format)
+      const isAuthenticated = authContext.isAuthenticated === 'true' || authContext.isAuthenticated === true;
+      
+      if (!isAuthenticated) {
+        // guest user - return null instead of throwing
+        logger.info('guest user detected from authorizer context');
+        return null;
+      }
+      
+      // Authenticated user - return claims from context or claims object
+      if (authContext.claims) {
+        return authContext.claims;
+      }
+      
+      // New context format - construct claims object from individual fields
+      if (authContext.userId && authContext.userId !== 'guest') {
+        return {
+          sub: authContext.userId,
+          email: authContext.email || '',
+          username: authContext.username || '',
+          'cognito:username': authContext.username || '',
+          userType: authContext.userType || 'authenticated'
+        };
+      }
+    }
+
+    // Check Authorization header for guest or JWT token
+    const authHeader = event.headers?.Authorization || event.headers?.authorization;
+    if (authHeader) {
+      // Check for Guest authorization format: "Guest guest-{uuid}"
+      if (authHeader.startsWith('Guest ')) {
+        const guestSub = authHeader.substring(6).trim(); // Remove "Guest " prefix
+        if (guestSub && guestSub.startsWith('guest-')) {
+          logger.info('Reusing guest sub from Authorization header:', guestSub);
+          return { sub: guestSub };
+        }
+      }
+      
+      // Try to decode as JWT (Bearer token for authenticated users)
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        // JWT format: header.payload.signature
+        const payloadBase64 = token.split('.')[1];
+        if (payloadBase64) {
+          const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          logger.info('Decoded JWT claims from Authorization header:', payload.sub);
+          return payload;
+        }
+      } catch (jwtError) {
+        logger.error('Failed to decode JWT from Authorization header:', jwtError);
+      }
+    }
+
+    // Check if guest sub is provided in x-guest-sub header (alternative method)
+    const existingGuestSub = event.headers?.['x-guest-sub'] || event.headers?.['X-Guest-Sub'];
+    if (existingGuestSub && existingGuestSub.startsWith('guest-')) {
+      logger.info('Reusing existing guest sub from x-guest-sub header:', existingGuestSub);
+      return { sub: existingGuestSub };
+    }
+
+    // No authentication found - generate new guest identifier
+    logger.info('No authentication found - generating new guest user identifier');
+    const uuid = crypto.randomUUID();
+    return { sub: `guest-${uuid}` };
   } catch (error) {
-    throw new Error(`Unable to retrieve request claims from event ${event}`);
+    logger.error(`Error retrieving request claims: ${error.message}`);
+    return null;
   }
 }
 
