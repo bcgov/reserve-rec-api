@@ -97,14 +97,33 @@ async function parseToken(headers, authorization) {
   };
 }
 
-function handleContextAndAPIKey(authResponse, permissionObject, headers) {
+function handleContextAndAPIKey(authResponse, permissionObject, headers, isAuthenticated = false) {
   // Optional output with custom properties of the String, Number or Boolean type.
-  // Set the context
-  authResponse.context = {
-    isAdmin: false,
-    userID: 'userid',
-    role: ['public']
-  };
+  // Set the context based on authentication status
+  
+  if (isAuthenticated && permissionObject) {
+    // Authenticated user with valid JWT
+    authResponse.context = {
+      isAuthenticated: 'true', // Must be string for API Gateway context
+      userId: permissionObject.sub || '',
+      userType: 'authenticated',
+      email: permissionObject.email || '',
+      username: permissionObject.username || '',
+      isAdmin: 'false',
+      role: 'public'
+    };
+  } else {
+    // guest user
+    authResponse.context = {
+      isAuthenticated: 'false',
+      userId: 'guest',
+      userType: 'guest',
+      email: '',
+      username: '',
+      isAdmin: 'false',
+      role: 'public'
+    };
+  }
 
   logger.debug('authResponse', JSON.stringify(authResponse));
   return authResponse;

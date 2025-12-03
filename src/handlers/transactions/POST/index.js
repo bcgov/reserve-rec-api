@@ -17,7 +17,10 @@ exports.handler = async (event, context) => {
     let userId = getRequestClaimsFromEvent(event)?.sub || null;
     
     if (!userId) {
-      throw new Exception("Cannot create transaction - missing userId", { code: 401 });
+      throw new Exception(
+        "Unauthorized: Authentication required to create transaction",
+        { code: 401 }
+      );
     }
 
     if (!body?.trnAmount || !body?.bookingId || !body.sessionId) {
