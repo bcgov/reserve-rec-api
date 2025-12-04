@@ -103,10 +103,31 @@ const TRANSACTION_STATUS_ENUMS = [
   'unknown'
 ];
 
+const DURATION_PROPERTY_ENUMS = [
+  'years',
+  'months',
+  'weeks',
+  'days',
+  'hours',
+  'minutes',
+  'seconds'
+];
+
+const TIME_24H_ENUMS = [
+  'hour',
+  'minute',
+  'second'
+];
+
+const POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS = [
+  'rolling',
+  'fixed',
+];
+
 module.exports = {
   DEFAULT_API_UPDATE_CONFIG,
-  // DURATION_PROPERTY_ENUMS,
-  // TIME_24H_ENUMS,
+  DURATION_PROPERTY_ENUMS,
+  TIME_24H_ENUMS,
   TRANSACTION_STATUS_ENUMS,
   ALLOWED_FILTERS,
   BOOKING_STATUS_ENUMS,
@@ -118,5 +139,5 @@ module.exports = {
   POLICY_TYPE_ENUMS,
   RATE_CLASS_ENUMS,
   TIMEZONE_ENUMS,
-  // POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS
+  POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS
 };
