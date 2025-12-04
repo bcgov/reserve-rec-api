@@ -22,25 +22,22 @@ exports.handler = async (event, context) => {
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
     const claims = getRequestClaimsFromEvent(event);
-    body['userId'] = claims?.sub || null;
-
+    body['userId'] = claims?.sub;
 
     // Validate required parameters
     const missingParams = [];
     if (!body) missingParams.push("body");
-    if (!body.userId) missingParams.push("userId (authentication required)");
+    if (!body.userId) missingParams.push("userId");
     if (!collectionId) missingParams.push("collectionId");
     if (!activityType) missingParams.push("activityType");
     if (!activityId) missingParams.push("activityId");
     if (!startDate) missingParams.push("startDate");
 
-    // 401 if userId is missing, 400 for others
     if (missingParams.length > 0) {
-      const code = !body.userId ? 401 : 400;
-      const message = !body.userId 
-        ? "Unauthorized: Authentication required to create booking"
-        : `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`;
-      throw new Exception(message, { code });
+      throw new Exception(
+        `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
+        { code: 400 }
+      );
     }
 
     let postRequests = await createBooking(collectionId, activityType, activityId, startDate, body);

@@ -54,7 +54,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'src/handlers/bookings/GET',
       'public.handler',
       {
-        basicReadWrite: true,
+        transDataBasicRead: true,
       }
     );
 
@@ -83,7 +83,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'src/handlers/bookings/POST',
       'public.handler',
       {
-        basicReadWrite: true,
+        transDataBasicReadWrite: true,
       }
     );
 
@@ -100,7 +100,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'src/handlers/bookings/cancel/POST',
       'index.handler',
       {
-        basicReadWrite: true,
+        transDataBasicReadWrite: true,
       }
     );
 
