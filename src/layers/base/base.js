@@ -205,9 +205,27 @@ function getRequestClaimsFromEvent(event) {
       const isAuthenticated = authContext.isAuthenticated === 'true' || authContext.isAuthenticated === true;
       
       if (!isAuthenticated) {
-        // guest user - return null instead of throwing
+        // Guest user - check if we already have a guest UUID, otherwise generate one
         logger.info('guest user detected from authorizer context');
-        return null;
+        
+        // Check Authorization header for existing guest UUID
+        const authHeader = event.headers?.Authorization || event.headers?.authorization;
+        if (guestSub && authHeader.startsWith('guest')) {
+          logger.info('Reusing guest sub from Authorization header:', guestSub);
+          return { sub: guestSub };
+        }
+        
+        // Check x-guest-sub header
+        const existingGuestSub = event.headers?.['x-guest-sub'] || event.headers?.['X-Guest-Sub'];
+        if (existingGuestSub && existingGuestSub.startsWith('guest-')) {
+          logger.info('Reusing existing guest sub from x-guest-sub header:', existingGuestSub);
+          return { sub: existingGuestSub };
+        }
+        
+        // Generate new guest identifier
+        logger.info('Generating new guest user identifier');
+        const uuid = crypto.randomUUID();
+        return { sub: `guest-${uuid}` };
       }
       
       // Authenticated user - return claims from context or claims object
