@@ -135,6 +135,17 @@ class PublicBookingsConstruct extends LambdaConstruct {
         resources: [topicArn],
       }));
     }
+
+    // Grant KMS permissions if KMS key is provided
+    if (props?.kmsKey) {
+      this.bookingsCancelPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'kms:Decrypt',
+          'kms:GenerateDataKey',
+        ],
+        resources: [props.kmsKey.keyArn],
+      }));
+    }
   }
 }
 
