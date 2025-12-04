@@ -22,8 +22,7 @@ exports.handler = async (event, context) => {
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
     const claims = getRequestClaimsFromEvent(event);
-    body['userId'] = claims?.sub || null;
-
+    body['userId'] = claims?.sub;
 
     // Validate required parameters
     const missingParams = [];
@@ -34,12 +33,10 @@ exports.handler = async (event, context) => {
     if (!activityId) missingParams.push("activityId");
     if (!startDate) missingParams.push("startDate");
 
-    // 401 if userId is missing, 400 for others
     if (missingParams.length > 0) {
-      const code = !body.userId ? 401 : 400;
       throw new Exception(
         `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
-        { code }
+        { code: 400 }
       );
     }
 
@@ -58,7 +55,13 @@ exports.handler = async (event, context) => {
       booking: postRequests,
     }
 
-    return sendResponse(200, response, "Success", null, context);
+    // If this is a guest user, prepare the response with guest sub header
+    const responseOptions = {};
+    if (body.userId && body.userId.startsWith('guest-')) {
+      responseOptions.guestSub = body.userId;
+    }
+
+    return sendResponse(200, response, "Success", null, context, responseOptions);
 
   } catch (error) {
     logger.error("Booking creation error:", error);

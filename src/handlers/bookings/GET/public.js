@@ -16,25 +16,41 @@ exports.handler = async (event, context) => {
     // Search by ID
     const bookingId = event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId;
     const fetchAccessPoints = event?.queryStringParameters?.fetchAccessPoints || false;
+    const email = event?.queryStringParameters?.email || null;
+
+    // Get userId from claims (may be null for anonymous users)
+    const userId = getRequestClaimsFromEvent(event)?.sub || null;
 
     // If bookingId is provided, fetch that specific booking
     if (bookingId) {
       const booking = await getBookingByBookingId(bookingId, fetchAccessPoints);
-      return sendResponse(200, booking, "Success", null, context);
+
+      // Email provided - verify email matches booking email (for guest/unauthenticated lookup)
+      if (email) {
+        if (booking?.namedOccupant?.contactInfo?.email !== email) {
+          throw new Exception(
+            `Forbidden: Email ${email} does not match booking ${bookingId}`,
+            { code: 403 }
+          );
+        }
+        // Email matches, allow access
+        return sendResponse(200, booking, "Success", null, context);
+      } else if (userId) {
+        if (booking.userId !== userId) {
+          throw new Exception(
+            `Forbidden: User ${userId} does not have access to booking ${bookingId}`,
+            { code: 403 }
+          );
+        }
+        return sendResponse(200, booking, "Success", null, context);
+      }
     }
 
-    // Otherwise, fetch bookings by userId with optional filters
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate;
     const endDate = event?.pathParameters?.endDate || event?.queryStringParameters?.endDate || null;
-
-    const userId = getRequestClaimsFromEvent(event)?.sub || null;
-
-    if (!userId) {
-      throw new Exception("Unauthorized: userId ID not found in request claims", { code: 401 });
-    }
 
     const filters = {
       collectionId: collectionId,

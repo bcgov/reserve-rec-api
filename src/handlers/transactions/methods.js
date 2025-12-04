@@ -50,6 +50,7 @@ async function createTransaction(body, userId) {
       trnAmount: `${body.trnAmount}`,
       ref1: `${body.bookingId}`,
       ref2: `${body.sessionId}`,
+      ref3: `${body.email}`,
       hashExpiry: createHashExpiry(),
     });
 
