@@ -20,8 +20,6 @@ const options = {
   region: AWS_REGION,
 };
 
-console.log('DYNAMODB_ENDPOINT_URL:', DYNAMODB_ENDPOINT_URL);
-
 if (process.env?.IS_OFFLINE === 'true') {
   options.endpoint = DYNAMODB_ENDPOINT_URL;
   // Add dummy credentials for local development
