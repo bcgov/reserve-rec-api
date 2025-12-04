@@ -210,9 +210,12 @@ function getRequestClaimsFromEvent(event) {
         
         // Check Authorization header for existing guest UUID
         const authHeader = event.headers?.Authorization || event.headers?.authorization;
-        if (guestSub && authHeader.startsWith('guest')) {
-          logger.info('Reusing guest sub from Authorization header:', guestSub);
-          return { sub: guestSub };
+        if (authHeader && authHeader.startsWith('Guest ')) {
+          const guestSub = authHeader.substring(6).trim();
+          if (guestSub && guestSub.startsWith('guest-')) {
+            logger.info('Reusing guest sub from Authorization header:', guestSub);
+            return { sub: guestSub };
+          }
         }
         
         // Check x-guest-sub header
