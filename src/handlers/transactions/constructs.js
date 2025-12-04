@@ -128,6 +128,17 @@ class TransactionsConstruct extends LambdaConstruct {
         resources: [props.refundRequestTopicArn],
       });
       this.transactionsRefundsPostFunction.addToRolePolicy(snsPolicy);
+
+      // Add KMS permissions if KMS key is provided
+      if (props?.kmsKey) {
+        this.transactionsRefundsPostFunction.addToRolePolicy(new iam.PolicyStatement({
+          actions: [
+            'kms:Decrypt',
+            'kms:GenerateDataKey',
+          ],
+          resources: [props.kmsKey.keyArn],
+        }));
+      }
     }
 
     // Add permissions to all functions
