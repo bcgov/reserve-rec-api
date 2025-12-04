@@ -116,6 +116,15 @@ class PublicBookingsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
+    // Add permissions to all functions
+    const functions = [
+      this.bookingsPostFunction,
+      this.bookingsCancelPostFunction,
+    ];
+
+    for (const func of functions) {
+      this.grantBasicRefDataTableReadWrite(func);
+    }
   }
 }
 
