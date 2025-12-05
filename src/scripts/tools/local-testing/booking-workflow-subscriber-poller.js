@@ -81,9 +81,9 @@ const sqsClient = new SQSClient({
 });
 
 // Import your subscriber handlers (now that /opt/* is resolved)
-const bookingCancellationSubscriber = require('../../../handlers/bookings/cancel/subscriber');
-const refundSubscriber = require('../../../handlers/transactions/refunds/subscriber');
-const worldlineProcessor = require('../../../handlers/transactions/refunds/processor');
+const bookingCancellationSubscriber = require('../../../../lib/handlers/bookingCancellationSubscriber');
+const refundSubscriber = require('../../../../lib/handlers/refundSubscriber');
+const worldlineProcessor = require('../../../../lib/handlers/worldlineProcessor');
 
 // Queue configurations
 const QUEUES = [
