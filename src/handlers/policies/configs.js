@@ -391,13 +391,13 @@ const POLICY_CHANGE_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    changesAcceptedUntilHour: {
+    changesAcceptedUntilTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
-    cancellationsAcceptedUntilHour: {
+    cancellationsAcceptedUntilTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
@@ -492,13 +492,13 @@ const POLICY_CHANGE_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    changesAcceptedUntilHour: {
+    changesAcceptedUntilTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
-    cancellationsAcceptedUntilHour: {
+    cancellationsAcceptedUntilTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
