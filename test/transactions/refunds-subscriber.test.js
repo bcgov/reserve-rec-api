@@ -53,7 +53,7 @@ jest.mock("../../src/handlers/transactions/methods", () => ({
 // Set environment variable before requiring handler
 process.env.WORLDLINE_REQUEST_QUEUE_URL = "https://sqs.amazonaws.com/queue/worldline";
 
-const { handler } = require("../../src/handlers/transactions/refunds/subscriber/index");
+const { handler } = require("../../lib/handlers/refundSubscriber/index.js");
 const {
   createRefund,
   createAndCheckRefundHash,
