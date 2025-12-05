@@ -366,13 +366,6 @@ const BOOKING_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    bookingStatus: {
-      isMandatory: true,
-      rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, BOOKING_STATUS_ENUMS);
-        rf.expectAction(action, ['set']);
-      }
-    },
     sessionId: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
