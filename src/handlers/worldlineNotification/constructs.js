@@ -20,6 +20,10 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
     const handlerPrefix = props?.handlerPrefix || 'index';
     const handlerName = `${handlerPrefix}.handler`;
 
+    // Resolve email queue URL from email dispatch stack
+    const emailQueueUrl = scope.resolveEmailQueueUrl ? scope.resolveEmailQueueUrl(scope) : process.env.EMAIL_QUEUE_URL;
+    const emailQueueArn = scope.resolveEmailQueueArn ? scope.resolveEmailQueueArn(scope) : null;
+
     // Add /worldlineNotification resource
     this.worldlineNotificationResource = this.resolveApi().root.addResource('worldline-notification');
 
@@ -34,6 +38,12 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
       }
     );
 
+    // Add EMAIL_QUEUE_URL environment variable
+    if (emailQueueUrl) {
+      this.worldlineNotificationPostFunction.addEnvironment('EMAIL_QUEUE_URL', emailQueueUrl);
+      this.worldlineNotificationPostFunction.addEnvironment('AWS_REGION', process.env.AWS_REGION || 'ca-central-1');
+    }
+
     // POST /worldlineNotification
     this.worldlineNotificationResource.addMethod('POST', new apigw.LambdaIntegration(this.worldlineNotificationPostFunction), {
       authorizationType: apigw.AuthorizationType.NONE,
@@ -46,6 +56,14 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
 
     for (const func of functions) {
       this.grantBasicTransDataTableReadWrite(func);
+    }
+
+    // Grant SQS send message permissions if email queue is available
+    if (emailQueueArn) {
+      this.worldlineNotificationPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
+        resources: [emailQueueArn],
+      }));
     }
   }
 }

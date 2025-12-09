@@ -1,5 +1,6 @@
 const { LambdaConstruct } = require("../../../lib/helpers/base-lambda");
 const apigw = require("aws-cdk-lib/aws-apigateway");
+const iam = require("aws-cdk-lib/aws-iam");
 
 const defaults = {
   resources: {
@@ -124,6 +125,26 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     for (const func of functions) {
       this.grantBasicRefDataTableReadWrite(func);
+    }
+
+    // Grant SNS publish permissions to the cancel function
+    const topicArn = this.resolveEnvironment()?.BOOKING_NOTIFICATION_TOPIC_ARN;
+    if (topicArn) {
+      this.bookingsCancelPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['sns:Publish'],
+        resources: [topicArn],
+      }));
+    }
+
+    // Grant KMS permissions if KMS key is provided
+    if (props?.kmsKey) {
+      this.bookingsCancelPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'kms:Decrypt',
+          'kms:GenerateDataKey',
+        ],
+        resources: [props.kmsKey.keyArn],
+      }));
     }
   }
 }
