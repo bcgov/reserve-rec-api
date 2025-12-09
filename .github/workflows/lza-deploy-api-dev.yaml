@@ -153,7 +153,7 @@ jobs:
 
       ### CDK Synth
       - name: CDK Synth
-        run: cdk synth
+        run: cdk synth -c @context=dev
 
       ## CDK Deploy
       ## Use Parameter Store for table references if not a first deployment, otherwise create tables via CDK
