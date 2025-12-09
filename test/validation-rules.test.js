@@ -1,4 +1,4 @@
-const { rulesFns } = require('../src/layers/dataUtils/validation-rules');
+const { rulesFns } = require('../src/common/validation-rules');
 
 // Mock Exception class for testing
 class Exception extends Error {
