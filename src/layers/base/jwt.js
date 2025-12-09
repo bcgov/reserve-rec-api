@@ -6,7 +6,6 @@ const { logger } = require('/opt/base'); // Direct import like other layers
 class JWTManager {
   constructor() {
     this.keyPair = null;
-    this.keyId = process.env.JWT_KEY_ID || 'bcscencryption';
     this.bcscKeyId = process.env.BCSC_KEY_ID; 
     this.kmsClient = new KMSClient({ region: process.env.AWS_REGION || 'ca-central-1' });
   }
@@ -60,7 +59,7 @@ class JWTManager {
       kty: "RSA",
       use: "enc",
       alg: "RS256",
-      kid: this.keyId
+      kid: 'bcscencryption'
     };
     
     return {
