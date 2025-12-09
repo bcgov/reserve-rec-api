@@ -35,7 +35,7 @@ jest.mock("../../src/handlers/bookings/methods", () => ({
   refundPublishCommand: jest.fn(),
 }));
 
-const { handler } = require("../../src/handlers/bookings/cancel/subscriber/index");
+const { handler } = require("../../lib/handlers/bookingCancellationSubscriber/index.js");
 const {
   getBookingByBookingId,
   refundPublishCommand,

@@ -1069,7 +1069,7 @@ async function cancellationPublishCommand(booking, reason) {
     process.env.BOOKING_NOTIFICATION_TOPIC_ARN,
     cancellationMessage,
     `Booking Cancellation: ${booking.bookingId}`,
-    {}
+    messageAttributes
   );
 
   const result = await snsPublishSend(publishCommand);
