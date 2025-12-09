@@ -68,7 +68,7 @@ exports.handler = async (event, context) => {
 
     // Send receipt email after successful payment
     try {
-      if (updateRequestsTransaction?.item?.paymentStatus === 'paid' && updateRequestsBooking?.item) {
+      if (updateRequestsTransaction?.item?.transactionStatus === 'paid' && updateRequestsBooking?.item) {
         await sendReceiptEmailNotification(updateRequestsBooking.item, body);
         logger.info('Receipt email queued successfully', { bookingId });
       }

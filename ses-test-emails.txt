@@ -1,0 +1,24 @@
+# SES Test Email Addresses
+# Add internal @gov.bc.ca email addresses here for sandbox testing
+# One email per line. Lines starting with # are comments.
+#
+# Usage: ./src/scripts/verify-ses-test-emails.sh [profile] [region]
+# Example: ./src/scripts/verify-ses-test-emails.sh 623829546818_BCGOV_LZA_Admin ca-central-1
+#
+# NOTE: This file should NOT be committed (already in .gitignore)
+
+# Example format:
+# john.doe@gov.bc.ca
+# jane.smith@gov.bc.ca
+
+mark.lise@gov.bc.ca
+Lindsay.Macfarlane@gov.bc.ca
+Nan.1.Yang@gov.bc.ca
+Pavel.Ganapolsky@gov.bc.ca
+Meredith.Olsen-Maier@gov.bc.ca
+Cameron.Pettit@gov.bc.ca
+Christopher.Walsh@gov.bc.ca
+Manuji.Samara@gov.bc.ca
+David.Claveau@gov.bc.ca
+Winnie.1.Ho@gov.bc.ca
+Kimia.C.Abhar@gov.bc.ca

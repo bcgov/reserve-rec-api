@@ -1,0 +1,59 @@
+{
+  "recipientEmail": "mark.lise@gov.bc.ca",
+  "recipientName": "Mark Lisé",
+  "subject": "BC Parks - Booking Receipt",
+  "templateName": "receipt_bcparks_kootenay",
+  "locale": "en",
+  "messageType": "receipt",
+  "timestamp": 1733760000,
+  "templateData": {
+    "branding": {
+      "primaryColor": "#2c5530",
+      "logoUrl": "https://bcparks.ca/logo.png",
+      "contactEmail": "reservations@bcparks.ca",
+      "contactPhone": "1-800-689-9025",
+      "websiteUrl": "https://bcparks.ca"
+    },
+    "booking": {
+      "bookingId": "TEST-001",
+      "bookingReference": "KOOT-2024-001",
+      "orderNumber": "ORD-12345",
+      "orderDate": "2024-12-09T16:00:00Z",
+      "startDate": "2024-12-15T14:00:00Z",
+      "endDate": "2024-12-18T11:00:00Z",
+      "numberOfNights": 3,
+      "numberOfGuests": 4,
+      "status": "Confirmed"
+    },
+    "location": {
+      "parkName": "Kootenay National Park",
+      "facilityName": "Redstreak Campground",
+      "siteNumber": "A-42",
+      "region": "kootenay",
+      "address": "7556 Main Street East, Radium Hot Springs, BC V0A 1M0"
+    },
+    "customer": {
+      "firstName": "Mark",
+      "lastName": "Lisé",
+      "email": "mark.lise@gov.bc.ca",
+      "phone": "250-555-0123"
+    },
+    "payment": {
+      "totalAmount": 15000,
+      "currency": "CAD",
+      "transactionId": "TXN-ABC123",
+      "paymentMethod": "Credit Card (**** 1234)",
+      "itemBreakdown": [
+        {
+          "description": "Campsite Fee (3 nights @ $50/night)",
+          "amount": 15000
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "messageType": "booking_receipt",
+    "bookingId": "TEST-001",
+    "environment": "dev"
+  }
+}
