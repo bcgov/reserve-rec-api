@@ -164,7 +164,7 @@ jobs:
           echo "Deploying $STACK_NAME"
           echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
           echo "Use Parameter Store: $USE_PARAMETER_STORE"
-          cdk deploy $STACK_NAME --require-approval never --rollback --outputs-file cfn-outputs.json
+          cdk deploy $STACK_NAME -c @context=dev --require-approval never --rollback --outputs-file cfn-outputs.json
           cat cfn-outputs.json
 
       ### Post-deployment: Register newly created tables
