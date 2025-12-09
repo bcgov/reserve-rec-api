@@ -1,0 +1,9 @@
+{
+  "name": "email-dispatch-handler",
+  "version": "1.0.0",
+  "description": "Lambda handler for email dispatch using AWS SES and Handlebars templates",
+  "private": true,
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  }
+}

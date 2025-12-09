@@ -90,6 +90,12 @@ jobs:
           yarn
           yarn global add aws-cdk
 
+      - name: Install handler dependencies
+        run: |
+          echo "Installing email dispatch handler dependencies..."
+          cd lib/handlers/emailDispatch
+          npm install --production
+
       ### Assume AWS IAM Role
       - name: Get AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
