@@ -161,11 +161,11 @@ jobs:
         env:
           USE_PARAMETER_STORE: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE != 'FIRST' && 'true' || 'false' }}
         run: |
-          echo "Deploying $STACK_NAME"
+          echo "Deploying all stacks"
           echo "Deployment type: ${{ steps.deployment-type.outputs.DEPLOYMENT_TYPE }}"
           echo "Use Parameter Store: $USE_PARAMETER_STORE"
-          cdk deploy $STACK_NAME -c @context=dev --require-approval never --rollback --outputs-file cfn-outputs.json
-          cat cfn-outputs.json
+          cdk deploy -c @context=dev --all --require-approval never --rollback
+          echo "Deployment complete"
 
       ### Post-deployment: Register newly created tables
       ## Only for FIRST deployments - register newly created tables for future use
