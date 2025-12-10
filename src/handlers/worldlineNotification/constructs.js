@@ -20,9 +20,9 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
     const handlerPrefix = props?.handlerPrefix || 'index';
     const handlerName = `${handlerPrefix}.handler`;
 
-    // Resolve email queue URL from email dispatch stack
-    const emailQueueUrl = scope.resolveEmailQueueUrl ? scope.resolveEmailQueueUrl(scope) : process.env.EMAIL_QUEUE_URL;
-    const emailQueueArn = scope.resolveEmailQueueArn ? scope.resolveEmailQueueArn(scope) : null;
+    // Get email queue URL and ARN from props
+    const emailQueueUrl = props?.emailQueueUrl;
+    const emailQueueArn = props?.emailQueueArn;
 
     // Add /worldlineNotification resource
     this.worldlineNotificationResource = this.resolveApi().root.addResource('worldline-notification');
