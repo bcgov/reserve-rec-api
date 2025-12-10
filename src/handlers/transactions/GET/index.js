@@ -30,6 +30,14 @@ exports.handler = async (event, context) => {
       clientTransactionId
     );
 
+    // Transaction not found
+    if (!transactions) {
+      throw new Exception(
+        `Transaction ${clientTransactionId} not found`,
+        { code: 404 }
+      );
+    }
+
     // Email provided - verify email matches transaction email (for guest/unauthenticated lookup)
     if (email) {
       // We capture the user's email in ref3 field, instead of comparing to trnEmailAddress

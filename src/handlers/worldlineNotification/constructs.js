@@ -23,6 +23,7 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
     // Get email queue URL and ARN from props
     const emailQueueUrl = props?.emailQueueUrl;
     const emailQueueArn = props?.emailQueueArn;
+    const kmsKey = props?.kmsKey;
 
     // Add /worldlineNotification resource
     this.worldlineNotificationResource = this.resolveApi().root.addResource('worldline-notification');
@@ -51,6 +52,14 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
         actions: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
         resources: [emailQueueArn],
       }));
+      
+      // Grant KMS permissions for SQS queue encryption
+      if (kmsKey) {
+        this.worldlineNotificationPostFunction.addToRolePolicy(new iam.PolicyStatement({
+          actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+          resources: [kmsKey.keyArn],
+        }));
+      }
     }
 
     // POST /worldline-notification
