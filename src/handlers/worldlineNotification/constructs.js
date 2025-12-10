@@ -44,9 +44,21 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
       this.worldlineNotificationPostFunction.addEnvironment('AWS_REGION', process.env.AWS_REGION || 'ca-central-1');
     }
 
-    // POST /worldlineNotification
+    // POST /worldline-notification
+    // Force recreation of method to fix CloudFormation drift
     this.worldlineNotificationResource.addMethod('POST', new apigw.LambdaIntegration(this.worldlineNotificationPostFunction), {
       authorizationType: apigw.AuthorizationType.NONE,
+      methodResponses: [
+        {
+          statusCode: '200',
+        },
+        {
+          statusCode: '400',
+        },
+        {
+          statusCode: '500',
+        }
+      ],
     });
 
     // Add permissions to all functions
