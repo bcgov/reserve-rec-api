@@ -77,14 +77,24 @@ class BCSCConstruct extends Construct {
 
     // Create /bcsc resource
     const bcscResource = api.root.addResource('bcsc');
+
+    // GET /bcsc/jwks - Public key endpoint
     const jwksResource = bcscResource.addResource('jwks');
     jwksResource.addMethod('GET', new apigw.LambdaIntegration(this.bcscGetHandler));
 
+    // /bcsc/userinfo/{env}
     const userinfoResource = bcscResource.addResource('userinfo');
-    const envResource = userinfoResource.addResource('{env}');
+    const userinfoEnvResource = userinfoResource.addResource('{env}');
+    
+    // GET /bcsc/userinfo/{env}
+    userinfoEnvResource.addMethod('GET', new apigw.LambdaIntegration(this.bcscGetHandler));
 
-    envResource.addMethod('GET', new apigw.LambdaIntegration(this.bcscGetHandler));
-    envResource.addMethod('POST', new apigw.LambdaIntegration(this.bcscPostHandler));
+    // bcsc/token/{env} - Token exchange endpoint
+    const tokenResource = bcscResource.addResource('token');
+    const tokenEnvResource = tokenResource.addResource('{env}');
+    
+    // POST /bcsc/token/{env} - Token exchange (used by Cognito)
+    tokenEnvResource.addMethod('POST', new apigw.LambdaIntegration(this.bcscPostHandler));
   }
 }
 
