@@ -45,8 +45,8 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
     }
 
     // POST /worldline-notification
-    // Force recreation of method to fix CloudFormation drift
-    this.worldlineNotificationResource.addMethod('POST', new apigw.LambdaIntegration(this.worldlineNotificationPostFunction), {
+    // Force recreation of method to fix CloudFormation drift by changing logical ID
+    const postMethod = this.worldlineNotificationResource.addMethod('POST', new apigw.LambdaIntegration(this.worldlineNotificationPostFunction), {
       authorizationType: apigw.AuthorizationType.NONE,
       methodResponses: [
         {
@@ -60,6 +60,10 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
         }
       ],
     });
+    
+    // Override logical ID to force CloudFormation to treat this as a new resource
+    const cfnMethod = postMethod.node.defaultChild;
+    cfnMethod.overrideLogicalId('PublicApiworldlinenotificationPOSTv2');
 
     // Add permissions to all functions
     const functions = [
