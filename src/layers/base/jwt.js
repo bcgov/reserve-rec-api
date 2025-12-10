@@ -1,7 +1,7 @@
 const NodeRSA = require('node-rsa');
 const crypto = require('crypto');
 const { KMSClient, DecryptCommand, GetPublicKeyCommand } = require('@aws-sdk/client-kms');
-const { logger } = require('/opt/base'); // Direct import like other layers
+const { logger } = require('/opt/base');
 
 class JWTManager {
   constructor() {
