@@ -43,6 +43,15 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
       this.worldlineNotificationPostFunction.addEnvironment('EMAIL_QUEUE_URL', emailQueueUrl);
       this.worldlineNotificationPostFunction.addEnvironment('AWS_REGION', process.env.AWS_REGION || 'ca-central-1');
     }
+    
+    // Grant SQS send message permissions BEFORE adding API method
+    // Note: Must be done before method creation to ensure permissions are in place
+    if (emailQueueArn) {
+      this.worldlineNotificationPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
+        resources: [emailQueueArn],
+      }));
+    }
 
     // POST /worldline-notification
     // Force recreation of method to fix CloudFormation drift by changing logical ID
@@ -72,14 +81,6 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
 
     for (const func of functions) {
       this.grantBasicTransDataTableReadWrite(func);
-    }
-
-    // Grant SQS send message permissions if email queue is available
-    if (emailQueueArn) {
-      this.worldlineNotificationPostFunction.addToRolePolicy(new iam.PolicyStatement({
-        actions: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
-        resources: [emailQueueArn],
-      }));
     }
   }
 }
