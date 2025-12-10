@@ -115,53 +115,60 @@ exports.handler = async (event, context) => {
  */
 async function sendReceiptEmailNotification(bookingItem, paymentData) {
   try {
+    // Calculate number of guests from partyInformation
+    const partyInfo = bookingItem.partyInformation || {};
+    const numberOfGuests = (partyInfo.adult || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0) + (partyInfo.senior || 0) || 1;
+    
     // Extract data from booking item
     const bookingData = {
-      bookingId: bookingItem.pk || bookingItem.bookingId,
-      bookingReference: bookingItem.bookingReference || bookingItem.pk,
+      bookingId: bookingItem.bookingId || bookingItem.globalId,
+      bookingReference: bookingItem.bookingReference || bookingItem.bookingId || bookingItem.globalId,
       orderNumber: paymentData.trnOrderNumber,
       orderDate: paymentData.trnDate || new Date().toISOString(),
       startDate: bookingItem.startDate,
       endDate: bookingItem.endDate,
       numberOfNights: bookingItem.numberOfNights || 1,
-      numberOfGuests: bookingItem.numberOfGuests || 1,
+      numberOfGuests: numberOfGuests,
       status: 'confirmed'
     };
 
-    // Extract location data
+    // Extract location data - use displayName as parkName/facilityName
     const locationData = {
-      parkName: bookingItem.parkName || 'BC Parks',
-      facilityName: bookingItem.facilityName,
+      parkName: bookingItem.displayName || 'BC Parks',
+      facilityName: bookingItem.displayName || bookingItem.facilityName,
       siteNumber: bookingItem.siteNumber,
       region: bookingItem.region || 'default',
       address: bookingItem.address
     };
 
-    // Extract customer data
+    // Extract customer data from namedOccupant
+    const namedOccupant = bookingItem.namedOccupant || {};
+    const contactInfo = namedOccupant.contactInfo || {};
+    
     const customerData = {
-      firstName: bookingItem.firstName || paymentData.customerFirstName,
-      lastName: bookingItem.lastName || paymentData.customerLastName,
-      email: bookingItem.email || paymentData.customerEmail,
-      phone: bookingItem.phone || paymentData.customerPhone,
+      firstName: namedOccupant.firstName || paymentData.trnCustomerName?.split(' ')[0] || 'Guest',
+      lastName: namedOccupant.lastName || paymentData.trnCustomerName?.split(' ').slice(1).join(' ') || '',
+      email: contactInfo.email || paymentData.trnEmailAddress,
+      phone: contactInfo.mobilePhone || paymentData.trnPhoneNumber,
       address: {
-        street: paymentData.billingStreet,
-        city: paymentData.billingCity,
-        province: paymentData.billingProvince,
-        postalCode: paymentData.billingPostalCode,
-        country: paymentData.billingCountry
+        street: contactInfo.streetAddress || '',
+        city: contactInfo.city || '',
+        province: contactInfo.province || '',
+        postalCode: contactInfo.postalCode || '',
+        country: contactInfo.country || 'CA'
       }
     };
 
-    // Extract payment data
+    // Extract payment data - convert dollars to cents for totalAmount
     const paymentProcessedData = {
-      totalAmount: parseInt(paymentData.trnAmount) || bookingItem.totalAmount,
+      totalAmount: Math.round(parseFloat(paymentData.trnAmount) * 100),
       currency: 'CAD',
       transactionId: paymentData.trnId,
       paymentMethod: paymentData.paymentMethod || 'Credit Card',
-      itemBreakdown: bookingItem.itemBreakdown || [
+      itemBreakdown: [
         {
-          description: 'Reservation Fee',
-          amount: parseInt(paymentData.trnAmount) || bookingItem.totalAmount
+          description: `${bookingItem.displayName || 'Reservation'}`,
+          amount: Math.round(parseFloat(paymentData.trnAmount) * 100)
         }
       ]
     };
