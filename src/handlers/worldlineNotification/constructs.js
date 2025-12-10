@@ -41,7 +41,7 @@ class WorldlineNotificationConstruct extends LambdaConstruct {
     // Add EMAIL_QUEUE_URL environment variable
     if (emailQueueUrl) {
       this.worldlineNotificationPostFunction.addEnvironment('EMAIL_QUEUE_URL', emailQueueUrl);
-      this.worldlineNotificationPostFunction.addEnvironment('AWS_REGION', process.env.AWS_REGION || 'ca-central-1');
+      // Note: AWS_REGION is automatically available in Lambda environment and cannot be set manually
     }
     
     // Grant SQS send message permissions BEFORE adding API method
