@@ -90,7 +90,14 @@ const POLICY_BOOKING_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    rollingWindowDuration: {
+    rollingWindowOpenDuration: {
+      allowEmpty: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectDurationObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    rollingWindowCloseDuration: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
         rf.expectDurationObjFormat(value);
@@ -104,13 +111,13 @@ const POLICY_BOOKING_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    openBookingTime: {
+    reservationOpeningTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
-    closeBookingTime: {
+    reservationClosingTime: {
       rulesFn: ({ value, action }) => {
         rf.expect24hTimeObjFormat(value);
         rf.expectAction(action, ['set']);
