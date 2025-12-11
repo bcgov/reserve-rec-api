@@ -123,6 +123,7 @@ exports.handler = async (event) => {
         throw apiError;
       }
     }
+    logger.bug("NO MATCH FOR PATH:", event.path);
     
     return { 
       statusCode: 404, 
