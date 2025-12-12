@@ -197,7 +197,11 @@ const BOOKING_PUT_CONFIG = {
           fields: {
             email: {
               rulesFn: ({ value, action }) => {
-                rf.expectEmailFormat(value);
+                // Only validate email format if a value is provided (not empty string)
+                // At least one contact method (email/mobilePhone/homePhone) is required at parent level
+                if (value && value !== '') {
+                  rf.expectEmailFormat(value);
+                }
                 rf.expectAction(action, ['set']);
               }
             },
