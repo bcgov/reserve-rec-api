@@ -100,13 +100,16 @@ function calculateBookingFees(activity, partyInformation, startDate, endDate) {
   const tax = (registrationFees + transactionFees) * (taxPercent / 100);
   const total = registrationFees + transactionFees + tax;
   
+  // Round to 2 decimals using Math.round to avoid floating point issues
+  const roundToTwoDecimals = (num) => Math.round(num * 100) / 100;
+  
   logger.debug("Calculated fees:", { registrationFees, transactionFees, tax, total });
   
   return {
-    registrationFees: parseFloat(registrationFees.toFixed(2)),
-    transactionFees: parseFloat(transactionFees.toFixed(2)),
-    tax: parseFloat(tax.toFixed(2)),
-    total: parseFloat(total.toFixed(2))
+    registrationFees: roundToTwoDecimals(registrationFees),
+    transactionFees: roundToTwoDecimals(transactionFees),
+    tax: roundToTwoDecimals(tax),
+    total: roundToTwoDecimals(total)
   };
 }
 
