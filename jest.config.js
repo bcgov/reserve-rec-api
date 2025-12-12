@@ -3,6 +3,16 @@ module.exports = {
   roots: ['<rootDir>/test'],
   testMatch: ['**/*.test.js'],
   transformIgnorePatterns: ['node_modules/'],
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  collectCoverageFrom: [
+    'src/**/*.js',
+    '!src/layers/**/nodejs/**',
+    '!src/scripts/**',
+    '!**/node_modules/**',
+    '!**/__tests__/**',
+  ],
   moduleNameMapper: {
     '^/opt/awsUtils/s3$': '<rootDir>/src/layers/awsUtils/s3.js',
     '^/opt/awsUtils/ses$': '<rootDir>/src/layers/awsUtils/ses.js',

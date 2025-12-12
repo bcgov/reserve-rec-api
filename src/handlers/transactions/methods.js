@@ -38,8 +38,60 @@ function createUrlWithHash(query, url) {
 // details into dynamo
 async function createTransaction(body, userId) {
   try {
-    // Use booking ID to create our transaction ID
-    const clientTransactionId = createWorldlineUuidWithPrefix(body.bookingId, "BCPR-");
+    // ===== STEP 1: Fetch and Validate Booking =====
+    const bookingRecord = await getOneByGlobalId(body.bookingId, TRANSACTIONAL_DATA_TABLE_NAME, 'globalId', 'globalId-index');
+    
+    if (!bookingRecord) {
+      throw new Exception("Booking not found", { code: 404 });
+    }
+    
+    // ===== STEP 2: Validate Ownership =====
+    if (bookingRecord.userId !== userId) {
+      logger.warn(`Unauthorized transaction attempt: user ${userId} tried to pay for booking owned by ${bookingRecord.userId}`);
+      throw new Exception("Unauthorized: You do not own this booking", { code: 403 });
+    }
+    
+    // ===== STEP 3: Validate Booking Not Already Paid =====
+    if (bookingRecord.bookingStatus === "confirmed") {
+      throw new Exception("Booking has already been paid", { code: 400 });
+    }
+    
+    if (bookingRecord.bookingStatus === "cancelled") {
+      throw new Exception("Booking has been cancelled", { code: 400 });
+    }
+    
+    // ===== STEP 4: Validate Session Not Expired =====
+    if (bookingRecord.sessionExpiry) {
+      const expiryTime = new Date(bookingRecord.sessionExpiry).getTime();
+      const now = Date.now();
+      if (now > expiryTime) {
+        logger.warn(`Expired session: booking ${body.bookingId} expired at ${bookingRecord.sessionExpiry}`);
+        throw new Exception("Booking session has expired. Please create a new booking.", { code: 410 });
+      }
+    }
+    
+    // ===== STEP 5: Use Stored Price =====
+    const chargeAmount = bookingRecord.feeInformation?.total || 0;
+    
+    if (chargeAmount <= 0) {
+      throw new Exception("Invalid booking amount", { code: 400 });
+    }
+    
+    // Log if client sent different amount than stored
+    if (Math.abs(body.trnAmount - chargeAmount) > 0.01) {
+      logger.info(`Client sent ${body.trnAmount}, using stored ${chargeAmount} for booking ${body.bookingId}`);
+    }
+    
+    // ===== STEP 6: Validate Session ID Matches =====
+    if (body.sessionId !== bookingRecord.sessionId) {
+      logger.warn(`Session ID mismatch for booking ${body.bookingId}`);
+      throw new Exception("Invalid session ID", { code: 400 });
+    }
+    
+    // ===== STEP 7: Generate Random Transaction ID (ALLOWS RETRIES) =====
+    // OLD: Used bookingId which prevented retries
+    // NEW: Use random UUID so each retry gets new transaction
+    const clientTransactionId = createWorldlineUuidWithPrefix(crypto.randomUUID(), "BCPR-");
 
     // Constructing the URL string params for Worldline
     const url = `https://web.na.bambora.com/scripts/Payment/Payment.asp`;
@@ -47,7 +99,7 @@ async function createTransaction(body, userId) {
       merchant_id: MERCHANT_ID,
       trnType: "P",
       trnOrderNumber: clientTransactionId,
-      trnAmount: `${body.trnAmount}`,
+      trnAmount: `${chargeAmount}`, // Use stored price, not client input
       ref1: `${body.bookingId}`,
       ref2: `${body.sessionId}`,
       ref3: `${body.email}`,
@@ -65,7 +117,7 @@ async function createTransaction(body, userId) {
     let transactionObj = {
       pk: `transaction::${clientTransactionId}`,
       sk: `details`,
-      amount: body.trnAmount,
+      amount: chargeAmount, // Use stored price
       bookingId: body.bookingId,
       clientTransactionId: clientTransactionId,
       date: today,
@@ -83,6 +135,10 @@ async function createTransaction(body, userId) {
       data: transactionObj,
     };
   } catch (err) {
+    // Re-throw Exception instances as-is
+    if (err instanceof Exception) {
+      throw err;
+    }
     throw new Exception(`Error with building transaction: ${err}`, {
       code: 400,
     });

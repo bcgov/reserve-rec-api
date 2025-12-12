@@ -125,6 +125,24 @@ const ACTIVITY_API_PUT_CONFIG = {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
+    },
+    price: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    transactionFeePercent: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    taxPercent: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
     }
   }
 };
@@ -209,6 +227,24 @@ const ACTIVITY_API_UPDATE_CONFIG = {
     adminNotes: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    price: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    transactionFeePercent: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    taxPercent: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
         rf.expectAction(action, ['set']);
       }
     }
