@@ -15,7 +15,6 @@ const {
   getActivitiesByCollectionId,
 } = require("../activities/methods");
 const { getAndAttachNestedProperties } = require("../../common/data-utils");
-const { DateTime } = require("luxon");
 const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
@@ -24,6 +23,61 @@ const {
   DEFAULT_MAX_OCCUPANTS,
   DEFAULT_MAX_VEHICLES
 } = require("../../common/data-constants");
+
+/**
+ * Helper: Get start of day in UTC for a date string
+ * @param {string} dateString - ISO date string (e.g., "2025-12-12")
+ * @returns {Date} Date object set to midnight UTC
+ */
+function getStartOfDayUTC(dateString) {
+  const date = new Date(dateString + 'T00:00:00.000Z');
+  return date;
+}
+
+/**
+ * Helper: Add days to a date
+ * @param {Date} date - Base date
+ * @param {number} days - Number of days to add
+ * @returns {Date} New date with days added
+ */
+function addDays(date, days) {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+/**
+ * Helper: Add minutes to a date
+ * @param {Date} date - Base date
+ * @param {number} minutes - Number of minutes to add
+ * @returns {Date} New date with minutes added
+ */
+function addMinutes(date, minutes) {
+  const result = new Date(date);
+  result.setUTCMinutes(result.getUTCMinutes() + minutes);
+  return result;
+}
+
+/**
+ * Helper: Add years to a date
+ * @param {Date} date - Base date
+ * @param {number} years - Number of years to add
+ * @returns {Date} New date with years added
+ */
+function addYears(date, years) {
+  const result = new Date(date);
+  result.setUTCFullYear(result.getUTCFullYear() + years);
+  return result;
+}
+
+/**
+ * Helper: Get ISO date string (YYYY-MM-DD) from Date object
+ * @param {Date} date - Date object
+ * @returns {string} ISO date string
+ */
+function toISODate(date) {
+  return date.toISOString().split('T')[0];
+}
 
 /**
  * Calculate booking fees from activity pricing
@@ -225,22 +279,22 @@ async function createBooking(
     }
 
     // ===== STEP 2: Validate Dates =====
-    // Use activity timezone for date validation (defaults to UTC if not provided)
-    const timezone = body.timezone || "UTC";
-    const now = DateTime.now().setZone(timezone);
-    const start = DateTime.fromISO(startDate, { zone: timezone });
-    const end = DateTime.fromISO(body.endDate, { zone: timezone });
+    // Parse dates as UTC (timezone is metadata only, not used for validation)
+    const now = new Date();
+    const start = getStartOfDayUTC(startDate);
+    const end = getStartOfDayUTC(body.endDate);
+    const today = getStartOfDayUTC(now.toISOString().split('T')[0]);
 
-    if (!start.isValid) {
+    if (isNaN(start.getTime())) {
       throw new Exception("Invalid start date format", { code: 400 });
     }
 
-    if (!end.isValid) {
+    if (isNaN(end.getTime())) {
       throw new Exception("Invalid end date format", { code: 400 });
     }
 
-    // No past dates allowed (compare start of day to avoid timezone midnight issues)
-    if (start.startOf('day') < now.startOf('day')) {
+    // No past dates allowed (compare start of day)
+    if (start < today) {
       throw new Exception("Cannot book dates in the past", { code: 400 });
     }
 
@@ -250,7 +304,8 @@ async function createBooking(
 
     // Validate booking window (default: max 2 days in future, may vary by activity type)
     const maxDaysAhead = activity.maxBookingDaysAhead ?? DEFAULT_MAX_BOOKING_DAYS_AHEAD;
-    if (start > now.plus({ days: maxDaysAhead })) {
+    const maxDate = addDays(today, maxDaysAhead);
+    if (start > maxDate) {
       throw new Exception(`Cannot book more than ${maxDaysAhead} days in advance`, { code: 400 });
     }
 
@@ -299,7 +354,7 @@ async function createBooking(
     // ===== STEP 5: Generate Secure IDs =====
     const globalId = crypto.randomUUID();
     const sessionId = crypto.randomUUID();
-    const sessionExpiry = DateTime.now().plus({ minutes: 30 }).toISO();
+    const sessionExpiry = addMinutes(new Date(), 30).toISOString();
 
     // ===== STEP 6: Whitelist and Sanitize Input Fields =====
     let bookingRequest = {
@@ -325,7 +380,7 @@ async function createBooking(
       endDate: body.endDate,
       displayName: activity.displayName || sanitizeString(body.displayName, 200),
       timezone: activity.timezone || 'America/Vancouver',
-      bookedAt: DateTime.now().toISO(),
+      bookedAt: new Date().toISOString(),
       
       partyInformation: partyInfo,
       
@@ -487,18 +542,13 @@ function calculateDateRange(userObject, startDate, endDate) {
   if (userObject.isAdmin) {
     // Admin logic consideration: limit to 30 days ago by default, max 90 days range
     // Prevent admin from slamming a huge data pull
-    const defaultStart = DateTime.now().minus({ days: 30 }).toISODate();
+    const defaultStart = toISODate(addDays(new Date(), -30));
     effectiveStartDate = startDate || defaultStart;
-    effectiveEndDate = DateTime.fromISO(effectiveStartDate)
-      .plus({ days: 90 })
-      .toISODate();
+    effectiveEndDate = toISODate(addDays(new Date(effectiveStartDate), 90));
   } else {
     // Non-admin logic: startDate is 90 days ago up 1 year in future unless otherwise specified
-    effectiveStartDate =
-      startDate || DateTime.now().minus({ days: 90 }).toISODate();
-    effectiveEndDate =
-      endDate ||
-      DateTime.fromISO(effectiveStartDate).plus({ years: 1 }).toISODate();
+    effectiveStartDate = startDate || toISODate(addDays(new Date(), -90));
+    effectiveEndDate = endDate || toISODate(addYears(new Date(effectiveStartDate), 1));
   }
 
   return { effectiveStartDate, effectiveEndDate };
@@ -508,10 +558,12 @@ function calculateDateRange(userObject, startDate, endDate) {
  * Validates the provided date range
  */
 function validateDateRange(startDate, endDate, isAdmin) {
-  if (
-    isAdmin &&
-    DateTime.fromISO(startDate) < DateTime.now().minus({ days: 31 })
-  ) {
+  const startDateObj = new Date(startDate);
+  const endDateObj = new Date(endDate);
+  const now = new Date();
+  const thirtyOneDaysAgo = addDays(now, -31);
+  
+  if (isAdmin && startDateObj < thirtyOneDaysAgo) {
     throw new Exception(
       "Admin startDate cannot be more than 30 days in the past",
       {
@@ -519,10 +571,9 @@ function validateDateRange(startDate, endDate, isAdmin) {
       }
     );
   }
-  if (
-    isAdmin &&
-    DateTime.fromISO(endDate) > DateTime.fromISO(startDate).plus({ days: 91 })
-  ) {
+  
+  const ninetyOneDaysAfterStart = addDays(startDateObj, 91);
+  if (isAdmin && endDateObj > ninetyOneDaysAfterStart) {
     throw new Exception("Admin endDate range cannot exceed 90 days", {
       code: 400,
     });
