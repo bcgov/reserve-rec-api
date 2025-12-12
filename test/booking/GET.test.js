@@ -1,12 +1,12 @@
 const { handler } = require("../../src/handlers/bookings/GET/public");
-// Do not import getBookingByBookingId here, import it after jest.mock
-let getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub;
+let getBookingByBookingId, getBookingsByUserId;
 
 jest.mock("/opt/base", () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data.code;
     this.data = data;
+    this.msg = message;
   }),
   logger: {
     info: jest.fn(),
@@ -21,15 +21,16 @@ jest.mock("/opt/base", () => ({
     error,
     context,
   })),
-}));
-jest.mock('../../src/handlers/bookings/methods', () => ({
-  getBookingByBookingId: jest.fn(),
-  getBookingsByActivityDetails: jest.fn(),
-  getBookingsByUserSub: jest.fn(),
+  getRequestClaimsFromEvent: jest.fn(),
 }));
 
-// Import the mocked functions after jest.mock
-({ getBookingByBookingId, getBookingsByActivityDetails, getBookingsByUserSub } = require('../../src/handlers/bookings/methods'));
+jest.mock('../../src/handlers/bookings/methods', () => ({
+  getBookingByBookingId: jest.fn(),
+  getBookingsByUserId: jest.fn(),
+}));
+
+const { getRequestClaimsFromEvent } = require('/opt/base');
+({ getBookingByBookingId, getBookingsByUserId } = require('../../src/handlers/bookings/methods'));
 
 
 describe('Bookings GET handler', () => {
@@ -45,68 +46,150 @@ describe('Bookings GET handler', () => {
     expect(res.status).toBe(200);
   });
 
-  // it('should get booking by bookingId from pathParameters', async () => {
-  //   const event = { httpMethod: 'GET', pathParameters: { bookingId: 'b1' } };
-  //   getBookingByBookingId.mockResolvedValue({ id: 'b1' });
-  //   const res = await handler(event, context);
-  //   console.log('Booking by bookingId response:', res);
-  //   expect(res.data).toEqual({ id: 'b1' });
-  // });
+  it('should get booking by bookingId with email verification', async () => {
+    const event = {
+      httpMethod: 'GET',
+      pathParameters: { bookingId: 'b1' },
+      queryStringParameters: { email: 'test@example.com' }
+    };
+    getBookingByBookingId.mockResolvedValue({
+      id: 'b1',
+      namedOccupant: {
+        contactInfo: {
+          email: 'test@example.com'
+        }
+      }
+    });
+    getRequestClaimsFromEvent.mockReturnValue(null);
+    
+    const res = await handler(event, context);
+    expect(getBookingByBookingId).toHaveBeenCalledWith('b1', false);
+    expect(res.status).toBe(200);
+    expect(res.data.id).toBe('b1');
+  });
 
-  // it('should get booking by bookingId from queryStringParameters', async () => {
-  //   const event = { httpMethod: 'GET', queryStringParameters: { bookingId: 'b2' } };
-  //   getBookingByBookingId.mockResolvedValue({ id: 'b2' });
-  //   const res = await handler(event, context);
-  //   expect(getBookingByBookingId).toHaveBeenCalledWith('b2');
-  //   expect(res.data).toEqual({ id: 'b2' });
-  // });
+  it('should reject booking lookup with mismatched email', async () => {
+    const event = {
+      httpMethod: 'GET',
+      pathParameters: { bookingId: 'b1' },
+      queryStringParameters: { email: 'wrong@example.com' }
+    };
+    getBookingByBookingId.mockResolvedValue({
+      id: 'b1',
+      namedOccupant: {
+        contactInfo: {
+          email: 'test@example.com'
+        }
+      }
+    });
+    getRequestClaimsFromEvent.mockReturnValue(null);
+    
+    const res = await handler(event, context);
+    expect(res.status).toBe(403);
+  });
 
-  // it('should get bookings by userSub', async () => {
-  //   const event = { httpMethod: 'GET', queryStringParameters: { user: 'user1' } };
-  //   getBookingsByUserSub.mockResolvedValue([{ id: 'b3' }]);
-  //   const res = await handler(event, context);
-  //   expect(getBookingsByUserSub).toHaveBeenCalledWith('user1');
-  //   expect(res.data).toEqual([{ id: 'b3' }]);
-  // });
+  it('should get booking by bookingId with userId verification', async () => {
+    const event = {
+      httpMethod: 'GET',
+      pathParameters: { bookingId: 'b2' }
+    };
+    getBookingByBookingId.mockResolvedValue({
+      id: 'b2',
+      userId: 'user123'
+    });
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user123' });
+    
+    const res = await handler(event, context);
+    expect(getBookingByBookingId).toHaveBeenCalledWith('b2', false);
+    expect(res.status).toBe(200);
+    expect(res.data.id).toBe('b2');
+  });
 
-  // it('should throw error if required activity details are missing', async () => {
-  //   const event = { httpMethod: 'GET', queryStringParameters: {} };
-  //   const res = await handler(event, context);
-  //   expect(res.code).toBe(400);
-  //   expect(res.msg).toMatch(/Booking ID.*are required/);
-  // });
+  it('should reject booking lookup with mismatched userId', async () => {
+    const event = {
+      httpMethod: 'GET',
+      pathParameters: { bookingId: 'b2' }
+    };
+    getBookingByBookingId.mockResolvedValue({
+      id: 'b2',
+      userId: 'user123'
+    });
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'wronguser' });
+    
+    const res = await handler(event, context);
+    expect(res.status).toBe(403);
+  });
 
-  // it('should get bookings by activity details', async () => {
-  //   const event = {
-  //     httpMethod: 'GET',
-  //     pathParameters: {
-  //       collectionId: 'ac1',
-  //       activityType: 'type1',
-  //       activityId: 'act1',
-  //       startDate: '2024-01-01',
-  //       endDate: '2024-01-02'
-  //     }
-  //   };
-  //   getBookingsByActivityDetails.mockResolvedValue([{ id: 'b4' }]);
-  //   const res = await handler(event, context);
-  //   expect(getBookingsByActivityDetails).toHaveBeenCalledWith('ac1', 'type1', 'act1', '2024-01-01', '2024-01-02');
-  //   expect(res.data).toEqual([{ id: 'b4' }]);
-  // });
+  it('should get bookings by userId with filters', async () => {
+    const event = {
+      httpMethod: 'GET',
+      queryStringParameters: {
+        collectionId: 'col1',
+        activityType: 'frontcountryCamp',
+        activityId: 'act1',
+        startDate: '2024-01-01',
+        endDate: '2024-01-02'
+      }
+    };
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user123' });
+    getBookingsByUserId.mockResolvedValue([{ id: 'b3' }, { id: 'b4' }]);
+    
+    const res = await handler(event, context);
+    expect(getBookingsByUserId).toHaveBeenCalledWith('user123', {
+      collectionId: 'col1',
+      activityType: 'frontcountryCamp',
+      activityId: 'act1',
+      startDate: '2024-01-01',
+      endDate: '2024-01-02',
+      bookingId: undefined,
+      fetchAccessPoints: false
+    });
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveLength(2);
+  });
 
-  // it('should handle errors and return error response', async () => {
-  //   const event = {
-  //     httpMethod: 'GET',
-  //     pathParameters: {
-  //       collectionId: 'ac1',
-  //       activityType: 'type1',
-  //       activityId: 'act1',
-  //       startDate: '2024-01-01'
-  //     }
-  //   };
-  //   getBookingsByActivityDetails.mockRejectedValue({ code: 500, msg: 'DB error', error: 'fail' });
-  //   const res = await handler(event, context);
-  //   expect(res.code).toBe(500);
-  //   expect(res.msg).toBe('DB error');
-  //   expect(res.err).toBe('fail');
-  // });
+  it('should get bookings with fetchAccessPoints flag', async () => {
+    const event = {
+      httpMethod: 'GET',
+      queryStringParameters: {
+        fetchAccessPoints: 'true'
+      }
+    };
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user123' });
+    getBookingsByUserId.mockResolvedValue([]);
+    
+    const res = await handler(event, context);
+    expect(getBookingsByUserId).toHaveBeenCalledWith('user123', expect.objectContaining({
+      fetchAccessPoints: 'true'
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it('should handle errors and return error response', async () => {
+    const event = {
+      httpMethod: 'GET',
+      queryStringParameters: {}
+    };
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user123' });
+    getBookingsByUserId.mockRejectedValue({
+      code: 500,
+      msg: 'DB error',
+      error: 'Database connection failed'
+    });
+    
+    const res = await handler(event, context);
+    expect(res.status).toBe(500);
+  });
+
+  it('should handle errors without code property', async () => {
+    const event = {
+      httpMethod: 'GET',
+      queryStringParameters: {}
+    };
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user123' });
+    getBookingsByUserId.mockRejectedValue(new Error('Unknown error'));
+    
+    const res = await handler(event, context);
+    expect(res.status).toBe(400);
+  });
 });

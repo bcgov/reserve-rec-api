@@ -124,6 +124,17 @@ const POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS = [
   'fixed',
 ];
 
+// TEMPORARY: Default pricing values (easy to remove later)
+// TODO: Remove these defaults and throw error when activities have pricing configured
+const DEFAULT_PRICE = 999.99;
+const DEFAULT_TRANSACTION_FEE_PERCENT = 3.0;
+const DEFAULT_TAX_PERCENT = 5.0;
+
+// Booking validation defaults (may be overridden per activity type)
+const DEFAULT_MAX_BOOKING_DAYS_AHEAD = 2;
+const DEFAULT_MAX_OCCUPANTS = 4;
+const DEFAULT_MAX_VEHICLES = 1;
+
 module.exports = {
   DEFAULT_API_UPDATE_CONFIG,
   DURATION_PROPERTY_ENUMS,
@@ -139,5 +150,11 @@ module.exports = {
   POLICY_TYPE_ENUMS,
   RATE_CLASS_ENUMS,
   TIMEZONE_ENUMS,
-  POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS
+  POLICY_BOOKING_RESERVATION_WINDOW_TYPE_ENUMS,
+  DEFAULT_PRICE,
+  DEFAULT_TRANSACTION_FEE_PERCENT,
+  DEFAULT_TAX_PERCENT,
+  DEFAULT_MAX_BOOKING_DAYS_AHEAD,
+  DEFAULT_MAX_OCCUPANTS,
+  DEFAULT_MAX_VEHICLES
 };

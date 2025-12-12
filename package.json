@@ -8,7 +8,8 @@
   "scripts": {
     "build": "echo \"The build step is not required when using JavaScript!\" && exit 0",
     "cdk": "cdk",
-    "test": "jest",
+    "test": "jest --coverage",
+    "test:nocov": "jest",
     "synth:local": "cdk synth -c @context=local --all",
     "build:admin": "node ./src/scripts/tools/local-testing/sam-quick-start.js",
     "build:layers": "node ./src/scripts/tools/local-testing/build-lambda-layers.js",

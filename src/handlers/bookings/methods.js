@@ -16,6 +16,56 @@ const {
 } = require("../activities/methods");
 const { getAndAttachNestedProperties } = require("../../common/data-utils");
 const { DateTime } = require("luxon");
+const {
+  DEFAULT_PRICE,
+  DEFAULT_TRANSACTION_FEE_PERCENT,
+  DEFAULT_TAX_PERCENT,
+  DEFAULT_MAX_BOOKING_DAYS_AHEAD,
+  DEFAULT_MAX_OCCUPANTS,
+  DEFAULT_MAX_VEHICLES
+} = require("../../common/data-constants");
+
+/**
+ * Calculate booking fees from activity pricing
+ * @param {object} activity - Activity record from database
+ * @param {object} partyInformation - { adult, senior, youth, child } (metadata only, not used for pricing)
+ * @param {DateTime} startDate - Luxon DateTime (metadata only, not used for pricing)
+ * @param {DateTime} endDate - Luxon DateTime (metadata only, not used for pricing)
+ * @returns {object} { registrationFees, transactionFees, tax, total }
+ */
+function calculateBookingFees(activity, partyInformation, startDate, endDate) {
+  logger.debug("Calculating booking fees:", { activity: activity?.activityId });
+  
+  // Simple single-item pricing: look up activity price (no date/occupant calculations)
+  const price = activity?.price ?? DEFAULT_PRICE;
+  const txFeePercent = activity?.transactionFeePercent ?? DEFAULT_TRANSACTION_FEE_PERCENT;
+  const taxPercent = activity?.taxPercent ?? DEFAULT_TAX_PERCENT;
+  
+  const registrationFees = price;
+  const transactionFees = registrationFees * (txFeePercent / 100);
+  const tax = (registrationFees + transactionFees) * (taxPercent / 100);
+  const total = registrationFees + transactionFees + tax;
+  
+  logger.debug("Calculated fees:", { registrationFees, transactionFees, tax, total });
+  
+  return {
+    registrationFees: parseFloat(registrationFees.toFixed(2)),
+    transactionFees: parseFloat(transactionFees.toFixed(2)),
+    tax: parseFloat(tax.toFixed(2)),
+    total: parseFloat(total.toFixed(2))
+  };
+}
+
+/**
+ * Sanitize and validate string input
+ * @param {any} value - Input value
+ * @param {number} maxLength - Maximum allowed length
+ * @returns {string} Sanitized string
+ */
+function sanitizeString(value, maxLength = 200) {
+  if (!value) return '';
+  return String(value).trim().slice(0, maxLength);
+}
 
 async function getBookingsByUserId(userId, props) {
   logger.debug("Getting booking by userId:", userId);
@@ -160,7 +210,7 @@ async function createBooking(
     body
   );
   try {
-    // Confirm that activity exists
+    // ===== STEP 1: Validate Activity Exists =====
     const activity = await getActivityByActivityId(
       collectionId,
       activityType,
@@ -169,30 +219,154 @@ async function createBooking(
 
     if (!activity) {
       throw new Exception(
-        `Activity not found (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}`,
+        `Activity not found (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId})`,
         { code: 404 }
       );
     }
 
-    // Create unique bookingId
+    // ===== STEP 2: Validate Dates =====
+    const now = DateTime.now();
+    const start = DateTime.fromISO(startDate);
+    const end = DateTime.fromISO(body.endDate);
+
+    if (!start.isValid) {
+      throw new Exception("Invalid start date format", { code: 400 });
+    }
+
+    if (!end.isValid) {
+      throw new Exception("Invalid end date format", { code: 400 });
+    }
+
+    // No past dates allowed
+    if (start < now) {
+      throw new Exception("Cannot book dates in the past", { code: 400 });
+    }
+
+    if (end <= start) {
+      throw new Exception("End date must be after start date", { code: 400 });
+    }
+
+    // Validate booking window (default: max 2 days in future, may vary by activity type)
+    const maxDaysAhead = activity.maxBookingDaysAhead ?? DEFAULT_MAX_BOOKING_DAYS_AHEAD;
+    if (start > now.plus({ days: maxDaysAhead })) {
+      throw new Exception(`Cannot book more than ${maxDaysAhead} days in advance`, { code: 400 });
+    }
+
+    // ===== STEP 3: Validate and Sanitize Party Information =====
+    const partyInfo = {
+      adult: parseInt(body.partyInformation?.adult) || 0,
+      senior: parseInt(body.partyInformation?.senior) || 0,
+      youth: parseInt(body.partyInformation?.youth) || 0,
+      child: parseInt(body.partyInformation?.child) || 0,
+    };
+
+    // Ensure all occupant counts are non-negative
+    if (partyInfo.adult < 0 || partyInfo.senior < 0 || partyInfo.youth < 0 || partyInfo.child < 0) {
+      throw new Exception("Occupant counts must be non-negative", { code: 400 });
+    }
+
+    const totalOccupants = partyInfo.adult + partyInfo.senior + partyInfo.youth + partyInfo.child;
+
+    // Occupants are optional (totalOccupants can be 0)
+    
+    // Validate max occupants (default: 4, may vary by activity type)
+    const maxOccupants = activity.maxOccupants ?? DEFAULT_MAX_OCCUPANTS;
+    if (totalOccupants > maxOccupants) {
+      throw new Exception(`Maximum ${maxOccupants} occupants allowed`, { code: 400 });
+    }
+    
+    // Validate vehicle count (max 1)
+    const vehicleCount = parseInt(body.partyInformation?.vehicle) || 0;
+    if (vehicleCount < 0) {
+      throw new Exception("Vehicle count must be non-negative", { code: 400 });
+    }
+    
+    const maxVehicles = activity.maxVehicles ?? DEFAULT_MAX_VEHICLES;
+    if (vehicleCount > maxVehicles) {
+      throw new Exception(`Maximum ${maxVehicles} vehicle allowed`, { code: 400 });
+    }
+
+    // ===== STEP 4: Calculate Fees Server-Side =====
+    const feeInformation = calculateBookingFees(activity, partyInfo, start, end);
+
+    // Log if client sent different price than calculated
+    if (body.feeInformation && Math.abs((body.feeInformation.total || 0) - feeInformation.total) > 0.01) {
+      logger.info(`Client sent price ${body.feeInformation.total}, server calculated ${feeInformation.total}`);
+    }
+
+    // ===== STEP 5: Generate Secure IDs =====
     const globalId = crypto.randomUUID();
     const sessionId = crypto.randomUUID();
+    const sessionExpiry = DateTime.now().plus({ minutes: 30 }).toISO();
 
-    // Create booking request
+    // ===== STEP 6: Whitelist and Sanitize Input Fields =====
     let bookingRequest = {
-      ...body,
+      // Server-controlled fields
       pk: `booking::${collectionId}::${activityType}::${activityId}`,
       sk: `${startDate}::${globalId}`,
       schema: "booking",
       globalId: globalId,
       bookingId: globalId,
+      sessionId: sessionId,
+      sessionExpiry: sessionExpiry,
       activityType: activityType,
       activityId: activityId,
       collectionId: collectionId,
       startDate: startDate,
       bookingStatus: "in progress",
-      sessionId: sessionId,
+      userId: body.userId, // Already validated/overridden in POST handler
+      
+      // Server-calculated fields
+      feeInformation: feeInformation,
+      
+      // Validated client fields
+      endDate: body.endDate,
+      displayName: activity.displayName || sanitizeString(body.displayName, 200),
+      timezone: activity.timezone || 'America/Vancouver',
+      bookedAt: DateTime.now().toISO(),
+      
+      partyInformation: partyInfo,
+      
+      rateClass: body.rateClass || 'standard', // TODO: Validate against allowed values
+      
+      // Sanitized named occupant information
+      namedOccupant: body.namedOccupant ? {
+        firstName: sanitizeString(body.namedOccupant.firstName, 100),
+        lastName: sanitizeString(body.namedOccupant.lastName, 100),
+        contactInfo: {
+          email: sanitizeString(body.namedOccupant.contactInfo?.email, 200),
+          mobilePhone: sanitizeString(body.namedOccupant.contactInfo?.mobilePhone, 20),
+          homePhone: sanitizeString(body.namedOccupant.contactInfo?.homePhone, 20),
+          streetAddress: sanitizeString(body.namedOccupant.contactInfo?.streetAddress, 200),
+          unitNumber: sanitizeString(body.namedOccupant.contactInfo?.unitNumber, 20),
+          postalCode: sanitizeString(body.namedOccupant.contactInfo?.postalCode, 20),
+          city: sanitizeString(body.namedOccupant.contactInfo?.city, 100),
+          province: sanitizeString(body.namedOccupant.contactInfo?.province, 50),
+          country: sanitizeString(body.namedOccupant.contactInfo?.country, 50),
+        }
+      } : null,
+      
+      // Sanitized vehicle information (max 5 vehicles)
+      vehicleInformation: Array.isArray(body.vehicleInformation) 
+        ? body.vehicleInformation.slice(0, 5).map(v => ({
+            licensePlate: sanitizeString(v.licensePlate, 20),
+            licensePlateRegistrationRegion: sanitizeString(v.licensePlateRegistrationRegion, 50),
+            vehicleMake: sanitizeString(v.vehicleMake, 50),
+            vehicleModel: sanitizeString(v.vehicleModel, 50),
+            vehicleColour: sanitizeString(v.vehicleColour, 30),
+          }))
+        : [],
+      
+      // Sanitized equipment information
+      equipmentInformation: sanitizeString(body.equipmentInformation, 1000),
+      
+      // Entry/exit points (TODO: Validate these exist in database)
+      entryPoint: body.entryPoint,
+      exitPoint: body.exitPoint,
+      location: body.location,
     };
+
+    logger.info(`Booking created with server-calculated price: $${feeInformation.total}`);
 
     // TODO: change later to potentially support bulk bookings
     return [
@@ -205,6 +379,11 @@ async function createBooking(
       },
     ];
   } catch (error) {
+    // Re-throw Exception instances as-is
+    if (error instanceof Exception) {
+      throw error;
+    }
+    // Wrap other errors
     throw new Exception("Error creating booking", {
       code: 400,
       error: error,
@@ -1127,6 +1306,7 @@ async function refundPublishCommand(booking, reason) {
 
 module.exports = {
   buildActivityFilters,
+  calculateBookingFees,
   calculateDateRange,
   cancelBooking,
   cancellationPublishCommand,
@@ -1138,6 +1318,7 @@ module.exports = {
   getBookingByBookingId,
   getBookingsByUserId,
   refundPublishCommand,
+  sanitizeString,
   validateAdminRequirements,
   validateDateRange,
   validateCollectionAccess,
