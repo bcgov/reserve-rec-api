@@ -438,7 +438,9 @@ class rulesFns {
   expectMoneyFormat(value) {
     try {
       this.expectType(value, ['number']);
-      this.regexMatch(value, /^\d+(\.\d{2})?$/);
+      // Accept integers or numbers with 1-2 decimal places (JavaScript drops trailing zeros)
+      // Valid: 51, 51.5, 51.50 (stored as 51.5), 51.25
+      this.regexMatch(value, /^\d+(\.\d{1,2})?$/);
     } catch (error) {
       throw new Exception(`Invalid money format: '${value}'.`, { code: 400 });
     }

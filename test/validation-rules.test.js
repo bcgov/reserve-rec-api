@@ -272,7 +272,7 @@ describe('rulesFns', () => {
   });
 
   describe('expectMoneyFormat', () => {
-    it('should not throw for valid money', () => {
+    it('should not throw for valid money with 2 decimals', () => {
       let threw = false;
       try {
         rules.expectMoneyFormat(123.45);
@@ -281,10 +281,28 @@ describe('rulesFns', () => {
       }
       expect(threw).toBe(false);
     });
-    it('should throw for invalid money', () => {
+    it('should not throw for valid money with 1 decimal (trailing zero dropped)', () => {
       let threw = false;
       try {
-        rules.expectMoneyFormat(123.4);
+        rules.expectMoneyFormat(123.4); // 123.40 becomes 123.4 as JS number
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).toBe(false);
+    });
+    it('should not throw for valid money with no decimals', () => {
+      let threw = false;
+      try {
+        rules.expectMoneyFormat(123); // 123.00 becomes 123 as JS number
+      } catch (e) {
+        threw = true;
+      }
+      expect(threw).toBe(false);
+    });
+    it('should throw for invalid money with 3+ decimals', () => {
+      let threw = false;
+      try {
+        rules.expectMoneyFormat(123.456);
       } catch (e) {
         threw = true;
       }
