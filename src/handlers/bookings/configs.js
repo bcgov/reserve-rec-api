@@ -390,6 +390,12 @@ const BOOKING_PUT_CONFIG = {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
+    },
+    sessionExpiry: {
+      rulesFn: ({ value, action }) => {
+        rf.expectISODateTimeObjFormat(value);
+        rf.expectAction(action, ['set']);
+      }
     }
   }
 };
