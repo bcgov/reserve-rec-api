@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-reserve-rec-api
+  group: deploy-reserve-rec-api-test
   cancel-in-progress: false
 
 jobs:
