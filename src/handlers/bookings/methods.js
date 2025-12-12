@@ -225,9 +225,11 @@ async function createBooking(
     }
 
     // ===== STEP 2: Validate Dates =====
-    const now = DateTime.now();
-    const start = DateTime.fromISO(startDate);
-    const end = DateTime.fromISO(body.endDate);
+    // Use activity timezone for date validation (defaults to UTC if not provided)
+    const timezone = body.timezone || "UTC";
+    const now = DateTime.now().setZone(timezone);
+    const start = DateTime.fromISO(startDate, { zone: timezone });
+    const end = DateTime.fromISO(body.endDate, { zone: timezone });
 
     if (!start.isValid) {
       throw new Exception("Invalid start date format", { code: 400 });
@@ -237,8 +239,8 @@ async function createBooking(
       throw new Exception("Invalid end date format", { code: 400 });
     }
 
-    // No past dates allowed
-    if (start < now) {
+    // No past dates allowed (compare start of day to avoid timezone midnight issues)
+    if (start.startOf('day') < now.startOf('day')) {
       throw new Exception("Cannot book dates in the past", { code: 400 });
     }
 
