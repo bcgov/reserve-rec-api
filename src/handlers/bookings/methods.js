@@ -83,33 +83,39 @@ function toISODate(date) {
  * Calculate booking fees from activity pricing
  * @param {object} activity - Activity record from database
  * @param {object} partyInformation - { adult, senior, youth, child } (metadata only, not used for pricing)
- * @param {DateTime} startDate - Luxon DateTime (metadata only, not used for pricing)
- * @param {DateTime} endDate - Luxon DateTime (metadata only, not used for pricing)
+ * @param {DateTime} startDate - DateTime (metadata only, not used for pricing)
+ * @param {DateTime} endDate - DateTime (metadata only, not used for pricing)
  * @returns {object} { registrationFees, transactionFees, tax, total }
  */
 function calculateBookingFees(activity, partyInformation, startDate, endDate) {
   logger.debug("Calculating booking fees:", { activity: activity?.activityId });
-  
+
   // Simple single-item pricing: look up activity price (no date/occupant calculations)
   const price = activity?.price ?? DEFAULT_PRICE;
-  const txFeePercent = activity?.transactionFeePercent ?? DEFAULT_TRANSACTION_FEE_PERCENT;
+  const txFeePercent =
+    activity?.transactionFeePercent ?? DEFAULT_TRANSACTION_FEE_PERCENT;
   const taxPercent = activity?.taxPercent ?? DEFAULT_TAX_PERCENT;
-  
+
   const registrationFees = price;
   const transactionFees = registrationFees * (txFeePercent / 100);
   const tax = (registrationFees + transactionFees) * (taxPercent / 100);
   const total = registrationFees + transactionFees + tax;
-  
+
   // Round to 2 decimals using Math.round to avoid floating point issues
   const roundToTwoDecimals = (num) => Math.round(num * 100) / 100;
-  
-  logger.debug("Calculated fees:", { registrationFees, transactionFees, tax, total });
-  
+
+  logger.debug("Calculated fees:", {
+    registrationFees,
+    transactionFees,
+    tax,
+    total,
+  });
+
   return {
     registrationFees: roundToTwoDecimals(registrationFees),
     transactionFees: roundToTwoDecimals(transactionFees),
     tax: roundToTwoDecimals(tax),
-    total: roundToTwoDecimals(total)
+    total: roundToTwoDecimals(total),
   };
 }
 
@@ -120,7 +126,7 @@ function calculateBookingFees(activity, partyInformation, startDate, endDate) {
  * @returns {string} Sanitized string
  */
 function sanitizeString(value, maxLength = 200) {
-  if (!value) return '';
+  if (!value) return "";
   return String(value).trim().slice(0, maxLength);
 }
 
@@ -143,14 +149,22 @@ async function getBookingsByUserId(userId, props) {
 
     if (props?.bookingId) {
       filterExpression = "bookingId = :bookingId";
-      params.ExpressionAttributeValues[":bookingId"] = marshall(props.bookingId);
+      params.ExpressionAttributeValues[":bookingId"] = marshall(
+        props.bookingId
+      );
     }
     if (props?.startDate) {
-      filterExpression = (filterExpression ? filterExpression + " AND " : "") + "startDate >= :startDate";
-      params.ExpressionAttributeValues[":startDate"] = marshall(props.startDate);
+      filterExpression =
+        (filterExpression ? filterExpression + " AND " : "") +
+        "startDate >= :startDate";
+      params.ExpressionAttributeValues[":startDate"] = marshall(
+        props.startDate
+      );
     }
     if (props?.endDate) {
-      filterExpression = (filterExpression ? filterExpression + " AND " : "") + "endDate <= :endDate";
+      filterExpression =
+        (filterExpression ? filterExpression + " AND " : "") +
+        "endDate <= :endDate";
       params.ExpressionAttributeValues[":endDate"] = marshall(props.endDate);
     }
 
@@ -161,13 +175,16 @@ async function getBookingsByUserId(userId, props) {
 
     const result = await runQuery(params);
     return result;
-
   } catch (error) {
     throw new Exception(`Error getting booking by userId: ${error}`);
   }
 }
 
-async function getBookingByBookingId(bookingId, userId = null, fetchAccessPoints = false) {
+async function getBookingByBookingId(
+  bookingId,
+  userId = null,
+  fetchAccessPoints = false
+) {
   logger.debug("Getting booking by bookingId:", bookingId);
   try {
     let data = await getOneByGlobalId(bookingId, TRANSACTIONAL_DATA_TABLE_NAME);
@@ -306,10 +323,14 @@ async function createBooking(
     }
 
     // Validate booking window (default: max 2 days in future, may vary by activity type)
-    const maxDaysAhead = activity.maxBookingDaysAhead ?? DEFAULT_MAX_BOOKING_DAYS_AHEAD;
+    const maxDaysAhead =
+      activity.maxBookingDaysAhead ?? DEFAULT_MAX_BOOKING_DAYS_AHEAD;
     const maxDate = addDays(today, maxDaysAhead);
     if (start > maxDate) {
-      throw new Exception(`Cannot book more than ${maxDaysAhead} days in advance`, { code: 400 });
+      throw new Exception(
+        `Cannot book more than ${maxDaysAhead} days in advance`,
+        { code: 400 }
+      );
     }
 
     // ===== STEP 3: Validate and Sanitize Party Information =====
@@ -321,37 +342,59 @@ async function createBooking(
     };
 
     // Ensure all occupant counts are non-negative
-    if (partyInfo.adult < 0 || partyInfo.senior < 0 || partyInfo.youth < 0 || partyInfo.child < 0) {
-      throw new Exception("Occupant counts must be non-negative", { code: 400 });
+    if (
+      partyInfo.adult < 0 ||
+      partyInfo.senior < 0 ||
+      partyInfo.youth < 0 ||
+      partyInfo.child < 0
+    ) {
+      throw new Exception("Occupant counts must be non-negative", {
+        code: 400,
+      });
     }
 
-    const totalOccupants = partyInfo.adult + partyInfo.senior + partyInfo.youth + partyInfo.child;
+    const totalOccupants =
+      partyInfo.adult + partyInfo.senior + partyInfo.youth + partyInfo.child;
 
     // Occupants are optional (totalOccupants can be 0)
-    
+
     // Validate max occupants (default: 4, may vary by activity type)
     const maxOccupants = activity.maxOccupants ?? DEFAULT_MAX_OCCUPANTS;
     if (totalOccupants > maxOccupants) {
-      throw new Exception(`Maximum ${maxOccupants} occupants allowed`, { code: 400 });
+      throw new Exception(`Maximum ${maxOccupants} occupants allowed`, {
+        code: 400,
+      });
     }
-    
+
     // Validate vehicle count (max 1)
     const vehicleCount = parseInt(body.partyInformation?.vehicle) || 0;
     if (vehicleCount < 0) {
       throw new Exception("Vehicle count must be non-negative", { code: 400 });
     }
-    
+
     const maxVehicles = activity.maxVehicles ?? DEFAULT_MAX_VEHICLES;
     if (vehicleCount > maxVehicles) {
-      throw new Exception(`Maximum ${maxVehicles} vehicle allowed`, { code: 400 });
+      throw new Exception(`Maximum ${maxVehicles} vehicle allowed`, {
+        code: 400,
+      });
     }
 
     // ===== STEP 4: Calculate Fees Server-Side =====
-    const feeInformation = calculateBookingFees(activity, partyInfo, start, end);
+    const feeInformation = calculateBookingFees(
+      activity,
+      partyInfo,
+      start,
+      end
+    );
 
     // Log if client sent different price than calculated
-    if (body.feeInformation && Math.abs((body.feeInformation.total || 0) - feeInformation.total) > 0.01) {
-      logger.info(`Client sent price ${body.feeInformation.total}, server calculated ${feeInformation.total}`);
+    if (
+      body.feeInformation &&
+      Math.abs((body.feeInformation.total || 0) - feeInformation.total) > 0.01
+    ) {
+      logger.info(
+        `Client sent price ${body.feeInformation.total}, server calculated ${feeInformation.total}`
+      );
     }
 
     // ===== STEP 5: Generate Secure IDs =====
@@ -375,58 +418,87 @@ async function createBooking(
       startDate: startDate,
       bookingStatus: "in progress",
       userId: body.userId, // Already validated/overridden in POST handler
-      
+
       // Server-calculated fields
       feeInformation: feeInformation,
-      
+
       // Validated client fields
       endDate: body.endDate,
-      displayName: activity.displayName || sanitizeString(body.displayName, 200),
-      timezone: activity.timezone || 'America/Vancouver',
+      displayName:
+        activity.displayName || sanitizeString(body.displayName, 200),
+      timezone: activity.timezone || "America/Vancouver",
       bookedAt: new Date().toISOString(),
-      
+
       partyInformation: partyInfo,
-      
-      rateClass: body.rateClass || 'standard', // TODO: Validate against allowed values
-      
+
+      rateClass: body.rateClass || "standard", // TODO: Validate against allowed values
+
       // Sanitized named occupant information
-      namedOccupant: body.namedOccupant ? {
-        firstName: sanitizeString(body.namedOccupant.firstName, 100),
-        lastName: sanitizeString(body.namedOccupant.lastName, 100),
-        contactInfo: {
-          email: sanitizeString(body.namedOccupant.contactInfo?.email, 200),
-          mobilePhone: sanitizeString(body.namedOccupant.contactInfo?.mobilePhone, 20),
-          homePhone: sanitizeString(body.namedOccupant.contactInfo?.homePhone, 20),
-          streetAddress: sanitizeString(body.namedOccupant.contactInfo?.streetAddress, 200),
-          unitNumber: sanitizeString(body.namedOccupant.contactInfo?.unitNumber, 20),
-          postalCode: sanitizeString(body.namedOccupant.contactInfo?.postalCode, 20),
-          city: sanitizeString(body.namedOccupant.contactInfo?.city, 100),
-          province: sanitizeString(body.namedOccupant.contactInfo?.province, 50),
-          country: sanitizeString(body.namedOccupant.contactInfo?.country, 50),
-        }
-      } : null,
-      
+      namedOccupant: body.namedOccupant
+        ? {
+            firstName: sanitizeString(body.namedOccupant.firstName, 100),
+            lastName: sanitizeString(body.namedOccupant.lastName, 100),
+            contactInfo: {
+              email: sanitizeString(body.namedOccupant.contactInfo?.email, 200),
+              mobilePhone: sanitizeString(
+                body.namedOccupant.contactInfo?.mobilePhone,
+                20
+              ),
+              homePhone: sanitizeString(
+                body.namedOccupant.contactInfo?.homePhone,
+                20
+              ),
+              streetAddress: sanitizeString(
+                body.namedOccupant.contactInfo?.streetAddress,
+                200
+              ),
+              unitNumber: sanitizeString(
+                body.namedOccupant.contactInfo?.unitNumber,
+                20
+              ),
+              postalCode: sanitizeString(
+                body.namedOccupant.contactInfo?.postalCode,
+                20
+              ),
+              city: sanitizeString(body.namedOccupant.contactInfo?.city, 100),
+              province: sanitizeString(
+                body.namedOccupant.contactInfo?.province,
+                50
+              ),
+              country: sanitizeString(
+                body.namedOccupant.contactInfo?.country,
+                50
+              ),
+            },
+          }
+        : null,
+
       // Sanitized vehicle information (max 5 vehicles)
-      vehicleInformation: Array.isArray(body.vehicleInformation) 
-        ? body.vehicleInformation.slice(0, 5).map(v => ({
+      vehicleInformation: Array.isArray(body.vehicleInformation)
+        ? body.vehicleInformation.slice(0, 5).map((v) => ({
             licensePlate: sanitizeString(v.licensePlate, 20),
-            licensePlateRegistrationRegion: sanitizeString(v.licensePlateRegistrationRegion, 50),
+            licensePlateRegistrationRegion: sanitizeString(
+              v.licensePlateRegistrationRegion,
+              50
+            ),
             vehicleMake: sanitizeString(v.vehicleMake, 50),
             vehicleModel: sanitizeString(v.vehicleModel, 50),
             vehicleColour: sanitizeString(v.vehicleColour, 30),
           }))
         : [],
-      
+
       // Sanitized equipment information
       equipmentInformation: sanitizeString(body.equipmentInformation, 1000),
-      
+
       // Entry/exit points (TODO: Validate these exist in database)
       entryPoint: body.entryPoint,
       exitPoint: body.exitPoint,
       location: body.location,
     };
 
-    logger.info(`Booking created with server-calculated price: $${feeInformation.total}`);
+    logger.info(
+      `Booking created with server-calculated price: $${feeInformation.total}`
+    );
 
     // TODO: change later to potentially support bulk bookings
     return [
@@ -473,10 +545,10 @@ async function completeBooking(bookingId, sessionId, clientTransactionId) {
     // Set the booking as complete and return the putItem
     return {
       key: { pk: booking.pk, sk: booking.sk },
-      data: { 
+      data: {
         bookingStatus: "confirmed",
         clientTransactionId: clientTransactionId,
-       },
+      },
     };
   } catch (error) {
     throw new Exception("Error updating booking", {
@@ -545,13 +617,14 @@ function calculateDateRange(userObject, startDate, endDate) {
   if (userObject.isAdmin) {
     // Admin logic consideration: limit to 30 days ago by default, max 90 days range
     // Prevent admin from slamming a huge data pull
-    const defaultStart = toISODate(addDays(new Date(), -30));
+    const defaultStart = addDays(new Date(), -30).toISOString();
     effectiveStartDate = startDate || defaultStart;
-    effectiveEndDate = toISODate(addDays(new Date(effectiveStartDate), 90));
+    effectiveEndDate =
+      endDate || addDays(new Date(effectiveStartDate), 90).toISOString();
   } else {
     // Non-admin logic: startDate is 90 days ago up 1 year in future unless otherwise specified
-    effectiveStartDate = startDate || toISODate(addDays(new Date(), -90));
-    effectiveEndDate = endDate || toISODate(addYears(new Date(effectiveStartDate), 1));
+    effectiveStartDate = startDate || addDays(new Date(), -90).toISOString();
+    effectiveEndDate = endDate || addYears(new Date(), 1);
   }
 
   return { effectiveStartDate, effectiveEndDate };
@@ -565,7 +638,7 @@ function validateDateRange(startDate, endDate, isAdmin) {
   const endDateObj = new Date(endDate);
   const now = new Date();
   const thirtyOneDaysAgo = addDays(now, -31);
-  
+
   if (isAdmin && startDateObj < thirtyOneDaysAgo) {
     throw new Exception(
       "Admin startDate cannot be more than 30 days in the past",
@@ -574,7 +647,7 @@ function validateDateRange(startDate, endDate, isAdmin) {
       }
     );
   }
-  
+
   const ninetyOneDaysAfterStart = addDays(startDateObj, 91);
   if (isAdmin && endDateObj > ninetyOneDaysAfterStart) {
     throw new Exception("Admin endDate range cannot exceed 90 days", {
@@ -1269,14 +1342,14 @@ async function fetchBookingsSortedByDate(
 }
 
 /**
-  * Publishes booking cancellation command to SNS
-  * @param {object} booking - The ID of the booking to cancel
-  * @param {string} booking.bookingId - The ID of the booking to cancel
-  * @param {string} booking.userId - The userId identifier requesting the cancellation
-  * @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
-  * @param {object} booking.feeInformation - The fee information associated with the booking
-  * @param {string} reason - The reason for cancellation
-  */
+ * Publishes booking cancellation command to SNS
+ * @param {object} booking - The ID of the booking to cancel
+ * @param {string} booking.bookingId - The ID of the booking to cancel
+ * @param {string} booking.userId - The userId identifier requesting the cancellation
+ * @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
+ * @param {object} booking.feeInformation - The fee information associated with the booking
+ * @param {string} reason - The reason for cancellation
+ */
 async function cancellationPublishCommand(booking, reason) {
   // Prepare cancellation message
   const cancellationMessage = {
@@ -1284,17 +1357,17 @@ async function cancellationPublishCommand(booking, reason) {
     userId: booking.userId,
     clientTransactionId: booking.clientTransactionId,
     refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
-    reason: reason || 'Cancelled by user via self-serve',
+    reason: reason || "Cancelled by user via self-serve",
     timestamp: new Date().toISOString(),
   };
 
   const messageAttributes = {
     eventType: {
-      DataType: 'String',
-      StringValue: 'BOOKING_CANCELLATION',
+      DataType: "String",
+      StringValue: "BOOKING_CANCELLATION",
     },
     bookingId: {
-      DataType: 'String',
+      DataType: "String",
       StringValue: booking.bookingId,
     },
   };
@@ -1313,35 +1386,37 @@ async function cancellationPublishCommand(booking, reason) {
 }
 
 /**
-  * Publishes transaction command to SNS
-  * @param {object} booking - The ID of the booking to cancel
-  *   @param {string} booking.bookingId - The ID of the booking to cancel
-  *   @param {string} booking.userId - The userId identifier requesting the cancellation
-  *   @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
-  *   @param {object} booking.feeInformation - The fee information associated with the booking
-  * @param {string} reason - The reason for cancellation
-  */
+ * Publishes transaction command to SNS
+ * @param {object} booking - The ID of the booking to cancel
+ *   @param {string} booking.bookingId - The ID of the booking to cancel
+ *   @param {string} booking.userId - The userId identifier requesting the cancellation
+ *   @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
+ *   @param {object} booking.feeInformation - The fee information associated with the booking
+ * @param {string} reason - The reason for cancellation
+ */
 async function refundPublishCommand(booking, reason) {
-
   // TODO: trnAmount calculation based on booking details
   // const trnAmount = calculateRefundAmount(booking);
-  
+
   // Publish to refund topic if there's a transaction
   const refundMessage = {
     clientTransactionId: booking.clientTransactionId,
     bookingId: booking.bookingId,
     userId: booking.userId,
     refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
-    reason: booking.cancellationReason || reason || 'Cancelled by user via self-serve',
+    reason:
+      booking.cancellationReason ||
+      reason ||
+      "Cancelled by user via self-serve",
   };
 
   const messageAttributes = {
     eventType: {
-      DataType: 'String',
-      StringValue: 'TRANSACTION_CANCELLATION',
+      DataType: "String",
+      StringValue: "TRANSACTION_CANCELLATION",
     },
     clientTransactionId: {
-      DataType: 'String',
+      DataType: "String",
       StringValue: booking.clientTransactionId,
     },
   };
@@ -1354,13 +1429,15 @@ async function refundPublishCommand(booking, reason) {
   );
 
   const result = await snsPublishSend(publishCommand);
-  logger.info(`Refund request published for transaction ${booking.clientTransactionId}`);
+  logger.info(
+    `Refund request published for transaction ${booking.clientTransactionId}`
+  );
 
   return result;
 }
 
-
 module.exports = {
+  allBookingsSortAndPaginate,
   buildActivityFilters,
   calculateBookingFees,
   calculateDateRange,
