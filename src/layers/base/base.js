@@ -187,14 +187,6 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
-// function getRequestClaimsFromEvent(event) {
-//   try {
-//     return event.requestContext.authorizer.claims;
-//   } catch (error) {
-//     throw new Error(`Unable to retrieve request claims from event: ${error.message}`);
-//   }
-// }
-
 function getRequestClaimsFromEvent(event) {
   try {
     // First check if this is an authenticated request via authorizer context

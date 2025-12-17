@@ -1,5 +1,5 @@
 // Import necessary libraries and modules
-const { OSQuery, OPENSEARCH_BOOKING_INDEX, nonKeyableTerms } = require('/opt/opensearch');
+const { OSQuery, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, nonKeyableTerms } = require('/opt/opensearch');
 const { sendResponse, logger, Exception } = require('/opt/base');
 // Lambda function entry point
 exports.handler = async function (event, context) {
@@ -15,7 +15,7 @@ exports.handler = async function (event, context) {
     const userQuery = body?.text;
 
     // Construct the search query
-    let query = new OSQuery(OPENSEARCH_BOOKING_INDEX, body);
+    let query = new OSQuery(OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, body);
 
     // Text search
     if (userQuery) {
