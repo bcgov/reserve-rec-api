@@ -28,6 +28,78 @@ const defaults = {
   },
 };
 
+class AdminBookingsConstruct extends LambdaConstruct {
+  constructor(scope, id, props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+     // /bookings resource
+    this.bookingsResource = this.resolveApi().root.addResource('bookings');
+
+    // /bookings/admin resource
+    this.bookingsAdminResource = this.bookingsResource.addResource('admin');
+
+    // /bookings/search resource
+    this.bookingsSearchResource = this.bookingsResource.addResource('search');
+
+    // GET /bookings/admin Lambda function
+    this.bookingsAdminGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsAdminGETFunction',
+      'src/handlers/bookings/GET',
+      'admin.handler',
+      {
+        transDataBasicRead: true,
+      }
+    );
+
+    // GET /bookings/admin (admin search with query param filters)
+    this.bookingsAdminResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsAdminGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // POST /bookings/search Lambda function
+    this.bookingsSearchFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsSearchPOSTFunction',
+      'src/handlers/bookings/search/POST',
+      'index.handler',
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
+    // POST /bookings/search
+    this.bookingsSearchResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsSearchFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Add permissions to read functions
+    const readFunctions = [
+      this.bookingsAdminGetFunction,
+    ];
+
+    for (const func of readFunctions) {
+      this.grantBasicTransDataTableRead(func);
+    }
+
+    // Grant OpenSearch permissions to search function
+    if (props?.openSearchDomainArn) {
+      this.bookingsSearchFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'es:ESHttpGet',
+          'es:ESHttpPost',
+        ],
+        resources: [`${props.openSearchDomainArn}/*`],
+      }));
+    }
+  }
+}
+
 class PublicBookingsConstruct extends LambdaConstruct {
   constructor(scope, id, props) {
     super(scope, id, {
@@ -51,29 +123,12 @@ class PublicBookingsConstruct extends LambdaConstruct {
     // Add {startDate}/bookings resource under activities resource
     this.bookingsByActivityResource = this.activitiesResource.addResource('{startDate}').addResource('bookings');
 
-    // /bookings/admin resource
-    this.bookingsAdminResource = this.bookingsResource.addResource('admin');
-
-    // /bookings/search resource
-    this.bookingsSearchResource = this.bookingsResource.addResource('search');
-
     // GET /bookings Lambda function
     this.bookingsGetFunction = this.generateBasicLambdaFn(
       scope,
       'bookingsGETFunction',
       'src/handlers/bookings/GET',
       'public.handler',
-      {
-        transDataBasicRead: true,
-      }
-    );
-
-    // GET /bookings/admin Lambda function
-    this.bookingsAdminGetFunction = this.generateBasicLambdaFn(
-      scope,
-      'bookingsAdminGETFunction',
-      'src/handlers/bookings/GET',
-      'admin.handler',
       {
         transDataBasicRead: true,
       }
@@ -97,29 +152,12 @@ class PublicBookingsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // GET /bookings/admin (admin search with query param filters)
-    this.bookingsAdminResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsAdminGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
-
     // POST /bookings Lambda function
     this.bookingsPostFunction = this.generateBasicLambdaFn(
       scope,
       'bookingsPOSTFunction',
       'src/handlers/bookings/POST',
       'public.handler',
-      {
-        transDataBasicReadWrite: true,
-      }
-    );
-
-    // POST /bookings/search Lambda function
-    this.bookingsSearchFunction = this.generateBasicLambdaFn(
-      scope,
-      'bookingsSearchPOSTFunction',
-      'src/handlers/bookings/search/POST',
-      'index.handler',
       {
         transDataBasicReadWrite: true,
       }
@@ -154,16 +192,9 @@ class PublicBookingsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // POST /bookings/search
-    this.bookingsSearchResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsSearchFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
-
     // Add permissions to read functions
     const readFunctions = [
       this.bookingsGetFunction,
-      this.bookingsAdminGetFunction,
     ];
 
     for (const func of readFunctions) {
@@ -178,17 +209,6 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     for (const func of writeFunctions) {
       this.grantBasicTransDataTableReadWrite(func);
-    }
-
-    // Grant OpenSearch permissions to search function
-    if (props?.openSearchDomainArn) {
-      this.bookingsSearchFunction.addToRolePolicy(new iam.PolicyStatement({
-        actions: [
-          'es:ESHttpGet',
-          'es:ESHttpPost',
-        ],
-        resources: [`${props.openSearchDomainArn}/*`],
-      }));
     }
 
     // Grant SNS publish permissions to the cancel function
@@ -214,5 +234,6 @@ class PublicBookingsConstruct extends LambdaConstruct {
 }
 
 module.exports = {
+  AdminBookingsConstruct,
   PublicBookingsConstruct,
 };

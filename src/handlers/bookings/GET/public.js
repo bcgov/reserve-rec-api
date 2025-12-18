@@ -36,13 +36,18 @@ exports.handler = async (event, context) => {
         // Email matches, allow access
         return sendResponse(200, booking, "Success", null, context);
       } else if (userId) {
-        if (booking.userId !== userId) {
+        if (booking?.userId !== userId) {
           throw new Exception(
             `Forbidden: User ${userId} does not have access to booking ${bookingId}`,
             { code: 403 }
           );
         }
         return sendResponse(200, booking, "Success", null, context);
+      } else {
+        throw new Exception(
+          "Unauthorized: Must provide either email or be authenticated",
+          { code: 401 }
+        );
       }
     }
 
