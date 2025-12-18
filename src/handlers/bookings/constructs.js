@@ -210,6 +210,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     for (const func of writeFunctions) {
       this.grantBasicTransDataTableReadWrite(func);
+      this.grantBasicRefDataTableReadWrite(func);
     }
 
     // Grant SNS publish permissions to the cancel function
