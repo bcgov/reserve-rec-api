@@ -85,6 +85,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
 
     for (const func of readFunctions) {
       this.grantBasicTransDataTableRead(func);
+      this.grantBasicRefDataTableRead(func);
     }
 
     // Grant OpenSearch permissions to search function
