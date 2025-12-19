@@ -1215,10 +1215,12 @@ async function fetchBookingsSortedByDate(
 ) {
   const allBookings = [];
   let targetDate = null;
+  let targetBookedAt = null;
 
   // Parse pagination state
   if (lastEvaluatedKey && lastEvaluatedKey.sortBy === sortBy) {
     targetDate = lastEvaluatedKey.lastItemDate;
+    targetBookedAt = lastEvaluatedKey.lastItemBookedAt;
   }
 
   // Fetch from all collections
@@ -1259,18 +1261,28 @@ async function fetchBookingsSortedByDate(
 
       // Filter bookings based on cursor position
       for (const booking of bookings.items) {
-        if (targetDate) {
+        if (targetDate && targetBookedAt) {
           const bookingDate = new Date(booking[sortBy]);
           const cursorDate = new Date(targetDate);
+          const bookingTimestamp = new Date(booking.bookedAt).getTime();
+          const cursorTimestamp = new Date(targetBookedAt).getTime();
 
           if (sortOrder === "asc") {
-            // Skip items until we're past the cursor (ascending: skip items on or before cursor date)
+            // Skip items until we're past the cursor
+            // For items with same date, use bookedAt timestamp as tiebreaker
             if (bookingDate < cursorDate) {
               continue;
             }
+            if (bookingDate.getTime() === cursorDate.getTime() && bookingTimestamp <= cursorTimestamp) {
+              continue;
+            }
           } else {
-            // Skip items until we're past the cursor (descending: skip items on or after cursor date)
+            // Skip items until we're past the cursor (descending)
+            // For items with same date, use bookedAt timestamp as tiebreaker
             if (bookingDate > cursorDate) {
+              continue;
+            }
+            if (bookingDate.getTime() === cursorDate.getTime() && bookingTimestamp >= cursorTimestamp) {
               continue;
             }
           }
@@ -1288,8 +1300,11 @@ async function fetchBookingsSortedByDate(
 
     const comparison = sortOrder === "desc" ? dateB - dateA : dateA - dateB;
 
+    // Use bookedAt timestamp as tiebreaker for items with same date
     if (comparison === 0) {
-      return a.globalId.localeCompare(b.globalId);
+      const bookedAtA = new Date(a.bookedAt).getTime();
+      const bookedAtB = new Date(b.bookedAt).getTime();
+      return sortOrder === "desc" ? bookedAtB - bookedAtA : bookedAtA - bookedAtB;
     }
     return comparison;
   });
@@ -1304,7 +1319,7 @@ async function fetchBookingsSortedByDate(
       ? {
           sortBy: sortBy,
           lastItemDate: items[items.length - 1][sortBy],
-          lastItemId: items[items.length - 1].globalId,
+          lastItemBookedAt: items[items.length - 1].bookedAt,
           collectionIndex: 0,
           activityIndex: 0,
         }
