@@ -11,7 +11,7 @@
     "test": "jest --coverage",
     "test:nocov": "jest",
     "synth:local": "cdk synth -c @context=local --all",
-    "build:admin": "node ./src/scripts/tools/local-testing/sam-quick-start.js",
+    "build:admin": "node ./src/scripts/tools/local-testing/generate-sam-templates.js",
     "build:layers": "node ./src/scripts/tools/local-testing/build-lambda-layers.js",
     "build:public": "node ./src/scripts/tools/local-testing/generate-sam-templates.js",
     "synth:dev": "cdk synth -c @context=dev -q --all",

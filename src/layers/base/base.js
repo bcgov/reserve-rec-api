@@ -187,16 +187,36 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
-// function getRequestClaimsFromEvent(event) {
-//   try {
-//     return event.requestContext.authorizer.claims;
-//   } catch (error) {
-//     throw new Error(`Unable to retrieve request claims from event: ${error.message}`);
-//   }
-// }
-
 function getRequestClaimsFromEvent(event) {
   try {
+    // Check Authorization header for guest or JWT token
+    const authHeader = event.headers?.Authorization || event.headers?.authorization;
+    if (authHeader) {
+      // Check for Guest authorization format: "Guest guest-{uuid}"
+      if (authHeader.startsWith('Guest ')) {
+        const guestSub = authHeader.substring(6).trim(); // Remove "Guest " prefix
+        if (guestSub && guestSub.startsWith('guest-')) {
+          logger.info('Reusing guest sub from Authorization header:', guestSub);
+          return { sub: guestSub };
+        }
+      }
+      
+      // Try to decode as JWT (Bearer token for authenticated users)
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        // JWT format: header.payload.signature
+        const payloadBase64 = token.split('.')[1];
+        if (payloadBase64) {
+          const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          logger.info('Decoded JWT claims from Authorization header:', payload.sub);
+          return payload;
+        }
+      } catch (jwtError) {
+        logger.error('Failed to decode JWT from Authorization header:', jwtError);
+      }
+    }
+
     // First check if this is an authenticated request via authorizer context
     const authContext = event.requestContext?.authorizer;
     
@@ -209,7 +229,7 @@ function getRequestClaimsFromEvent(event) {
         logger.info('guest user detected from authorizer context');
         
         // Check Authorization header for existing guest UUID
-        const authHeader = event.headers?.Authorization || event.headers?.authorization;
+        authHeader = event.headers?.Authorization || event.headers?.authorization;
         if (authHeader && authHeader.startsWith('Guest ')) {
           const guestSub = authHeader.substring(6).trim();
           if (guestSub && guestSub.startsWith('guest-')) {
@@ -245,34 +265,6 @@ function getRequestClaimsFromEvent(event) {
           'cognito:username': authContext.username || '',
           userType: authContext.userType || 'authenticated'
         };
-      }
-    }
-
-    // Check Authorization header for guest or JWT token
-    const authHeader = event.headers?.Authorization || event.headers?.authorization;
-    if (authHeader) {
-      // Check for Guest authorization format: "Guest guest-{uuid}"
-      if (authHeader.startsWith('Guest ')) {
-        const guestSub = authHeader.substring(6).trim(); // Remove "Guest " prefix
-        if (guestSub && guestSub.startsWith('guest-')) {
-          logger.info('Reusing guest sub from Authorization header:', guestSub);
-          return { sub: guestSub };
-        }
-      }
-      
-      // Try to decode as JWT (Bearer token for authenticated users)
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        // JWT format: header.payload.signature
-        const payloadBase64 = token.split('.')[1];
-        if (payloadBase64) {
-          const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
-          const payload = JSON.parse(payloadJson);
-          logger.info('Decoded JWT claims from Authorization header:', payload.sub);
-          return payload;
-        }
-      } catch (jwtError) {
-        logger.error('Failed to decode JWT from Authorization header:', jwtError);
       }
     }
 

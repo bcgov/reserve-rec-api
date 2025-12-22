@@ -367,15 +367,17 @@ async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated 
       query.Limit = limit;
     }
     pageData = await getDynamoDBClient().send(new QueryCommand(query));
-    data = data.concat(
-      pageData.Items.map(item => {
-        return unmarshall(item);
-      })
-    );
+    if (pageData?.Items) {
+      data = data.concat(
+        pageData.Items.map(item => {
+          return unmarshall(item);
+        })
+      );
+    }
     if (page < 2) {
       logger.debug(`Page ${page} data: ${data}`);
     } else {
-      logger.info(`Page ${page} contains ${pageData.Items.length} additional query results...`);
+      logger.info(`Page ${page} contains ${pageData?.Items?.length || 0} additional query results...`);
     }
   } while (pageData?.LastEvaluatedKey && !paginated);
 
@@ -412,15 +414,17 @@ async function runScan(query, limit = null, lastEvaluatedKey = null, paginated =
       query.Limit = limit;
     }
     pageData = await getDynamoDBClient().scan(query);
-    data = data.concat(
-      pageData.Items.map(item => {
-        return unmarshall(item);
-      })
-    );
+    if (pageData?.Items) {
+      data = data.concat(
+        pageData.Items.map(item => {
+          return unmarshall(item);
+        })
+      );
+    }
     if (page < 2) {
       logger.debug(`Page ${page} data:`, data);
     } else {
-      logger.info(`Page ${page} contains ${pageData.Items.length} additional scan results...`);
+      logger.info(`Page ${page} contains ${pageData?.Items?.length || 0} additional scan results...`);
     }
   } while (pageData?.LastEvaluatedKey && !paginated);
 
