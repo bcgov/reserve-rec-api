@@ -107,26 +107,30 @@ class JWTManager {
       
       let decrypted;
       
-      if (headerObj.enc === 'A256GCM') {
-        const decipher = crypto.createDecipherGCM('aes-256-gcm', cek);
-        decipher.setIV(base64urlDecode(iv));
-        decipher.setAuthTag(base64urlDecode(tag));
-        
-        decrypted = decipher.update(base64urlDecode(ciphertext), null, 'utf8');
-        decrypted += decipher.final('utf8');
-        
-      } else if (headerObj.enc === 'A256CBC-HS512') {
-        if (cek.length !== 64) {
-          throw new Error(`Invalid CEK length for A256CBC-HS512: ${cek.length}, expected 64`);
+        if (headerObj.enc === 'A256GCM') {
+          const decipher = crypto.createDecipheriv('aes-256-gcm', cek, base64urlDecode(iv));
+          decipher.setAuthTag(base64urlDecode(tag));
+          decrypted = decipher.update(base64urlDecode(ciphertext), null, 'utf8');
+          decrypted += decipher.final('utf8');
+        } else if (headerObj.enc === 'A256CBC-HS512') {
+          if (cek.length !== 64) {
+            throw new Error(`Invalid CEK length for A256CBC-HS512: ${cek.length}, expected 64`);
+          }
+          const aesKey = cek.slice(32, 64);
+          const decipher = crypto.createDecipheriv('aes-256-cbc', aesKey, base64urlDecode(iv));
+          decrypted = decipher.update(base64urlDecode(ciphertext), null, 'utf8');
+          decrypted += decipher.final('utf8');
+        } else if (headerObj.enc === 'A128CBC-HS256') {
+          if (cek.length !== 32) {
+            throw new Error(`Invalid CEK length for A128CBC-HS256: ${cek.length}, expected 32`);
+          }
+          const aesKey = cek.slice(16, 32);
+          const decipher = crypto.createDecipheriv('aes-128-cbc', aesKey, base64urlDecode(iv));
+          decrypted = decipher.update(base64urlDecode(ciphertext), null, 'utf8');
+          decrypted += decipher.final('utf8');
+        } else {
+          throw new Error(`Unsupported JWE encryption algorithm: ${headerObj.enc}. Supported: A256GCM, A256CBC-HS512, A128CBC-HS256`);
         }
-        const aesKey = cek.slice(32, 64);
-        const decipher = crypto.createDecipheriv('aes-256-cbc', aesKey, base64urlDecode(iv));
-        decrypted = decipher.update(base64urlDecode(ciphertext), null, 'utf8');
-        decrypted += decipher.final('utf8');
-        
-      } else {
-        throw new Error(`Unsupported JWE encryption algorithm: ${headerObj.enc}. Supported: A256GCM, A256CBC-HS512`);
-      }
       
       logger.debug('JWE payload decrypted successfully');
       return decrypted;
