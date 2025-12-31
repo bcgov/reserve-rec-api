@@ -263,7 +263,7 @@ async function getBookingsByActivityDetails(
   } catch (error) {
     throw new Exception("Error getting bookings by activity details", {
       code: 400,
-      error: error,
+      error: error.message || String(error),
     });
   }
 }
@@ -617,14 +617,14 @@ function calculateDateRange(userObject, startDate, endDate) {
   if (userObject.isAdmin) {
     // Admin logic consideration: limit to 30 days ago by default, max 90 days range
     // Prevent admin from slamming a huge data pull
-    const defaultStart = addDays(new Date(), -30).toISOString();
+    const defaultStart = toISODate(addDays(new Date(), -30));
     effectiveStartDate = startDate || defaultStart;
     effectiveEndDate =
-      endDate || addDays(new Date(effectiveStartDate), 90).toISOString();
+      endDate || toISODate(addDays(new Date(effectiveStartDate), 90));
   } else {
     // Non-admin logic: startDate is 90 days ago up 1 year in future unless otherwise specified
-    effectiveStartDate = startDate || addDays(new Date(), -90).toISOString();
-    effectiveEndDate = endDate || addYears(new Date(), 1);
+    effectiveStartDate = startDate || toISODate(addDays(new Date(), -90));
+    effectiveEndDate = endDate || toISODate(addYears(new Date(), 1));
   }
 
   return { effectiveStartDate, effectiveEndDate };
@@ -1215,27 +1215,12 @@ async function fetchBookingsSortedByDate(
 ) {
   const allBookings = [];
   let targetDate = null;
-  let targetId = null;
-  let foundCursor = false;
+  let targetBookedAt = null;
 
   // Parse pagination state
   if (lastEvaluatedKey && lastEvaluatedKey.sortBy === sortBy) {
     targetDate = lastEvaluatedKey.lastItemDate;
-    targetId = lastEvaluatedKey.lastItemId;
-  }
-
-  // Adjust date filter based on cursor for better efficiency
-  let adjustedStartDate = effectiveStartDate;
-  let adjustedEndDate = effectiveEndDate;
-
-  if (targetDate) {
-    if (sortOrder === "asc") {
-      // For ascending order, start from the target date
-      adjustedStartDate = targetDate;
-    } else {
-      // For descending order, end at the target date
-      adjustedEndDate = targetDate;
-    }
+    targetBookedAt = lastEvaluatedKey.lastItemBookedAt;
   }
 
   // Fetch from all collections
@@ -1268,34 +1253,36 @@ async function fetchBookingsSortedByDate(
         activity.collectionId,
         activity.activityType,
         activity.activityId,
-        adjustedStartDate,
-        adjustedEndDate,
+        effectiveStartDate,
+        effectiveEndDate,
         null,
         null
       );
 
       // Filter bookings based on cursor position
       for (const booking of bookings.items) {
-        if (targetDate && targetId) {
+        if (targetDate && targetBookedAt) {
           const bookingDate = new Date(booking[sortBy]);
           const cursorDate = new Date(targetDate);
+          const bookingTimestamp = new Date(booking.bookedAt).getTime();
+          const cursorTimestamp = new Date(targetBookedAt).getTime();
 
           if (sortOrder === "asc") {
             // Skip items until we're past the cursor
-            if (
-              bookingDate < cursorDate ||
-              (bookingDate.getTime() === cursorDate.getTime() &&
-                booking.globalId <= targetId)
-            ) {
+            // For items with same date, use bookedAt timestamp as tiebreaker
+            if (bookingDate < cursorDate) {
+              continue;
+            }
+            if (bookingDate.getTime() === cursorDate.getTime() && bookingTimestamp <= cursorTimestamp) {
               continue;
             }
           } else {
-            // Skip items until we're past the cursor (going backwards)
-            if (
-              bookingDate > cursorDate ||
-              (bookingDate.getTime() === cursorDate.getTime() &&
-                booking.globalId >= targetId)
-            ) {
+            // Skip items until we're past the cursor (descending)
+            // For items with same date, use bookedAt timestamp as tiebreaker
+            if (bookingDate > cursorDate) {
+              continue;
+            }
+            if (bookingDate.getTime() === cursorDate.getTime() && bookingTimestamp >= cursorTimestamp) {
               continue;
             }
           }
@@ -1313,8 +1300,11 @@ async function fetchBookingsSortedByDate(
 
     const comparison = sortOrder === "desc" ? dateB - dateA : dateA - dateB;
 
+    // Use bookedAt timestamp as tiebreaker for items with same date
     if (comparison === 0) {
-      return a.globalId.localeCompare(b.globalId);
+      const bookedAtA = new Date(a.bookedAt).getTime();
+      const bookedAtB = new Date(b.bookedAt).getTime();
+      return sortOrder === "desc" ? bookedAtB - bookedAtA : bookedAtA - bookedAtB;
     }
     return comparison;
   });
@@ -1329,7 +1319,7 @@ async function fetchBookingsSortedByDate(
       ? {
           sortBy: sortBy,
           lastItemDate: items[items.length - 1][sortBy],
-          lastItemId: items[items.length - 1].globalId,
+          lastItemBookedAt: items[items.length - 1].bookedAt,
           collectionIndex: 0,
           activityIndex: 0,
         }
