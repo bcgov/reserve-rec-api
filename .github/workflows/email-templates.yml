@@ -42,10 +42,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'yarn'
           
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
         
       - name: Install Handlebars CLI for validation
         run: npm install -g handlebars
@@ -71,7 +71,7 @@ jobs:
           done
           
       - name: Run email dispatch tests
-        run: npm test -- emailDispatch.test.js
+        run: yarn test emailDispatch.test.js
         
       - name: Check template completeness
         run: |
