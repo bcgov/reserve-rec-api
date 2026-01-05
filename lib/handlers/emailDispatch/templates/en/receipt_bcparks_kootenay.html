@@ -150,6 +150,31 @@
                 <div class="booking-reference-number">{{booking.bookingReference}}</div>
             </div>
             
+            <!-- QR Code Section (only shown if enabled for this facility/park) -->
+            {{#if booking.qrCodeDataUrl}}
+            <div class="qr-code-section" style="background-color: #f9f9f9; padding: 20px; text-align: center; margin: 25px 0; border-radius: 8px; border: 2px dashed #ccc;">
+                <h3 style="margin-top: 0; color: #333;">Digital Pass</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Show this QR code at park entrance for verification
+                </p>
+                
+                <!-- QR Code Image -->
+                <div style="margin: 15px 0;">
+                    {{qrCode booking}}
+                </div>
+                
+                <!-- Booking Number Fallback -->
+                <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                    Booking #: <strong>{{booking.bookingId}}</strong>
+                </p>
+                
+                <!-- Verification URL (for accessibility and manual entry) -->
+                <p style="font-size: 11px; color: #999; margin-top: 10px;">
+                    Verification link: <a href="{{qrVerificationUrl booking}}" style="color: #0066cc; text-decoration: none;">{{qrVerificationUrl booking}}</a>
+                </p>
+            </div>
+            {{/if}}
+            
             <!-- Kootenay Region Welcome -->
             <div class="kootenay-specific">
                 <h3>TBD!</h3>
