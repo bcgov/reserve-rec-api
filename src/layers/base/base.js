@@ -105,6 +105,19 @@ const checkWarmup = function (event) {
   }
 };
 
+/**
+ * Handle CORS preflight requests
+ * @param {Object} event - Lambda event
+ * @param {Object} context - Lambda context
+ * @returns {Object|null} - Response object if OPTIONS request, null otherwise
+ */
+const handleCORS = function (event, context) {
+  if (event?.httpMethod === "OPTIONS") {
+    return sendResponse(200, {}, "Success", null, context);
+  }
+  return null;
+};
+
 const getNowISO = function (tz = null) {
   return getNow(tz).toISO();
 };
@@ -295,17 +308,109 @@ const Exception = class extends Error {
   }
 };
 
+/**
+ * Validation patterns for common fields
+ */
+const VALIDATION_PATTERNS = {
+  BOOKING_ID: /^[a-zA-Z0-9-_]{8,100}$/,
+  QR_HASH: /^[a-f0-9]{16}$/i
+};
+
+/**
+ * Calculate total party size from party information object
+ * @param {Object} partyInformation - Party information with adult, senior, youth, child counts
+ * @returns {number} Total party size
+ */
+const calculatePartySize = function(partyInformation) {
+  if (!partyInformation) return 0;
+  return (partyInformation.adult || 0) + 
+         (partyInformation.senior || 0) +
+         (partyInformation.youth || 0) +
+         (partyInformation.child || 0);
+};
+
+/**
+ * Write audit log entry for operations requiring security audit trail
+ * @param {string} user - User ID performing the operation
+ * @param {string} entityId - Entity ID being operated on (e.g., bookingId)
+ * @param {string} operation - Operation type (e.g., 'QR_VERIFY_SUCCESS', 'QR_VERIFY_FAILED')
+ * @param {object} metadata - Additional metadata about the operation
+ * @param {Function} marshallFn - Marshall function from dynamodb layer
+ * @param {Function} batchWriteFn - Batch write function from dynamodb layer
+ * @param {string} auditTableName - Name of the audit table
+ */
+async function writeAuditLog(user, entityId, operation, metadata = {}, marshallFn, batchWriteFn, auditTableName) {
+  try {
+    const timestamp = new Date().toISOString();
+    
+    const auditRecord = {
+      pk: marshallFn(user),
+      sk: marshallFn(timestamp),
+      gsipk: marshallFn(`entity::${entityId}`),
+      gsisk: marshallFn(timestamp),
+      operation: marshallFn(operation),
+      metadata: marshallFn({
+        entityId,
+        ...metadata,
+        timestamp
+      })
+    };
+    
+    await batchWriteFn([auditRecord], 25, auditTableName);
+    logger.debug('Audit log written', { user, entityId, operation });
+  } catch (error) {
+    // Log error but don't fail the request
+    logger.error('Failed to write audit log', { error: error.message, user, entityId, operation });
+  }
+}
+
+/**
+ * Validate SuperAdmin authorization from event claims
+ * @param {Object} event - Lambda event
+ * @param {string} [operationContext] - Optional context string for logging (e.g., 'QR verification')
+ * @returns {Object} Claims object if authorized
+ * @throws {Exception} If user is not a SuperAdmin
+ */
+function validateSuperAdminAuth(event, operationContext = 'operation') {
+  // Extract claims from authorizer context
+  const claims = event.requestContext?.authorizer?.claims || getRequestClaimsFromEvent(event);
+  
+  if (!claims) {
+    logger.warn('No authorization claims found in request');
+    throw new Exception("Unauthorized - Authentication required", { code: 401 });
+  }
+  
+  // Check if user is a SuperAdmin
+  const cognitoGroups = claims['cognito:groups'] || [];
+  const isSuperAdmin = cognitoGroups.some(group => 
+    group.includes('SuperAdminGroup')
+  );
+
+  if (!isSuperAdmin) {
+    logger.warn(`Unauthorized ${operationContext} attempt by user ${claims.sub}`);
+    throw new Exception("Forbidden - SuperAdmin access required", { code: 403 });
+  }
+
+  logger.info(`SuperAdmin ${operationContext} access granted for user ${claims.sub}`);
+  return claims;
+}
+
 module.exports = {
   DateTime,
   Exception,
   buildDateTimeFromShortDate,
   buildDateRange,
+  calculatePartySize,
   checkWarmup,
+  handleCORS,
   getNow,
   getNowISO,
   getRequestClaimsFromEvent,
   logger,
   sendMessage,
   sendResponse,
-  httpGet
+  httpGet,
+  VALIDATION_PATTERNS,
+  validateSuperAdminAuth,
+  writeAuditLog
 };

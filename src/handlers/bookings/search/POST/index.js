@@ -1,42 +1,17 @@
 // Import necessary libraries and modules
 const { OSQuery, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, nonKeyableTerms } = require('/opt/opensearch');
-const { sendResponse, logger, Exception, getRequestClaimsFromEvent } = require('/opt/base');
+const { sendResponse, logger, Exception, getRequestClaimsFromEvent, validateSuperAdminAuth, handleCORS } = require('/opt/base');
 // Lambda function entry point
 exports.handler = async function (event, context) {
   logger.debug('Search:', event); // Log the search event
-  // Allow CORS
-  if (event.httpMethod === 'OPTIONS') {
-    return sendResponse(200, {}, 'Success', null, context);
-  }
+  
+  // Handle CORS preflight
+  const corsResponse = handleCORS(event, context);
+  if (corsResponse) return corsResponse;
 
   try {
-    // Get JWT claims from the event
-    let claims;
-
-    // For local testing, use mock claims if authorizer is not invoked
-    if (process.env.AWS_SAM_LOCAL === 'true' || !event.requestContext?.authorizer) {
-      claims = event.requestContext?.authorizer?.claims || {
-        sub: "test-user-id",
-        "cognito:groups": ["ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup"],
-        email: "test@example.com"
-      };
-      logger.info("Using mock claims for local testing");
-    } else {
-      claims = getRequestClaimsFromEvent(event);
-    }
-
-    // Check if user is a SuperAdmin
-    const cognitoGroups = claims['cognito:groups'] || [];
-    const isSuperAdmin = cognitoGroups.some(group => 
-      group.includes('SuperAdminGroup')
-    );
-
-    if (!isSuperAdmin) {
-      logger.warn(`Unauthorized search attempt by user ${claims?.sub}`);
-      return sendResponse(403, null, "Forbidden - SuperAdmin access required", null, context);
-    }
-
-    logger.info(`SuperAdmin search access granted for user ${claims.sub}`);
+    // Validate SuperAdmin authorization
+    const claims = validateSuperAdminAuth(event, 'bookings search');
 
     // Extract query parameters from the event
     const body = JSON.parse(event?.body) || {};

@@ -2,6 +2,36 @@
 
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { getBookingsByUserId, getBookingByBookingId } = require("../methods");
+const { generateQRURL, generateQRCodeDataURL } = require("../../../../lib/handlers/emailDispatch/qrCodeHelper");
+
+/**
+ * Generate QR code data for a booking (only for confirmed bookings)
+ * @param {string} bookingId - The booking ID
+ * @param {object} booking - The booking object
+ * @returns {Promise<object|null>} QR code data or null
+ */
+async function generateQRCodeForBooking(bookingId, booking) {
+  // Only generate QR codes for confirmed bookings
+  if (booking?.bookingStatus !== 'confirmed') {
+    return null;
+  }
+
+  try {
+    const qrUrl = generateQRURL(bookingId);
+    const qrCodeDataUrl = await generateQRCodeDataURL(qrUrl);
+    return {
+      dataUrl: qrCodeDataUrl,
+      verificationUrl: qrUrl
+    };
+  } catch (error) {
+    logger.warn('Failed to generate QR code for booking', {
+      bookingId,
+      error: error.message
+    });
+    // Don't fail the request if QR generation fails
+    return null;
+  }
+}
 
 exports.handler = async (event, context) => {
   logger.info("Bookings GET:", event);
@@ -33,8 +63,9 @@ exports.handler = async (event, context) => {
             { code: 403 }
           );
         }
-        // Email matches, allow access
-        return sendResponse(200, booking, "Success", null, context);
+        // Email matches, allow access - generate QR code after authorization
+        const qrCodeData = await generateQRCodeForBooking(bookingId, booking);
+        return sendResponse(200, { ...booking, qrCode: qrCodeData }, "Success", null, context);
       } else if (userId) {
         if (booking?.userId !== userId) {
           throw new Exception(
@@ -42,7 +73,9 @@ exports.handler = async (event, context) => {
             { code: 403 }
           );
         }
-        return sendResponse(200, booking, "Success", null, context);
+        // User authorized - generate QR code after authorization
+        const qrCodeData = await generateQRCodeForBooking(bookingId, booking);
+        return sendResponse(200, { ...booking, qrCode: qrCodeData }, "Success", null, context);
       } else {
         throw new Exception(
           "Unauthorized: Must provide either email or be authenticated",
