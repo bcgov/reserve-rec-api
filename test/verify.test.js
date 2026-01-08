@@ -15,6 +15,39 @@ process.env.QR_SECRET_KEY = 'test-secret-key-for-unit-tests-only-do-not-use-in-p
 process.env.PUBLIC_FRONTEND_DOMAIN = 'test.reserve-rec.bcparks.ca';
 process.env.AWS_SAM_LOCAL = 'true'; // Use mock claims
 
+// Test helpers
+const MOCK_ADMIN_CLAIMS = {
+  sub: 'test-admin',
+  'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
+  email: 'admin@example.com'
+};
+
+const MOCK_REGULAR_USER_CLAIMS = {
+  sub: 'test-user',
+  'cognito:groups': ['RegularUserGroup'],
+  email: 'user@example.com'
+};
+
+function createMockEvent(overrides = {}) {
+  return {
+    httpMethod: 'GET',
+    pathParameters: {},
+    requestContext: {},
+    ...overrides
+  };
+}
+
+function createAdminEvent(overrides = {}) {
+  return createMockEvent({
+    requestContext: {
+      authorizer: {
+        claims: { ...MOCK_ADMIN_CLAIMS, ...overrides.claims }
+      }
+    },
+    ...overrides
+  });
+}
+
 // Mock the base layer
 jest.mock('/opt/base', () => ({
   logger: {
@@ -28,6 +61,47 @@ jest.mock('/opt/base', () => ({
     body: JSON.stringify({ data, message })
   })),
   getRequestClaimsFromEvent: jest.fn(),
+  handleCORS: jest.fn((event, context) => {
+    if (event?.httpMethod === 'OPTIONS') {
+      return { statusCode: 200, body: JSON.stringify({ data: {}, message: 'Success' }) };
+    }
+    return null;
+  }),
+  calculatePartySize: jest.fn((partyInfo) => {
+    if (!partyInfo) return 0;
+    return (partyInfo.adult || 0) + (partyInfo.senior || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0);
+  }),
+  VALIDATION_PATTERNS: {
+    BOOKING_ID: /^[a-zA-Z0-9-_]{8,100}$/,
+    QR_HASH: /^[a-f0-9]{16}$/i
+  },
+  writeAuditLog: jest.fn(),
+  validateSuperAdminAuth: jest.fn((event) => {
+    const claims = event.requestContext?.authorizer?.claims;
+    if (!claims) {
+      const Exception = jest.requireActual('/opt/base').Exception || class Exception extends Error {
+        constructor(message, options) {
+          super(message);
+          this.code = options?.code;
+          this.data = options?.data;
+        }
+      };
+      throw new Exception("Unauthorized - Authentication required", { code: 401 });
+    }
+    const cognitoGroups = claims['cognito:groups'] || [];
+    const isSuperAdmin = cognitoGroups.some(group => group.includes('SuperAdminGroup'));
+    if (!isSuperAdmin) {
+      const Exception = jest.requireActual('/opt/base').Exception || class Exception extends Error {
+        constructor(message, options) {
+          super(message);
+          this.code = options?.code;
+          this.data = options?.data;
+        }
+      };
+      throw new Exception("Forbidden - SuperAdmin access required", { code: 403 });
+    }
+    return claims;
+  }),
   Exception: class Exception extends Error {
     constructor(message, options) {
       super(message);
@@ -77,22 +151,12 @@ describe('Verify Endpoint', () => {
 
       mockGetBookingByBookingId.mockResolvedValue(mockBooking);
 
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -109,22 +173,17 @@ describe('Verify Endpoint', () => {
     });
 
     it('should reject non-admin users', async () => {
-      const event = {
-        httpMethod: 'GET',
+      const event = createMockEvent({
         pathParameters: {
           bookingId: 'BOOK-123',
           hash: 'somehash',
         },
         requestContext: {
           authorizer: {
-            claims: {
-              sub: 'test-user',
-              'cognito:groups': ['RegularUserGroup'],
-              email: 'user@example.com'
-            }
+            claims: MOCK_REGULAR_USER_CLAIMS
           }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -138,16 +197,12 @@ describe('Verify Endpoint', () => {
     });
 
     it('should reject requests without authorization', async () => {
-      const event = {
-        httpMethod: 'GET',
+      const event = createMockEvent({
         pathParameters: {
           bookingId: 'BOOK-123',
           hash: 'somehash',
-        },
-        requestContext: {
-          // No authorizer
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -174,22 +229,12 @@ describe('Verify Endpoint', () => {
 
       mockGetBookingByBookingId.mockResolvedValue(mockBooking);
 
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -568,9 +613,11 @@ describe('Verify Endpoint', () => {
         httpMethod: 'OPTIONS',
       };
 
-      await handler(event, {});
+      const result = await handler(event, {});
 
-      expect(sendResponse).toHaveBeenCalledWith(200, {}, 'Success', null, {});
+      // handleCORS mock returns the response directly
+      expect(result).toBeDefined();
+      expect(result.statusCode).toBe(200);
     });
   });
 

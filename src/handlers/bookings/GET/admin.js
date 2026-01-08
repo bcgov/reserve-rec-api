@@ -1,6 +1,6 @@
 // Search bookings by various filters - POST /bookings/admin/search
 
-const { logger, sendResponse, getRequestClaimsFromEvent, Exception } = require("/opt/base");
+const { logger, sendResponse, getRequestClaimsFromEvent, Exception, validateSuperAdminAuth, handleCORS } = require("/opt/base");
 const {
   getBookingByBookingId,
   validateAdminRequirements,
@@ -14,42 +14,14 @@ const {
 exports.handler = async (event, context) => {
   logger.info("Bookings Admin Search POST:", event);
 
-  // Allow CORS
-  if (event.httpMethod === "OPTIONS") {
-    return sendResponse(200, {}, "Success", null, context);
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCORS(event, context);
+  if (corsResponse) return corsResponse;
 
   try {
-    // Get JWT claims from the event
-    let claims;
-
-    // TODO: this should probably be handled differently, but for local testing we can use mock claims
-    //       because the authorizer is not invoked in SAM local
-    if (process.env.AWS_SAM_LOCAL === 'true' || !event.requestContext?.authorizer) {
-      // Local testing - use mock claims
-      claims = event.requestContext?.authorizer?.claims || {
-        sub: "test-user-id",
-        "cognito:groups": ["ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup"],
-        email: "test@example.com"
-      };
-      logger.info("Using mock claims for local testing");
-    } else {
-      claims = getRequestClaimsFromEvent(event);
-    }
+    // Validate SuperAdmin authorization
+    const claims = validateSuperAdminAuth(event, 'bookings admin search');
     
-    // Check if user is a SuperAdmin by looking for the group in cognito:groups
-    const cognitoGroups = claims['cognito:groups'] || [];
-    const isSuperAdmin = cognitoGroups.some(group => 
-      group.includes('SuperAdminGroup')
-    );
-
-    if (!isSuperAdmin) {
-      logger.warn(`Unauthorized access attempt by user ${claims.sub}`);
-      return sendResponse(403, null, "Forbidden - SuperAdmin access required", null, context);
-    }
-
-    logger.info(`SuperAdmin access granted for user ${claims.sub}`);
-
     // Extract search parameters from request query string
     const params = event?.queryStringParameters || {};
     const collectionId = params?.collectionId;
@@ -66,7 +38,7 @@ exports.handler = async (event, context) => {
     // Build user object for validation functions
     const userObject = {
       sub: claims.sub,
-      isAdmin: isSuperAdmin,
+      isAdmin: true, // validated by validateSuperAdminAuth
       collection: [], // SuperAdmin has access to all collections
       isAuthenticated: true,
     };
