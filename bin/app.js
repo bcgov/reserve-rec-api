@@ -308,7 +308,8 @@ class CDKProject {
     publicApiStack.addDependency(bookingWorkflowStack);
     publicApiStack.addDependency(emailDispatchStack);
     adminApiStack.addDependency(referenceDataStack);
-    adminApiStack.addDependency(emailDispatchStack);
+    // TEMPORARILY COMMENTED OUT - Causes CloudFormation validation errors
+    // adminApiStack.addDependency(emailDispatchStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
     bookingWorkflowStack.addDependency(coreStack);
