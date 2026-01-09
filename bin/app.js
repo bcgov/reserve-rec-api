@@ -123,9 +123,7 @@ class CDKProject {
     // 'this' pertains to the current/bound stack
     let self = this;
     if (stackKey) {
-      // When bound to a stack, use appScope to access other stacks
-      const appScope = this.appScope || this;
-      self = appScope.getStackByKey(stackKey);
+      self = this.getStackByKey(stackKey);
     }
     const config = self?.config;
     if (config === null || config === undefined) {
@@ -146,9 +144,7 @@ class CDKProject {
     // 'this' pertains to the current/bound stack
     let self = this;
     if (stackKey) {
-      // When bound to a stack, use appScope to access other stacks
-      const appScope = this.appScope || this;
-      self = appScope.getStackByKey(stackKey);
+      self = this.getStackByKey(stackKey);
     }
     if (!self?.config) {
       self.config = {};
@@ -168,9 +164,7 @@ class CDKProject {
     // 'this' pertains to the current/bound stack
     let self = this;
     if (stackKey) {
-      // When bound to a stack, use appScope to access other stacks
-      const appScope = this.appScope || this;
-      self = appScope.getStackByKey(stackKey);
+      self = this.getStackByKey(stackKey);
     }
     const secret = self?.secrets?.[key];
     if (secret === null || secret === undefined) {
@@ -190,9 +184,7 @@ class CDKProject {
     // 'this' pertains to the current/bound stack
     let self = this;
     if (stackKey) {
-      // When bound to a stack, use appScope to access other stacks
-      const appScope = this.appScope || this;
-      self = appScope.getStackByKey(stackKey);
+      self = this.getStackByKey(stackKey);
     }
     return self?.constructs?.[constructKey] || null;
   }
@@ -308,8 +300,6 @@ class CDKProject {
     publicApiStack.addDependency(bookingWorkflowStack);
     publicApiStack.addDependency(emailDispatchStack);
     adminApiStack.addDependency(referenceDataStack);
-    // TEMPORARILY COMMENTED OUT - Causes CloudFormation validation errors
-    // adminApiStack.addDependency(emailDispatchStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
     bookingWorkflowStack.addDependency(coreStack);
