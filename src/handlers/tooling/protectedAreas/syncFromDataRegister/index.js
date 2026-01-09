@@ -107,7 +107,7 @@ async function createPutPAItem(protectedArea, fieldsToSync, timestamp) {
     version: 1,
     creationDate: timestamp,
     lastUpdated: timestamp,
-    searchTerms: '',
+    searchTerms: [],
     adminNotes: ''
   };
   for (const field of fieldsToSync) {

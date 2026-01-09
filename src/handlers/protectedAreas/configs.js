@@ -106,7 +106,7 @@ const PROTECTED_AREA_API_PUT_CONFIG = {
     },
     searchTerms: {
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     }
@@ -186,7 +186,7 @@ const PROTECTED_AREA_API_UPDATE_CONFIG = {
     },
     searchTerms: {
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     }
