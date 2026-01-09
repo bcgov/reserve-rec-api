@@ -19,19 +19,26 @@ const TRANSACTION_MAX_SIZE = 100;
 
 // Query parameters that should not be used as keyable search terms
 const nonKeyableTerms = [
-  'text',
-  'startFrom',
-  'size',
-  'sortField',
-  'sortOrder',
   'bbox',
   'distance',
   'distanceUnits',
+  'filters',
+  'fuzzy',
+  'fuzziness',
   'geoshape',
+  'geoEnvelopeFieldName',
+  'geoPointFieldName',
   'spatialRelation',
   'pipeline',
-  'geoPointFieldName',
-  'geoEnvelopeFieldName'
+  'size',
+  'sortField',
+  'sortOrder',
+  'startFrom',
+  'suggest',
+  'suggestField',
+  'suggestSize',
+  'suggestText',
+  'text',
 ];
 
 let client = new Client({
@@ -135,6 +142,11 @@ class OSQuery {
      * @type {string}
      */
     this.pipeline = options?.pipeline || null;
+    /**
+     * The suggest configuration for completion/fuzzy suggestions.
+     * @type {Object|null}
+     */
+    this.suggest = null;
     this.request = null;
     this.initSortQuery();
   }
@@ -167,6 +179,10 @@ class OSQuery {
     // Add pipeline to body if provided
     if (this.pipeline) {
       body['search_pipeline'] = this.pipeline;
+    }
+    // Add suggest to body if provided
+    if (this.suggest) {
+      body['suggest'] = this.suggest;
     }
     if (Object.keys(body).length > 0) {
       this.request.body = body;
@@ -320,6 +336,120 @@ class OSQuery {
 
   updateSearchPipeline(pipeline) {
     this.pipeline = pipeline;
+  }
+
+  /**
+   * Adds a term suggester for spelling correction.
+   * This is useful for "did you mean?" functionality.
+   *
+   * @param {string} text - The text to suggest corrections for.
+   * @param {Object} [options={}] - Configuration options for the suggester.
+   * @param {string} [options.field='searchTerms'] - The field to use for suggestions.
+   * @param {string} [options.name] - Custom name for the suggester (defaults to '{field}-corrections').
+   * @param {number} [options.size=5] - Maximum number of suggestions to return.
+   * @param {string} [options.suggestMode='missing'] - Suggest mode: 'missing', 'popular', or 'always'.
+   */
+  addTermSuggester(text, options = {}) {
+    const {
+      field = 'searchTerms',
+      name = `${field}-corrections`,
+      size = 5,
+      suggestMode = 'missing'
+    } = options;
+
+    this.suggest = this.suggest || {};
+    this.suggest[name] = {
+      text: text,
+      term: {
+        field: field,
+        size: size,
+        suggest_mode: suggestMode
+      }
+    };
+  }
+
+  /**
+   * Adds fuzzy matching to a match query.
+   * This allows approximate matching on regular text fields.
+   *
+   * @param {string} field - The field to search.
+   * @param {string} value - The value to search for.
+   * @param {Object} [options={}] - Fuzzy matching options.
+   * @param {string|number} [options.fuzziness='AUTO'] - Fuzziness level ('AUTO', 0, 1, 2).
+   * @param {number} [options.prefixLength=0] - Number of initial characters that must match exactly.
+   * @param {number} [options.maxExpansions=50] - Maximum number of terms the fuzzy query will match.
+   */
+  addFuzzyMatchRule(field, value, options = {}) {
+    const {
+      fuzziness = 'AUTO',
+      prefixLength = 0,
+      maxExpansions = 50
+    } = options;
+
+    setNestedValue(
+      this.query,
+      ['bool', 'must'],
+      {
+        match: {
+          [field]: {
+            query: value,
+            fuzziness: fuzziness,
+            prefix_length: prefixLength,
+            max_expansions: maxExpansions
+          }
+        }
+      }
+    );
+  }
+
+  /**
+   * Adds a prefix match query for autocomplete functionality.
+   * Unlike completion suggesters, this respects filters and works with regular text fields.
+   *
+   * @param {string} field - The field to search (e.g., 'searchTerms', 'name').
+   * @param {string} value - The prefix to match.
+   * @param {Object} [options={}] - Prefix query options.
+   * @param {number} [options.maxExpansions=50] - Maximum number of terms to match.
+   * @param {boolean} [options.usePhrase=true] - Use match_phrase_prefix (true) or prefix query (false).
+   * @param {number} [options.boost=1.0] - Boost score for matches.
+   */
+  addPrefixQuery(field, value, options = {}) {
+    const {
+      maxExpansions = 50,
+      usePhrase = true,
+      boost = 1.0
+    } = options;
+
+    if (usePhrase) {
+      // match_phrase_prefix: better for multi-word phrases and analyzed fields
+      setNestedValue(
+        this.query,
+        ['bool', 'must'],
+        {
+          match_phrase_prefix: {
+            [field]: {
+              query: value,
+              max_expansions: maxExpansions,
+              boost: boost
+            }
+          }
+        }
+      );
+    } else {
+      // Simple prefix: better for single terms and keyword fields
+      setNestedValue(
+        this.query,
+        ['bool', 'must'],
+        {
+          prefix: {
+            [field]: {
+              value: value.toLowerCase(),
+              boost: boost
+            }
+          }
+        }
+      );
+    }
   }
 }
 

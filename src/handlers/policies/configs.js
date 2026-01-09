@@ -152,7 +152,7 @@ const POLICY_BOOKING_API_PUT_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -281,7 +281,7 @@ const POLICY_BOOKING_API_UPDATE_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -426,7 +426,7 @@ const POLICY_CHANGE_API_PUT_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -527,7 +527,7 @@ const POLICY_CHANGE_API_UPDATE_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     }
@@ -704,7 +704,7 @@ const POLICY_PARTY_API_PUT_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -853,7 +853,7 @@ const POLICY_PARTY_API_UPDATE_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1040,7 +1040,7 @@ const POLICY_FEE_API_PUT_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1196,7 +1196,7 @@ const POLICY_FEE_API_UPDATE_CONFIG = {
     searchTerms: {
       allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
+        rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
