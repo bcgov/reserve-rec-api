@@ -134,7 +134,9 @@ exports.handler = async (event, context) => {
     }
 
     // Step 2: Validate the hash (after confirming booking exists)
+    logger.info("About to validate hash", { bookingId, hash, secretKeyLength: process.env.QR_SECRET_KEY?.length });
     const isValidHash = validateHash(bookingId, hash);
+    logger.info("Hash validation complete", { bookingId, hash, isValidHash });
 
     if (!isValidHash) {
       logger.warn("Invalid QR code hash", { bookingId, verifiedBy: claims.sub });
