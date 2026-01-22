@@ -103,8 +103,7 @@ async function fetchDayUseActivities(collectionId, facilityId = null) {
   try {
     const queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
-      KeyConditionExpression: "pk = :pk",
-      FilterExpression: "activityType = :activityType",
+      KeyConditionExpression: "pk = :pk AND begins_with(sk, :activityType)",
       ExpressionAttributeValues: {
         ":pk": { S: `activity::${collectionId}` },
         ":activityType": { S: "dayuse" },
@@ -113,7 +112,7 @@ async function fetchDayUseActivities(collectionId, facilityId = null) {
 
     // If facilityId is provided, filter by activityId
     if (facilityId) {
-      queryObj.FilterExpression += " AND activityId = :activityId";
+      queryObj.FilterExpression = "activityId = :activityId";
       queryObj.ExpressionAttributeValues[":activityId"] = { N: String(facilityId) };
     }
 
