@@ -35,7 +35,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
       defaults: defaults
     });
 
-     // /bookings resource
+    // /bookings resource
     this.bookingsResource = this.resolveApi().root.addResource('bookings');
 
     // /bookings/admin resource
@@ -132,7 +132,8 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'public.handler',
       {
         transDataBasicRead: true,
-      }
+        memorySize: 512
+      },
     );
 
     // GET /bookings
