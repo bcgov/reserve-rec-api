@@ -99,7 +99,7 @@ exports.handler = async (event, context) => {
 /**
  * Fetches day-use activities for a collection, optionally filtered by activityId
  */
-async function fetchDayUseActivities(collectionId, facilityId = null) {
+async function fetchDayUseActivities(collectionId) {
   try {
     const queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
@@ -109,12 +109,6 @@ async function fetchDayUseActivities(collectionId, facilityId = null) {
         ":activityType": { S: "dayuse" },
       },
     };
-
-    // If facilityId is provided, filter by activityId
-    if (facilityId) {
-      queryObj.FilterExpression = "activityId = :activityId";
-      queryObj.ExpressionAttributeValues[":activityId"] = { N: String(facilityId) };
-    }
 
     const result = await runQuery(queryObj);
     return result.items || [];
