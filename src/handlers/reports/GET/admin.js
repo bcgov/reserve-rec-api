@@ -64,9 +64,12 @@ exports.handler = async (event, context) => {
         arrivalDate
       );
 
-      // Add activity display name to each booking
+      // Resolve facility display name from the activity's linked facilities
+      const facilityDisplayName = await resolveFacilityDisplayName(activity);
+
+      // Add facility display name to each booking
       bookings.forEach(booking => {
-        booking._activityDisplayName = activity.displayName || '';
+        booking._facilityDisplayName = facilityDisplayName;
       });
 
       allBookings.push(...bookings);
@@ -164,6 +167,45 @@ async function resolveCollectionDisplayName(collectionId) {
 }
 
 /**
+ * Resolves the facility display name from an activity's linked facilities
+ * Returns the first facility's displayName, or empty string if none found
+ */
+async function resolveFacilityDisplayName(activity) {
+  try {
+    const facilities = activity.facilities || [];
+    if (facilities.length === 0) {
+      return '';
+    }
+
+    // Get the first facility reference
+    const facilityRef = facilities[0];
+    const facilityPk = facilityRef.pk;
+    const facilitySk = facilityRef.sk;
+
+    if (!facilityPk || !facilitySk) {
+      return '';
+    }
+
+    // Fetch the facility record
+    const queryObj = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      KeyConditionExpression: "pk = :pk AND sk = :sk",
+      ExpressionAttributeValues: {
+        ":pk": { S: facilityPk },
+        ":sk": { S: facilitySk },
+      },
+    };
+
+    const result = await runQuery(queryObj);
+    const facility = result.items?.[0];
+    return facility?.displayName || '';
+  } catch (error) {
+    logger.warn("Could not resolve facility display name:", error);
+    return '';
+  }
+}
+
+/**
  * Formats a booking record for the CSV report
  */
 function formatBookingForReport(booking, parkName) {
@@ -205,7 +247,7 @@ function formatBookingForReport(booking, parkName) {
     reservationNumber: booking.bookingId || booking.globalId || '',
     transactionStatus: transactionStatus,
     park: parkName,
-    facility: booking._activityDisplayName || booking.displayName || '',
+    facility: booking._facilityDisplayName || booking.displayName || '',
     arrivalDate: booking.startDate || '',
     passType: isVehiclePass ? 'Vehicle' : isTrailPass ? 'Trail' : '',
     vehiclePassReservedCount: isVehiclePass && booking.bookingStatus === 'confirmed' ? 1 : 0,
