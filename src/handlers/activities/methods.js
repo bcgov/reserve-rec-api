@@ -39,7 +39,7 @@ function addFilters(queryObj, filters) {
         }
       }
     });
-console.log('queryObj333:', queryObj);
+    console.log('queryObj:', queryObj);
     return queryObj;
   } catch (error) {
     throw error;
@@ -256,6 +256,9 @@ async function processItem(
     delete item.sk;
     delete item.activityType;
     delete item.activityId;
+    
+    // Remove activitySubType if null or undefined
+    if (!item.activitySubType) delete item.activitySubType;
   } else if (requestType == "POST") {
     // Throw an error if activityId is passed in POST request, as we only allow auto increment for POST requests
     if (activityId) {
@@ -284,6 +287,9 @@ async function processItem(
     item.activityType = activityType;
     item.activityId = Number(identifier);
     item.identifier = Number(identifier);
+    
+    // Remove activitySubType if null or undefined
+    if (!item.activitySubType) delete item.activitySubType;
   }
 
   return {

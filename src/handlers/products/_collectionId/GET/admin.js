@@ -1,16 +1,17 @@
 const {
-  getGeozonesByCollectionId,
-  getGeozonesByGeozoneId,
+  getProductsByCollectionId,
+  getProductsByActivityType,
+  getProductByProductId,
 } = require("../../methods");
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../../configs");
 
 /**
- * @api {get} /geozones/{collectionId} GET
- * Fetch geozones
+ * @api {get} /products/{collectionId} GET
+ * Fetch Products
  */
 exports.handler = async (event, context) => {
-  logger.info("GET geozones", event);
+  logger.info(`GET Products: ${event}`);
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);
@@ -18,16 +19,22 @@ exports.handler = async (event, context) => {
 
   try {
     const collectionId = event?.pathParameters?.collectionId;
-    const geozoneId = event?.pathParameters?.geozoneId || event?.queryStringParameters?.geozoneId || null;
-
     if (!collectionId) {
-      throw new Exception("collectionId is required", { code: 400 });
+      throw new Exception("Product Collection ID (collectionId) is required", { code: 400 });
     }
 
-    const queryParams = event?.queryStringParameters || {};
+    const { activityType, activityId, productId, ...queryParams } =
+      event?.queryStringParameters || {};
 
+    // Validate that activityType and activityId are provided
+    if (!activityType || !activityId) {
+      throw new Exception("activityType and activityId are required query parameters", { code: 400 });
+    }
+
+    let res = null;
     let filters = {};
     let allowedFilters = ALLOWED_FILTERS;
+    
     // Loop through each allowed filter to check if it's in queryParams
     allowedFilters.forEach((filter) => {
       if (queryParams[filter.name]) {
@@ -36,25 +43,29 @@ exports.handler = async (event, context) => {
           queryParams[filter.name] === "true"
             ? true
             : queryParams[filter.name] === "false"
-            ? false
-            : queryParams[filter.name];
+              ? false
+              : queryParams[filter.name];
       }
     });
 
-    let res = null;
-
-    if (geozoneId) {
-      res = await getGeozonesByGeozoneId(
-        collectionId,
-        geozoneId,
-        filters,
-        event?.queryStringParameters || null
+    // Get product by productId
+    if (productId) {
+      res = await getProductByProductId(
+        collectionId, 
+        activityType, 
+        activityId,
+        productId, 
+        queryParams?.fetchActivities || null,
+        queryParams?.fetchGeozones || null,
+        queryParams?.fetchFacilities || null
       );
     }
-
-    if (!geozoneId) {
-      res = await getGeozonesByCollectionId(
+    // Get all products for this activity
+    else {
+      res = await getProductsByCollectionId(
         collectionId,
+        activityType,
+        activityId,
         filters,
         event?.queryStringParameters || null
       );
@@ -71,4 +82,3 @@ exports.handler = async (event, context) => {
     );
   }
 };
-

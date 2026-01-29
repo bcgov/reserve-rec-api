@@ -35,13 +35,6 @@ const GEOZONE_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    orcs: {
-      allowEmpty: true,
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
     displayName: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {

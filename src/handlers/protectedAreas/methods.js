@@ -32,7 +32,6 @@ async function getProtectedAreas(params) {
     };
     console.log('queryObj:', queryObj);
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
-    console.log('res:', res);
     logger.info(`Protected Areas: ${res?.items?.length} found.`);
     return res;
   } catch (error) {
