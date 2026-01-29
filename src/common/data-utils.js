@@ -139,7 +139,10 @@ function validateRequestData(itemData, itemConfig) {
     const configProperties = Object.keys(itemConfig?.fields);
     const mandatoryFields = configProperties.filter((field) => itemConfig?.fields?.[field]?.isMandatory);
     if (mandatoryFields.length > 0) {
+      logger.debug(`[validateRequestData] Checking mandatory fields: ${mandatoryFields.join(', ')}`);
+      logger.debug(`[validateRequestData] itemData keys: ${Object.keys(itemData).join(', ')}`);
       for (const field of mandatoryFields) {
+        logger.debug(`[validateRequestData] Checking field '${field}': ${!!itemData[field]} (value: ${JSON.stringify(itemData[field])})`);
         if (!itemData[field]) {
           throw new Exception(`Mandatory field '${field}' is missing in the request`, { code: 400, error: `Field '${field}' is mandatory` });
         }
@@ -196,14 +199,18 @@ function validateRequestData(itemData, itemConfig) {
       // For validation to succeed, all rules must pass.
       if (fieldRules?.hasOwnProperty('rulesFn')) {
         try {
+          logger.debug(`[validateRequestData] Executing rulesFn for field '${field}'`);
           fieldRules?.rulesFn(itemData[field]);
+          logger.debug(`[validateRequestData] rulesFn for field '${field}' passed`);
         } catch (error) {
+          logger.error(`[validateRequestData] rulesFn for field '${field}' FAILED: ${error}`);
           throw new Exception(`Validation failed for field '${field}'`, { code: 400, error: error });
         }
       }
     }
 
   } catch (error) {
+    logger.error(`[validateRequestData] Validation error: ${JSON.stringify(error)}`);
     throw error;
   }
 }
@@ -235,6 +242,9 @@ async function quickApiPutHandler(tableName, createList, config) {
         // set the api config for the item
         let itemConfig = item?.config ? item.config : config;
         let itemData = item?.data;
+        
+        logger.debug(`[quickApiPutHandler] itemData keys: ${Object.keys(itemData).join(', ')}`);
+        logger.debug(`[quickApiPutHandler] itemData.collectionId: ${itemData.collectionId}`);
 
         if (Object.keys(itemData).length === 0) {
           throw new Exception(`No field data provided with item.`, { code: 400, error: `Item data should be of the form: {field: <value>}` });
@@ -248,6 +258,9 @@ async function quickApiPutHandler(tableName, createList, config) {
 
         // Build the validation request
         let dataToValidate = buildValidationRequest(itemData, itemConfig?.fields);
+        
+        logger.debug(`[quickApiPutHandler] dataToValidate keys: ${Object.keys(dataToValidate).join(', ')}`);
+        logger.debug(`[quickApiPutHandler] dataToValidate.collectionId: ${JSON.stringify(dataToValidate.collectionId)}`);
 
         // validate the request data using the config
         validateRequestData(dataToValidate, itemConfig);

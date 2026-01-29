@@ -1,5 +1,6 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
+const { deleteEntityRelationships } = require("../../../../common/relationship-utils");
 
 /**
  * @api {delete} /activities/{collectionId}/ DELETE
@@ -21,17 +22,30 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is not allowed", { code: 400 });
     }
 
-    const deleteItem = createDeleteCommand(collectionId, activityType, activityId)
+    // First, delete all relationships associated with this activity
+    const pk = `activity::${collectionId}`;
+    const sk = `${activityType}::${activityId}`;
+    
+    logger.info(`Deleting relationships for: rel::${pk}::${sk}`);
+    const relationshipResult = await deleteEntityRelationships(pk, sk);
+    logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
-    // Use batchTransactData to delete the database item
+    // Then delete the activity itself
+    const deleteItem = createDeleteCommand(collectionId, activityType, activityId);
+
     const res = await batchTransactData([deleteItem]);
-    return sendResponse(200, res, "Success", null, context);
+    
+    return sendResponse(200, {
+      ...res,
+      relationshipsDeleted: relationshipResult.deletedCount
+    }, "Success", null, context);
   } catch (error) {
+    logger.error('Error deleting activity:', error);
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error",
-      error?.error || error,
+      error?.message || "Error deleting activity",
+      null,
       context
     );
   }

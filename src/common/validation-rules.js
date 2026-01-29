@@ -446,6 +446,21 @@ class rulesFns {
     }
   }
 
+  /**
+   * Validates that the given value is a TemporalDuration object.
+   * 
+   * The value must be of type 'object' and contain at least one of the TemporalDuration properties:
+   * years, months, weeks, days, hours, minutes, seconds.
+   * 
+   * @param {Object} value - The value to validate as a TemporalDuration.
+   * @throws {Exception} Throws an exception if the value is not a valid TemporalDuration object.
+   */
+  expectTemporalDuration(value) {
+    if (typeof value !== 'object' || value === null || !('years' in value || 'months' in value || 'weeks' in value || 'days' in value || 'hours' in value || 'minutes' in value || 'seconds' in value)) {
+      throw new Exception(`Invalid TemporalDuration format: Expected a TemporalDuration object. Received: '${JSON.stringify(value, null, 2)}'.`, { code: 400 });
+    }
+  }
+
 }
 
 module.exports = {

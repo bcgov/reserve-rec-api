@@ -1,5 +1,6 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData, getOne } = require("/opt/dynamodb");
+const { deleteEntityRelationships } = require("../../../../common/relationship-utils.js");
 
 /**
  * @api {delete} /geozones/{collectionId}/{geozoneId} DELETE
@@ -10,21 +11,36 @@ exports.handler = async (event, context) => {
   try {
     const collectionId = event?.pathParameters?.collectionId;
     const geozoneId = event?.pathParameters?.geozoneId;
-    const body = JSON.parse(event?.body);
+    const body = event?.body ? JSON.parse(event.body) : null;
 
     if (!collectionId || !geozoneId) {
-      throw new Exception("collectionId is required", { code: 400 });
+      throw new Exception("collectionId and geozoneId are required", { code: 400 });
     }
 
     if (body) {
       throw new Exception("Body is not allowed", { code: 400 });
     }
 
-    const deleteItem = createDeleteCommand(collectionId, geozoneId)
+    // Get the geozone to verify it exists and get its keys
+    const pk = `geozone::${collectionId}`;
+    const sk = `${geozoneId}`;
+    
+    const geozone = await getOne(pk, sk);
+    
+    if (!geozone) {
+      throw new Exception("Geozone not found", { code: 404 });
+    }
 
-    // Use batchTransactData to delete the database item
+    // Delete all relationships first (both forward and reverse)
+    const relCount = await deleteEntityRelationships(pk, sk);
+    
+    logger.info(`Deleted ${relCount.deletedCount} relationship(s) for geozone ${pk}::${sk}`);
+
+    // Now delete the geozone itself
+    const deleteItem = createDeleteCommand(pk, sk);
     const res = await batchTransactData([deleteItem]);
-    return sendResponse(200, res, "Success", null, context);
+    
+    return sendResponse(200, { ...res, relationshipsDeleted: relCount.deletedCount }, "Success", null, context);
   } catch (error) {
     return sendResponse(
       Number(error?.code) || 400,
@@ -36,15 +52,12 @@ exports.handler = async (event, context) => {
   }
 };
 
-function createDeleteCommand(collectionId, geozoneId) {
+function createDeleteCommand(pk, sk) {
   return {
     action: "Delete",
     data: {
       TableName: REFERENCE_DATA_TABLE_NAME,
-      Key: marshall({
-        pk: `geozone::${collectionId}`,
-        sk: `${geozoneId}`
-      }),
+      Key: marshall({ pk, sk }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },
   };

@@ -263,9 +263,6 @@ async function processItem(
     // Make sure defaults are set for the item
     item['collectionId'] = collectionId;
     item['facilityType'] = facilityType;
-    if (!item?.hasOwnProperty('activities')) {
-      item.activities = [];
-    }
     if (!item?.hasOwnProperty('showOnMap')) {
       item.showOnMap = true;
     }
