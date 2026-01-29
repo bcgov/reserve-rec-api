@@ -3,18 +3,19 @@ const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt
 const { deleteEntityRelationships } = require("../../../../common/relationship-utils");
 
 /**
- * @api {delete} /facilities/{collectionId}/ DELETE
- * Delete Facilities
+ * @api {delete} /products/{collectionId}/ DELETE
+ * Delete Products
  */
 exports.handler = async (event, context) => {
-  logger.info(`DELETE Facilities: ${event}`);
+  logger.info(`DELETE Products: ${event}`);
   try {
     const collectionId = event?.pathParameters?.collectionId;
-    const facilityType = event?.pathParameters?.facilityType || event?.queryStringParameters?.facilityType;
-    const facilityId = event?.pathParameters?.facilityId || event?.queryStringParameters?.facilityId;
+    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
+    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
+    const productId = event?.pathParameters?.productId || event?.queryStringParameters?.productId;
     const body = JSON.parse(event?.body);
 
-    if (!collectionId || !facilityType || !facilityId) {
+    if (!collectionId || !activityType || !activityId || !productId) {
       throw new Exception("Facility Collection ID, Facility Type, and Facility ID are required", { code: 400 });
     }
 
@@ -22,16 +23,16 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is not allowed", { code: 400 });
     }
 
-    // First, delete all relationships associated with this facility
-    const pk = `facility::${collectionId}`;
-    const sk = `${facilityType}::${facilityId}`;
+    // First, delete all relationships associated with this product
+    const pk = `product::${collectionId}::${activityType}::${activityId}`;
+    const sk = `${productId}::base`;
     
     logger.info(`Deleting relationships for: rel::${pk}::${sk}`);
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
-    // Then delete the facility itself
-    const deleteItem = createDeleteCommand(collectionId, facilityType, facilityId);
+    // Then delete the product itself
+    const deleteItem = createDeleteCommand(collectionId, activityType, activityId, productId);
 
     const res = await batchTransactData([deleteItem]);
     
@@ -40,28 +41,25 @@ exports.handler = async (event, context) => {
       relationshipsDeleted: relationshipResult.deletedCount
     }, "Success", null, context);
   } catch (error) {
-    logger.error('Error deleting facility:', error);
+    logger.error('Error deleting product:', error);
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error deleting facility",
+      error?.message || "Error deleting product",
       null,
       context
     );
   }
 };
 
-function createDeleteCommand(collectionId, facilityType, facilityId, sk = undefined) {
-  // Use sk if provided in a batch request, otherwise there won't be an sk
-  // so use the pathParams to create sk
-  const sortKey = sk || `${facilityType}::${facilityId}`;
+function createDeleteCommand(collectionId, activityType, activityId, productId) {
   return {
     action: "Delete",
     data: {
       TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
-        pk: `facility::${collectionId}`,
-        sk: sortKey,
+        pk: `product::${collectionId}::${activityType}::${activityId}`,
+        sk: `${productId}::base`,
       }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },

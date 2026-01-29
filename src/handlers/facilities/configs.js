@@ -6,7 +6,6 @@ const rf = new rulesFns();
 const ALLOWED_FILTERS = [
   { name: "isVisible", type: "boolean" },
   { name: "showOnMap", type: "boolean" },
-  { name: "activities", type: "list" },
 ];
 
 const FACILITY_API_PUT_CONFIG = {
@@ -32,12 +31,6 @@ const FACILITY_API_PUT_CONFIG = {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    orcs: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -102,74 +95,60 @@ const FACILITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    geozone: {
+    isVisible: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    timezone: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, TIMEZONE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minMapZoom: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxMapZoom: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    showOnMap: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    imageUrl: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
-    activities: {
-      isMandatory: true,
+    adminNotes: {
       rulesFn: ({ value, action }) => {
-        rf.expectArray(value, ['object']);
-        value.map(v => rf.expectPrimaryKey(v));
+        rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
-    }
-  },
-  isVisible: {
-    rulesFn: ({ value, action }) => {
-      rf.expectType(value, ['boolean']);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  timezone: {
-    isMandatory: true,
-    rulesFn: ({ value, action }) => {
-      rf.expectValueInList(value, TIMEZONE_ENUMS);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  minMapZoom: {
-    isMandatory: true,
-    rulesFn: ({ value, action }) => {
-      rf.expectInteger(value);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  maxMapZoom: {
-    isMandatory: true,
-    rulesFn: ({ value, action }) => {
-      rf.expectInteger(value);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  showOnMap: {
-    isMandatory: true,
-    rulesFn: ({ value, action }) => {
-      rf.expectType(value, ['boolean']);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  imageUrl: {
-    rulesFn: ({ value, action }) => {
-      rf.expectType(value, ['string']);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  adminNotes: {
-    rulesFn: ({ value, action }) => {
-      rf.expectType(value, ['string']);
-      rf.expectAction(action, ['set']);
-    }
-  },
-  searchTerms: {
-    rulesFn: ({ value, action }) => {
-      rf.expectArray(value, ['string']);
-      rf.expectAction(action, ['set']);
+      }
+    },
+    searchTerms: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
     }
   }
-}
-}
+};
 
 const FACILITY_API_UPDATE_CONFIG = {
   failOnError: true,
@@ -210,19 +189,6 @@ const FACILITY_API_UPDATE_CONFIG = {
     identifier: {
       rulesFn: ({ value, action }) => {
         rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    geozone: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    activities: {
-      rulesFn: ({ value, action }) => {
-        rf.expectArray(value, ['object']);
-        value.map(v => rf.expectPrimaryKey(v));
         rf.expectAction(action, ['set']);
       }
     },

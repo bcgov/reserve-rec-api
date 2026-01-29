@@ -60,7 +60,6 @@ async function getPolicyByIdVersion(policyType, policyId, policyIdVersion = 'lat
       policyIdVersion = `v${String(policyIdVersion)}`;
     }
     const res = await getOne(`policy::${policyType}::${policyId}`, policyIdVersion, REFERENCE_DATA_TABLE_NAME);
-    console.log('res:', res);
     return res;
   } catch (error) {
     console.log('error:', error);

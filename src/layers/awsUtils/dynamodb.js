@@ -8,6 +8,7 @@ const TRANSACTIONAL_DATA_TABLE_NAME = process.env.TRANSACTIONAL_DATA_TABLE_NAME 
 const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
 const GLOBALID_PROPERTY_NAME = process.env.GLOBALID_PROPERTY_NAME || 'globalId';
 const USERID_INDEX_NAME = process.env.USERID_INDEX_NAME || 'userId-index';
+const ENTITY_RELATIONSHIP_INDEX = process.env.ENTITY_RELATIONSHIP_INDEX || 'entityRelationship-index';
 const USERID_PROPERTY_NAME = process.env.USERID_PROPERTY_NAME || 'userId';
 const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
 const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
@@ -490,9 +491,7 @@ async function parallelizedBatchGetData(groups, tableName = REFERENCE_DATA_TABLE
  * @returns {Object} An array of items retrieved from the table.
  */
 async function batchGetData(keys, tableName = REFERENCE_DATA_TABLE_NAME) {
-  console.log('doin it');
   const res = await batchGetDataPromise('batch', keys, tableName);
-  console.log('res:', res);
   return res?.data;
 }
 
@@ -632,6 +631,7 @@ module.exports = {
   GLOBALID_PROPERTY_NAME,
   PUBSUB_TABLE_NAME,
   USERID_INDEX_NAME,
+  ENTITY_RELATIONSHIP_INDEX,
   USERID_PROPERTY_NAME,
   ScanCommand,
   UpdateItemCommand,

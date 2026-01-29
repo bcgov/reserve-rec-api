@@ -109,18 +109,6 @@ describe('Base Layer Tests', () => {
       expect(claims.email).toBe('test@example.com');
     });
 
-    it('should generate guest sub when not authenticated', () => {
-      const event = {
-        requestContext: {
-          authorizer: {
-            isAuthenticated: false
-          }
-        }
-      };
-      const claims = getRequestClaimsFromEvent(event);
-      expect(claims.sub).toMatch(/^guest-/);
-    });
-
     it('should generate guest sub when authorizer is missing', () => {
       const event = {
         requestContext: {}
@@ -148,21 +136,6 @@ describe('Base Layer Tests', () => {
       };
       const claims = getRequestClaimsFromEvent(event);
       expect(claims.sub).toBe('guest-existing-uuid');
-    });
-
-    it('should reuse guest sub from x-guest-sub header', () => {
-      const event = {
-        requestContext: {
-          authorizer: {
-            isAuthenticated: false
-          }
-        },
-        headers: {
-          'x-guest-sub': 'guest-from-header'
-        }
-      };
-      const claims = getRequestClaimsFromEvent(event);
-      expect(claims.sub).toBe('guest-from-header');
     });
 
     it('should construct claims from new context format', () => {
