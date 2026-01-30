@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
         logger.debug(`Processing booking policy PUT request.`);
         res = await handlePolicyPut(body, 'booking', policyId);
         break;
-      case 'fee':
+      case 'change':
         logger.debug(`Processing change policy PUT request.`);
         res = await handlePolicyPut(body, 'change', policyId);
         break;
