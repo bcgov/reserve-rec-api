@@ -191,21 +191,64 @@ const PRODUCT_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    schema: {
+    rangeStart: {
       rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, ['product']);
+        rf.expectISODateObjFormat(value)
+        rf.expectAction(action, ['set']);
+      }
+    },
+    rangeEnd: {
+      rulesFn: ({ value, action }) => {
+        rf.expectISODateObjFormat(value)
+        rf.expectAction(action, ['set']);
+      }
+    },
+    timezone: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    minStay: {
+      rulesFn: ({ value, action }) => {
+        rf.expectTemporalDuration(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    maxStay: {
+      rulesFn: ({ value, action }) => {
+        rf.expectTemporalDuration(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    assets: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['object']);
+        value.map(v => rf.expectPrimaryKey(v));
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isReservable: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isChangeable: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    isCancellable: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
         rf.expectAction(action, ['set']);
       }
     },
     isVisible: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    imageUrl: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
@@ -218,63 +261,6 @@ const PRODUCT_API_UPDATE_CONFIG = {
     adminNotes: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    bookingPolicy: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    changePolicy: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    partyPolicy: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    feePolicy: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    capacity: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    price: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['number']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    geozones: {
-      rulesFn: ({ value, action }) => {
-        rf.expectArray(value, ['object']);
-        value.map(v => rf.expectPrimaryKey(v));
-        rf.expectAction(action, ['set']);
-      }
-    },
-    facilities: {
-      rulesFn: ({ value, action }) => {
-        rf.expectArray(value, ['object']);
-        value.map(v => rf.expectPrimaryKey(v));
-        rf.expectAction(action, ['set']);
-      }
-    },
-    activities: {
-      rulesFn: ({ value, action }) => {
-        rf.expectArray(value, ['object']);
-        value.map(v => rf.expectPrimaryKey(v));
         rf.expectAction(action, ['set']);
       }
     }

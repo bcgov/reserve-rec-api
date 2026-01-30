@@ -348,7 +348,7 @@ async function processItem(
     productId = await incrementCounter(pk, ["counter"]);
 
     // Construct SK from the new productId
-    const sk = `${productId}::base`;
+    sk = `${productId}::base`;
 
     // Generate globalId if not present
     if (!item.globalId) {
