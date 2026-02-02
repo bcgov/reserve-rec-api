@@ -941,49 +941,49 @@ const POLICY_FEE_API_PUT_CONFIG = {
     },
     adultNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     youthNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     childNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     seniorNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     baseChangeFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     unitChangeFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     baseReservationFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     unitReservationFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -996,13 +996,13 @@ const POLICY_FEE_API_PUT_CONFIG = {
     },
     maxUnitCharge: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     changeSSCFECharge: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1014,13 +1014,13 @@ const POLICY_FEE_API_PUT_CONFIG = {
     },
     additionalVehiclesFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     damageDeposit: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1097,49 +1097,49 @@ const POLICY_FEE_API_UPDATE_CONFIG = {
     },
     adultNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     youthNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     childNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     seniorNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     baseChangeFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     unitChangeFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     baseReservationFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     unitReservationFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1152,13 +1152,13 @@ const POLICY_FEE_API_UPDATE_CONFIG = {
     },
     maxUnitCharge: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     changeSSCFECharge: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -1170,13 +1170,13 @@ const POLICY_FEE_API_UPDATE_CONFIG = {
     },
     additionalVehiclesFee: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
     damageDeposit: {
       rulesFn: ({ value, action }) => {
-        rf.expectNumber(value);
+        rf.expectMoneyFormat(value);
         rf.expectAction(action, ['set']);
       }
     },
