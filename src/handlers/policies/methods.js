@@ -224,7 +224,24 @@ async function processPutItem(item, policyType, policyId) {
   }
 
   // Get the fields that are allowed to be updated from the update config
-  const updatableFields = Object.keys(POLICY_BOOKING_API_UPDATE_CONFIG.fields);
+  let updateConfig;
+  switch (policyType) {
+    case 'booking':
+      updateConfig = POLICY_BOOKING_API_UPDATE_CONFIG;
+      break;
+    case 'change':
+      updateConfig = POLICY_CHANGE_API_UPDATE_CONFIG;
+      break;
+    case 'party':
+      updateConfig = POLICY_PARTY_API_UPDATE_CONFIG;
+      break;
+    case 'fee':
+      updateConfig = POLICY_FEE_API_UPDATE_CONFIG;
+      break;
+    default:
+      throw new Exception(`Unknown policy type: ${policyType}`, { code: 400 });
+  }
+  const updatableFields = Object.keys(updateConfig.fields);
   console.log('updatableFields:', updatableFields);
   // Validate that only updatable fields are being modified
   console.log('item:', item);
