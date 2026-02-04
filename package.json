@@ -22,7 +22,13 @@
     "run:public": "sam local start-api -t cdk.out/sam-ReserveRecApi-Local-PublicApiStack-PublicApi.yaml --env-vars env.json --warm-containers LAZY --skip-pull-image --port 3001 2>&1 | tr '\r' '\n'",
     "run:admin:full": "yarn synth:local && yarn build:admin && yarn run:admin",
     "run:public:full": "yarn synth:local && yarn build:public && yarn run:public",
-    "booking-workflow:poller": "node ./src/scripts/tools/local-testing/booking-workflow-subscriber-poller.js"
+    "booking-workflow:poller": "node ./src/scripts/tools/local-testing/booking-workflow-subscriber-poller.js",
+    "sandbox:setup": "./scripts/sandbox-setup.sh",
+    "sandbox:teardown": "./scripts/sandbox-teardown.sh",
+    "sandbox:edit-config": "./scripts/sandbox-edit-config.sh",
+    "sandbox:synth": "cdk synth -c @context=dev -c sandboxName=${SANDBOX_NAME} --all",
+    "sandbox:deploy": "cdk deploy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --require-approval never",
+    "sandbox:destroy": "cdk destroy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --force"
   },
   "devDependencies": {
     "esbuild": "^0.25.11",
