@@ -322,6 +322,93 @@ yarn deploy:test
 export LOG_LEVEL=debug
 ```
 
+### 🧪 Sandbox Environments
+
+Sandbox environments allow developers to deploy fully isolated personal environments for testing. Each sandbox is completely independent from dev/test/prod and other sandboxes.
+
+#### Prerequisites
+
+- AWS CLI configured with appropriate credentials
+- CDK bootstrapped in target account
+- Access to copy SSM parameters and Secrets Manager secrets
+
+#### Quick Start
+
+```bash
+# 1. Setup - copies config and secrets from dev
+./scripts/sandbox-setup.sh <your-name>   # e.g., ./scripts/sandbox-setup.sh mark
+
+# 2. Deploy all stacks
+SANDBOX_NAME=<your-name> yarn sandbox:deploy
+
+# 3. Teardown when done (destroys all resources)
+./scripts/sandbox-teardown.sh <your-name>
+```
+
+#### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `./scripts/sandbox-setup.sh <name> [base-env]` | Copy SSM configs and secrets from base environment (default: dev) |
+| `./scripts/sandbox-teardown.sh <name>` | Destroy CDK stacks, delete SSM params and secrets |
+| `./scripts/sandbox-edit-config.sh <name> <stack>` | Edit a specific stack's config via $EDITOR |
+| `yarn sandbox:synth` | CDK synth with SANDBOX_NAME env var |
+| `yarn sandbox:deploy` | CDK deploy with SANDBOX_NAME env var |
+| `yarn sandbox:destroy` | CDK destroy with SANDBOX_NAME env var |
+
+#### Resource Naming
+
+Sandbox resources follow the pattern: `{AppName}-{BaseEnv}-{SandboxName}-{StackName}`
+
+Example with `sandboxName=mark` on `dev`:
+- Stack: `ReserveRecApi-Dev-Mark-CoreStack`
+- DynamoDB: `ReserveRecApi-Dev-Mark-ReferenceDataStack-ReferenceDataTable`
+- SSM Paths: `/reserveRecApi/dev-mark/coreStack/config`
+
+#### Full Stack Deployment
+
+To deploy a complete sandbox environment across all three repositories:
+
+```bash
+# Setup (run once per sandbox)
+cd reserve-rec-api && ./scripts/sandbox-setup.sh <name>
+cd ../reserve-rec-admin && ./scripts/sandbox-setup.sh <name>
+cd ../reserve-rec-public && ./scripts/sandbox-setup.sh <name>
+
+# Deploy (API must be deployed first)
+cd reserve-rec-api && SANDBOX_NAME=<name> yarn sandbox:deploy
+cd ../reserve-rec-admin && SANDBOX_NAME=<name> yarn sandbox:deploy
+cd ../reserve-rec-public && SANDBOX_NAME=<name> yarn sandbox:deploy
+
+# Teardown
+cd reserve-rec-api && ./scripts/sandbox-teardown.sh <name>
+cd ../reserve-rec-admin && ./scripts/sandbox-teardown.sh <name>
+cd ../reserve-rec-public && ./scripts/sandbox-teardown.sh <name>
+```
+
+#### Cost Considerations
+
+Each sandbox creates dedicated AWS resources including:
+- OpenSearch domain (~$80-100/month idle)
+- DynamoDB tables
+- Lambda functions
+- Cognito user pools
+- CloudFront distributions
+
+**Important:** Always teardown sandboxes when not in use to avoid unnecessary costs.
+
+#### Customizing Configuration
+
+After setup, you can customize stack configs before deploying:
+
+```bash
+# Edit a specific stack's config
+./scripts/sandbox-edit-config.sh <name> coreStack
+
+# Or manually edit the SSM parameter
+aws ssm get-parameter --name "/reserveRecApi/dev-<name>/coreStack/config" --query "Parameter.Value" --output text | jq .
+```
+
 
 ## 🏗️ CDKProject Architecture
 
