@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'docs/mkdocs/**'
+      - 'docs/mkdocs/mkdocs.yml'
 
   workflow_dispatch:
 
@@ -30,5 +31,6 @@ jobs:
           pip install mkdocs-material
 
       - name: Build and deploy
+        working-directory: docs/mkdocs
         run: |
-          cd docs/mkdocs/ && mkdocs gh-deploy --force
+          mkdocs gh-deploy --force
