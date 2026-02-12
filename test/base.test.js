@@ -39,21 +39,6 @@ describe('Base Layer Tests', () => {
       expect(body.other2).toBe(2);
     });
 
-    it('should handle guestSub in headers', () => {
-      const response = sendResponse(200, {}, 'Success', null, null, { guestSub: 'guest123' });
-      expect(response.headers['x-guest-sub']).toBe('guest123');
-      const body = JSON.parse(response.body);
-      expect(body.guestSub).toBeUndefined();
-    });
-
-    it('should handle guestSub with other fields', () => {
-      const response = sendResponse(200, {}, 'Success', null, null, { guestSub: 'guest456', extra: 'data' });
-      expect(response.headers['x-guest-sub']).toBe('guest456');
-      const body = JSON.parse(response.body);
-      expect(body.guestSub).toBeUndefined();
-      expect(body.extra).toBe('data');
-    });
-
     it('should include CORS headers', () => {
       const response = sendResponse(200, {}, 'Success', null, null);
       expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
@@ -109,33 +94,30 @@ describe('Base Layer Tests', () => {
       expect(claims.email).toBe('test@example.com');
     });
 
-    it('should generate guest sub when authorizer is missing', () => {
-      const event = {
-        requestContext: {}
-      };
-      const claims = getRequestClaimsFromEvent(event);
-      expect(claims.sub).toMatch(/^guest-/);
-    });
-
-    it('should generate guest sub when requestContext is missing', () => {
-      const event = {};
-      const claims = getRequestClaimsFromEvent(event);
-      expect(claims.sub).toMatch(/^guest-/);
-    });
-
-    it('should reuse guest sub from Authorization header', () => {
+    it('should return null when authorizer indicates unauthenticated', () => {
       const event = {
         requestContext: {
           authorizer: {
             isAuthenticated: false
           }
-        },
-        headers: {
-          Authorization: 'Guest guest-existing-uuid'
         }
       };
       const claims = getRequestClaimsFromEvent(event);
-      expect(claims.sub).toBe('guest-existing-uuid');
+      expect(claims).toBeNull();
+    });
+
+    it('should return null when authorizer is missing', () => {
+      const event = {
+        requestContext: {}
+      };
+      const claims = getRequestClaimsFromEvent(event);
+      expect(claims).toBeNull();
+    });
+
+    it('should return null when requestContext is missing', () => {
+      const event = {};
+      const claims = getRequestClaimsFromEvent(event);
+      expect(claims).toBeNull();
     });
 
     it('should construct claims from new context format', () => {
