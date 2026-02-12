@@ -22,9 +22,15 @@ A collection may include:
 
 Collections are not a schema or entity (yet) — they’re labels used to group related reference data so the system can reason about an experience domain consistently.
 
+### Example Collection Showing Discovery Elements
+
 ![Collections](../images/simple_collection.png){ align=center }
 
-## [Important Datatypes](../datatypes/)
+### Example Collection Showing Complex Relationships Between Datatypes
+
+![Experience](../images/complex_collection.png){ align=center }
+
+## Important Datatypes
 - [Geozones](../datatypes/geozones.md) - defined spatial boundaries that group assets or regions together so products, rules, and availability can be applied consistently across a specific geographic area.
 - [Facilities](../datatypes/facilities.md) - specific, physical elements that describe real-world infrastructure or natural features that visitors interact with directly.
 - [Activities](../datatypes/activities.md) - generalized recreational opportunities - such as camping or trail use - that describe what experiences are potentially available to visitors at specific locations without factoring in when they are actually available or which reservation policies apply.
@@ -41,6 +47,47 @@ Collections are not a schema or entity (yet) — they’re labels used to group 
 - [(Protected areas)](../datatypes/geozones.md#protected-areas) - a legacy datatype representing a legally-defined park unit, represented in this model as a specialized geozone rather than its own datatype.
 
 ![Base Model](../images/base_model.png){ align=center }
+
+```mermaid
+---
+config:
+   flowchart:
+      curve: basis
+---
+
+flowchart TD
+
+classDef geozone fill:yellow,color:black
+classDef facility fill:blue,color:white
+classDef activity fill:red,color:white
+classDef product fill:purple,color:white
+classDef asset fill:skyblue,color:black
+classDef productDate fill:magenta,color:white
+classDef policy fill:turquoise,color:black
+classDef inventory fill:orange,color:black
+classDef booking fill:lime,color:black
+classDef bookingDate fill:green,color:white
+classDef user fill:teal,color:white
+classDef transaction fill:olive,color:white
+
+
+
+<!-- A[Geozones]:::geozone <--> B[Facilities]:::facility & C[Activity]:::activity
+B <--> C
+D --> F[ProductDate]:::productDate
+G[Policies]:::policy ---> D & F
+C ----> D[Product]:::product
+B ------> E[Asset]:::asset
+F --- H[Inventory]:::inventory
+E --> H
+D -----> I[Booking]:::booking
+J[BookingDate]:::bookingDate --> I
+H ---> J
+F ---> J
+K[Transaction]:::transaction --> I
+L[User]:::user ---> I
+L -->K
+``` -->
 
 ## [The Five Contexts of Every Experience](../contexts/data-contexts.md)
 Every experience in the system is described through five independent “contexts.” Each context answers a different question:

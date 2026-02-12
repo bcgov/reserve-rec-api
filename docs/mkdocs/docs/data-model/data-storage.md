@@ -15,6 +15,8 @@ The partition key identifies a **logical grouping** of related items.
 
 It should always begin with the **schema name** of the datatype the `pk` identifies.
 
+It should aim to be **human-guessable** and **predictable** to support debugging and manual queries.
+
 Additional scoping properties should be appended when needed. For example, the `collectionId` is the backbone that groups experiences together logically. Appending `collectionId` will scope the partition to focus on items related by `collectionId`.
 
 ```js
@@ -26,6 +28,8 @@ pk: geozone::bcparks_1
 The sort key uniquely identifies an item **within** a partition.
 
 It should be concise, predictable, and structured to support efficient queries.
+
+It should aim to be **human-guessable** and **predictable** to support debugging and manual queries.
 
 General sk rules:
 * If the number of items in a partition is **unbounded**

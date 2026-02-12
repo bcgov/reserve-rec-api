@@ -16,6 +16,16 @@ Administrators set up and configure the various contexts that define the offerin
 
 ## Configuring the Spatial Context
 
+```mermaid
+flowchart LR
+
+    A[Admin defines a Collection] --> B[Admin creates Geozones] & C[Admin creates Facilities] & D[Admin creates Activities]
+    B --> E[Linked Geospatially] & F["Linked explicitly (optional)"]
+    C --> E
+    C --> F
+    D --> F
+```
+
 Admins define the spatial context by creating and managing geozones, facilities, activities and other spatial concepts. This helps public users in the [Discovery Phase](public-user-journey-phases.md#discovery-phase) understand where experiences are located and what spatial boundaries apply.
 
 ## Configuring the Experience Context
@@ -25,6 +35,13 @@ Admins create and manage experience definitions through Policies, Products, and 
 Ideally, admins will curate an experience long before it is intended to be discoverable by the public. This allows ample time to configure the spatial, experience, temporal, and governance contexts in a way that creates a seamless and intuitive user journey when the experience is eventually released. The system is optimized for this workflow - the bulk of the work happens upfront and ahead of time, such that the runtime public user experience is fast and intuitive, without any need for complex decisioning or configuration at the moment of booking.
 
 ### Creating an Experience
+
+```mermaid
+flowchart LR
+    A[Admin creates a Product] --> B[Admin seeds ProductDates]
+    B --> C[Admin tweaks ProductDates with date-specific details and rules]
+    C --> D[Admin seeds Inventory for ProductDates]
+```
 
 In the beginning of the public user Alignment Phase, public user are matching their experience intent with the available offerings. From a single Activity (experience), administrators can create multiple Products that represent different ways to obtain that experience (offerings). Each Product is a self-contained offering with its own suite of rules and parameters. This allows administrators to create a variety of offerings around a single experience, each with different rules, availability, and constraints.
 
@@ -68,6 +85,14 @@ At the end of this stage, the Product item is created, which serves as the paren
 
 #### Admin seeds ProductDates
 
+```mermaid
+flowchart LR
+  A[Product] ---> B[ProductDate 1] & C[ProductDate 2] & D[ProductDate 3]
+  B --> E[AvailabilitySignal 1]
+  C --> F[AvailabilitySignal 2]
+  D --> G[AvailabilitySignal 3]
+```
+
 Once the Product is created, administrators can trigger a ProductDate seed. This action generates one ProductDate item for each date between the `rangeStart` and `rangeEnd` defined on the Product. Each ProductDate inherits key properties from the parent Product and resolves any time-dependent values that are needed for Inventory seeding and vistor discovery/reservation.
 
 - Each ProductDate inherits the partition key and sort key from from the parent Product, which is used to construct the partition key for the ProductDate and its related items.
@@ -96,6 +121,11 @@ At the end of this stage, the offering is comprised of a Product item that defin
 
 #### ProductDate Enhancements and Adjustments
 
+```mermaid
+flowchart LR
+  A[Seeded ProductDate] -->|Administrator makes changes| B[Updated ProductDate with date-specific details and rules]
+```
+
 After the initial ProductDate seeding, administrators can make changes to the ProductDate details as needed. This includes updating the list of Assets and their daily available quantities, changing time-dependent reservation/booking/fee policies, and other date-specific details.
 
 The following properties can be updated during this stage:
@@ -108,11 +138,28 @@ At the end of this stage, the offering is fully defined. No changes to Product-l
 
 #### Administrators seed Inventory
 
+```mermaid
+flowchart LR
+  A[ProductDate] --> B[Inventory for Asset 1 on date]
+  A --> C[Inventory for Asset 2 on date]
+  A --> D[Inventory for Asset 3 on date]
+```
+
 The final stage of experience creation is seeding Inventory for the ProductDates. This involves creating Inventory items for each Asset governed by the Product, for each ProductDate. Each Inventory item represents the intersection of a specific date and the quantity of a specific Asset that is available on that date.
 
 At the end of this stage, the offering is fully available for discovery and reservation by visitors. The Product and ProductDate items define the details of the offering, while the Inventory items define the specific availability of each Asset on each date. The AvailabilitySignal items are used to track changes in availability for each ProductDate, allowing the system to maintain up-to-date availability information for visitors during discovery and reservation.
 
 See [public Alignment Phase](public-user-journey-phases.md#alignment-phase) for how these schemas are used in the public user journey.
+
+**Final Layout**
+
+```mermaid
+flowchart LR
+  A[Product] --> b[ProductDate 1] & c[ProductDate 2] & d[ProductDate 3]
+  b[ProductDate 1] --> e[Inventory for Asset 1 on date] & f[Inventory for Asset 2 on date] & g[Inventory for Asset 3 on date]
+  c[ProductDate 2] --> h[Inventory for Asset 1 on date] & i[Inventory for Asset 2 on date] & j[Inventory for Asset 3 on date]
+  d[ProductDate 3] --> k[Inventory for Asset 1 on date] & l[Inventory for Asset 2 on date] & m[Inventory for Asset 3 on date]
+```
 
 ## Operational Management
 

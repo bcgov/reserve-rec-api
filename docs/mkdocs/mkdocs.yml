@@ -29,7 +29,11 @@ markdown_extensions:
   - attr_list
   - toc:
       permalink: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
   - pymdownx.details
   - pymdownx.highlight
   - pymdownx.inlinehilite
@@ -43,6 +47,11 @@ markdown_extensions:
   - pymdownx.magiclink
   - pymdownx.tasklist
   - pymdownx.emoji
+
+extra:
+  mermaid2:
+    arguments:
+      config: docs/mkdocs/mermaid-config.json
 
 
 nav:
