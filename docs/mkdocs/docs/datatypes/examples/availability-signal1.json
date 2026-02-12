@@ -1,0 +1,15 @@
+{
+  "pk": "availabilitySignal::mockPark1::backcountryCamp::1::1",
+  "sk": "2026-07-01",
+  "schema": "availabilitySignal",
+  "globalId": "c7e8b2c1-5f3a-4e9d-9a2f-8b7e4d2a1f3b",
+  "value": "high",
+  "lastUpdatedAt": "2026-06-30T12:00:00.000Z",
+  "availabilityEstimationPattern": {
+    "estimationMode": "exact",
+    "cadence": {
+      "minutes": 5
+    }
+  },
+  "expiry": "2026-07-02T00:00:00.000Z"
+}
