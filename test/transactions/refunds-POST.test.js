@@ -246,7 +246,7 @@ describe("Transaction Refund POST handler", () => {
     expect(result.message).toContain("Unauthorized");
   });
 
-  it ("should (for now) throw an error if the user is anonymous", async () => {
+  it ("should throw an error if the user is anonymous (guest checkout not allowed)", async () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
       transactionStatus: "paid",

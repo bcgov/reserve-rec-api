@@ -16,13 +16,19 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is required", { code: 400 });
     }
 
-    const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId || body?.collectionId;
-    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || body?.activityType;
-    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || body?.activityId;
-    const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
+  const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId || body?.collectionId;
+  const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || body?.activityType;
+  const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || body?.activityId;
+  const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
-    const claims = getRequestClaimsFromEvent(event);
-    body['userId'] = claims?.sub;
+  const claims = getRequestClaimsFromEvent(event);
+  
+  // Reject unauthenticated users - authentication required for booking creation
+  if (!claims || !claims.sub) {
+    throw new Exception("Authentication required to create a booking", { code: 401 });
+  }
+  
+  body['userId'] = claims.sub;
 
     // Validate required parameters
     const missingParams = [];
@@ -55,13 +61,7 @@ exports.handler = async (event, context) => {
       booking: postRequests,
     }
 
-    // If this is a guest user, prepare the response with guest sub header
-    const responseOptions = {};
-    if (body.userId && body.userId.startsWith('guest-')) {
-      responseOptions.guestSub = body.userId;
-    }
-
-    return sendResponse(200, response, "Success", null, context, responseOptions);
+    return sendResponse(200, response, "Success", null, context);
 
   } catch (error) {
     logger.error("Booking creation error:", error);

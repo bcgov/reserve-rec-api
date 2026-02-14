@@ -66,27 +66,15 @@ const sendResponse = function (code, data, message, error, context, other = null
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Headers":
-      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,x-guest-sub",
+      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
-    "Access-Control-Allow-Credentials": true,
-    "Access-Control-Expose-Headers": "x-guest-sub"
+    "Access-Control-Allow-Credentials": true
   };
   
-  // If other fields are present, process them
+  // If other fields are present, add them to body
   if (other) {
-    // Extract guestSub if present and add to headers
-    if (other.guestSub) {
-      headers['x-guest-sub'] = other.guestSub;
-      // Remove guestSub from other so it doesn't get added to body
-      const { guestSub, ...remainingOther } = other;
-      if (Object.keys(remainingOther).length > 0) {
-        body = Object.assign(body, remainingOther);
-      }
-    } else {
-      // No guestSub, just add all fields to body
-      body = Object.assign(body, other);
-    }
+    body = Object.assign(body, other);
   }
   
   const response = {
@@ -202,18 +190,9 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
 
 function getRequestClaimsFromEvent(event) {
   try {
-    // Check Authorization header for guest or JWT token
+    // Check Authorization header for JWT token
     const authHeader = event.headers?.Authorization || event.headers?.authorization;
     if (authHeader) {
-      // Check for Guest authorization format: "Guest guest-{uuid}"
-      if (authHeader.startsWith('Guest ')) {
-        const guestSub = authHeader.substring(6).trim(); // Remove "Guest " prefix
-        if (guestSub && guestSub.startsWith('guest-')) {
-          logger.info('Reusing guest sub from Authorization header:', guestSub);
-          return { sub: guestSub };
-        }
-      }
-      
       // Try to decode as JWT (Bearer token for authenticated users)
       const token = authHeader.replace('Bearer ', '');
       try {
@@ -238,30 +217,9 @@ function getRequestClaimsFromEvent(event) {
       const isAuthenticated = authContext.isAuthenticated === 'true' || authContext.isAuthenticated === true;
       
       if (!isAuthenticated) {
-        // Guest user - check if we already have a guest UUID, otherwise generate one
-        logger.info('guest user detected from authorizer context');
-        
-        // Check Authorization header for existing guest UUID
-        authHeader = event.headers?.Authorization || event.headers?.authorization;
-        if (authHeader && authHeader.startsWith('Guest ')) {
-          const guestSub = authHeader.substring(6).trim();
-          if (guestSub && guestSub.startsWith('guest-')) {
-            logger.info('Reusing guest sub from Authorization header:', guestSub);
-            return { sub: guestSub };
-          }
-        }
-        
-        // Check x-guest-sub header
-        const existingGuestSub = event.headers?.['x-guest-sub'] || event.headers?.['X-Guest-Sub'];
-        if (existingGuestSub && existingGuestSub.startsWith('guest-')) {
-          logger.info('Reusing existing guest sub from x-guest-sub header:', existingGuestSub);
-          return { sub: existingGuestSub };
-        }
-        
-        // Generate new guest identifier
-        logger.info('Generating new guest user identifier');
-        const uuid = crypto.randomUUID();
-        return { sub: `guest-${uuid}` };
+        // Unauthenticated user - no guest access allowed for bookings
+        logger.info('Unauthenticated user detected from authorizer context - no claims available');
+        return null;
       }
       
       // Authenticated user - return claims from context or claims object
@@ -281,17 +239,9 @@ function getRequestClaimsFromEvent(event) {
       }
     }
 
-    // Check if guest sub is provided in x-guest-sub header (alternative method)
-    const existingGuestSub = event.headers?.['x-guest-sub'] || event.headers?.['X-Guest-Sub'];
-    if (existingGuestSub && existingGuestSub.startsWith('guest-')) {
-      logger.info('Reusing existing guest sub from x-guest-sub header:', existingGuestSub);
-      return { sub: existingGuestSub };
-    }
-
-    // No authentication found - generate new guest identifier
-    logger.info('No authentication found - generating new guest user identifier');
-    const uuid = crypto.randomUUID();
-    return { sub: `guest-${uuid}` };
+    // No authentication found
+    logger.info('No authentication found - no claims available');
+    return null;
   } catch (error) {
     logger.error(`Error retrieving request claims: ${error.message}`);
     return null;
