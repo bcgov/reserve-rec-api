@@ -1,0 +1,1930 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../assets/">
+      
+      
+        <link rel="next" href="../bookings/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Inventory - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#inventory" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Inventory
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#types-of-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Types of Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types of Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed Inventory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flex-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flex Inventory
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inventory-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inventory Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#seeding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Seeding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery-and-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and Alignment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commitment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commitment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retirement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returning-inventory-to-the-availability-pool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Returning Inventory to the Availability Pool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reseeding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reseeding
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="inventory">Inventory<a class="headerlink" href="#inventory" title="Permanent link">&para;</a></h1>
+<p>Inventory represents the most granular, indivisible unit of an offering. It is the smallest unit of availability that can be claimed by exactly one user at a time.</p>
+<p>It always corresponds to:
+- A specific date (e.g., May 1, 2026)
+- A specific Asset (e.g., Campsite A)</p>
+<p>This makes Inventory the foundation of the reservation system's concurrency model.</p>
+<h2 id="types-of-inventory">Types of Inventory<a class="headerlink" href="#types-of-inventory" title="Permanent link">&para;</a></h2>
+<p>Inventory comes in two forms, <em>fixed</em> and <em>flex</em>, inherited from the Asset they represent. This distinction determines how the basic rules of how Inventory is allocated and reserved.</p>
+<h3 id="fixed-inventory">Fixed Inventory<a class="headerlink" href="#fixed-inventory" title="Permanent link">&para;</a></h3>
+<p>Fixed Inventory corresponds to Assets that have a fixed, inflexible limit of discrete units. Fixed Inventory typically refers to a specific physical Asset (e.g. Campsite A). If a user's Booking covers multiple days, they will be allocated multiple units of Inventory, but in the case of a fixed Asset, each Inventory unit <em>must</em> correspond to the same Asset (e.g. Campsite A on May 1, 2026, Campsite A on May 2, 2026, etc.). Pools of fixed Inventory can represent many Assets per day, but must have at most one unit of Inventory per Asset per date.</p>
+<h3 id="flex-inventory">Flex Inventory<a class="headerlink" href="#flex-inventory" title="Permanent link">&para;</a></h3>
+<p>Flex Inventory corresponds to Assets that have a flexible limit of units that can be allocated. Flex Inventory typically refers to conceptual Assets (e.g., "trail passes"). There is no requirement that multiple units of Flex Inventory allocated to a single Booking correspond to the same Asset. For example, if a user's Booking covers multiple days, they may be allocated different units of Flex Inventory for each day (e.g., Trail Pass for May 1, 2026, Trail Pass for May 2, 2026, etc.). Pools of flex Inventory can represent at most one Asset per day, but can have many units of Inventory per Asset per date.</p>
+<p>A Booking may have multiple units of Inventory allocated to it, but all units of Inventory allocated to a single Booking must refer to the same Asset. This means that a Booking cannot be allocated both fixed and flex Inventory, since they correspond to different Assets.</p>
+<h2 id="inventory-lifecycle">Inventory Lifecycle<a class="headerlink" href="#inventory-lifecycle" title="Permanent link">&para;</a></h2>
+<p>Inventory provides the clearest, most accurate representation of availability for a Product on a specific date. Any availability check, whether for a single date or an entire season, ultimately depends on the state of the underlying Inventory.</p>
+<p>Products and ProductDates, configured by system administrators, define the operational scaffolding from which Inventory is generated. Administrators determine how far into the future they want the system to support Bookings, configure the Product and ProductDates accordingly, and then run a generation script that seeds Inventory for that window.</p>
+<p>Ideally, this generation process occurs well before the public begins browsing or reserving, and is rarely, if ever, re-run. Without pre‑seeded Inventory, the system has nothing to allocate, and users may encounter gaps or degraded functionality.</p>
+<p>Determining how far into the future to seed Inventory is a balance between operational overhead and user experience. Seeding too little Inventory means more frequent generation, which can be operationally burdensome and may introduce availability gaps if not managed carefully. Seeding too much Inventory may lead to wasted resources if Products or ProductDates change their operational details, necessitating Inventory adjustments.</p>
+<p>Inventory acts as the allocation state machine for the system. Inventory can occupy the following states:</p>
+<ul>
+<li><strong>Available</strong> - This Inventory unit is available to be reserved by users. It has not yet been claimed by any user, and can be allocated to a Booking if the user meets all necessary requirements.</li>
+<li><strong>Held</strong> - This Inventory unit has been claimed by a user and allocated to their Booking. It is no longer available for other users to reserve, but the user has not yet completed the booking process (e.g., payment).</li>
+<li><strong>Reserved</strong> - This Inventory unit has been claimed by a user, allocated to their Booking, and the user has completed the booking process (e.g., payment). It is no longer available for other users to reserve.</li>
+<li><strong>Releasing</strong> - This Inventory unit was previously reserved, but is now in the process of being returned or exchanged by the user. For validation purposes, the Inventory cannot be considered part of the user's active reservation anymore, but also cannot yet be made available to other users until the release process is complete, in case the return fails.</li>
+</ul>
+<p>The phases of this state machine are:</p>
+<ul>
+<li><strong>Seeding</strong></li>
+<li><strong>Discovery and Alignment</strong></li>
+<li><strong>Commitment</strong></li>
+<li><strong>Retirement</strong></li>
+</ul>
+<h2 id="seeding">Seeding<a class="headerlink" href="#seeding" title="Permanent link">&para;</a></h2>
+<p>Inventory is generated through a seeding process that creates Inventory units based on the configuration of Products and ProductDates. This process is typically run by administrators and should occur well before users begin browsing or reserving, and involves iterating through the configured Products and ProductDates, determining the corresponding Assets, and creating Inventory units for each combination of ProductDate and Asset according to the allocation type (fixed or flex). Each Inventory unit is initialized with the appropriate properties, such as allocation status (initially Available), references to the corresponding ProductDate and Asset, and a unique identifier. After seeding, the Inventory is ready to be allocated to users as they make reservations - but its discoverablity and allocability will depend on the specific configuration of the Product and ProductDate it corresponds to.</p>
+<h2 id="discovery-and-alignment">Discovery and Alignment<a class="headerlink" href="#discovery-and-alignment" title="Permanent link">&para;</a></h2>
+<p>Users discover Inventory through the offerings presented to them as they browse, however, users only interact directly with Inventory when they request to claim it. Before requesting, ProductDates ensure the user is informed regarding what Inventory they are requesting and the estimated availability of that Inventory. When a user makes a request to claim Inventory, the system checks for Available Inventory that matches the user's desired Product and date(s), and if the user meets all necessary requirements, transitions the Inventory to Held, instantiates a Booking and allocates the Inventory to that Booking.</p>
+<p>From the Held state, the user can complete the reservation process, which transitions the Inventory to Reserved. If the user fails to complete the reservation process within a certain timeframe, or if they abandon their reservation, the Inventory can be transitioned back to Available, making it discoverable and allocable to other users again.</p>
+<h2 id="commitment">Commitment<a class="headerlink" href="#commitment" title="Permanent link">&para;</a></h2>
+<p>When a user completes the reservation process (e.g., payment), the system transitions the allocated Inventory from Held to Reserved, marking it as officially claimed by the user. It will remain in this state forever, or until the user initiates a return or exchange, at which point it will transition to Releasing.</p>
+<h2 id="retirement">Retirement<a class="headerlink" href="#retirement" title="Permanent link">&para;</a></h2>
+<p>If the Inventory is unclaimed and the date associated with the Inventory passes, or the Asset it corresponds to is decommissioned, or if any of the underlying Product or ProductDate configurations change in a way that invalidates the Inventory, it is retired. Retiring Inventory typically involves scuttling it, removing it from the system, or marking it as inactive, ensuring it is no longer available for reservation.</p>
+<h2 id="returning-inventory-to-the-availability-pool">Returning Inventory to the Availability Pool<a class="headerlink" href="#returning-inventory-to-the-availability-pool" title="Permanent link">&para;</a></h2>
+<p>Every time Inventory transitions back to Available, it must be validated to ensure it can be returned to the availability pool. This involves checking that the Inventory's date has not yet passed, that the corresponding Asset is still active, and that the underlying Product and ProductDate configurations have not changed. If any of these checks fail, the Inventory cannot be returned to the availability pool, and must instead be retired.</p>
+<p>Inventory that has been 'spent', that is, reserved and then used (e.g., the user checked in to their campsite on the reserved date), is implicitly retired, as it cannot be returned to the availability pool.</p>
+<h2 id="reseeding">Reseeding<a class="headerlink" href="#reseeding" title="Permanent link">&para;</a></h2>
+<p>Sometimes the governing strucutre of a Product or ProductDate changes after Inventory has already been seeded. For example, the Asset that a ProductDate references may change, or the allocation type of that Asset may change, which would invalidate the existing Inventory. In these cases, the affected Available Inventory must be scuttled and re-seeded according to the new configuration. Fully allocated Inventory (Reserved) must remain untouched, so re-seeding processes must this in. This process is operationally intensive and can lead to availability gaps if not managed carefully.</p>
+<h1 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h1>
+<h2 id="inventory_1">Inventory<a class="headerlink" href="#inventory_1" title="Permanent link">&para;</a></h2>
+<p>As Inventory's primary purpose is concurrency control, it has relatively few properties. Policies governing how Inventory is allocated and reserved are defined at the Product and ProductDate level, but Inventory itself only has properties that are necessary for reference and for enforcing concurrency.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td>"inventory::\<collectionId>::\<activityType>::\<activityId>::\<productId>::\<date>"</td>
+<td>Identifying the Inventory pool for a specific Product on a specific date</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td>"asset::\<collectionId>::\<facilityType>::\<facilityId>::\<assetType>::\<assetId>::\<inventoryId>"</td>
+<td>Identifying the specific Asset within the Inventory pool</td>
+</tr>
+<tr>
+<td><code>gsipk</code></td>
+<td>String</td>
+<td>Global secondary index partition key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>gsisk</code></td>
+<td>String</td>
+<td>Global secondary index sort key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type/Schema</td>
+<td>"inventory"</td>
+<td>Identifying that this item is "inventory"</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique UUID</td>
+<td>Automatically generating on Inventory seed</td>
+<td>Searching for this specific item using the <code>globalId</code> GSI</td>
+</tr>
+<tr>
+<td><code>inventoryId</code></td>
+<td>String</td>
+<td>Unique identifier for the Inventory unit (for fixed inventory this will always be 1)</td>
+<td>Auto-generated on Inventory seed</td>
+<td>Distinguishing this Inventory unit from others in the same pool (fixed assets inherently do this already, but flex assets do not)</td>
+</tr>
+<tr>
+<td><code>allocationType</code></td>
+<td>String</td>
+<td>The allocation type of this Inventory unit, either "fixed" or "flex"</td>
+<td>Referenced Asset</td>
+<td>Determining how this Inventory unit can be allocated</td>
+</tr>
+<tr>
+<td><code>assetRef</code></td>
+<td>PrimaryKey</td>
+<td>Reference to the Asset that this Inventory unit corresponds to</td>
+<td>Referenced Asset</td>
+<td>Identifying which Asset this Inventory unit is associated with</td>
+</tr>
+<tr>
+<td><code>assetVersion</code></td>
+<td>String</td>
+<td>The version of the Asset at the time this Inventory unit was seeded</td>
+<td>Referenced Asset</td>
+<td>Ensuring consistency between the Inventory unit and the Asset it is associated with</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>Date</td>
+<td>The calendar date that this Inventory unit is available for reservation</td>
+<td>Referenced ProductDate</td>
+<td>Identifying which date this Inventory unit is associated with</td>
+</tr>
+<tr>
+<td><code>productDateRef</code></td>
+<td>PrimaryKey</td>
+<td>Reference to the ProductDate that this Inventory unit is available for reservation</td>
+<td>Referenced ProductDate</td>
+<td>Identifying which ProductDate this Inventory unit is associated with</td>
+</tr>
+<tr>
+<td><code>productDateVersion</code></td>
+<td>String</td>
+<td>The version of the ProductDate at the time this Inventory unit was seeded</td>
+<td>Referenced ProductDate</td>
+<td>Ensuring consistency between the Inventory unit and the ProductDate it is associated with</td>
+</tr>
+<tr>
+<td><code>allocationStatus</code></td>
+<td>String</td>
+<td>The allocation status of this Inventory unit, either "available", "reserved", "held", "releasing"</td>
+<td>Current Inventory allocation state</td>
+<td>Determining whether this unit is available to be reserved, or already claimed</td>
+</tr>
+<tr>
+<td><code>createdAt</code></td>
+<td>Timestamp</td>
+<td>The timestamp when this Inventory unit was created</td>
+<td>Automatically generating on Inventory seed</td>
+<td>Tracking when this Inventory unit was created</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory::mockPark1::backcountryCamp::1::1::2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1::tentPad::6::1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;globalId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;c8e7a2b7-6f3d-4e2a-9c8a-2f1b7d8e5a4c&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;inventoryId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;assetRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::6&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;productDateRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;productDate::mockPark1::backcountryCamp::1::1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;productDateVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;allocationStatus&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;available&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;createdAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-12-01T12:00:00Z&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../assets/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assets">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Assets
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../bookings/" class="md-footer__link md-footer__link--next" aria-label="Next: Bookings">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Bookings
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

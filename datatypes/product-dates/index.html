@@ -1,0 +1,2278 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../products/">
+      
+      
+        <link rel="next" href="../availability-signals/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>ProductDates - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#productdate" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ProductDates
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#productdates-as-system-governance-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProductDates as System Governance Modules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="productdate">ProductDate<a class="headerlink" href="#productdate" title="Permanent link">&para;</a></h1>
+<p>A ProductDate represents a specific offering of a Product on a particular date. Each ProductDate is associated with a single Product, and inherits properties from the parent Product while also allowing for overrides at the ProductDate level. This allows for flexible management of offerings that may have different availability, reservation policies, booking policies, fee policies, or change policies on different dates.</p>
+<h2 id="productdates-as-system-governance-modules">ProductDates as System Governance Modules<a class="headerlink" href="#productdates-as-system-governance-modules" title="Permanent link">&para;</a></h2>
+<p>ProductDates are where the system enforces time-dependent rules and policies that govern how users can interact with offerings on specific dates. For each date that a Product is offered, the corresponding ProductDate captures specifically how that offering will behave on that date. This includes:</p>
+<ul>
+<li>When the specific date of the offering is discoverable to users</li>
+<li>When the specific date of the offering can be reserved by users</li>
+<li>If the date is the user's arrival date, when they can check in</li>
+<li>If the date is the user's departure date, when they can check out</li>
+<li>If the date is the user's arrival date, when the cutoffs for making or changing/cancellations to reservations are</li>
+<li>If the date is the user's arrival date, when the cutoff before no-shows is</li>
+<li>When the specific date of the offering incurs a booking restriction and changes are permanently disallowed</li>
+<li>The estimated availability for booking on that date</li>
+<li>The specific assets allocated for that date</li>
+</ul>
+<h1 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h1>
+<h2 id="productdate_1">ProductDate<a class="headerlink" href="#productdate_1" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td>productDate::<code>collectionId</code>::<code>activityType</code>::<code>activityId</code>::<code>productId</code></td>
+<td>Searching for all ProductDates related to a specific Product.</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td><code>date</code></td>
+<td>Searching for a specific ProductDate related to a specific Product (disambiguated by date)</td>
+</tr>
+<tr>
+<td><code>gsipk</code></td>
+<td>String</td>
+<td>Global secondary index partition key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>gsisk</code></td>
+<td>String</td>
+<td>Global secondary index sort key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type/Schema</td>
+<td>"productDate"</td>
+<td>Identifying that this item is a "productDate"</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique UUID</td>
+<td>Automatically generating on ProductDate POST</td>
+<td>Searching for this specific item using the <code>globalId</code> GSI</td>
+</tr>
+<tr>
+<td><code>collectionId</code></td>
+<td>String</td>
+<td>The identifier of the collection this ProductDate belongs to</td>
+<td>Parent Product's <code>collectionId</code></td>
+<td>Determining which collection this ProductDate belongs to</td>
+</tr>
+<tr>
+<td><code>activityType</code></td>
+<td>String</td>
+<td>The identifier of the activity type this ProductDate belongs to</td>
+<td>Parent Product's <code>activityType</code></td>
+<td>Determining which activity type this ProductDate belongs to</td>
+</tr>
+<tr>
+<td><code>activityId</code></td>
+<td>String</td>
+<td>The identifier of the activity this ProductDate belongs to</td>
+<td>Parent Product's <code>activityId</code></td>
+<td>Determining which activity this ProductDate belongs to</td>
+</tr>
+<tr>
+<td><code>productId</code></td>
+<td>Number</td>
+<td>The unique identifier of the parent Product</td>
+<td>Parent Product's <code>productId</code></td>
+<td>Determining which specific Product within the <code>collectionId</code> that this ProductDate refers to</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>Date</td>
+<td>Calendar date uniquely identifying this ProductDate from other ProductDates with the same partition key</td>
+<td>Automatically generating  on ProductDate POST</td>
+<td>Distinguishing this ProductDate from other ProductDates with the same partition key</td>
+</tr>
+<tr>
+<td><code>displayName?</code></td>
+<td>String</td>
+<td>A human-readable name for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Providing a  human-readable title of the offering captured by this ProductDate (likely administrator facing)</td>
+</tr>
+<tr>
+<td><code>description?</code></td>
+<td>String</td>
+<td>Descriptive text explaining the operational meaning of this ProductDate</td>
+<td>Administrators on PUT/POST</td>
+<td>Providing a human-readable description of the offering captured by this ProductDate (may be used to explain how policies on this date differ from the parent Product)</td>
+</tr>
+<tr>
+<td><code>availabilitySignal</code></td>
+<td>PrimaryKey</td>
+<td>A reference to an AvailabilitySignal object containing an eventually-consistent estimate of the availability for booking on this date.</td>
+<td>Determined inherently from parent Product</td>
+<td>Providing a reference to an item containing estimate of availability for display to users or for internal planning</td>
+</tr>
+<tr>
+<td><code>allDatesBookedIntervalIds?</code></td>
+<td>[String]</td>
+<td>An array of DateInterval IDs representing periods of time where a Booking must contain all DateInterval dates if one date touches the DateInterval</td>
+<td>Parent Product</td>
+<td>Determining if a booking of this ProductDate must contain all dates within any of the defined date intervals if one of the dates in the booking touches any of the dates in the date interval</td>
+</tr>
+<tr>
+<td><code>assetList</code></td>
+<td>[AssetRef]</td>
+<td>A list of assetRefs allocated for this ProductDate.</td>
+<td>Derived from parent Product's <code>assetList</code> or overridden by administrators on PUT/POST</td>
+<td>Determining which assetRefs are allocated through this offering on this specific date, potentially overriding the parent Product's <code>assetList</code>.</td>
+</tr>
+<tr>
+<td><code>reservationPolicy</code></td>
+<td>ProductDateReservationPolicyRef</td>
+<td>Reference to the reservation policy that governs reservations of this ProductDate.</td>
+<td>Inherited from parent Product or overridden by administrators on PUT/POST</td>
+<td>Determining which reservation policy applies to reservations of this ProductDate, potentially overriding the parent Product's <code>reservationPolicy</code>.</td>
+</tr>
+<tr>
+<td><code>feePolicy</code></td>
+<td>ProductDateFeePolicyRef</td>
+<td>Reference to the fee policy that governs fees applied to bookings of this ProductDate.</td>
+<td>Inherited from parent Product or overridden by administrators on PUT/POST</td>
+<td>Determining which fee policy applies to bookings of this ProductDate, potentially overriding the parent Product's <code>feePolicy</code>.</td>
+</tr>
+<tr>
+<td><code>creationDate</code></td>
+<td>String</td>
+<td>ISO 8601 timestamp of when this item was created</td>
+<td>Administrators on POST</td>
+<td>Determining when this item was created</td>
+</tr>
+<tr>
+<td><code>lastUpdated</code></td>
+<td>String</td>
+<td>ISO 8601 timestamp of when this item was last updated</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining when this item was last updated</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>Number</td>
+<td>Version number for optimistic locking</td>
+<td>Automatically incremented on PUT/POST</td>
+<td>Ensuring that updates to this item do not overwrite more recent changes made by other processes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="availabilityestimate">AvailabilityEstimate<a class="headerlink" href="#availabilityestimate" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>availabilitySignalVersion</code></td>
+<td>Number</td>
+<td>The version number of the availability signal used to generate this estimate.</td>
+<td>Copied from the latest version of the AvailabilitySignal when updated</td>
+<td>Tracking which version of the availability signal was used to generate this estimate, which can be used to compare and determine when availability may have changed</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>String</td>
+<td>The type of availability estimate (e.g., "exact", "tiered")</td>
+<td>Derived from the <code>estimationMode</code> in the parent Product's <code>availabilityEstimationPattern</code></td>
+<td>Determining how to interpret the availability estimate for this ProductDate</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Number or String</td>
+<td>The value of the availability estimate, which could be a number (e.g., count of available items) or a string (e.g., "high", "medium", "low") depending on the <code>type</code></td>
+<td>Calculated based on the <code>estimationMode</code> and the logic defined in the availability estimation process</td>
+<td>Providing an estimate of availability for this ProductDate that can be used for display to users or for internal planning</td>
+</tr>
+<tr>
+<td><code>lastUpdated</code></td>
+<td>DateTime</td>
+<td>The timestamp of when this availability estimate was last updated.</td>
+<td>Automatically set when the availability estimate is recalculated</td>
+<td>Tracking the freshness of the availability estimate for this ProductDate</td>
+</tr>
+</tbody>
+</table>
+<h2 id="productdatereservationpolicyref">ProductDateReservationPolicyRef<a class="headerlink" href="#productdatereservationpolicyref" title="Permanent link">&para;</a></h2>
+<p>A ProductDateReservationPolicyRef defines a reference to a reservation policy that governs how reservations are made for this particular ProductDate. A ProductDateReservationPolicyRef will fully resolve rules that apply at the ProductDate level.</p>
+<p>The related ReservationPolicy is exclusively applied to this ProductDate when enforcing reservation rules. Therefore, the primary key of the ReservationPolicy can be inferred.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isDiscoverable</code></td>
+<td>Boolean</td>
+<td>Indicates whether this ProductDate is discoverable by users.</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining if this ProductDate should be visible to users during the booking process.</td>
+</tr>
+<tr>
+<td><code>isReservable</code></td>
+<td>Boolean</td>
+<td>Indicates whether this ProductDate can be reserved by users.</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining if users are allowed to make reservations for this ProductDate.</td>
+</tr>
+<tr>
+<td><code>minDailyInventory</code></td>
+<td>Number</td>
+<td>The minimum daily inventory that must be claimed by a user to initialize a Booking</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing minimum inventory requirements for reservations on this ProductDate.</td>
+</tr>
+<tr>
+<td><code>maxDailyInventory</code></td>
+<td>Number</td>
+<td>The maximum daily inventory that can be claimed by a user to initialize a Booking</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing maximum inventory limits for reservations on this ProductDate.</td>
+</tr>
+<tr>
+<td><code>temporalWindows</code></td>
+<td>ProductDateReservationTemporalWindows</td>
+<td>The temporal windows that govern when reservations can be made for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing time-based rules for when reservations can be made for this ProductDate.</td>
+</tr>
+<tr>
+<td><code>temporalAnchors</code></td>
+<td>ProductDateReservationTemporalAnchors</td>
+<td>The temporal anchors that define key time points for reservation rules on this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining the reference points for time-based reservation rules for this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="productdatereservationtemporalwindows">ProductDateReservationTemporalWindows<a class="headerlink" href="#productdatereservationtemporalwindows" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>discoveryWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The temporal window during which this ProductDate is discoverable by users.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing the time period when this ProductDate is visible to users.</td>
+</tr>
+<tr>
+<td><code>reservationWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The temporal window during which reservations can be made for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing the time period when reservations can be made for this ProductDate.</td>
+</tr>
+<tr>
+<td><code>restrictedBookingWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The temporal window during which reservations for this ProductDate incur a booking restriction and changes are permanently disallowed.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing the time period when reservations for this ProductDate cannot be changed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="productdatereservationtemporalanchors">ProductDateReservationTemporalAnchors<a class="headerlink" href="#productdatereservationtemporalanchors" title="Permanent link">&para;</a></h3>
+<p>A resolved temporal anchor is functionally equivalent to a specific timestamp, but is derived from dynamic inputs such as the check-in time of a reservation. This allows for more flexible and context-aware booking rules that can adapt based on the specifics of each reservation.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checkInAnchor</code></td>
+<td>TimeStamp</td>
+<td>The temporal anchor defining the check-in time for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Establishing the check-in time reference for arrivals on this ProductDate.</td>
+</tr>
+<tr>
+<td><code>checkOutAnchor</code></td>
+<td>TimeStamp</td>
+<td>The temporal anchor defining the check-out time for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Establishing the check-out time reference for departures on this ProductDate.</td>
+</tr>
+<tr>
+<td><code>noShowAnchor</code></td>
+<td>TimeStamp</td>
+<td>The temporal anchor defining the time after which a reservation for this ProductDate is considered a no-show.</td>
+<td>Administrators on PUT/POST</td>
+<td>Establishing the reference time for determining no-shows for arrivals this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="productdatepartypolicyref">ProductDatePartyPolicyRef<a class="headerlink" href="#productdatepartypolicyref" title="Permanent link">&para;</a></h2>
+<p>A ProductDatePartyPolicyRef defines a reference to a party policy that governs how parties are managed for this particular ProductDate. A ProductDatePartyPolicyRef will fully resolve rules that apply at the ProductDate level.</p>
+<p>The related PartyPolicy is exclusively applied to this ProductDate when enforcing party rules. Therefore, the primary key of the PartyPolicy can be inferred.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>partyCompositionRules</code></td>
+<td>PartyCompositionRules</td>
+<td>The rules governing what types of party members/equipment can be included in a booking and what the minimum and maximum value for each type of party member/equipment is for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining the rules for how parties can be composed for bookings of this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="productdatefeepolicyref">ProductDateFeePolicyRef<a class="headerlink" href="#productdatefeepolicyref" title="Permanent link">&para;</a></h2>
+<p>A ProductDateFeePolicyRef defines a reference to a fee policy that governs how fees are applied to bookings of this particular ProductDate. A ProductDateFeePolicyRef will fully resolve rules that apply at the ProductDate level.</p>
+<p>The related FeePolicy is exclusively applied to this ProductDate when enforcing fee rules. Therefore, the primary key of the FeePolicy can be inferred.</p>
+<p>LineItems only need to be present on the ProductDate if the system is to provide a ProductDate-level fee estimate prior to booking. Otherwise, they can remain on the exclusive FeePolicy to be resolved at reservation time.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feeSchedule</code></td>
+<td>[FeeDefinition]</td>
+<td>The fee schedule that defines how fees are calculated for reservations of this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Determining the fee structure and amounts that apply to bookings of this ProductDate.</td>
+</tr>
+<tr>
+<td><code>lineItems</code></td>
+<td>[LineItem]</td>
+<td>The line items that define specific fee calculations for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Defining how fees are calculated and applied to bookings of this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="productdatechangepolicyref">ProductDateChangePolicyRef<a class="headerlink" href="#productdatechangepolicyref" title="Permanent link">&para;</a></h2>
+<p>A ProductDateChangePolicyRef defines a reference to a change policy that governs how changes/refunds are handled for this particular ProductDate. A ProductDateChangePolicyRef will fully resolve rules that apply at the ProductDate level.</p>
+<p>The related ChangePolicy is exclusively applied to this ProductDate when enforcing change/refund rules. Therefore, the primary key of the ChangePolicy can be inferred.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>temporalWindows</code></td>
+<td>ProductDateChangeTemporalWindows</td>
+<td>The temporal windows that govern when changes/refunds can be made for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing time-based rules for when changes/refunds can be made for this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="productdatechangetemporalwindows">ProductDateChangeTemporalWindows<a class="headerlink" href="#productdatechangetemporalwindows" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>changeWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The temporal window during which changes/refunds can be made for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing the time period when changes/refunds can be made for this ProductDate.</td>
+</tr>
+<tr>
+<td><code>cancellationWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The temporal window during which changes/refunds can be made for this ProductDate.</td>
+<td>Administrators on PUT/POST</td>
+<td>Enforcing the time period when changes/refunds can be made for this ProductDate.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;productDate::mockPark1::backcountryCamp::1:1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;productDate&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;globalId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;c7e8b2e3-4f2a-4b8a-9d3a-8a1e5f7c2b6d&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;collectionId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mockPark1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backcountryCamp&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;productId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Backcountry Camping Offering for Mock Park 1 on February 9, 2026&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock backcountry camping reservation for Mock Park 1 on February 9, 2026.&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;availabilitySignal&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;availabilitySignal::mockPark1::backcountryCamp::1:1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;allDatesBookedIntervalIds&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">  </span><span class="nt">&quot;assetList&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::1&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::2&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::3&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;reservationPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;isDiscoverable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;isReservable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;minDailyInventory&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;maxDailyInventory&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;temporalAnchors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;checkInAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T14:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;checkOutAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-10T11:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;noShowAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T23:59:59-08:00&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;temporalWindows&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;discoveryWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-12-31T23:59:59-08:00&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;reservationWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-08T23:59:59-08:00&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;restrictedBookingWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-27T07:00:00-08:00&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;reservationContext&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;discoveryWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-12-31T23:59:59-08:00&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;reservationWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-08T23:59:59-08:00&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;restrictedBookingWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-27T07:00:00-08:00&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;productDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;checkInAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T14:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;checkOutAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-10T11:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;noShowAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T23:59:59-08:00&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;feePolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;feeSchedule&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tentpadFee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Nightly Tent Pad Reservation Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;perAdultFee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Nightly Adult Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;perChildFee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Nightly Child Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;lineItems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tentPadLineItem&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tent Pad Fee&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;inventory.quantity&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tentpadFee&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tax&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;perAdultLineItem&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Per Adult Fee&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyContext.adults&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.perAdultFee&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tax&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;perChildLineItem&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Per Child Fee&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unit&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyContext.children&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.perChildFee&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tax.amount&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;creationDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T12:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;lastUpdated&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T12:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../products/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Products">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Products
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../availability-signals/" class="md-footer__link md-footer__link--next" aria-label="Next: AvailabilitySignals">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                AvailabilitySignals
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

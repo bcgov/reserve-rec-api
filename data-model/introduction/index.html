@@ -1,0 +1,1904 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../..">
+      
+      
+        <link rel="next" href="../data-storage/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Introduction - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#reservations-data-model-summary" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Introduction
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-model-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Model Exists
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collections-the-toplevel-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collections — The Top‑Level Grouping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Collections — The Top‑Level Grouping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-collection-showing-discovery-elements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Collection Showing Discovery Elements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-collection-showing-complex-relationships-between-datatypes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Collection Showing Complex Relationships Between Datatypes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#important-datatypes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Datatypes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mermaid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ```mermaid
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-five-contexts-of-every-experience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Five Contexts of Every Experience
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Five Contexts of Every Experience">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#spatial-context-where-does-it-happen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spatial Context — “Where does it happen?”
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intent-context-what-is-the-user-doing-or-what-does-the-user-want-to-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intent Context — “What is the user doing?” or "What does the user want to do?"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temporal-context-when-is-it-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal Context — “When is it available?”
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#governance-context-how-is-it-managed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance Context — “How is it managed?”
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#identity-context-who-is-interacting-with-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Identity Context — “Who is interacting with it?”
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-data-is-stored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How Data Is Stored
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-plain-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In Plain Terms
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/policies/change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="reservations-data-model-summary">Reservations Data Model — Summary<a class="headerlink" href="#reservations-data-model-summary" title="Permanent link">&para;</a></h1>
+<p>Written: 2024-11-15 Updated: 2026-02-11 Author: Team Osprey</p>
+<p>The PRDT data model is the foundation that allows BC Parks to offer any kind of outdoor experience — from campsites to cabins, trail passes, backcountry permits, parking, and future offerings we haven’t imagined yet. It’s designed to be flexible, scalable, and easy to maintain as park operations evolve.</p>
+<p>At its core, the model separates <strong>where</strong> an experience happens, <strong>what</strong> the experience is, <strong>when</strong> it’s available, <strong>how</strong> it’s governed, and <strong>who</strong> is interacting with it. By keeping these ideas separate, the system can adapt to new experience types, new rules, and new geographies without major redesign.</p>
+<h2 id="why-this-model-exists">Why This Model Exists<a class="headerlink" href="#why-this-model-exists" title="Permanent link">&para;</a></h2>
+<p>BC Parks manages a huge variety of experiences. Most are contained entirely within parks - but some span multiple parks, and some only cover part of a park. Experiences also change seasonally, depend on geospatial boundaries, and require different rules or capacities.</p>
+<p>The data model provides a unified structure that can represent all of these cases consistently — even as offerings grow or change.</p>
+<h2 id="collections-the-toplevel-grouping"><a href="datatypes/collections.md">Collections — The Top‑Level Grouping</a><a class="headerlink" href="#collections-the-toplevel-grouping" title="Permanent link">&para;</a></h2>
+<p>Instead of using legally defined park boundaries (ORCS numbers), the system uses collections — flexible groupings that reflect real‑world operational needs.
+A collection may include:
+- one park
+- multiple parks
+- part of a park
+- areas that aren’t parks at all</p>
+<p>Collections are not a schema or entity (yet) — they’re labels used to group related reference data so the system can reason about an experience domain consistently.</p>
+<h3 id="example-collection-showing-discovery-elements">Example Collection Showing Discovery Elements<a class="headerlink" href="#example-collection-showing-discovery-elements" title="Permanent link">&para;</a></h3>
+<p><img align="center" alt="Collections" src="../../images/simple_collection.png" /></p>
+<h3 id="example-collection-showing-complex-relationships-between-datatypes">Example Collection Showing Complex Relationships Between Datatypes<a class="headerlink" href="#example-collection-showing-complex-relationships-between-datatypes" title="Permanent link">&para;</a></h3>
+<p><img align="center" alt="Experience" src="../../images/complex_collection.png" /></p>
+<h2 id="important-datatypes">Important Datatypes<a class="headerlink" href="#important-datatypes" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../datatypes/geozones/">Geozones</a> - defined spatial boundaries that group assets or regions together so products, rules, and availability can be applied consistently across a specific geographic area.</li>
+<li><a href="../../datatypes/facilities/">Facilities</a> - specific, physical elements that describe real-world infrastructure or natural features that visitors interact with directly.</li>
+<li><a href="../../datatypes/activities/">Activities</a> - generalized recreational opportunities - such as camping or trail use - that describe what experiences are potentially available to visitors at specific locations without factoring in when they are actually available or which reservation policies apply.</li>
+<li><a href="../../datatypes/products/">Products</a>  (WIP) - reservable offerings that define what is being booked along with the general policies and other operational parameters that govern how it can be reserved</li>
+<li><a href="../../datatypes/product-dates/">ProductDates</a> (WIP) - fully resolved, day-specific configurations of a product that combine the governing policies into a single authoritative snapshot for that date.</li>
+<li><a href="../../datatypes/availability-signals/">AvailabilitySignals</a> (WIP) - lightweight, eventually-consistent, date-specific indicators of whether a product is likely to be available or unavailable, used to optimize search and browsing experiences by avoiding unnecessary inventory queries.</li>
+<li><a href="../../datatypes/assets/">Assets</a> (WIP) - persistent logical units - usually physical but sometimes conceptual - that represent something whose ownership or allocation can change day-to-day. The non-temporal part of <strong>inventory</strong>.</li>
+<li><a href="../../datatypes/inventory/">Inventory</a> (WIP) - date-specific availability records for an asset, representing the smallest unit of reservable capacity and serving as the concurrency boundary for bookings.</li>
+<li><a href="../../datatypes/policies/policies-overview/">Policies</a> (WIP) - define transferrable/shareable rules and conditions that govern how a product can be reserved or modified.</li>
+<li><a href="../../datatypes/bookings/">Bookings</a> (WIP) - Records that formalize a user’s commitment to a specific offering by allocating inventory under the governing policies.</li>
+<li><a href="../../datatypes/booking-dates/">BookingDates</a> (WIP) - fully resolved, day-specific snapshots of a the governing policies and daily values in single authoritative record for that date, linked to the parent Booking.</li>
+<li>Users (WIP) - Individuals who interact with the system, carrying identity, roles, and permissions that shape what they can see or do.</li>
+<li><a href="../datatypes/transactions.md">Transactions</a> (WIP) - Financial records that capture the payment events associated with creating, modifying, or canceling a booking or multiple bookings.</li>
+<li><a href="../../datatypes/geozones/#protected-areas">(Protected areas)</a> - a legacy datatype representing a legally-defined park unit, represented in this model as a specialized geozone rather than its own datatype.</li>
+</ul>
+<p><img align="center" alt="Base Model" src="../../images/base_model.png" /></p>
+<h2 id="mermaid">```mermaid<a class="headerlink" href="#mermaid" title="Permanent link">&para;</a></h2>
+<p>config:
+   flowchart:
+      curve: basis</p>
+<hr />
+<p>flowchart TD</p>
+<p>classDef geozone fill:yellow,color:black
+classDef facility fill:blue,color:white
+classDef activity fill:red,color:white
+classDef product fill:purple,color:white
+classDef asset fill:skyblue,color:black
+classDef productDate fill:magenta,color:white
+classDef policy fill:turquoise,color:black
+classDef inventory fill:orange,color:black
+classDef booking fill:lime,color:black
+classDef bookingDate fill:green,color:white
+classDef user fill:teal,color:white
+classDef transaction fill:olive,color:white</p>
+<!-- A[Geozones]:::geozone <-->
+<p>B[Facilities]:::facility &amp; C[Activity]:::activity
+B &lt;--&gt; C
+D --&gt; F[ProductDate]:::productDate
+G[Policies]:::policy ---&gt; D &amp; F
+C ----&gt; D[Product]:::product
+B ------&gt; E[Asset]:::asset
+F --- H[Inventory]:::inventory
+E --&gt; H
+D -----&gt; I[Booking]:::booking
+J[BookingDate]:::bookingDate --&gt; I
+H ---&gt; J
+F ---&gt; J
+K[Transaction]:::transaction --&gt; I
+L[User]:::user ---&gt; I
+L --&gt;K
+``` --&gt;</p>
+<h2 id="the-five-contexts-of-every-experience"><a href="../../contexts/data-contexts/">The Five Contexts of Every Experience</a><a class="headerlink" href="#the-five-contexts-of-every-experience" title="Permanent link">&para;</a></h2>
+<p>Every experience in the system is described through five independent “contexts.” Each context answers a different question:</p>
+<h4 id="spatial-context-where-does-it-happen">Spatial Context — “Where does it happen?”<a class="headerlink" href="#spatial-context-where-does-it-happen" title="Permanent link">&para;</a></h4>
+<p>Defines the physical place or region. Definitions include geospatial datapoints.</p>
+<h4 id="intent-context-what-is-the-user-doing-or-what-does-the-user-want-to-do">Intent Context — “What is the user doing?” or "What does the user want to do?"<a class="headerlink" href="#intent-context-what-is-the-user-doing-or-what-does-the-user-want-to-do" title="Permanent link">&para;</a></h4>
+<p>Defines the nature of the experience. This layer is experience‑agnostic, so new experience types can be added without restructuring the rest of the model.</p>
+<h4 id="temporal-context-when-is-it-available">Temporal Context — “When is it available?”<a class="headerlink" href="#temporal-context-when-is-it-available" title="Permanent link">&para;</a></h4>
+<p>Defines schedules and availability. Temporal data changes frequently (seasonally, daily, even hourly), so isolating it keeps the system fast and maintainable.</p>
+<h4 id="governance-context-how-is-it-managed">Governance Context — “How is it managed?”<a class="headerlink" href="#governance-context-how-is-it-managed" title="Permanent link">&para;</a></h4>
+<p>Defines rules, constraints, and operational behaviour. Governance can change independently of location, experience type, or schedule.</p>
+<h4 id="identity-context-who-is-interacting-with-it">Identity Context — “Who is interacting with it?”<a class="headerlink" href="#identity-context-who-is-interacting-with-it" title="Permanent link">&para;</a></h4>
+<p>Defines users, roles, and permissions. Identity influences what people can see or do across all other contexts.</p>
+<p><img align="center" alt="Base Model" src="../../images/contexts.png" /></p>
+<h2 id="how-data-is-stored"><a href="../data-storage/">How Data Is Stored</a><a class="headerlink" href="#how-data-is-stored" title="Permanent link">&para;</a></h2>
+<p>The model separates data into two major categories:</p>
+<p><strong>Reference Data</strong>
+- Long‑lived, mostly static information (e.g., geozones, facilities, activities).
+- Stored in a read‑optimized DynamoDB table.</p>
+<p><strong>Transactional Data</strong>
+- Short‑lived, frequently updated information (e.g., bookings, user interactions).
+- Stored in a write‑optimized DynamoDB table.</p>
+<p><strong>DynamoDB</strong> is the authoritative source of truth, using predictable partition keys for consistent access patterns. DynamoDB excels at structured queries - in other words, if you know what you're looking for, DynamoDB can get it for you cheaply and quickly.</p>
+<p><strong>OpenSearch</strong> is used for:
+- full‑text search
+- geospatial search
+- browsing and discovery</p>
+<p>It stays synchronized with DynamoDB through DynamoDB streams. OpenSearch excels where DynamoDB is weak - unstructured, fuzzy searching - and therefore serves as a supplementary data management tool.</p>
+<p>In both public and administrative user stories, the system will drive users towards DynamoDB queries as their journey gets more and more specific, but OpenSearch remains to serve broader browsing and discovery use cases.</p>
+<h2 id="in-plain-terms">In Plain Terms<a class="headerlink" href="#in-plain-terms" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>This system sells experiences. Every experience is made of 5 ingredients: where, what, when, how, and who.</strong></p>
+</li>
+<li>
+<p><strong>This model keeps these ingredients independent enough that they can be mixed and matched in any combination, without rewriting the system when something changes.</strong></p>
+</li>
+<li>
+<p><strong>This strategic separation is what gives the system its flexibility. If we start blending these ingredients together in the wrong places, we lose extensibility and recreate the old system’s problems.</strong></p>
+</li>
+</ol>
+<p>The documented KPIs reflect the initial delivery slice (backcountry registrations), but the strategic intent expressed by leadership is to build a unified, extensible reservation platform. This data model was intentionally designed to satisfy both: it supports whichever reservations experience 'slice' must be addressed first, while providing a scalable foundation for all future offerings.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../.." class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Overview
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../data-storage/" class="md-footer__link md-footer__link--next" aria-label="Next: Data Storage">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Data Storage
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

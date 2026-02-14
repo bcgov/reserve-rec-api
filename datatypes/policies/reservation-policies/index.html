@@ -1,0 +1,2329 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../policy-primitives/">
+      
+      
+        <link rel="next" href="../party-policies/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Reservation Policies - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#reservation-policy" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Reservation Policies
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4_12" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#referencestore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceStore
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reservationproductrules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReservationProductRules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#availabilityestimationpattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AvailabilityEstimationPattern
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AvailabilityEstimationPattern">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cadencebucket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CadenceBucket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availabilitytier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AvailabilityTier
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AvailabilityTier">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#product-level-isdiscoverable-and-discoverywindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Product level isDiscoverable and discoveryWindow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#product-level-isreservable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Product level isReservable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mintotaldays-and-maxtotaldays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        minTotalDays and maxTotalDays
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#producttemporalwindows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProductTemporalWindows
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reservationproductdaterules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReservationProductDateRules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ReservationProductDateRules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#productdate-level-isdiscoverable-and-discoverywindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProductDate level isDiscoverable and discoveryWindow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#productdate-level-isreservable-and-reservationwindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProductDate level isReservable and reservationWindow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mindailyinventory-and-maxdailyinventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        minDailyInventory and maxDailyInventory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#productdatetemporalwindows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProductDateTemporalWindows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProductDateTemporalWindows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restrictedbookingwindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restrictedBookingWindow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="reservation-policy">Reservation Policy<a class="headerlink" href="#reservation-policy" title="Permanent link">&para;</a></h1>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td>"policy::\<policyType>::\<policyId>"</td>
+<td>Searching all versions of this policy</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td>"v\<policyIdVersion>" OR "latest"</td>
+<td>Searching for a specific version of this policy</td>
+</tr>
+<tr>
+<td><code>gsipk</code></td>
+<td>String</td>
+<td>Global secondary index partition key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>gsisk</code></td>
+<td>String</td>
+<td>Global secondary index sort key</td>
+<td>Reserved</td>
+<td>Reserved</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type/Schema</td>
+<td>"policy"</td>
+<td>Identifying that this item is a "policy"</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique UUID</td>
+<td>Automatically generating on policy creation</td>
+<td>Searching for this specific item using the <code>globalId</code> GSI</td>
+</tr>
+<tr>
+<td><code>policyType</code></td>
+<td>String</td>
+<td>The type of policy</td>
+<td>"reservation"</td>
+<td>Searching for all policies of this type</td>
+</tr>
+<tr>
+<td><code>policyId</code></td>
+<td>String</td>
+<td>A unique identifier for this policy, specific to the policy type</td>
+<td>Automatically generating on policy creation</td>
+<td>Searching for all versions of this specific policy</td>
+</tr>
+<tr>
+<td><code>policyIdVersion</code></td>
+<td>Number</td>
+<td>The version number of this policy</td>
+<td>Automatically incrementing on policy update</td>
+<td>Searching for a specific version of this policy</td>
+</tr>
+<tr>
+<td><code>isLatest</code></td>
+<td>Boolean</td>
+<td>Whether this is the latest version of the policy</td>
+<td>Automatically setting on policy update</td>
+<td>Searching for the latest version of this policy</td>
+</tr>
+<tr>
+<td><code>displayName</code></td>
+<td>String</td>
+<td>A human-readable name for this policy</td>
+<td>Provided on policy creation and update</td>
+<td>Displaying this policy in a user interface</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>String</td>
+<td>A human-readable description of this policy</td>
+<td>Provided on policy creation and update</td>
+<td>Displaying this policy in a user interface</td>
+</tr>
+<tr>
+<td><code>refStore</code></td>
+<td><a href="#referencestore">ReferenceStore</a></td>
+<td>The reference store that contains any additional data needed to evaluate this policy</td>
+<td>Provided on policy creation and update</td>
+<td>Accessing additional data needed to evaluate this policy</td>
+</tr>
+<tr>
+<td><code>productRules</code></td>
+<td><a href="#reservationproductrules">ReservationProductRules</a></td>
+<td>The rules that govern how this policy is applied at the Product level</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a Product complies with the rules defined in this policy</td>
+</tr>
+<tr>
+<td><code>productDateRules</code></td>
+<td><a href="#reservationproductdaterules">ReservationProductDateRules</a></td>
+<td>The rules that govern how this policy is applied at the ProductDate level</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a ProductDate complies with the rules defined in this policy</td>
+</tr>
+<tr>
+<td><code>createdAt</code></td>
+<td>Timestamp</td>
+<td>The timestamp when this policy was created</td>
+<td>Automatically setting on policy creation</td>
+<td>Tracking when this policy was created</td>
+</tr>
+<tr>
+<td><code>lastUpdated</code></td>
+<td>Timestamp</td>
+<td>The timestamp when this policy was last updated</td>
+<td>Automatically updating on policy update</td>
+<td>Tracking when this policy was last updated</td>
+</tr>
+</tbody>
+</table>
+<h2 id="referencestore">ReferenceStore<a class="headerlink" href="#referencestore" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to the user</td>
+<td>User making the reservation</td>
+<td>Evaluating policies that depend on user attributes</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to inventory</td>
+<td>Inventory being reserved</td>
+<td>Evaluating policies that depend on inventory attributes</td>
+</tr>
+<tr>
+<td><code>temporalAnchors</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to temporal anchors (e.g., current date)</td>
+<td>Current date and time</td>
+<td>Evaluating policies that depend on temporal conditions</td>
+</tr>
+<tr>
+<td><code>temporalWindows</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to temporal windows (e.g., discovery window, reservation window)</td>
+<td>Current date and time, Product/ProducDate temporal window definitions</td>
+<td>Evaluating policies that depend on whether the current date falls within certain temporal windows</td>
+</tr>
+<tr>
+<td><code>partyCategories</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to party categories (e.g., adult, child, senior)</td>
+<td>Composition of the party included in the reservation</td>
+<td>Evaluating policies that depend on the composition of the party making the reservation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reservationproductrules">ReservationProductRules<a class="headerlink" href="#reservationproductrules" title="Permanent link">&para;</a></h2>
+<p>These rules are scoped to entire Products/Bookings and are independent of when reservations occur. They answer the question: "What policies govern reservations of this offering, regardless of when they occur?"</p>
+<p>These will be fully resolved on the Product.</p>
+<p>Some policies may be abstract enough to be grouped into reusable modules across Products, while others may be specific enough to be defined singularly and exclusively to the Product. Reservation Policies aim to capture the former.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isDiscoverable</code></td>
+<td>Boolean</td>
+<td>Is the Product discoverable? If yes, it can be returned in search results. If no, it will not be returned in search results.</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a Product is discoverable based on this policy</td>
+</tr>
+<tr>
+<td><code>isReservable</code></td>
+<td>Boolean</td>
+<td>Is the Product reservable? If yes, ProductDates can be queried. If no, it ProductDates cannot be queried and no reservations can be made.</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a Product is reservable based on this policy</td>
+</tr>
+<tr>
+<td><code>minTotalDays</code></td>
+<td>Number</td>
+<td>What is the minimum total number of days that must be included in a reservation of this Product?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a reservation meets the minimum total days requirement based on this policy</td>
+</tr>
+<tr>
+<td><code>maxTotalDays</code></td>
+<td>Number</td>
+<td>What is the maximum total number of days that can be included in a reservation of this Product?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a reservation meets the maximum total days requirement based on this policy</td>
+</tr>
+<tr>
+<td><code>holdDuration</code></td>
+<td>Duration</td>
+<td>How long can a reservation of this Product be held before it expires?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a reservation hold has expired based on this policy</td>
+</tr>
+<tr>
+<td><code>availabilityEstimationPattern</code></td>
+<td><a href="#availabilityestimationpattern">AvailabilityEstimationPattern</a></td>
+<td>What pattern governs how availability is estimated for ProductDates related to this Product?</td>
+<td>Provided on policy creation and update</td>
+<td>Determining how availability is estimated for ProductDates related to this Product based on this policy</td>
+</tr>
+<tr>
+<td><code>temporalWindows</code></td>
+<td><a href="#producttemporalwindows">ProductTemporalWindows</a></td>
+<td>The temporal windows that govern when this Product is discoverable and reservable</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a Product is discoverable and reservable based on the current date and the temporal windows defined in this policy</td>
+</tr>
+</tbody>
+</table>
+<h2 id="availabilityestimationpattern">AvailabilityEstimationPattern<a class="headerlink" href="#availabilityestimationpattern" title="Permanent link">&para;</a></h2>
+<p>An AvailabilityEstimationPattern defines the pattern used to estimate availability for ProductDates related to a Product. This pattern helps in providing an eventually-consistent estimate of availability for booking on each date.</p>
+<p>ProductDates are high-traffic items that are read-optimized. To keep an accurate availability count on each ProductDate would require a write operation on every booking, which could lead to performance issues. Instead, the system uses an eventually-consistent approach to availability estimation, where availability is estimated based on a defined pattern and updated on a regular cadence.</p>
+<p>Each ProductDate generates a tiny, cheap, high-frequency <a href="#availabilitysignal">AvailabilitySignal</a> item. When availability for that date is affected, the AvailabilitySignal makes note. Then, on a cadence defined by AvailabilityEstimationPattern, a cronjob process will read the AvailabilitySignal, and if a change has occured perform a more rigorous availability estimate. This allows the system to provide a reasonably up-to-date estimate of availability without needing to perform expensive write operations on the ProductDate for every booking. Additionally, the estimation check does not occur if the AvailabilitySignal has not changed since the last estimate, which helps to further reduce unnecessary processing during periods of low traffic.</p>
+<p>If <code>estimationMode</code> is set to "exact", the system will provide a count of available items on the cadence increment. If <code>estimationMode</code> is set to "tiered", the system will provide a tier of availability (e.g., "high", "medium", "low") based on thresholds defined in the AvailabilityEstimationPattern.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>estimationMode</code></td>
+<td>String</td>
+<td>The mode of availability estimation (e.g., "exact", "tiered")</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Determining the mode of availability estimation for ProductDates related to this Product</td>
+</tr>
+<tr>
+<td><code>cadence</code></td>
+<td><a href="#cadencebucket">CadenceBucket</a></td>
+<td>The frequency at which availability estimation should occur (e.g., every 5 minutes)</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Determining how often availability estimation should occur for ProductDates related to this Product</td>
+</tr>
+<tr>
+<td><code>tiers?</code></td>
+<td><a href="#availabilitytier">AvailabilityTier</a></td>
+<td>Optional ordered array of availability tiers with thresholds, used if <code>estimationMode</code> is set to "tiered"</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Defining the availability tiers and their corresponding thresholds for tiered availability estimation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cadencebucket">CadenceBucket<a class="headerlink" href="#cadencebucket" title="Permanent link">&para;</a></h3>
+<p>A CadenceBucket defines the frequency at which availability estimation should occur for ProductDates related to a Product. The system will trigger availability estimation checks on the associated ProductDates at intervals defined by the CadenceBucket. Each CadenceBucket corresponds to an AWS EventBridge rule that triggers the availability estimation process on the defined cadence. For example, if a Product has a cadence of "5min", the system will perform availability estimation checks for its ProductDates every 5 minutes. All Products of the same CadenceBucket can be processed in a single batch job triggered by the corresponding EventBridge rule, allowing for efficient handling of availability estimation across multiple Products.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>Unique identifier for the cadence bucket</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Distinguishing this cadence bucket from others in the same estimation pattern</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>The label for this cadence bucket (e.g., "5min", "15min", "30min")</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Providing a human-readable label for this cadence bucket</td>
+</tr>
+</tbody>
+</table>
+<h3 id="availabilitytier">AvailabilityTier<a class="headerlink" href="#availabilitytier" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>Unique identifier for the availability tier</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Distinguishing this availability tier from others in the same estimation pattern</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>The label for this availability tier (e.g., "high", "medium", "low")</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Providing a human-readable label for this availability tier</td>
+</tr>
+<tr>
+<td><code>maxPercentage</code></td>
+<td>Number</td>
+<td>The maximum percentage of availability for this tier (e.g., 0.7 for 70%)</td>
+<td>Administrators on Product PUT/POST</td>
+<td>Determining the upper threshold of availability for this tier in tiered availability estimation</td>
+</tr>
+</tbody>
+</table>
+<h4 id="product-level-isdiscoverable-and-discoverywindow">Product level <code>isDiscoverable</code> and <code>discoveryWindow</code><a class="headerlink" href="#product-level-isdiscoverable-and-discoverywindow" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+
+a[Visitor searches for Products] --> b{Product has `isDiscoverable` set to true?}
+b -- Yes --> c{Query time is within `discoveryWindow`?}
+b -- No --> d[Product is not returned in search results]
+c -- Yes --> e[Product is returned in search results]
+c -- No --> d[Product is not returned in search results]
+</code></pre>
+<h4 id="product-level-isreservable">Product level <code>isReservable</code><a class="headerlink" href="#product-level-isreservable" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+
+a[Visitor sees list of Discoverable Products] --> e[User selects a Product to view details]
+e --> b{Product has `isReservable` set to true?}
+b -- Yes --> c[Visitor can query ProductDates and make reservations for this Product]
+b -- No --> d[Visitor cannot query ProductDates or make reservations for this Product]
+</code></pre>
+<h4 id="mintotaldays-and-maxtotaldays"><code>minTotalDays</code> and <code>maxTotalDays</code><a class="headerlink" href="#mintotaldays-and-maxtotaldays" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+a[Visitor attempts to make a reservation for a Product] --> b{Total days in reservation >= `minTotalDays`?}
+b -- No --> c[Reservation is rejected]
+b -- Yes --> d{Total days in reservation <= `maxTotalDays`?}
+d -- No --> c[Reservation is rejected]
+d -- Yes --> e[Reservation process continues]
+</code></pre>
+<h3 id="producttemporalwindows">ProductTemporalWindows<a class="headerlink" href="#producttemporalwindows" title="Permanent link">&para;</a></h3>
+<p>Below are the mandatory temporal windows that must be defined for a reservation policy. Additional temporal windows can be added as needed.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>discoveryWindow</code></td>
+<td>TemporalWindow</td>
+<td>If the Product is discoverable, what is the temporal window for which it should be discoverable?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a Product is discoverable based on the current date and the discovery window defined in this policy</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reservationproductdaterules">ReservationProductDateRules<a class="headerlink" href="#reservationproductdaterules" title="Permanent link">&para;</a></h2>
+<p>These rules are scoped to ProductDates/BookingDates and can change day-to-day. They answer the question: "What policies that govern reservations of this offering depend on when when a particular action occur?"</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isDiscoverable</code></td>
+<td>Boolean</td>
+<td>Is the ProductDate discoverable? If yes, it can be returned in search results. If no, it will not be returned in search results.</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a ProductDate is discoverable based on this policy</td>
+</tr>
+<tr>
+<td><code>isReservable</code></td>
+<td>Boolean</td>
+<td>Is the ProductDate reservable? If yes, reservations can be made for that date. If no, reservations cannot be made for that date.</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a ProductDate is reservable based on this policy</td>
+</tr>
+<tr>
+<td><code>minDailyInventory</code></td>
+<td>Number</td>
+<td>What is the minimum Inventory quanitity that Bookings must reserve for this ProductDate?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a reservation meets the minimum daily inventory requirement based on this policy</td>
+</tr>
+<tr>
+<td><code>maxDailyInventory</code></td>
+<td>Number</td>
+<td>What is the maximum Inventory quanitity that can be reserved for this ProductDate?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a reservation meets the maximum daily inventory requirement based on this policy</td>
+</tr>
+<tr>
+<td><code>temporalWindows</code></td>
+<td><a href="#productdatetemporalwindows">ProductDateTemporalWindows</a></td>
+<td>The temporal windows that govern when this ProductDate is discoverable and reservable</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a ProductDate is discoverable and reservable based on the current date and the temporal windows defined in this policy</td>
+</tr>
+</tbody>
+</table>
+<h4 id="productdate-level-isdiscoverable-and-discoverywindow">ProductDate level <code>isDiscoverable</code> and <code>discoveryWindow</code><a class="headerlink" href="#productdate-level-isdiscoverable-and-discoverywindow" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+a[Visitor selects a Product to view details] --> b[System queries ProductDates for the selected Product]
+b --> c{ProductDate has `isDiscoverable` set to true?}
+c -- Yes --> d{Query time is within `discoveryWindow`?}
+c -- No --> e[ProductDate is not returned in search results]
+d -- Yes --> f[ProductDate is returned in search results]
+d -- No --> e[ProductDate is not returned in search results]
+</code></pre>
+<h4 id="productdate-level-isreservable-and-reservationwindow">ProductDate level <code>isReservable</code> and <code>reservationWindow</code><a class="headerlink" href="#productdate-level-isreservable-and-reservationwindow" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+a[Visitor sees list of Discoverable ProductDates for a Product] --> b{ProductDate has `isReservable` set to true?}
+b -- Yes --> c{Query time is within `reservationWindow`?}
+b -- No --> d[ProductDate cannot be reserved]
+c -- Yes --> e[ProductDate can be reserved]
+c -- No --> d[ProductDate cannot be reserved]
+</code></pre>
+<h4 id="mindailyinventory-and-maxdailyinventory"><code>minDailyInventory</code> and <code>maxDailyInventory</code><a class="headerlink" href="#mindailyinventory-and-maxdailyinventory" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+a[Visitor attempts to make a reservation for a ProductDate] --> b{Daily inventory in reservation >= `minDailyInventory`?}
+b -- No --> c[Reservation is rejected]
+b -- Yes --> d{Daily inventory in reservation <= `maxDailyInventory`?}
+d -- No --> c[Reservation is rejected]
+d -- Yes --> e[Reservation process continues]
+</code></pre>
+<h3 id="productdatetemporalwindows">ProductDateTemporalWindows<a class="headerlink" href="#productdatetemporalwindows" title="Permanent link">&para;</a></h3>
+<p>Below are the mandatory temporal windows that must be defined for a reservation policy. Additional temporal windows can be added as needed.</p>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>discoveryWindow</code></td>
+<td>TemporalWindow</td>
+<td>If the ProductDate is discoverable, what is the temporal window for which it should be discoverable?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether a ProductDate is discoverable based on the current date and the discovery window defined in this policy</td>
+</tr>
+<tr>
+<td><code>reservationWindow</code></td>
+<td>TemporalWindow</td>
+<td>What is the temporal window for which reservations can be made for this ProductDate?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether reservations can be made for this ProductDate based on the current date and the reservation window defined in this policy</td>
+</tr>
+<tr>
+<td><code>restrictedBookingWindow</code></td>
+<td>TemporalWindow</td>
+<td>What is the temporal window for which bookings of this ProductDate are final-sale?</td>
+<td>Provided on policy creation and update</td>
+<td>Evaluating whether bookings of this ProductDate are final-sale based on the current date and the restricted booking window defined in this policy</td>
+</tr>
+</tbody>
+</table>
+<h4 id="restrictedbookingwindow"><code>restrictedBookingWindow</code><a class="headerlink" href="#restrictedbookingwindow" title="Permanent link">&para;</a></h4>
+<pre  class="mermaid"><code>flowchart LR
+a[Visitor attempts to make a reservation for a ProductDate] --> b{Current date is within `restrictedBookingWindow`?}
+b -- Yes --> c[Booking is final-sale and cannot be cancelled or modified]
+b -- No --> d[Booking can be cancelled or modified according to standard policies]
+</code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../policy-primitives/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Policy Primitives">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Policy Primitives
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../party-policies/" class="md-footer__link md-footer__link--next" aria-label="Next: Party Policies">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Party Policies
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

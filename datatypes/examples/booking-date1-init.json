@@ -1,0 +1,244 @@
+{
+  "pk": "bookingDate::550e8400-e29b-41d4-a716-446655440000",
+  "sk": "2026-02-09",
+  "gsi1pk": "user::b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f",
+  "gsi1sk": "2026-02-09::bookingDate",
+  "schema": "bookingDate",
+  "globalId": "c3f1a8e2-7b4d-4c9a-9f2a-8e7b1c3f1a8",
+  "bookingId": "550e8400-e29b-41d4-a716-446655440000",
+  "userSub": "b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f",
+  "date": "2026-02-09",
+  "inventory": {
+    "quantity": 1,
+    "items": [
+      {
+        "pk": "inventory::mockPark1::backcountryCamp::1::1::2026-02-09",
+        "sk": "asset::mockPark1::campground::1::tentPad::6::1"
+      }
+    ]
+  },
+  "temporalContext": {
+    "discoveryWindow": {
+      "open": "2026-01-01T07:00:00-08:00",
+      "close": "2026-12-31T23:59:59-08:00"
+    },
+    "reservationWindow": {
+      "open": "2026-01-26T07:00:00-08:00",
+      "close": "2026-02-08T23:59:59-08:00"
+    },
+    "restrictedBookingWindow": {
+      "open": "2026-01-26T07:00:00-08:00",
+      "close": "2026-01-27T07:00:00-08:00"
+    },
+    "productDate": "2026-02-09",
+    "checkInAnchor": "2026-02-09T14:00:00-08:00",
+    "checkOutAnchor": "2026-02-10T11:00:00-08:00",
+    "noShowAnchor": "2026-02-09T23:59:59-08:00"
+  },
+  "reservationPolicySnapshot": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minDailyInventory": 1,
+    "maxDailyInventory": 1,
+    "temporalAnchors": {
+      "checkInAnchor": "2026-02-09T14:00:00-08:00",
+      "checkOutAnchor": "2026-02-10T11:00:00-08:00",
+      "noShowAnchor": "2026-02-09T23:59:59-08:00"
+    },
+    "temporalWindows": {
+      "discoveryWindow": {
+        "open": "2026-01-01T07:00:00-08:00",
+        "close": "2026-12-31T23:59:59-08:00"
+      },
+      "reservationWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-02-08T23:59:59-08:00"
+      },
+      "restrictedBookingWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-01-27T07:00:00-08:00"
+      }
+    }
+  },
+  "partyContext": {
+    "isValid": false,
+    "partyComposition": [
+      {
+        "id": "adults",
+        "label": "Adults (18+)",
+        "quantity": 0
+      },
+      {
+        "id": "children",
+        "label": "Children <18",
+        "quantity": 0
+      },
+      {
+        "id": "tents",
+        "label": "Tents",
+        "quantity": 0
+      }
+    ]
+  },
+  "feePolicySnapshot": {
+    "feeSchedule": [
+      {
+        "id": "costPerAdult",
+        "label": "Adult Nightly Fee",
+        "type": "unit",
+        "amount": 10
+      },
+      {
+        "id": "costPerChild",
+        "label": "Child Nightly Fee",
+        "type": "unit",
+        "amount": 5
+      },
+      {
+        "id": "costPerTent",
+        "label": "Tent Nightly Fee",
+        "type": "unit",
+        "amount": 15
+      },
+      {
+        "id": "tax",
+        "label": "Tax",
+        "type": "percentage",
+        "amount": 0.05
+      }
+    ],
+    "lineItems": [
+      {
+        "id": "adultLineItem",
+        "label": "Adult Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "partyContext.adults"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerAdult"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      },
+      {
+        "id": "childLineItem",
+        "label": "Child Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "partyContext.children"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerChild"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      },
+      {
+        "id": "tentLineItem",
+        "label": "Tent Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "inventory.quantity"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerTent"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      }
+    ]
+  },
+  "feeValues": {
+    "resolvedLineItems": [
+      {
+        "id": "adultFeeLine",
+        "label": "Adult Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0
+          }
+        ],
+        "lineSubTotal": 0,
+        "lineTotal": 0
+      },
+      {
+        "id": "childFeeLine",
+        "label": "Child Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0
+          }
+        ],
+        "lineSubTotal": 0,
+        "lineTotal": 0
+      },
+      {
+        "id": "tentFeeLine",
+        "label": "Tent Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0
+          }
+        ],
+        "lineSubTotal": 0,
+        "lineTotal": 0
+      }
+    ],
+    "totalDiscounts": [],
+    "totalTaxes": [
+      {
+        "id": "tax",
+        "rate": 0.05,
+        "amount": 0
+      }
+    ],
+    "subTotal": 0,
+    "total": 0
+  }
+}

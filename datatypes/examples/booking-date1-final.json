@@ -1,0 +1,281 @@
+{
+  "pk": "bookingDate::550e8400-e29b-41d4-a716-446655440000",
+  "sk": "2026-02-09",
+  "gsi1pk": "",
+  "gsi1sk": "",
+  "schema": "bookingDate",
+  "globalId": "c3f1a8e2-7b4d-4c9a-9f2a-8e7b1c3f1a8",
+  "bookingId": "550e8400-e29b-41d4-a716-446655440000",
+  "user": "b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f",
+  "date": "2026-02-09",
+  "inventory": {
+    "quantity": 1,
+    "items": [
+      {
+        "pk": "inventory::mockPark1::backcountryCamp::1::1::2026-02-09",
+        "sk": "asset::mockPark1::campground::1::tentPad::6::1"
+      }
+    ]
+  },
+  "reservationPolicySnapshot": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minDailyInventory": 1,
+    "maxDailyInventory": 1,
+    "temporalAnchors": {
+      "checkInAnchor": "2026-02-09T14:00:00-08:00",
+      "checkOutAnchor": "2026-02-10T11:00:00-08:00",
+      "noShowAnchor": "2026-02-09T23:59:59-08:00"
+    },
+    "temporalWindows": {
+      "discoveryWindow": {
+        "open": "2026-01-01T07:00:00-08:00",
+        "close": "2026-12-31T23:59:59-08:00"
+      },
+      "reservationWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-02-08T23:59:59-08:00"
+      },
+      "restrictedBookingWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-01-27T07:00:00-08:00"
+      }
+    }
+  },
+  "partyContext": {
+    "isValid": true,
+    "partyComposition": [
+      {
+        "id": "adults",
+        "label": "Adults (18+)",
+        "quantity": 2
+      },
+      {
+        "id": "children",
+        "label": "Children <18",
+        "quantity": 1
+      },
+      {
+        "id": "tents",
+        "label": "Tents",
+        "quantity": 1
+      }
+    ]
+  },
+  "feePolicySnapshot": {
+    "feeSchedule": [
+      {
+        "id": "costPerAdult",
+        "label": "Adult Nightly Fee",
+        "type": "unit",
+        "amount": 10
+      },
+      {
+        "id": "costPerChild",
+        "label": "Child Nightly Fee",
+        "type": "unit",
+        "amount": 5
+      },
+      {
+        "id": "costPerTent",
+        "label": "Tent Nightly Fee",
+        "type": "unit",
+        "amount": 15
+      },
+      {
+        "id": "tax",
+        "label": "Tax",
+        "type": "percentage",
+        "amount": 0.05
+      }
+    ],
+    "lineItems": [
+      {
+        "id": "adultLineItem",
+        "label": "Adult Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "partyContext.adults"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerAdult"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      },
+      {
+        "id": "childLineItem",
+        "label": "Child Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "partyContext.children"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerChild"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      },
+      {
+        "id": "tentLineItem",
+        "label": "Tent Fee",
+        "type": "unit",
+        "if": [],
+        "quantity": {
+          "type": "ref",
+          "value": "partyContext.tents"
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.costPerTent"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": true
+      }
+    ]
+  },
+  "feeValues": {
+    "resolvedLineItems": [
+      {
+        "id": "adultFeeLine",
+        "label": "Adult Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [
+          {
+            "rate": 10,
+            "discountsApplied": [],
+            "taxApplied": [
+              {
+                "id": "tax",
+                "rate": 0.05,
+                "amount": 0.50
+              }
+            ],
+            "unitSubTotal": 10,
+            "unitTotal": 10.50
+          },
+          {
+            "rate": 10,
+            "discountsApplied": [],
+            "taxApplied": [
+              {
+                "id": "tax",
+                "rate": 0.05,
+                "amount": 0.50
+              }
+            ],
+            "unitSubTotal": 10,
+            "unitTotal": 10.50
+          }
+        ],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 1.00
+          }
+        ],
+        "lineSubTotal": 20,
+        "lineTotal": 21
+      },
+      {
+        "id": "childFeeLine",
+        "label": "Child Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [
+          {
+            "rate": 5,
+            "discountsApplied": [],
+            "taxApplied": [
+              {
+                "id": "tax",
+                "rate": 0.05,
+                "amount": 0.25
+              }
+            ],
+            "unitSubTotal": 5,
+            "unitTotal": 5.25
+          }
+        ],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0.25
+          }
+        ],
+        "lineSubTotal": 5,
+        "lineTotal": 5.25
+      },
+      {
+        "id": "tentFeeLine",
+        "label": "Tent Fee",
+        "type": "unit",
+        "isReturnable": true,
+        "units": [
+          {
+            "rate": 15,
+            "discountsApplied": [],
+            "taxApplied": [
+              {
+                "id": "tax",
+                "rate": 0.05,
+                "amount": 0.75
+              }
+            ],
+            "unitSubTotal": 15,
+            "unitTotal": 15.75
+          }
+        ],
+        "lineDiscounts": [],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0.75
+          }
+        ],
+        "lineSubTotal": 15,
+        "lineTotal": 15.75
+      }
+    ],
+    "totalDiscounts": [],
+    "totalTaxes": [
+      {
+        "id": "tax",
+        "rate": 0.05,
+        "amount": 2.00
+      }
+    ],
+    "subTotal": 40,
+    "total": 42
+  }
+}

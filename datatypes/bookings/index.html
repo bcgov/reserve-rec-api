@@ -1,0 +1,3156 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../inventory/">
+      
+      
+        <link rel="next" href="../booking-dates/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Bookings - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#booking" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bookings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="booking">Booking<a class="headerlink" href="#booking" title="Permanent link">&para;</a></h1>
+<p>A Booking is a concept that limits/enforces valid groupings of inventory that can be purchased together at the same time. They are the authoritative record of a customer committing to a specific Product, capturing the exact Inventory consumed, the policy snapshots applied, and the operational state of the reservation at the moment it was created. They are the ledger entry that ties together customer intent, product configuration, Inventory allocation, and pricing logic, forming the durable truth the rest of the system reacts to.</p>
+<p>A Booking exists as an isolated, self-contained unit because the system must be able to reason about its contents deterministically. It represents the valid range of inventory groupings that can be purchased together under a single, coherent set of policies. Just as Inventory is the atomic unit of availability, a Booking is the atomic unit of reservation, though the rules around what constitutes a Booking vary much more broadly than Inventory.</p>
+<p>Similar to how ProductDates are the date-specific execution of Products, Bookings too have date-specific instances called BookingDates. Each BookingDate corresponds to a specific date within the overall Booking period, allowing the system to track and manage availability and allocations on a per-day basis. This design enables the system to handle complex scenarios like multi-day bookings, partial cancellations, and date-specific adjustments while maintaining a clear and consistent record of the booking history. Each BookingDate is associated with the relevant ProductDate and Inventory units for that date, ensuring that all changes to the booking are accurately reflected in the system's state and availability calculations.</p>
+<h1 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h1>
+<h2 id="booking_1">Booking<a class="headerlink" href="#booking_1" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td>booking::<code>collectionId</code>:: <code>activityType</code>::<code>activityId</code>:: <code>productId</code></td>
+<td>Searching for all Bookings related to a specific Product.</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td><code>arrivalDate</code>::<code>bookingId</code></td>
+<td>Searching for a specific Booking related to a specific Product (disambiguated by bookingId)</td>
+</tr>
+<tr>
+<td><code>gsipk</code></td>
+<td>String</td>
+<td>Global secondary index partition key</td>
+<td><code>userSub</code></td>
+<td>Querying for all Bookings made by a specific customer</td>
+</tr>
+<tr>
+<td><code>gsisk</code></td>
+<td>String</td>
+<td>Global secondary index sort key</td>
+<td><code>arrivalDate</code></td>
+<td>Sorting a customer's Bookings by arrival date</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type/Schema</td>
+<td>"booking"</td>
+<td>Identifying that this item is a "booking"</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique UUID</td>
+<td>Automatically generating on Booking POST</td>
+<td>Searching for this specific item using the <code>globalId</code> GSI</td>
+</tr>
+<tr>
+<td><code>collectionId</code></td>
+<td>String</td>
+<td>The identifier of the collection this Booking belongs to</td>
+<td>Parent Product's <code>collectionId</code></td>
+<td>Determining which collection this Booking belongs to</td>
+</tr>
+<tr>
+<td><code>activityType</code></td>
+<td>String</td>
+<td>The type of activity this Booking is for</td>
+<td>Parent Product's <code>activityType</code></td>
+<td>Determining what type of Activity this Booking is for</td>
+</tr>
+<tr>
+<td><code>activitySubType?</code></td>
+<td>String</td>
+<td>A further categorization of the type of Activity this Booking is for, if available</td>
+<td>Parent Product's <code>activitySubType</code></td>
+<td>Determining what type of <code>activitySubType</code> this Booking is for</td>
+</tr>
+<tr>
+<td><code>activityId</code></td>
+<td>Number</td>
+<td>The unique identifier of the parent Activity</td>
+<td>Parent Product's <code>activityId</code></td>
+<td>Determining which specific Activity of <code>activityType</code> within the <code>collectionId</code> that this Booking refers to</td>
+</tr>
+<tr>
+<td><code>productId</code></td>
+<td>Number</td>
+<td>The unique identifier of the parent Product</td>
+<td>Parent Product's <code>productId</code></td>
+<td>Determining which specific Product this Booking refers to</td>
+</tr>
+<tr>
+<td><code>bookingId</code></td>
+<td>String</td>
+<td>Unique identifier for this Booking (distinct from <code>globalId</code> for traceability purposes)</td>
+<td>Automatically generating on Booking POST</td>
+<td>Distinguishing this Booking from other Bookings related to the same Product</td>
+</tr>
+<tr>
+<td><code>userSub</code></td>
+<td>String</td>
+<td>The unique identifier of the customer who made the booking</td>
+<td>Provided by client on Booking POST</td>
+<td>Associating this Booking with the customer who made it</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>String</td>
+<td>The current status of the booking (e.g., "held". "pending", "completed", "cancelled")</td>
+<td>Automatically setting on Booking POST and updating on status changes</td>
+<td>Tracking the lifecycle state of the booking</td>
+</tr>
+<tr>
+<td><code>timezone</code></td>
+<td>String</td>
+<td>IANA timezone identifier for the location where this Booking is reserved</td>
+<td>Inherited from parent Product</td>
+<td>Ensuring that all date and time calculations related to this Booking are performed in the correct timezone context</td>
+</tr>
+<tr>
+<td><code>asset</code></td>
+<td><a href="#assetref">AssetRef</a></td>
+<td>The asset allocated through this Booking</td>
+<td>Derived from parent Product's assetList and Inventory allocation</td>
+<td>Tracking which specific asset is allocated through this Booking</td>
+</tr>
+<tr>
+<td><code>itineraryRulesSnapshot</code></td>
+<td><a href="#itineraryrules">ItineraryRules</a></td>
+<td>The snapshot of the itinerary rules applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's Itinerary Rules at the time of booking</td>
+<td>Capturing the itinerary rules context for this Booking at the moment it was created</td>
+</tr>
+<tr>
+<td><code>itinerary?</code></td>
+<td><a href="#resolveditinerary">ResolvedItinerary</a></td>
+<td>The resolved itinerary for this Booking, if applicable</td>
+<td>Derived from parent Product's Itinerary Rules and the customer's requested itinerary at the time of booking</td>
+<td>Capturing the specific itinerary for this Booking if the Product has itinerary rules that require resolution at the time of booking</td>
+</tr>
+<tr>
+<td><code>reservationPolicySnapshot</code></td>
+<td><a href="#bookingreservationpolicysnapshot">BookingReservationPolicSnapshot</a></td>
+<td>The snapshot of the reservation policy applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's Reservation Policy at the time of booking</td>
+<td>Capturing the reservation policy context for this Booking at the moment it was created</td>
+</tr>
+<tr>
+<td><code>reservationValues</code></td>
+<td><a href="#bookingreservationvalues">BookingReservationValues</a></td>
+<td>The resolved reservation values of this Booking</td>
+<td>Derived from parent Product's Reservation Policy and client input on Booking POST</td>
+<td>Capturing the specific reservation values for this Booking based on the Product's Reservation Policy and customer input</td>
+</tr>
+<tr>
+<td><code>partyPolicySnapshot</code></td>
+<td><a href="#bookingpartypolicysnapshot">BookingPartyPolicySnapshot</a></td>
+<td>The snapshot of the party policy applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's Party Policy at the time of booking</td>
+<td>Capturing the party policy context for this Booking at the moment it was created</td>
+</tr>
+<tr>
+<td><code>partyValues</code></td>
+<td><a href="#bookingpartyvalues">BookingPartyValues</a></td>
+<td>The resolved party composition values of this Booking</td>
+<td>Derived from parent Product's Party Policy and client input on Booking POST</td>
+<td>Capturing the specific party composition for this Booking based on the Product's Party Policy and customer input</td>
+</tr>
+<tr>
+<td><code>feePolicySnapshot</code></td>
+<td><a href="#productfeepolicy">ProductFeePolicyReference</a></td>
+<td>The snapshot of the fee policy applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's referenced Fee Policy at the time of booking</td>
+<td>Capturing the fee policy context for this Booking at the moment it was created</td>
+</tr>
+<tr>
+<td><code>feeValues</code></td>
+<td><a href="#bookingfeevalues">BookingFeeValues</a></td>
+<td>The resolved fee values of this Booking</td>
+<td>Derived from parent Product's Fee Policy and client input on Booking POST</td>
+<td>Capturing the specific fee values for this Booking based on the Product's Fee Policy and customer input</td>
+</tr>
+<tr>
+<td><code>changePolicySnapshot</code></td>
+<td><a href="#productchangepolicyref">ProductChangePolicyRef</a></td>
+<td>The snapshot of the change policy applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's referenced Change Policy at the time of booking</td>
+<td>Capturing the change policy context for this Booking at the moment it was created</td>
+</tr>
+<tr>
+<td><code>bookingDates</code></td>
+<td>[PrimaryKey]</td>
+<td>List of primary keys of the BookingDates associated with this Booking</td>
+<td>Automatically generating on Booking POST based on the date range of the booking</td>
+<td>Tracking the specific BookingDates that are part of this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingtemporalwindows">BookingTemporalWindows<a class="headerlink" href="#bookingtemporalwindows" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>changeWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The change window for this Booking.</td>
+<td>Derived from parent Product's Reservation Policy</td>
+<td>Enforcing the change window for this Booking</td>
+</tr>
+<tr>
+<td><code>cancellationWindow</code></td>
+<td>ResolvedTemporalWindow</td>
+<td>The cancellation window for this Booking.</td>
+<td>Derived from parent Product's Reservation Policy</td>
+<td>Enforcing the cancellation window for this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="resolveditinerary">ResolvedItinerary<a class="headerlink" href="#resolveditinerary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entryPoint?</code></td>
+<td><a href="#resolveditinerarypoint">ResolvedItineraryPoint</a></td>
+<td>The resolved entry point for this Booking, if applicable</td>
+<td>Derived from parent Product's Itinerary Rules and the customer's requested itinerary at the time of booking</td>
+<td>Capturing the specific entry point for this Booking if the Product has itinerary rules that require resolution at the time of booking</td>
+</tr>
+<tr>
+<td><code>exitPoint?</code></td>
+<td><a href="#resolveditinerarypoint">ResolvedItineraryPoint</a></td>
+<td>The resolved exit point for this Booking, if applicable</td>
+<td>Derived from parent Product's Itinerary Rules and the customer's requested itinerary at the time of booking</td>
+<td>Capturing the specific exit point for this Booking if the Product has itinerary rules that require resolution at the time of booking</td>
+</tr>
+<tr>
+<td><code>stayPoints?</code></td>
+<td>[<a href="#resolveditinerarypoint">ResolvedItineraryPoint</a>]</td>
+<td>The resolved stay points for this Booking, if applicable</td>
+<td>Derived from parent Product's Itinerary Rules and the customer's requested itinerary at the time of booking</td>
+<td>Capturing the specific stay points for this Booking if the Product has itinerary rules that require resolution at the time of booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="resolveditinerarypoint">ResolvedItineraryPoint<a class="headerlink" href="#resolveditinerarypoint" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>primaryKey</code></td>
+<td>PrimaryKey</td>
+<td>The primary key of the referenced Access Point or Overnight Stay point</td>
+<td>Derived from parent Product's Itinerary Rules and the customer's requested itinerary at the time of booking</td>
+<td>Identifying which specific Access Point or Overnight Stay this itinerary point refers to</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>Date</td>
+<td>The date of this itinerary point</td>
+<td>Derived from the customer's requested itinerary at the time of booking</td>
+<td>Capturing the specific date for this itinerary point</td>
+</tr>
+<tr>
+<td><code>displayName</code></td>
+<td>String</td>
+<td>The display name of this itinerary point</td>
+<td>Derived from the referenced Access Point or Overnight Stay point</td>
+<td>Providing a human-readable name for this itinerary point</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingreservationpolicysnapshot">BookingReservationPolicySnapshot<a class="headerlink" href="#bookingreservationpolicysnapshot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isDiscoverable</code></td>
+<td>Boolean</td>
+<td>Whether this Booking was discoverable for reservation searches.</td>
+<td>Parent Product</td>
+<td>Determining if this Product appears in reservation search results</td>
+</tr>
+<tr>
+<td><code>isReservable</code></td>
+<td>Boolean</td>
+<td>Whether this Booking was able to be reserved.</td>
+<td>Parent Product</td>
+<td>Determining if this Product can be reserved</td>
+</tr>
+<tr>
+<td><code>minTotalDays</code></td>
+<td>Number</td>
+<td>Minimum total days this Booking must span</td>
+<td>Parent Product</td>
+<td>Enforcing minimum total days for reservations of this Booking</td>
+</tr>
+<tr>
+<td><code>maxTotalDays</code></td>
+<td>Number</td>
+<td>Maximum total days this Booking can span</td>
+<td>Parent Product</td>
+<td>Enforcing maximum total days for reservations of this Booking</td>
+</tr>
+<tr>
+<td><code>holdDuration</code></td>
+<td>Duration</td>
+<td>The length of time that this Booking can be held in a cart before it expires</td>
+<td>Parent Product</td>
+<td>Enforcing cart duration for reservations of this Booking</td>
+</tr>
+<tr>
+<td><code>temporalAnchors</code></td>
+<td><a href="#bookingtemporalanchors">BookingTemporalAnchors</a></td>
+<td>The temporal anchors that define key time points for reservation rules on this Booking.</td>
+<td>Parent Product</td>
+<td>Determining the reference points for time-based reservation rules for this Booking.</td>
+</tr>
+<tr>
+<td><code>temporalWindows</code></td>
+<td><a href="#productreservationtemporalwindows">ProductReservationTemporalWindows</a></td>
+<td>Temporal windows that governed reservation availability for this Booking</td>
+<td>Parent Product</td>
+<td>Enforcing temporal windows for reservations of this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingreservationvalues">BookingReservationValues<a class="headerlink" href="#bookingreservationvalues" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>totalDays</code></td>
+<td>Number</td>
+<td>The total number of days for this Booking</td>
+<td>Derived from the arrival and departure dates of this Booking</td>
+<td>Calculating the total days for this Booking to enforce reservation policies that depend on total length of stay</td>
+</tr>
+<tr>
+<td><code>restrictedBookingTriggered</code></td>
+<td>Boolean</td>
+<td>Whether this Booking has triggered any restricted booking windows based on its temporal anchors</td>
+<td>Derived from the temporal anchors of this Booking and the reservation policy rules that define restricted booking windows</td>
+<td>Determining if this Booking falls within any restricted booking windows that would disallow changes to the booking</td>
+</tr>
+<tr>
+<td><code>temporalAnchors</code></td>
+<td><code>BookingTemporalAnchors</code></td>
+<td>The resolved temporal anchors for this Booking</td>
+<td>Derived from the Booking's temporal anchors and the specific reservation policy rules that require resolution at the time of booking</td>
+<td>Providing the specific temporal anchor values needed to enforce reservation policies for this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingtemporalanchors">BookingTemporalAnchors<a class="headerlink" href="#bookingtemporalanchors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reservationTime</code></td>
+<td>Timestamp</td>
+<td>The reservation time anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the reservation time context for this Booking</td>
+</tr>
+<tr>
+<td><code>holdExpiryTime</code></td>
+<td>Timestamp</td>
+<td>The hold expiry time anchor for this Booking</td>
+<td>Derived from client input on Booking POST and updated if the booking hold is extended</td>
+<td>Establishing the hold expiry time context for this Booking</td>
+</tr>
+<tr>
+<td><code>completionTime?</code></td>
+<td>Timestamp</td>
+<td>The completion time anchor for this Booking</td>
+<td>Derived from client input on Booking POST and updated when the booking is finalized</td>
+<td>Establishing the completion time context for this Booking</td>
+</tr>
+<tr>
+<td><code>arrivalDate</code></td>
+<td>Date</td>
+<td>The arrival date anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the arrival date context for this Booking</td>
+</tr>
+<tr>
+<td><code>departureDate</code></td>
+<td>Date</td>
+<td>The departure date anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the departure date context for this Booking</td>
+</tr>
+<tr>
+<td><code>checkInAfter</code></td>
+<td>Timestamp</td>
+<td>The check-in after time anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the check-in after time context for this Booking</td>
+</tr>
+<tr>
+<td><code>checkOutBefore</code></td>
+<td>Timestamp</td>
+<td>The check-out before time anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the check-out before time context for this Booking</td>
+</tr>
+<tr>
+<td><code>noShowAfter</code></td>
+<td>Timestamp</td>
+<td>The no-show after time anchor for this Booking</td>
+<td>Derived from client input on Booking POST</td>
+<td>Establishing the no-show after time context for this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingpartypolicysnapshot">BookingPartyPolicySnapshot<a class="headerlink" href="#bookingpartypolicysnapshot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>partyCategories</code></td>
+<td>[<a href="../policies/party-policies/#partycategory">PartyCategory</a>]</td>
+<td>The snapshot of the party category rules applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's Party Policy at the time of booking</td>
+<td>Capturing the specific party category rules for this Booking based on the Product's Party Policy at the moment it was created</td>
+</tr>
+<tr>
+<td><code>partyCompositionRules</code></td>
+<td>[<a href="#eligibilityprimitive">ElegibilityPrimitive</a>]</td>
+<td>The snapshot of the party composition rules applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's Party Policy at the time of booking</td>
+<td>Capturing the specific party composition rules for this Booking based on the Product's Party Policy at the moment it was created</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingpartyvalues">BookingPartyValues<a class="headerlink" href="#bookingpartyvalues" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>partyComposition</code></td>
+<td><a href="#partycompositionunit">PartyCompositionUnit</a></td>
+<td>The resolved party composition for this Booking</td>
+<td>Derived from parent Product's Party Policy and client input on Booking POST</td>
+<td>Capturing the specific party composition for this Booking based on the Product's Party Policy and customer input</td>
+</tr>
+</tbody>
+</table>
+<h3 id="partycompositionunit">PartyCompositionUnit<a class="headerlink" href="#partycompositionunit" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>The unique identifier for this party composition unit</td>
+<td>Derived from BookingPartyPolicySnapshot</td>
+<td>Identifying this specific party composition unit</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>The display name for this party composition unit</td>
+<td>Derived from BookingPartyPolicySnapshot</td>
+<td>Providing a human-readable name for this party composition unit</td>
+</tr>
+<tr>
+<td><code>count</code></td>
+<td>Number</td>
+<td>The number of party members/equipment included in this booking for this unit</td>
+<td>Derived from client input on Booking POST</td>
+<td>Capturing the specific count for this party composition unit in this Booking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingfeepolicysnapshot">BookingFeePolicySnapshot<a class="headerlink" href="#bookingfeepolicysnapshot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feeSchedule</code></td>
+<td><a href="#feeschedule">FeeSchedule</a></td>
+<td>The snapshot of the fee schedule applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's referenced Fee Policy at the time of booking</td>
+<td>Capturing the specific fee schedule for this Booking based on the Product's Fee Policy at the moment it was created</td>
+</tr>
+<tr>
+<td><code>lineItems</code></td>
+<td><a href="#lineitem">LineItem</a></td>
+<td>The snapshot of the fee line items applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's referenced Fee Policy and client input on Booking POST at the time of booking</td>
+<td>Capturing the specific fee line items for this Booking based on the Product's Fee Policy and customer input at the moment it was created</td>
+</tr>
+</tbody>
+</table>
+<h2 id="bookingfeevalues">BookingFeeValues<a class="headerlink" href="#bookingfeevalues" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bookingDateTotals</code></td>
+<td><a href="#bookingdatefeetotals">BookingDateFeeTotal</a></td>
+<td>The breakdown of fee totals for each BookingDate within this Booking</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Calculating the fee totals for each BookingDate within this Booking based on the fee schedule, line items, and customer input</td>
+</tr>
+<tr>
+<td><code>resolvedLineItems</code></td>
+<td><a href="#resolvedlineitem">ResolvedLineItem</a></td>
+<td>The resolved fee line items for this Booking</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Capturing the specific fee line items for this Booking based on the fee policy snapshot and customer input</td>
+</tr>
+<tr>
+<td><code>bookingDiscounts</code></td>
+<td><a href="#resolvedlineitemdiscount">ResolvedLineItemDiscount</a></td>
+<td>The total discount amount for this Booking</td>
+<td>Derived from the discounts applied to the resolved line items for this Booking</td>
+<td>Calculating the total discount for this Booking based on the discounts applied to the resolved line items</td>
+</tr>
+<tr>
+<td><code>bookingTaxes</code></td>
+<td><a href="#resolvedlineitemtax">ResolvedLineItemTax</a></td>
+<td>The total tax amount for this Booking</td>
+<td>Derived from the taxes applied to the resolved line items for this Booking</td>
+<td>Calculating the total tax for this Booking based on the taxes applied to the resolved line items</td>
+</tr>
+<tr>
+<td><code>bookingSubTotal</code></td>
+<td>Number</td>
+<td>The subtotal fee amount for this Booking before taxes and discounts</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Calculating the subtotal fee for this Booking based on the fee schedule, line items, and customer input</td>
+</tr>
+<tr>
+<td><code>bookingTotal</code></td>
+<td>Number</td>
+<td>The grand total fee amount for this Booking</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Calculating the grand total fee for this Booking based on the fee schedule, line items, and customer input</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bookingdatefeetotal">BookingDateFeeTotal<a class="headerlink" href="#bookingdatefeetotal" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>date</code></td>
+<td>Date</td>
+<td>The date for this BookingDate fee total</td>
+<td>Derived from the specific BookingDate this fee total corresponds to</td>
+<td>Identifying which BookingDate this fee total corresponds to</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td>Number</td>
+<td>The total fee amount for this BookingDate</td>
+<td>Derived from the fee schedule, line items, and customer input for this specific date</td>
+<td>Calculating the total fee for this BookingDate based on the fee policy and customer input</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolvedlineitem">ResolvedLineItem<a class="headerlink" href="#resolvedlineitem" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>The unique identifier for this resolved line item</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Identifying this specific resolved line item</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>The display name for this resolved line item</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Providing a human-readable name for this resolved line item</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>String</td>
+<td>The type of this resolved line item (e.g., "flat", "unit")</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining how this resolved line item is processed in the overall fee calculation</td>
+</tr>
+<tr>
+<td><code>isReturnable</code></td>
+<td>Boolean</td>
+<td>Whether this resolved line item is returnable/refundable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining if this resolved line item can be refunded in the case of a cancellation or change</td>
+</tr>
+<tr>
+<td><code>units</code></td>
+<td>[<a href="#resolvedlineitemunitbreakdown">ResolvedLineItemUnitBreakdown</a>]</td>
+<td>The breakdown of units for this resolved line item, if applicable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Providing a detailed breakdown of units for this resolved line item if it is of type "unit"</td>
+</tr>
+<tr>
+<td><code>lineTaxes</code></td>
+<td>[<a href="#resolvedlineitemtax">ResolvedLineItemTax</a>]</td>
+<td>The breakdown of taxes for this resolved line item, if applicable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Providing a detailed breakdown of taxes for this resolved line item if it is taxable</td>
+</tr>
+<tr>
+<td><code>lineDiscounts</code></td>
+<td>[<a href="#resolvedlineitemdiscount">ResolvedLineItemDiscount</a>]</td>
+<td>The breakdown of discounts for this resolved line item, if applicable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Providing a detailed breakdown of discounts for this resolved line item if it is discountable</td>
+</tr>
+<tr>
+<td><code>lineSubtotal</code></td>
+<td>Number</td>
+<td>The subtotal amount for this line item before taxes and discounts</td>
+<td>Derived from the quantity, rate, and type of this resolved line item</td>
+<td>Calculating the subtotal for this line item based on its quantity, rate, and type</td>
+</tr>
+<tr>
+<td><code>lineTotal</code></td>
+<td>Number</td>
+<td>The total amount for this line item after applying taxes and discounts</td>
+<td>Derived from the line subtotal, taxes, and discounts for this resolved line item</td>
+<td>Calculating the total for this line item based on its subtotal, taxes, and discounts</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolvedlineitemunitbreakdown">ResolvedLineItemUnitBreakdown<a class="headerlink" href="#resolvedlineitemunitbreakdown" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate</code></td>
+<td>Number</td>
+<td>The rate for this unit breakdown</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining the rate for this unit breakdown of the resolved line item</td>
+</tr>
+<tr>
+<td><code>discountApplied</code></td>
+<td>[<a href="#resolvedlineitemdiscount">ResolvedLineItemDiscount</a>]</td>
+<td>The discount applied to this unit breakdown, if applicable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining the discount applied to this unit breakdown of the resolved line item if it is discountable</td>
+</tr>
+<tr>
+<td><code>unitSubTotal</code></td>
+<td>Number</td>
+<td>The subtotal amount for this unit breakdown before taxes</td>
+<td>Derived from the rate for this unit breakdown</td>
+<td>Calculating the subtotal for this unit breakdown based on its rate</td>
+</tr>
+<tr>
+<td><code>taxApplied</code></td>
+<td>[<a href="#resolvedlineitemtax">ResolvedLineItemTax</a>]</td>
+<td>The tax applied to this unit breakdown, if applicable</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining the tax applied to this unit breakdown of the resolved line item if it is taxable</td>
+</tr>
+<tr>
+<td><code>unitSubTotal</code></td>
+<td>Number</td>
+<td>The subtotal amount for this unit breakdown before taxes</td>
+<td>Derived from the rate for this unit breakdown</td>
+<td>Calculating the subtotal for this unit breakdown based on its rate</td>
+</tr>
+<tr>
+<td><code>unitTotal</code></td>
+<td>Number</td>
+<td>The total amount for this unit breakdown after applying taxes and discounts</td>
+<td>Derived from the rate, tax, and discount for this unit breakdown</td>
+<td>Calculating the total for this unit breakdown based on its rate, tax, and discount</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolvedlineitemtax">ResolvedLineItemTax<a class="headerlink" href="#resolvedlineitemtax" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>The unique identifier for this resolved line item tax</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Identifying this specific resolved line item tax</td>
+</tr>
+<tr>
+<td><code>rate</code></td>
+<td>Number</td>
+<td>The tax rate for this resolved line item tax</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining the tax rate for this resolved line item tax</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>Number</td>
+<td>The tax amount for this resolved line item tax</td>
+<td>Derived from the line subtotal and tax rate for this resolved line item tax</td>
+<td>Calculating the tax amount for this resolved line item tax based on the line subtotal and tax rate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolvedlineitemdiscount">ResolvedLineItemDiscount<a class="headerlink" href="#resolvedlineitemdiscount" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>The unique identifier for this resolved line item discount</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Identifying this specific resolved line item discount</td>
+</tr>
+<tr>
+<td><code>rate?</code></td>
+<td>Number</td>
+<td>The discount rate for this resolved line item discount</td>
+<td>Derived from BookingFeePolicySnapshot and client input on Booking POST</td>
+<td>Determining the discount rate for this resolved line item discount</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>Number</td>
+<td>The discount amount for this resolved line item discount</td>
+<td>Derived from the line subtotal and discount rate for this resolved line item discount</td>
+<td>Calculating the discount amount for this resolved line item discount based on the line subtotal and discount rate</td>
+</tr>
+</tbody>
+</table>
+<h2 id="changepolicysnapshot">ChangePolicySnapshot<a class="headerlink" href="#changepolicysnapshot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>property</th>
+<th>type</th>
+<th>description</th>
+<th>derived from</th>
+<th>evaluated when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rules</code></td>
+<td>[<a href="#changepolicyrule">ChangePolicyRule</a>]</td>
+<td>The snapshot of the change policy rules applied to this Booking at the time of booking</td>
+<td>Derived from parent Product's referenced Change Policy at the time of booking</td>
+<td>Capturing the specific change policy rules for this Booking based on the Product's Change Policy at the moment it was created</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example-booking">Example Booking<a class="headerlink" href="#example-booking" title="Permanent link">&para;</a></h2>
+<h3 id="immediately-after-initialization">Immediately after initialization<a class="headerlink" href="#immediately-after-initialization" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;booking::mockPark1::backcountryCamp::1::1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09::550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user::b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09::booking&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;booking&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;globalId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;collectionId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mockPark1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backcountryCamp&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activitySubType&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;productId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bookingId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;userSub&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;held&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;America/Vancouver&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;asset&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::1&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;itineraryRulesSnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;entryExit&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;allowedEntryPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;allowedExitPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;stayPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;allowedStayPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;itinerary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">  </span><span class="nt">&quot;reservationPolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;isDiscoverable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;isReservable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;minTotalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;maxTotalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;holdDuration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;minutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;temporalWindows&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;discoveryWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-12-31T23:59:59-08:00&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;temporalContext&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;totalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;restrictedBookingTriggered&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;discoveryWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-12-31T23:59:59-08:00&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;checkInAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T14:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;checkOutAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12T11:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;noShowAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T23:59:59-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;reservationTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:01:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;completionTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;arrivalDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;departureDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;partyPolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;partyCategories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adult&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Adult (18+)&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;child&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Child &lt;18&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tent&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tent&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;partyCompositionRules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;maxTotalPartySize&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Maximum Total Party Size&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;failMsg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Total party size cannot exceed 4 people.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;then&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;lhs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyCategory.adult&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;op&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ref&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyCategory.child&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">],</span>
+<span class="w">          </span><span class="nt">&quot;op&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lte&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;rhs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;partyContext&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bookingDateValidations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-11&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;feePolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;feeSchedule&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;lineItems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFeeLine&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;field&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.transactionFee&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;field&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tax&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;feeValues&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;bookingDateTotals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-10&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-11&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;resolvedLineItems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFeeLine&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">            </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">              </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.33</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;unitSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unitTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.83</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;lineTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.33</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;lineDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;lineSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;lineTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.83</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;bookingDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">&quot;bookingTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.33</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;bookingSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bookingTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.83</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;changePolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;rules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campingFeeFullRefund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full Camping Fee Refund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full refund of camping fees if cancellation occurs more than 2 weeks before arrival date.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;temporalWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T23:59:59-08:00&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campingFee50PercentRefund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Half Camping Fee Refund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Half refund of camping fees if cancellation occurs less than 2 weeks but more than 1 week before arrival date.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;temporalWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-27T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-02T23:59:59-08:00&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;createdAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:01:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;lastUpdated&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:01:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="after-finalization">After Finalization<a class="headerlink" href="#after-finalization" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;booking::mockPark1::backcountryCamp::1::1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09::550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user::b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;gsi1sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;booking&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;globalId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;collectionId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mockPark1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;backcountryCamp&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activitySubType&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;activityId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;productId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bookingId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;userSub&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;complete&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;America/Vancouver&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;asset&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asset::mockPark1::campground::1&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campsite::1&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;allocationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;itineraryRulesSnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;entryExit&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;allowedEntryPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;allowedExitPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;stayPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;allowedStayPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::2&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;itinerary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;entryPoint&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::1&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Park South Trailhead&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;exitPoint&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accessPoint::2&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Park North Trailhead&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;stayPoints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Park Campground A&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::1&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-10&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Park Campground A&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;primaryKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;pk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility::mockPark1&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;sk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campground::2&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-11&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mock Park Campground B&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;reservationPolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;isDiscoverable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;isReservable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;minTotalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;maxTotalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;holdDuration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;minutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;temporalWindows&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;discoveryWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-12-31T23:59:59-08:00&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;reservationValues&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;totalDays&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;restrictedBookingTriggered&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;temporalAnchors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;reservationTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;arrivalDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;departureDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;checkInAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T14:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;noShowAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09T23:59:59-08:00&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;partyPolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;partyCategories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adult&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Adult (18+)&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;child&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Child &lt;18&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tent&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tent&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;minCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxCount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;partyCompositionRules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;maxTotalPartySize&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Maximum Total Party Size&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;failMsg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Total party size cannot exceed 4 people.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;then&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;lhs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyCategory&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adult&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;op&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;partyCategory&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;child&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">],</span>
+<span class="w">          </span><span class="nt">&quot;op&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lte&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;rhs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;partyContext&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bookingDateValidations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-11&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-12&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isValid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;feePolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;feeSchedule&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;lineItems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFeeLine&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;field&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.transactionFee&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;field&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feeSchedule.tax&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;feeValues&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;bookingDateTotals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-09&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.00</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;subTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-10&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.00</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;subTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-11&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;totalDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;totalTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.00</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;subTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;resolvedLineItems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;transactionFeeLine&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Transaction Fee&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;isReturnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;discountsApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">            </span><span class="nt">&quot;taxApplied&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">              </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.33</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;unitSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;unitTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.83</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;lineTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.33</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;lineDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;lineSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.50</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;lineTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.83</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;bookingDiscounts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">&quot;bookingTaxes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tax&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.33</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;bookingSubTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">126.50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bookingTotal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">132.83</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;changePolicySnapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;rules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campingFeeFullRefund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full Camping Fee Refund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Full refund of camping fees if cancellation occurs more than 2 weeks before arrival date.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;temporalWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-26T23:59:59-08:00&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;campingFee50PercentRefund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Half Camping Fee Refund&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Half refund of camping fees if cancellation occurs less than 2 weeks but more than 1 week before arrival date.&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percentage&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;if&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;amount&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;temporalWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-27T07:00:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-02T23:59:59-08:00&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;createdAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:01:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;lastUpdated&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T07:03:00-08:00&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../inventory/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Inventory">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Inventory
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../booking-dates/" class="md-footer__link md-footer__link--next" aria-label="Next: BookingDates">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                BookingDates
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

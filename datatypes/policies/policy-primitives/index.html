@@ -1,0 +1,2286 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../policies-overview/">
+      
+      
+        <link rel="next" href="../reservation-policies/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Policy Primitives - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#policy-primitives" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Policy Primitives
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4_12" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-anchor-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal Anchor Primitive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporal Anchor Primitive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#evaluation-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluation procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temporal-anchor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal Anchor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-duration-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal Duration Primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-window-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal Window Primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interval-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interval Primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arithmetic-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arithmetic Primitive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Arithmetic Primitive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operand
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#arithmetic-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arithmetic Operator
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#comparison-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Primitive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Comparison Primitive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison Operator
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eligibility-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eligibility Primitive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Eligibility Primitive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#eligibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eligibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#if-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If Statement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#then-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Then Statement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference Primitive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference Primitive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RefStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="policy-primitives">Policy Primitives<a class="headerlink" href="#policy-primitives" title="Permanent link">&para;</a></h1>
+<p>Policy primitives are the fundamental building blocks used to define all reservation governance in the system. While the system exposes high-level <a href="#policy-types">policy types</a>, each of these types is ultimately composed from a shared set of primitives. These primitives provide consistent vocabulary for expressing rules, ensure predictable, deterministic behaviour across products, and make the policy layer extensible as new reservation models are introduced.</p>
+<p>Understanding these primitives is essential for understanding how policies work, how overrides behave, and how ProductDates are generated.</p>
+<p>All policies are composed from these primitives:
+- <a href="#temporal-anchor-primitive">Temporal Anchor Primitive</a> — define what point in time rules are relative to
+- <a href="#temporal-duration-primitive">Temporal Duration Primitive</a> — define how long something must or may last
+- <a href="#temporal-window-primitive">Temporal Window Primitive</a> — define when an action is allowed
+- <a href="#interval-primitive">Interval Primitive</a> — define groups of dates that behave as a unit
+- <a href="#arithmetic-primitive">Arithmetic Primitive</a> — A linear arithmetic expression that determines numerical results, evaluated left-to-right
+- <a href="#comparison-primitive">Comparison Primitive</a> - Compares two arithmetic primitives using a comparison operator
+- <a href="#eligibility-primitive">Eligibility Primitive</a> — Uses comparison primitives to chain boolean results and drive if/then logic
+- <a href="#reference-primitive">Reference Primitive</a> - a named, pre-computed or derived value that is evaluated once and stored in booking context so other primitives can reference it</p>
+<p>Each primitive is small and self‑contained, but together they can express the full complexity of reservation governance.</p>
+<h2 id="temporal-anchor-primitive">Temporal Anchor Primitive<a class="headerlink" href="#temporal-anchor-primitive" title="Permanent link">&para;</a></h2>
+<p>The date or timestamp that temporal calculations can use as reference points.</p>
+<p>Examples:
+- Arrival Date
+- Departure Date
+- Reservation Date
+- Fixed calendar datetimes (e.g., “Jan 17 at 08:00”)</p>
+<p>Anchors should resolve to either a calendar date (YYYY-MM-DD) or a single ISO 8601 timestamp (when supplied a time-of-day offset and  combined with the appropriate timezone). They ensure that booking windows, change windows, and fee calculations behave consistently—even across daylight savings transitions.</p>
+<h3 id="evaluation-procedure">Evaluation procedure<a class="headerlink" href="#evaluation-procedure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Resolve the initial calendar date</li>
+</ol>
+<p>The anchor begins by looking at the <code>anchorRef</code> property. This must reference a temporal anchor from the <code>refStore</code>. The <code>anchorRef</code> resolves to a calendar date. If the reference is a timestamp, the calendar date is chopped from the timestamp:</p>
+<blockquote>
+<p><code>2026-01-27T14:58:03-08:00</code> becomes 2026-01-27</p>
+</blockquote>
+<p>If <code>anchorRef</code> cannot be resolved because the value in <code>refStore</code> does not exist, the resolution is skipped (see <a href="#reference-primitive">reference primitive dependency loops</a>).</p>
+<p>If there are no other fields in the anchor, the anchor is resolved as a calendar date and stored.</p>
+<ol>
+<li>Apply the duration in the temporal direction</li>
+</ol>
+<p>If the anchor contains a <code>duration</code> and a <code>direction</code>, apply the duration to the <code>initialDate</code> in the temporal direction of <code>direction</code>. The result is a calendar date.</p>
+<p>If there is no <code>timeOfDay</code> field in the anchor, the anchor is resolved as calendar date and stored.</p>
+<ol>
+<li>Apply time of day offset</li>
+</ol>
+<p>If the anchor contains a <code>timeOfDay</code> field, apply the time of day offset to the running calculated date (this may be from step 1, or step 2 if there was a duration applied).The result is an ISO 8601 timestamp, with the timezone set to whatever the policy's <code>timezone</code> is.</p>
+<p>The anchor is resolved as an ISO 8601 timestamp and stored.</p>
+<p>The order of operations is important when calculating temporal windows, so as to make the result deterministic.</p>
+<p>This order is crucial to avoid temporal nondeterminism:
+- Applying time-of-day calculation before duration math can cause the result to shift by 1 hour over daylight savings transitions.
+- Performing duration math in UTC may not respect daylight savings transitions in certain timezones.
+- All calculations must occur in the same timezone.</p>
+<pre  class="mermaid"><code>flowchart TB
+a[Look up `anchorRef` value] --> b{does `anchorRef` exist?}
+b -- No --> c[Skip resolution of this anchor, and any primitives depending on it]
+b -- Yes --> d{Is `anchorRef` a timestamp?}
+d -- Yes --> e[Chop to calendar date] --> f
+d -- No --> f{Is there a `duration` to apply?}
+f -- Yes --> g[Apply duration in the specified `direction`] --> h
+f -- No --> h{Is there a `timeOfDay` offset to apply?}
+h -- Yes --> i[Apply time-of-day offset] --> j
+h -- No --> j[Anchor resolution complete]
+</code></pre>
+<h3 id="temporal-anchor">Temporal Anchor<a class="headerlink" href="#temporal-anchor" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description  </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>anchorRef</code></td>
+<td>String</td>
+<td>The id of the reference point used for time calculations. Determines how windows and durations are interpreted.</td>
+</tr>
+<tr>
+<td><code>useAnchorTime</code></td>
+<td>Boolean</td>
+<td>If true, chop <code>anchorRef</code> time of day before evaluation, and reapply after. Defaults to '00:00:00'</td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>TemporalDuration</td>
+<td>The duration to apply to the <code>initialDate</code> to get <code>initialDateTime</code></td>
+</tr>
+<tr>
+<td><code>timeOfDay</code></td>
+<td>Time</td>
+<td>Time-of-day offset applied to the calendar date to get a  timestamp. Overrides <code>useAnchorTime</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="time">Time<a class="headerlink" href="#time" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">TimeOfDay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="s2">&quot;hour&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">number</span><span class="p">,</span><span class="w">      </span><span class="c1">// hour of day (0-23)</span>
+<span class="w">  </span><span class="s2">&quot;minute?:&quot;</span><span class="w"> </span><span class="nx">number</span><span class="p">,</span><span class="w">   </span><span class="c1">// minute of hour (0-59)</span>
+<span class="w">  </span><span class="s2">&quot;second?:&quot;</span><span class="w"> </span><span class="nx">number</span><span class="w">    </span><span class="c1">// second of minute (0-59)</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// Below are some possible ReferencePrimitive points for `anchorRrf`.</span>
+<span class="nx">TemporalAnchorEnum</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="s2">&quot;anchors.arrivalDate&quot;</span><span class="p">,</span><span class="w">         </span><span class="c1">// The date of visitor arrival</span>
+<span class="w">   </span><span class="s2">&quot;anchors.departureDate&quot;</span><span class="p">,</span><span class="w">       </span><span class="c1">// The date of visitor departure</span>
+<span class="w">   </span><span class="s2">&quot;anchors.reservationDate&quot;</span><span class="p">,</span><span class="w">     </span><span class="c1">// The date the reservation is made</span>
+<span class="w">   </span><span class="s2">&quot;anchors.rangeStart&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">// Product&#39;s `rangeStart` value</span>
+<span class="w">   </span><span class="s2">&quot;anchors.rangeEnd&quot;</span><span class="p">,</span><span class="w">            </span><span class="c1">// Product&#39;s `rangeEnd` value</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;temporalAnchor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nt">&quot;anchorRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;anchors.arrivalDate&quot;</span><span class="p">,</span>
+<span class="w">   </span><span class="nt">&quot;timeOfDay&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;hour&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span>
+<span class="w">   </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h2 id="temporal-duration-primitive">Temporal Duration Primitive<a class="headerlink" href="#temporal-duration-primitive" title="Permanent link">&para;</a></h2>
+<p>The length of time of an event.</p>
+<p>Examples:
+- Minimum/maximum stay length
+- Length of a rolling reservation window (4 months in advance, two days in advance)
+- Minimum notice before arrival
+- Penalty windows (“changes within 48 hours incur a fee”)</p>
+<p>Duration rules allow the system to express constraints that depend on how long something lasts, not just when it occurs.</p>
+<p>Schema
+<div class="highlight"><pre><span></span><code><span class="nx">TemporalDuration</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w">  </span><span class="c1">// &quot;before | after&quot;</span>
+<span class="w">  </span><span class="c1">// At least one field must be present.</span>
+<span class="w">  </span><span class="nx">years</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">    </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">months</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">   </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">weeks</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">    </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">days</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">     </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">hours</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">    </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">minutes</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">  </span><span class="c1">// integer ≥ 0</span>
+<span class="w">  </span><span class="nx">seconds</span><span class="o">?:</span><span class="w"> </span><span class="nx">number</span><span class="p">;</span><span class="w">  </span><span class="c1">// integer ≥ 0</span>
+<span class="p">}</span>
+</code></pre></div>
+- All fields are optional, but at least one must be provided (<code>direction</code> exempt).
+- All values must be non‑negative integers.
+- Durations are not normalized (e.g., { months: 4 } stays as 4 months, not 120 days).</p>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;temporalDuration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;months&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h2 id="temporal-window-primitive">Temporal Window Primitive<a class="headerlink" href="#temporal-window-primitive" title="Permanent link">&para;</a></h2>
+<p>When an action is allowed or disallowed. They are typically comprised of a pair of temporal anchor primitives, one for 'open', the other for 'close'.</p>
+<p>Examples:
+- When reservations open and close
+- When changes/cancellations are permitted
+- When peak pricing or discounts apply</p>
+<p>Window rules give the system deterministic control over time‑bounded actions.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">TemporalWindow</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="nb">String</span><span class="w">                 </span><span class="c1">// Identifier</span>
+<span class="w">  </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="nb">String</span><span class="w">              </span><span class="c1">// Human-readable label</span>
+<span class="w">  </span><span class="nx">open</span><span class="o">:</span><span class="w"> </span><span class="nx">TemporalAnchor</span><span class="p">;</span><span class="w">      </span><span class="c1">// opening time boundary</span>
+<span class="w">  </span><span class="nx">close</span><span class="o">:</span><span class="w"> </span><span class="nx">TemporalAnchor</span><span class="p">;</span><span class="w">     </span><span class="c1">// closing time boundary</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Example: This TemporalWindow describes a time block from 7am on the day four months before the arrival date, to 11:59pm on the arrival date itself.
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;temporalWindow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;discoverabilityWindow&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Discoverability Window&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;anchorRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arrivalDate&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;months&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;direction&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;timeOfDay&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;hour&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;anchorRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arrivalDate&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timeOfDay&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;hour&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">23</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;minute&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">59</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h2 id="interval-primitive">Interval Primitive<a class="headerlink" href="#interval-primitive" title="Permanent link">&para;</a></h2>
+<p>Groups of dates that behave as a unit.</p>
+<p>Examples:
+- Holiday weekend minimum‑stay requirements</p>
+<p>Intervals allow the system to express rules like “if you book any date in this block, you must book all days in the block.”</p>
+<p>Note that similar rules like "minimum 3 nights stay" can be stored as <code>minStay</code> in a booking policy, and do not necessarily enforce the same intent. A <code>minStay</code> of 3 on long weekend nights does not force visitors to book specific days, only that their stay must be at least 3 days long.</p>
+<p>Schema:
+<div class="highlight"><pre><span></span><code><span class="nx">Interval</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w">                </span><span class="c1">// Label of the interval (identifying what it applies to)</span>
+<span class="w">  </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w">          </span><span class="c1">// Description of the interval (describing what it applies to)</span>
+<span class="w">  </span><span class="nx">dates</span><span class="o">:</span><span class="w"> </span><span class="nx">LocalDate</span><span class="p">[];</span><span class="w">          </span><span class="c1">// required — list of ISO dates (YYYY-MM-DD)</span>
+<span class="p">}</span>
+</code></pre></div>
+Example: Special event pricing applies only if the entire stay covers July 1–3.
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;interval&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;dates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;2025-07-01&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;2025-07-02&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;2025-07-03&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;requireAllDates&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h2 id="arithmetic-primitive">Arithmetic Primitive<a class="headerlink" href="#arithmetic-primitive" title="Permanent link">&para;</a></h2>
+<p>A linear sequence of numerical operands and operators evaluated left-to-right. They are structured as array with an odd number of indices. Each odd numbered index is an <a href="#operands">operand</a> and each even-numbered index is an <a href="#operators">operator</a>. Starting from the first operand, each pair of following <code>[operator, operand]</code> is applied in order until the array has been traversed, resolving in a final number.</p>
+<h3 id="operand">Operand<a class="headerlink" href="#operand" title="Permanent link">&para;</a></h3>
+<p>An operand may be a constant numerical value, or a value taken from <code>evaluationContext</code> that resolves to a number, or a nested ArithmeticPrimitive expression that resolves to number.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Property</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>String</td>
+<td><code>constant</code>, <code>field</code>, <code>expression</code></td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Any</td>
+<td>A constant numerical value, or the name of the field to resolve, or another ArithmeticPrimitive</td>
+</tr>
+</tbody>
+</table>
+<h3 id="arithmetic-operator">Arithmetic Operator<a class="headerlink" href="#arithmetic-operator" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">ArithmeticOperators</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nx">add</span><span class="p">,</span><span class="w">                     </span><span class="c1">// add</span>
+<span class="w">  </span><span class="nx">sub</span><span class="p">,</span><span class="w">                     </span><span class="c1">// subtract</span>
+<span class="w">  </span><span class="nx">mul</span><span class="p">,</span><span class="w">                     </span><span class="c1">// multiply</span>
+<span class="w">  </span><span class="nx">div</span><span class="p">,</span><span class="w">                     </span><span class="c1">// divide</span>
+<span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nx">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="nx">operand</span><span class="p">,</span><span class="w"> </span><span class="nx">operator</span><span class="p">,</span><span class="w"> </span><span class="nx">operand</span><span class="p">,</span><span class="w"> </span><span class="nx">operator</span><span class="p">,</span><span class="w"> </span><span class="nx">operand</span><span class="p">,</span><span class="w"> </span><span class="p">...]</span>
+</code></pre></div>
+<h2 id="comparison-primitive">Comparison Primitive<a class="headerlink" href="#comparison-primitive" title="Permanent link">&para;</a></h2>
+<p>A comparator that compares two arithmetic primitives. It is comprised of a left-hand-side operand, a comparison operator, and a right-hand-side operand. Evalutates to a boolean.</p>
+<h3 id="comparison">Comparison<a class="headerlink" href="#comparison" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><strong>Property</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lhs</code></td>
+<td>ArithmeticPrimitive</td>
+<td>An arithmetic primitive</td>
+</tr>
+<tr>
+<td><code>op</code></td>
+<td>ComparisonOperator</td>
+<td>A comparison operator</td>
+</tr>
+<tr>
+<td><code>rhs</code></td>
+<td>ArithmeticPrimitive</td>
+<td>An arithmetic primitive</td>
+</tr>
+</tbody>
+</table>
+<h3 id="comparison-operator">Comparison Operator<a class="headerlink" href="#comparison-operator" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">comparisonOperators</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w"> </span><span class="s2">&quot;eq&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// equal</span>
+<span class="w"> </span><span class="s2">&quot;neq&quot;</span><span class="p">,</span><span class="w">            </span><span class="c1">// not equal</span>
+<span class="w"> </span><span class="s2">&quot;lt&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// less than</span>
+<span class="w"> </span><span class="s2">&quot;lte&quot;</span><span class="p">,</span><span class="w">            </span><span class="c1">// less than or equal</span>
+<span class="w"> </span><span class="s2">&quot;gt&quot;</span><span class="p">,</span><span class="w">             </span><span class="c1">// greater than</span>
+<span class="w"> </span><span class="s2">&quot;gte&quot;</span><span class="p">,</span><span class="w">            </span><span class="c1">// greater than or equal</span>
+<span class="p">]</span>
+</code></pre></div>
+<h2 id="eligibility-primitive">Eligibility Primitive<a class="headerlink" href="#eligibility-primitive" title="Permanent link">&para;</a></h2>
+<p>A simple conditional structure comprised of comparison primitives. It contains an <code>if</code> statement and a <code>then</code> statement. Evaluates to a boolean.</p>
+<p>Eligibility primitives support the following logical evaluation:</p>
+<blockquote>
+<p>if X is TRUE, then Y MUST also be TRUE, else the evaluation fails and the expression is FALSE.
+if X is FALSE, then the expression is never evaluated.</p>
+</blockquote>
+<h3 id="eligibility">Eligibility<a class="headerlink" href="#eligibility" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><strong>Property</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>Expression identifier</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>Human readable label of the expression</td>
+</tr>
+<tr>
+<td><code>failMsg</code></td>
+<td>String</td>
+<td>A helpful message to display in the event the expression fails</td>
+</tr>
+<tr>
+<td><code>if</code></td>
+<td>[ComparisonPrimitive]</td>
+<td>An array of comparison primitives</td>
+</tr>
+<tr>
+<td><code>then</code></td>
+<td>[ComparisonPrimitive]</td>
+<td>An array of comparison primitives</td>
+</tr>
+</tbody>
+</table>
+<h3 id="if-statement">If Statement<a class="headerlink" href="#if-statement" title="Permanent link">&para;</a></h3>
+<p>A logical statement comprised of an array of comparison primitives and chained by a logical AND. Every comparison primitive must evaluate to TRUE for the if statement to pass and the <code>then</code> statement to be evaluated. An empty array automatically evaluates to TRUE.</p>
+<h3 id="then-statement">Then Statement<a class="headerlink" href="#then-statement" title="Permanent link">&para;</a></h3>
+<p>A logical statement comprised of an array of comparison primitives and chained by a logical AND. Every comparison primitive must evaluate to TRUE for the then statement to pass and for the eligibility primitive to resolve to TRUE.</p>
+<h2 id="reference-primitive">Reference Primitive<a class="headerlink" href="#reference-primitive" title="Permanent link">&para;</a></h2>
+<p>A reference primitive is a lightweight lookup that retrieves the value of a previously defined fact from the evaluation context so other primitives can use it without recomputing anything.</p>
+<h3 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><strong>Property</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>Reference identifier</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>String</td>
+<td>Human readable label of the reference</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>String</td>
+<td>Reference data type</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Any</td>
+<td>The value of the reference</td>
+</tr>
+</tbody>
+</table>
+<p>During booking evaluation, reference primitives are recorded in a lookup store called <code>refStore</code>. This way, they can be made available for other primitives, even across policies, so the whole booking maintains the same context.</p>
+<p>The <code>refStore</code> is populated in the order that references are made available. Some are directly available at the beginning of a booking evaluation stage, others are derived/evaluated and available at the end of that stage. Each stage should have access to the references resolved in the preceding stages. The approximate ordering of stages follows:</p>
+<ol>
+<li>User refs: information related to the user making the booking</li>
+<li>Inventory: information related to the inventory the user has selected for the booking</li>
+<li>Anchors: temporal anchors that are inherently defined by the inventory selected (<code>arrivalDate</code>, <code>departureDate</code>, etc)</li>
+<li>Windows: temporal windows that are derived from the previously calculated anchors.</li>
+<li>Dependency Loop: Some temporal anchors &amp; windows are derived from others. This stage loops through unresolved windows and anchors and resolves dependent ones. The looping stops when all dependencies have been resolved, or nothing new is evaluated during the loop.</li>
+<li>PartyCategories: Counts of people and equipment classes defined by the party policy and provided by the user when they declare their party breakdown</li>
+<li>PartyGroups: Aggregates of party counts defined by the party policy</li>
+<li>Fees: Fee schedule defined in the fee policy</li>
+</ol>
+<h3 id="refstore">RefStore<a class="headerlink" href="#refstore" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><strong>Property</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to the user making the booking</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives related to the booking inventory</td>
+</tr>
+<tr>
+<td><code>anchors</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives that are temporal anchors (ISO 8601 timestamps)</td>
+</tr>
+<tr>
+<td><code>windows</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives that are temporal windows (contain open and close ISO 8601 timestamps)</td>
+</tr>
+<tr>
+<td><code>partyCategories</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives that are first-order party breakdown classes (people AND equipment)</td>
+</tr>
+<tr>
+<td><code>partyGroups</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives that are second-order party aggregations (groups of <code>partyCategories</code>)</td>
+</tr>
+<tr>
+<td><code>fees</code></td>
+<td>[ReferencePrimitive]</td>
+<td>Reference primitives that are fees</td>
+</tr>
+</tbody>
+</table>
+<h1 id="how-primitives-compose-into-policy-schemas">How Primitives Compose into Policy Schemas<a class="headerlink" href="#how-primitives-compose-into-policy-schemas" title="Permanent link">&para;</a></h1>
+<p>Policy primitives are the foundational building blocks of the reservation governance model. Each primitive represents a small, focused concept—such as a time window, a duration constraint, or an eligibility requirement. Policy types (Booking, Change, Party, Fee) are not independent inventions; they are compositions of these primitives arranged to express the rules relevant to each domain.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../policies-overview/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Overview
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../reservation-policies/" class="md-footer__link md-footer__link--next" aria-label="Next: Reservation Policies">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Reservation Policies
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
