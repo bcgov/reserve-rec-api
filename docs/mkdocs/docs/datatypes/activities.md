@@ -89,7 +89,7 @@ Note: The activity configuration file is the authoritative source for the curren
 |`adminNotes`|String|Administrative notes to describe the data, will never be surfaced to the public|
 
 # Examples
-
+how to include mermaid charts in mkdocs - do i install mermaid2
 ## Bedwell Lake Backcountry Camping
 ```json
 --8<-- "datatypes/examples/activity1.json"

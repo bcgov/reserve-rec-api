@@ -15,6 +15,24 @@ Cadence checks are triggered by AWS EventBridge.
 
 With this setup, the system can efficiently track availability changes for ProductDates and maintain a cache of availability that is updated in near real-time, while minimizing the performance impact of frequent availability checks.
 
+#### AvailabilitySignal Triggered
+
+```mermaid
+flowchart LR
+a[Booking affects availability for a ProductDate] --> b[AvailabilitySignal notified of change]
+```
+
+#### Availability Estimation Process Triggered by EventBridge Rule
+
+```mermaid
+flowchart LR
+a[EventBridge rule triggers availability estimation process based on CadenceBucket] --> b[System queries AvailabilitySignals linked to CadenceBucket]
+b --> c{Has the AvailabilitySignal changed since the last estimation?}
+c -- No --> d[No availability estimation needed, process ends]
+c -- Yes --> e[System performs availability estimation for affected ProductDates based on the defined AvailabilityEstimationPattern]
+e --> f[System updates the cached availability value on the AvailabilitySignal and resets the dirty bit]
+```
+
 # Properties
 
 ## AvailabilitySignal

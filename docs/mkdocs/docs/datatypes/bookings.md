@@ -98,17 +98,9 @@ Similar to how ProductDates are the date-specific execution of Products, Booking
 
 |property|type|description|derived from|evaluated when|
 |---|---|---|---|---|
-|`partyCategories`|[[PartyCategory](#partycategory)]|The snapshot of the party category rules applied to this Booking at the time of booking|Derived from parent Product's Party Policy at the time of booking|Capturing the specific party category rules for this Booking based on the Product's Party Policy at the moment it was created|
+|`partyCategories`|[[PartyCategory](policies/party-policies.md#partycategory)]|The snapshot of the party category rules applied to this Booking at the time of booking|Derived from parent Product's Party Policy at the time of booking|Capturing the specific party category rules for this Booking based on the Product's Party Policy at the moment it was created|
 |`partyCompositionRules`|[[ElegibilityPrimitive](#eligibilityprimitive)]|The snapshot of the party composition rules applied to this Booking at the time of booking|Derived from parent Product's Party Policy at the time of booking|Capturing the specific party composition rules for this Booking based on the Product's Party Policy at the moment it was created|
 
-### PartyCategory
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`id`|String|The unique identifier for this party category|Derived from parent Product's Party Policy|Identifying this specific party category|
-|`label`|String|The display name for this party category|Derived from parent Product's Party Policy|Providing a human-readable name for this party category|
-|`minCount`|Number|The minimum number of party members/equipment that must be included in a booking for this category|Derived from parent Product's Party Policy|Enforcing the minimum count for this party category in bookings|
-|`maxCount`|Number|The maximum number of party members/equipment that can be included in a booking for this category|Derived from parent Product's Party Policy|Enforcing the maximum count for this party category in bookings|
 
 ## BookingPartyValues
 |property|type|description|derived from|evaluated when|

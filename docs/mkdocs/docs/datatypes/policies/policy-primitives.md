@@ -4,12 +4,12 @@ Policy primitives are the fundamental building blocks used to define all reserva
 Understanding these primitives is essential for understanding how policies work, how overrides behave, and how ProductDates are generated.
 
 All policies are composed from these primitives:
-- [Temporal Window Primitive](#temporal-window-primitive) — define when an action is allowed
 - [Temporal Anchor Primitive](#temporal-anchor-primitive) — define what point in time rules are relative to
 - [Temporal Duration Primitive](#temporal-duration-primitive) — define how long something must or may last
+- [Temporal Window Primitive](#temporal-window-primitive) — define when an action is allowed
 - [Interval Primitive](#interval-primitive) — define groups of dates that behave as a unit
 - [Arithmetic Primitive](#arithmetic-primitive) — A linear arithmetic expression that determines numerical results, evaluated left-to-right
-- [Comparison Primitive)(#comparison-primitive) - Compares two arithmetic primitives using a comparison operator
+- [Comparison Primitive](#comparison-primitive) - Compares two arithmetic primitives using a comparison operator
 - [Eligibility Primitive](#eligibility-primitive) — Uses comparison primitives to chain boolean results and drive if/then logic
 - [Reference Primitive](#reference-primitive) - a named, pre-computed or derived value that is evaluated once and stored in booking context so other primitives can reference it
 
@@ -34,7 +34,7 @@ The anchor begins by looking at the `anchorRef` property. This must reference a 
 
 > `2026-01-27T14:58:03-08:00` becomes 2026-01-27
 
-If `anchorRef` cannot be resolved because the value in `refStore` does not exist, the resolution is skipped (see [reference primitive dependency loops](#reference-primitive).
+If `anchorRef` cannot be resolved because the value in `refStore` does not exist, the resolution is skipped (see [reference primitive dependency loops](#reference-primitive)).
 
 If there are no other fields in the anchor, the anchor is resolved as a calendar date and stored.
 
@@ -56,6 +56,19 @@ This order is crucial to avoid temporal nondeterminism:
 - Applying time-of-day calculation before duration math can cause the result to shift by 1 hour over daylight savings transitions.
 - Performing duration math in UTC may not respect daylight savings transitions in certain timezones.
 - All calculations must occur in the same timezone.
+
+```mermaid
+flowchart TB
+a[Look up `anchorRef` value] --> b{does `anchorRef` exist?}
+b -- No --> c[Skip resolution of this anchor, and any primitives depending on it]
+b -- Yes --> d{Is `anchorRef` a timestamp?}
+d -- Yes --> e[Chop to calendar date] --> f
+d -- No --> f{Is there a `duration` to apply?}
+f -- Yes --> g[Apply duration in the specified `direction`] --> h
+f -- No --> h{Is there a `timeOfDay` offset to apply?}
+h -- Yes --> i[Apply time-of-day offset] --> j
+h -- No --> j[Anchor resolution complete]
+```
 
 ### Temporal Anchor
 Property|Type|Description  
@@ -89,7 +102,7 @@ TemporalAnchorEnum: {
 Example:
 ```json
 "temporalAnchor": {
-   "anchorRef": 'arrivalDate',
+   "anchorRef": "anchors.arrivalDate",
    "timeOfDay": {
       "hour": 7
    }
@@ -197,8 +210,7 @@ Example: Special event pricing applies only if the entire stay covers July 1–3
     "2025-07-02",
     "2025-07-03"
   ],
-  "requireAllDates": true,
-  "blockActions": false
+  "requireAllDates": true
 }
 ```
 

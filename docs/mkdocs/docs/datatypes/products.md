@@ -58,7 +58,7 @@ The Product also defines the date range over which ProductDates will be created,
 | `rangeStart`|Date|First date in the range of date this Product enables|Administrators on PUT/POST|Determining the date before which no child `productDates` will be generated on ProductDate seed|
 | `rangeEnd`|Date|Last date in the range of date this Product enables|Administrators on PUT/POST|Determining the date after which no child `productDates` will be generated on ProductDate seed|
 | `assetList`|[[AssetRef](#assetref)]|A list of assets associated with the product|Administrators on PUT/POST|Determining which assets are allocated through this offering|
-|`availabilityEstimationPattern`|[AvailabilityEstimationPattern](#availabilityestimationpattern)|Pattern governing how availability is estimated for ProductDates related to this Product|Administrators on PUT/POST|Determining how availability is estimated for ProductDates related to this Product|
+|`availabilityEstimationPattern`|[AvailabilityEstimationPattern](policies/reservation-policies.md#availabilityestimationpattern)|Pattern governing how availability is estimated for ProductDates related to this Product|Administrators on PUT/POST|Determining how availability is estimated for ProductDates related to this Product|
 |`itineraryRules?`|[ItineraryRules](#itineraryrules)|Rules governing how itineraries are validated for bookings of this Product|Administrators on PUT/POST|Determining how itineraries are validated for bookings of this Product|
 |`waitRoomConfig`|[WaitRoomConfig](#waitroomconfig)|Configuration for wait room behavior for this Product (future consideration)|Administrators on PUT/POST|Determining how to handle excess demand for bookings of this Product|
 |`allDatesReservedIntervals?`|[[DateInterval](#dateinterval)]|An array of date intervals representing periods of time where a Booking must contain all DateInterval dates if one date touches the DateInterval|Administrators on PUT/POST|Determining if a booking of this Product must contain all dates within any of the defined date intervals if one of the dates in the booking touches any of the dates in the date interval|
@@ -80,39 +80,6 @@ An AssetRef defines a reference to an asset and the quantity of that asset alloc
 |`assetType?`|String|The type of the referenced Asset (e.g., "campsite", "boat slip")|Referenced Asset|Determining the type of the referenced Asset|
 |`allocationType`|String|The type of allocation for this Asset within the Product (e.g., "fixed", "flex")|Referenced Asset|Determining how the referenced Asset is allocated to this Product|
 |`quantity`|Number|The quantity of the referenced Asset allocated to this Product|Administrators on Product PUT/POST|Determining how many units of the referenced Asset are allocated to this Product (will be 1 in "fixed" cases, and a base-level capacity in "flex" cases)|
-
-## AvailabilityEstimationPattern
-
-An AvailabilityEstimationPattern defines the pattern used to estimate availability for ProductDates related to a Product. This pattern helps in providing an eventually-consistent estimate of availability for booking on each date.
-
-ProductDates are high-traffic items that are read-optimized. To keep an accurate availability count on each ProductDate would require a write operation on every booking, which could lead to performance issues. Instead, the system uses an eventually-consistent approach to availability estimation, where availability is estimated based on a defined pattern and updated on a regular cadence.
-
-Each ProductDate generates a tiny, cheap, high-frequency AvailabilitySignal item. When availability for that date is affected, a monotonic counter on the AvailabilitySignal is incremented. In periods of high traffic, this counter may be incremented thousands of times per second. Then, on a cadence defined by AvailabilityEstimationPattern, a process will read the counter value from the AvailabilitySignal, compare it to the last saved counter value on the ProductDate, and if the values differ, perform a more rigorous availability estimate. This allows the system to provide a reasonably up-to-date estimate of availability without needing to perform expensive write operations on the ProductDate for every booking. Additionally, the estimation check does not occur if the counter value has not changed since the last estimate, which helps to further reduce unnecessary processing during periods of low traffic.
-
-If `estimationMode` is set to "exact", the system will provide a count of available items on the cadence increment. If `estimationMode` is set to "tiered", the system will provide a tier of availability (e.g., "high", "medium", "low") based on thresholds defined in the AvailabilityEstimationPattern.
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`estimationMode`|String|The mode of availability estimation (e.g., "exact", "tiered")|Administrators on Product PUT/POST|Determining the mode of availability estimation for ProductDates related to this Product|
-|`cadence`|[CadenceBucket](#cadencebucket)|The frequency at which availability estimation should occur (e.g., every 5 minutes)|Administrators on Product PUT/POST|Determining how often availability estimation should occur for ProductDates related to this Product|
-|`tiers?`|[AvailabilityTier](#availabilitytier)|Optional ordered array of availability tiers with thresholds, used if `estimationMode` is set to "tiered"|Administrators on Product PUT/POST|Defining the availability tiers and their corresponding thresholds for tiered availability estimation|
-
-### CadenceBucket
-
-A CadenceBucket defines the frequency at which availability estimation should occur for ProductDates related to a Product. The system will trigger availability estimation checks on the associated ProductDates at intervals defined by the CadenceBucket. Each CadenceBucket corresponds to an AWS EventBridge rule that triggers the availability estimation process on the defined cadence. For example, if a Product has a cadence of "5min", the system will perform availability estimation checks for its ProductDates every 5 minutes. All Products of the same CadenceBucket can be processed in a single batch job triggered by the corresponding EventBridge rule, allowing for efficient handling of availability estimation across multiple Products.
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`id`|String|Unique identifier for the cadence bucket|Administrators on Product PUT/POST|Distinguishing this cadence bucket from others in the same estimation pattern|
-|`label`|String|The label for this cadence bucket (e.g., "5min", "15min", "30min")|Administrators on Product PUT/POST|Providing a human-readable label for this cadence bucket|
-
-### AvailabilityTier
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`id`|String|Unique identifier for the availability tier|Administrators on Product PUT/POST|Distinguishing this availability tier from others in the same estimation pattern|
-|`label`|String|The label for this availability tier (e.g., "high", "medium", "low")|Administrators on Product PUT/POST|Providing a human-readable label for this availability tier|
-|`maxPercentage`|Number|The maximum percentage of availability for this tier (e.g., 0.7 for 70%)|Administrators on Product PUT/POST|Determining the upper threshold of availability for this tier in tiered availability estimation|
 
 ## ItineraryRules
 
@@ -191,36 +158,7 @@ A ProductFeePolicyRef defines a reference to a fee policy that governs how fees 
 |`feeSchedule?`|[[feeDefinition](#feedefinition)]|The fee schedule associated with this Product|Referenced Fee Policy|Determining which fee components are used in the Product-level line items of this Product|
 |`lineItems?`|[[LineItem](#lineitem)]|The line items associated with this Product|Referenced Fee Policy|Determining how this Product is charged for at a Product level|
 
-### FeeDefinition
 
-A single component of a fee schedule that defines a specific fee that can be applied to bookings of a Product. FeeSchedules are made up of multiple FeeDefinitions.
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`id`|String|Unique identifier for the fee component|Administrators on FeePolicy PUT/POST|Distinguishing this fee component from others in the same fee schedule|
-|`label`|String|Human-readable label for the fee component|Administrators on FeePolicy PUT/POST|Providing a public facing, human-readable title of this fee component|
-|`type`|String|Type of fee (e.g., "flat", "percentage", "unit")|Administrators on FeePolicy PUT/POST|Determining how this fee component is intended to be utilized|
-|`amount`|Number|The base amount for the fee component|Administrators on FeePolicy PUT/POST|Determining the base amount used in calculations for this fee component|
-
-### LineItem
-
-A single line item that defines how a fee is calculated and applied to bookings of a Product. LineItems are made up of multiple calculation steps that reference FeeDefinitions from the FeeSchedule, or other LineItems. When provided as part of a ProductFeePolicyRef, LineItems define how to charge for the Product at a Product level. These line items will be supplemented by additional line items defined at the ProductDate level when seeding.
-
-LineItems only need to be present on the Product if the system is to provide a Product-level fee estimate prior to selecting specific dates. Otherwise, they can remain on the FeePolicy to resolved at reservation time.
-
-|property|type|description|derived from|evaluated when|
-|---|---|---|---|---|
-|`id`|String|Unique identifier for the line item|Administrators on FeePolicy PUT/POST|Distinguishing this line item from others in the same fee policy|
-|`label`|String|Human-readable label for the line item|Administrators on FeePolicy PUT/POST|Providing a public facing, human-readable title of this line item|
-|`type`|String|The type of line item (e.g., "flat", "unit")|Administrators on FeePolicy PUT/POST|Determining how this line item is processed in the overall fee calculation|
-|`role`|String|The role of this line item (e.g., "total", "subTotal", "tax")|Administrators on FeePolicy PUT/POST|Categorizing this line item for internal processing and reporting|
-|`tags?`|[String]|Optional tags associated with this line item|Administrators on FeePolicy PUT/POST|Categorizing or labeling this line item for easier identification and conditional UI rendering|
-|`if`|[ComparisonPrimitive]|Optional conditions that must be met for this line item to be applied|Administrators on FeePolicy PUT/POST|Determining if this line item should be applied based on booking context|
-|`quantity`|ReferencePrimitive|The quantity used in calculating this line item. `type = flat` means `quantity` is automatically 1|Administrators on FeePolicy PUT/POST|Determining the quantity factor used in calculating this line item|
-|`rate`|ReferencePrimitive|The rate used in calculating this line item. `type = unit` means `rate` is applied per unit|Administrators on FeePolicy PUT/POST|Determining the rate factor used in calculating this line item|
-|`taxApplied?`|[ReferencePrimitive]|Optional list of taxes applied to this line item|Administrators on FeePolicy PUT/POST|Determining which taxes are applied per-unit or flatly to this line item|
-|`discountsApplied?`|[ReferencePrimitive]|Optional list of discounts applied to this line item|Administrators on FeePolicy PUT/POST|Determining which discounts are applied per-unit or flatly to this line item|
-|`isReturnable`|Boolean|Whether this line item is eligible for return/refund|Administrators on FeePolicy PUT/POST|Determining if this line item can be refunded during a return process|
 
 ## ProductChangePolicyRef
 
