@@ -31,13 +31,8 @@ const ACTIVITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    orcs: {
-      rulesFn: ({ value, action }) => {
-        rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
     collectionId: {
+      isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);

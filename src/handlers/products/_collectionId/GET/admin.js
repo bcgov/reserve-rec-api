@@ -54,10 +54,7 @@ exports.handler = async (event, context) => {
         collectionId, 
         activityType, 
         activityId,
-        productId, 
-        queryParams?.fetchActivities || null,
-        queryParams?.fetchGeozones || null,
-        queryParams?.fetchFacilities || null
+        productId
       );
     }
     // Get all products for this activity
