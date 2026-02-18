@@ -6,7 +6,8 @@ const WEBSOCKET_URL = process.env.WEBSOCKET_URL;
 
 // These are the schemas that we want to transfer to OpenSearch transactional data index
 const schemasTransferrable = [
-  'booking'
+  'booking',
+  'user'
 ];
 
 
