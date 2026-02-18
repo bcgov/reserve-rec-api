@@ -12,8 +12,8 @@ exports.handler = async (event, context) => {
   logger.info(`PUT Activities: ${event}`);
   try {
     const collectionId = event?.pathParameters?.collectionId;
-    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters || {};
-    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
+    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || null;
+    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || null;
 
     if (!collectionId && !activityType && !activityId) {
       throw new Exception("Activity Collection ID, Activity Type, and Activity ID are required", { code: 400 });

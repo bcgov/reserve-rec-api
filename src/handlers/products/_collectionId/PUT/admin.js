@@ -11,9 +11,9 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
 exports.handler = async (event, context) => {
   logger.info("PUT Products", event);
   try {
-    const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
-    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType;
-    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId;
+    const collectionId = event?.pathParameters?.collectionId;
+    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || null;
+    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || null;
     const productId = event?.pathParameters?.productId || event?.queryStringParameters?.productId || null;
     const body = JSON.parse(event?.body);
 
@@ -21,14 +21,21 @@ exports.handler = async (event, context) => {
     const missingParams = [];
     if (!body) missingParams.push("body");
     if (!collectionId) missingParams.push("collectionId");
-    if (!activityType) missingParams.push("activityType");
-    if (!activityId) missingParams.push("activityId");
     
     if (missingParams.length > 0) {
       throw new Exception(
-        `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
+        `Cannot create product - missing required parameter(s): ${missingParams.join(", ")}`,
         { code: 400 }
       );
+    }
+
+    // If body is an array, validate each item has required fields
+    if (body.length > 0) {
+      for (const item of body) {
+        if (!item.activityType || !item.activityId || !item.productId) {
+          throw new Error("Each item in body must include activityType, activityId, and productId");
+        }
+      }
     }
 
     let updateRequests = await parseRequest(collectionId, body, "PUT", activityType, activityId, productId);

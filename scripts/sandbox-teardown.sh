@@ -6,7 +6,7 @@ set -e
 
 SANDBOX_NAME="${1:?Usage: ./sandbox-teardown.sh <sandbox-name> [base-env]}"
 BASE_ENV="${2:-dev}"
-DEPLOYMENT_NAME="${BASE_ENV}-${SANDBOX_NAME}"
+DEPLOYMENT_NAME="${SANDBOX_NAME}"  # Sandboxes use just the sandbox name (not base-sandbox)
 APP_NAME="reserveRecApi"
 REGION="ca-central-1"
 
@@ -19,76 +19,13 @@ echo "  1. Destroy all CDK stacks"
 echo "  2. Delete all SSM parameters"
 echo "  3. Delete all Secrets Manager secrets"
 echo ""
+echo "Note: Shared identity resources (user pools) from ${BASE_ENV} will NOT be affected."
+echo ""
 read -p "Are you sure? Type 'yes' to continue: " CONFIRM
 
 if [ "$CONFIRM" != "yes" ]; then
   echo "Aborted."
   exit 1
-fi
-
-echo ""
-echo "Step 0: Preparing Cognito User Pools for deletion..."
-echo "------------------------------------------------------"
-
-# Get user pool IDs from SSM (if they exist)
-ADMIN_POOL=$(aws ssm get-parameter --region ${REGION} \
-  --name "/${APP_NAME}/${DEPLOYMENT_NAME}/adminIdentityStack/adminUserPoolId" \
-  --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-
-PUBLIC_POOL=$(aws ssm get-parameter --region ${REGION} \
-  --name "/${APP_NAME}/${DEPLOYMENT_NAME}/publicIdentityStack/publicUserPoolId" \
-  --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-
-# Handle Admin User Pool
-if [ -n "$ADMIN_POOL" ]; then
-  echo "  Processing admin user pool: $ADMIN_POOL"
-  
-  # Get and delete domain if it exists
-  ADMIN_DOMAIN=$(aws cognito-idp describe-user-pool --region ${REGION} \
-    --user-pool-id "$ADMIN_POOL" \
-    --query 'UserPool.Domain' --output text 2>/dev/null || echo "")
-  
-  if [ -n "$ADMIN_DOMAIN" ] && [ "$ADMIN_DOMAIN" != "None" ]; then
-    echo "    Deleting domain: $ADMIN_DOMAIN"
-    aws cognito-idp delete-user-pool-domain --region ${REGION} \
-      --domain "$ADMIN_DOMAIN" \
-      --user-pool-id "$ADMIN_POOL" 2>/dev/null || true
-  fi
-  
-  # Disable deletion protection
-  echo "    Disabling deletion protection"
-  aws cognito-idp update-user-pool --region ${REGION} \
-    --user-pool-id "$ADMIN_POOL" \
-    --deletion-protection INACTIVE 2>/dev/null || true
-fi
-
-# Handle Public User Pool
-if [ -n "$PUBLIC_POOL" ]; then
-  echo "  Processing public user pool: $PUBLIC_POOL"
-  
-  # Get and delete domain if it exists
-  PUBLIC_DOMAIN=$(aws cognito-idp describe-user-pool --region ${REGION} \
-    --user-pool-id "$PUBLIC_POOL" \
-    --query 'UserPool.Domain' --output text 2>/dev/null || echo "")
-  
-  if [ -n "$PUBLIC_DOMAIN" ] && [ "$PUBLIC_DOMAIN" != "None" ]; then
-    echo "    Deleting domain: $PUBLIC_DOMAIN"
-    aws cognito-idp delete-user-pool-domain --region ${REGION} \
-      --domain "$PUBLIC_DOMAIN" \
-      --user-pool-id "$PUBLIC_POOL" 2>/dev/null || true
-  fi
-  
-  # Disable deletion protection
-  echo "    Disabling deletion protection"
-  aws cognito-idp update-user-pool --region ${REGION} \
-    --user-pool-id "$PUBLIC_POOL" \
-    --deletion-protection INACTIVE 2>/dev/null || true
-fi
-
-if [ -z "$ADMIN_POOL" ] && [ -z "$PUBLIC_POOL" ]; then
-  echo "  No user pools found (may have been deleted already)"
-else
-  echo "  ✓ User pools prepared for deletion"
 fi
 
 echo ""

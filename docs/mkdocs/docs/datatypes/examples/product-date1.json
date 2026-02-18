@@ -1,0 +1,188 @@
+{
+  "pk": "productDate::mockPark1::backcountryCamp::1:1",
+  "sk": "2026-02-09",
+  "gsi1pk": "",
+  "gsi1sk": "",
+  "schema": "productDate",
+  "globalId": "c7e8b2e3-4f2a-4b8a-9d3a-8a1e5f7c2b6d",
+  "collectionId": "mockPark1",
+  "activityType": "backcountryCamp",
+  "activityId": "1",
+  "productId": "1",
+  "date": "2026-02-09",
+  "displayName": "Mock Backcountry Camping Offering for Mock Park 1 on February 9, 2026",
+  "description": "Mock backcountry camping reservation for Mock Park 1 on February 9, 2026.",
+  "availabilitySignal": {
+    "pk": "availabilitySignal::mockPark1::backcountryCamp::1:1",
+    "sk": "2026-02-09"
+  },
+  "allDatesBookedIntervalIds": [],
+  "assetList": [
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::1"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    },
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::2"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    },
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::3"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    }
+  ],
+  "reservationPolicy": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minDailyInventory": 1,
+    "maxDailyInventory": 1,
+    "temporalAnchors": {
+      "checkInAnchor": "2026-02-09T14:00:00-08:00",
+      "checkOutAnchor": "2026-02-10T11:00:00-08:00",
+      "noShowAnchor": "2026-02-09T23:59:59-08:00"
+    },
+    "temporalWindows": {
+      "discoveryWindow": {
+        "open": "2026-01-01T07:00:00-08:00",
+        "close": "2026-12-31T23:59:59-08:00"
+      },
+      "reservationWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-02-08T23:59:59-08:00"
+      },
+      "restrictedBookingWindow": {
+        "open": "2026-01-26T07:00:00-08:00",
+        "close": "2026-01-27T07:00:00-08:00"
+      }
+    }
+  },
+  "reservationContext": {
+    "discoveryWindow": {
+      "open": "2026-01-01T07:00:00-08:00",
+      "close": "2026-12-31T23:59:59-08:00"
+    },
+    "reservationWindow": {
+      "open": "2026-01-26T07:00:00-08:00",
+      "close": "2026-02-08T23:59:59-08:00"
+    },
+    "restrictedBookingWindow": {
+      "open": "2026-01-26T07:00:00-08:00",
+      "close": "2026-01-27T07:00:00-08:00"
+    },
+    "productDate": "2026-02-09",
+    "checkInAnchor": "2026-02-09T14:00:00-08:00",
+    "checkOutAnchor": "2026-02-10T11:00:00-08:00",
+    "noShowAnchor": "2026-02-09T23:59:59-08:00"
+  },
+  "feePolicy": {
+    "feeSchedule": [
+      {
+        "id": "tentpadFee",
+        "label": "Nightly Tent Pad Reservation Fee",
+        "type": "unit",
+        "amount": 15
+      },
+      {
+        "id": "perAdultFee",
+        "label": "Nightly Adult Fee",
+        "type": "unit",
+        "amount": 10
+      },
+      {
+        "id": "perChildFee",
+        "label": "Nightly Child Fee",
+        "type": "unit",
+        "amount": 5
+      },
+      {
+        "id": "tax",
+        "label": "tax",
+        "type": "percentage",
+        "amount": 0.05
+      }
+    ]
+  },
+  "lineItems": [
+    {
+      "id": "tentPadLineItem",
+      "label": "Tent Pad Fee",
+      "type": "unit",
+      "if": [],
+      "quantity": {
+        "type": "ref",
+        "value": "inventory.quantity"
+      },
+      "rate": {
+        "type": "ref",
+        "value": "feeSchedule.tentpadFee"
+      },
+      "taxApplied": [
+        {
+          "type": "ref",
+          "value": "feeSchedule.tax"
+        }
+      ],
+      "discountsApplied": [],
+      "isReturnable": true
+    },
+    {
+      "id": "perAdultLineItem",
+      "label": "Per Adult Fee",
+      "type": "unit",
+      "if": [],
+      "quantity": {
+        "type": "ref",
+        "value": "partyContext.adults"
+      },
+      "rate": {
+        "type": "ref",
+        "value": "feeSchedule.perAdultFee"
+      },
+      "taxApplied": [
+        {
+          "type": "ref",
+          "value": "feeSchedule.tax"
+        }
+      ],
+      "discountsApplied": [],
+      "isReturnable": true
+    },
+    {
+      "id": "perChildLineItem",
+      "label": "Per Child Fee",
+      "type": "unit",
+      "if": [],
+      "quantity": {
+        "type": "ref",
+        "value": "partyContext.children"
+      },
+      "rate": {
+        "type": "ref",
+        "value": "feeSchedule.perChildFee"
+      },
+      "taxApplied": [
+        {
+          "type": "ref",
+          "value": "feeSchedule.tax.amount"
+        }
+      ],
+      "discountsApplied": [],
+      "isReturnable": true
+    }
+  ],
+  "creationDate": "2026-01-01T12:00:00-08:00",
+  "lastUpdated": "2026-01-01T12:00:00-08:00",
+  "version": 1
+}
