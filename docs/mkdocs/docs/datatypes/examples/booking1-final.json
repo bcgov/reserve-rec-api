@@ -1,0 +1,359 @@
+{
+  "pk": "booking::mockPark1::backcountryCamp::1::1",
+  "sk": "2026-02-09::550e8400-e29b-41d4-a716-446655440000",
+  "gsi1pk": "user::b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f",
+  "gsi1sk": "2026-02-09",
+  "schema": "booking",
+  "globalId": "550e8400-e29b-41d4-a716-446655440000",
+  "collectionId": "mockPark1",
+  "activityType": "backcountryCamp",
+  "activitySubType": null,
+  "activityId": "1",
+  "productId": "1",
+  "bookingId": "550e8400-e29b-41d4-a716-446655440000",
+  "userSub": "b7e6c2f2-3a1d-4e8a-9e0d-8c2a1b7e6c2f",
+  "status": "complete",
+  "timezone": "America/Vancouver",
+  "asset": {
+    "primaryKey": {
+      "pk": "asset::mockPark1::campground::1",
+      "sk": "campsite::1"
+    },
+    "allocationType": "fixed",
+    "quantity": 1
+  },
+  "itineraryRulesSnapshot": {
+    "entryExit": {
+      "required": true,
+      "allowedEntryPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::2"
+        }
+      ],
+      "allowedExitPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::2"
+        }
+      ]
+    },
+    "stayPoints": {
+      "required": true,
+      "allowedStayPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "campground::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "campground::2"
+        }
+      ]
+    }
+  },
+  "itinerary": {
+    "entryPoint": {
+      "primaryKey": {
+        "pk": "facility::mockPark1",
+        "sk": "accessPoint::1"
+      },
+      "date": "2026-02-09",
+      "displayName": "Mock Park South Trailhead"
+    },
+    "exitPoint": {
+      "primaryKey": {
+        "pk": "facility::mockPark1",
+        "sk": "accessPoint::2"
+      },
+      "date": "2026-02-12",
+      "displayName": "Mock Park North Trailhead"
+    },
+    "stayPoints": [
+      {
+        "primaryKey": {
+          "pk": "facility::mockPark1",
+          "sk": "campground::1"
+        },
+        "date": "2026-02-09",
+        "displayName": "Mock Park Campground A"
+      },
+      {
+        "primaryKey": {
+          "pk": "facility::mockPark1",
+          "sk": "campground::1"
+        },
+        "date": "2026-02-10",
+        "displayName": "Mock Park Campground A"
+      },
+      {
+        "primaryKey": {
+          "pk": "facility::mockPark1",
+          "sk": "campground::2"
+        },
+        "date": "2026-02-11",
+        "displayName": "Mock Park Campground B"
+      }
+    ]
+  },
+  "reservationPolicySnapshot": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minTotalDays": 1,
+    "maxTotalDays": 14,
+    "holdDuration": {
+      "minutes": 30
+    },
+    "temporalWindows": {
+      "discoveryWindow": {
+        "open": "2026-01-01T07:00:00-08:00",
+        "close": "2026-12-31T23:59:59-08:00"
+      }
+    }
+  },
+  "reservationValues": {
+    "totalDays": 3,
+    "restrictedBookingTriggered": false,
+    "temporalAnchors": {
+      "reservationTime": "2026-01-01T07:00:00-08:00",
+      "arrivalDate": "2026-02-09",
+      "departureDate": "2026-02-12",
+      "checkInAnchor": "2026-02-09T14:00:00-08:00",
+      "noShowAnchor": "2026-02-09T23:59:59-08:00"
+    }
+  },
+  "partyPolicySnapshot": {
+    "partyCategories": [
+      {
+        "id": "adult",
+        "label": "Adult (18+)",
+        "minCount": 1,
+        "maxCount": 4
+      },
+      {
+        "id": "child",
+        "label": "Child <18",
+        "minCount": 0,
+        "maxCount": 3
+      },
+      {
+        "id": "tent",
+        "label": "Tent",
+        "minCount": 1,
+        "maxCount": 2
+      }
+    ],
+    "partyCompositionRules": [
+      {
+        "id": "maxTotalPartySize",
+        "label": "Maximum Total Party Size",
+        "failMsg": "Total party size cannot exceed 4 people.",
+        "if": [],
+        "then": {
+          "lhs": [
+            {
+              "type": "partyCategory",
+              "value": "adult"
+            },
+            {
+              "op": "add"
+            },
+            {
+              "type": "partyCategory",
+              "value": "child"
+            }
+          ],
+          "op": "lte",
+          "rhs": [
+            {
+              "type": "constant",
+              "value": 4
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "partyContext": {
+    "isValid": true,
+    "bookingDateValidations": [
+      {
+        "date": "2026-02-09",
+        "isValid": true
+      },
+      {
+        "date": "2026-02-11",
+        "isValid": true
+      },
+      {
+        "date": "2026-02-12",
+        "isValid": true
+      }
+    ]
+  },
+  "feePolicySnapshot": {
+    "feeSchedule": [
+      {
+        "id": "transactionFee",
+        "label": "Transaction Fee",
+        "type": "flat",
+        "amount": 6.5
+      },
+      {
+        "id": "tax",
+        "label": "Tax",
+        "type": "percentage",
+        "amount": 0.05
+      }
+    ],
+    "lineItems": [
+      {
+        "id": "transactionFeeLine",
+        "label": "Transaction Fee",
+        "type": "flat",
+        "if": [],
+        "quantity": {
+          "type": "constant",
+          "value": 1
+        },
+        "rate": {
+          "type": "field",
+          "value": "feeSchedule.transactionFee"
+        },
+        "taxApplied": [
+          {
+            "type": "field",
+            "value": "feeSchedule.tax"
+          }
+        ],
+        "discountsApplied": [],
+        "isReturnable": false
+      }
+    ]
+  },
+  "feeValues": {
+    "bookingDateTotals": [
+      {
+        "date": "2026-02-09",
+        "totalDiscounts": [],
+        "totalTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 2.00
+          }
+        ],
+        "subTotal": 40,
+        "total": 42
+      },
+      {
+        "date": "2026-02-10",
+        "totalDiscounts": [],
+        "totalTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 2.00
+          }
+        ],
+        "subTotal": 40,
+        "total": 42
+      },
+      {
+        "date": "2026-02-11",
+        "totalDiscounts": [],
+        "totalTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 2.00
+          }
+        ],
+        "subTotal": 40,
+        "total": 42
+      }
+    ],
+    "resolvedLineItems": [
+      {
+        "id": "transactionFeeLine",
+        "label": "Transaction Fee",
+        "type": "flat",
+        "isReturnable": false,
+        "units": [
+          {
+            "rate": 6.50,
+            "discountsApplied": [],
+            "taxApplied": [
+              {
+                "id": "tax",
+                "rate": 0.05,
+                "amount": 0.33
+              }
+            ],
+            "unitSubTotal": 6.50,
+            "unitTotal": 6.83
+          }
+        ],
+        "lineTaxes": [
+          {
+            "id": "tax",
+            "rate": 0.05,
+            "amount": 0.33
+          }
+        ],
+        "lineDiscounts": [],
+        "lineSubTotal": 6.50,
+        "lineTotal": 6.83
+      }
+    ],
+    "bookingDiscounts": [],
+    "bookingTaxes": [
+      {
+        "id": "tax",
+        "rate": 0.05,
+        "amount": 6.33
+      }
+    ],
+    "bookingSubTotal": 126.50,
+    "bookingTotal": 132.83
+  },
+  "changePolicySnapshot": {
+    "rules": [
+      {
+        "id": "campingFeeFullRefund",
+        "label": "Full Camping Fee Refund",
+        "description": "Full refund of camping fees if cancellation occurs more than 2 weeks before arrival date.",
+        "if": [],
+        "type": "percentage",
+        "amount": 1.0,
+        "temporalWindow": {
+          "open": "2026-01-01T07:00:00-08:00",
+          "close": "2026-01-26T23:59:59-08:00"
+        }
+      },
+      {
+        "id": "campingFee50PercentRefund",
+        "label": "Half Camping Fee Refund",
+        "description": "Half refund of camping fees if cancellation occurs less than 2 weeks but more than 1 week before arrival date.",
+        "type": "percentage",
+        "if": [],
+        "amount": 0.5,
+        "temporalWindow": {
+          "open": "2026-01-27T07:00:00-08:00",
+          "close": "2026-02-02T23:59:59-08:00"
+        }
+      }
+    ]
+  },
+  "createdAt": "2026-01-01T07:01:00-08:00",
+  "lastUpdated": "2026-01-01T07:03:00-08:00",
+  "version": 2
+}

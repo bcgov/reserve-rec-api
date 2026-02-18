@@ -1,0 +1,27 @@
+{
+  "theme": "bcparks",
+  "themeVariables": {
+    "primaryColor": "#e0f7fa"
+  },
+  "flowchart": {
+    "htmlLabels": true
+  },
+  "class": {
+    "geozone": {
+      "fill": "fill:#c8f7c5,stroke:#2ecc71,stroke-width:2px",
+      "color": "black",
+      "stroke": "#2ecc71",
+      "stroke-width": "2px"
+    },
+    "facility": {
+      "fill": "#f7c5c5",
+      "stroke": "#e74c3c",
+      "stroke-width": "2px"
+    },
+    "activity": {
+      "fill": "#c5d8f7",
+      "stroke": "#3498db",
+      "stroke-width": "2px"
+    }
+  }
+}

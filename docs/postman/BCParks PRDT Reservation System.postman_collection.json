@@ -48,7 +48,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"displayName\": \"Cheakamus 4\",\r\n        \"gzCollectionId\": \"997\",\r\n        \"orcs\": 997,\r\n        \"schema\": \"geozone\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89,\r\n                -89\r\n            ]\r\n        },\r\n        \"envelope\": {\r\n            \"type\": \"envelope\",\r\n            \"coordinates\": [\r\n                [\r\n                    89.123,\r\n                    -89.123\r\n                ],\r\n                [\r\n                    89.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        },\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"isVisible\": true,\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"facilities\": [\r\n            { \"pk\": \"parkingLot\", \"sk\": \"1\" },\r\n            { \"pk\": \"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ]\r\n    },\r\n    {\r\n        \"displayName\": \"Cheakamus 5\",\r\n        \"gzCollectionId\": \"997\",\r\n        \"orcs\": 997,\r\n        \"schema\": \"geozone\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                88,\r\n                -88\r\n            ]\r\n        },\r\n        \"envelope\": {\r\n            \"type\": \"envelope\",\r\n            \"coordinates\": [\r\n                [\r\n                    88.123,\r\n                    -88.123\r\n                ],\r\n                [\r\n                    88.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        },\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"isVisible\": true,\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"facilities\": [\r\n            { \"pk\": \"parkingLot\", \"sk\": \"1\" },\r\n            { \"pk\": \"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ]\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"Cheakamus 4\",\r\n        \"collectionId\": \"997\",\r\n        \"schema\": \"geozone\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89,\r\n                -89\r\n            ]\r\n        },\r\n        \"envelope\": {\r\n            \"type\": \"envelope\",\r\n            \"coordinates\": [\r\n                [\r\n                    89.123,\r\n                    -89.123\r\n                ],\r\n                [\r\n                    89.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        },\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"isVisible\": true,\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"facilities\": [\r\n            { \"pk\": \"parkingLot\", \"sk\": \"1\" },\r\n            { \"pk\": \"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ]\r\n    },\r\n    {\r\n        \"displayName\": \"Cheakamus 5\",\r\n        \"collectionId\": \"997\",\r\n        \"schema\": \"geozone\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                88,\r\n                -88\r\n            ]\r\n        },\r\n        \"envelope\": {\r\n            \"type\": \"envelope\",\r\n            \"coordinates\": [\r\n                [\r\n                    88.123,\r\n                    -88.123\r\n                ],\r\n                [\r\n                    88.122,\r\n                    -88.122\r\n                ]\r\n            ]\r\n        },\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"isVisible\": true,\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"facilities\": [\r\n            { \"pk\": \"parkingLot\", \"sk\": \"1\" },\r\n            { \"pk\": \"parkingLot\", \"sk\": \"2\" }\r\n        ],\r\n        \"activities\": [\r\n            { \"pk\": \"dayuse\", \"sk\": \"1\" }\r\n        ]\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -56,17 +56,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid",
+									"raw": "{{base_url}}/geozones/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -104,17 +104,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid",
+									"raw": "{{base_url}}/geozones/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -157,17 +157,17 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid",
+									"raw": "{{base_url}}/geozones/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks::7"
 										}
 									]
@@ -210,13 +210,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=1",
+									"raw": "{{base_url}}/geozones/:collectionId?geozoneId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -226,7 +226,7 @@
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks_7"
 										}
 									]
@@ -268,13 +268,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=4",
+									"raw": "{{base_url}}/geozones/:collectionId?geozoneId=4",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -284,7 +284,7 @@
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -312,11 +312,11 @@
 											"});",
 											"",
 											"const bearerToken = pm.environment.get('bearer_token');",
-											"const gzCollectionId = 'bcparks::7';",
+											"const collectionId = 'bcparks::7';",
 											"",
 											"// Run the DELETE request with geozoneId=4",
 											"pm.sendRequest({",
-											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${gzCollectionId}/?geozoneId=4`),",
+											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${collectionId}/?geozoneId=4`),",
 											"    method: 'DELETE',",
 											"    header: {",
 											"        'Content-Type': 'application/json',",
@@ -325,7 +325,7 @@
 											"});",
 											"",
 											"pm.sendRequest({",
-											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${gzCollectionId}/?geozoneId=5`),",
+											"    url: pm.variables.replaceIn(`{{base_url}}/geozones/${collectionId}/?geozoneId=5`),",
 											"    method: 'DELETE',",
 											"    header: {",
 											"        'Content-Type': 'application/json',",
@@ -342,13 +342,13 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/geozones/:gzcollectionid?geozoneId=1",
+									"raw": "{{base_url}}/geozones/:collectionId?geozoneId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"geozones",
-										":gzcollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -358,7 +358,7 @@
 									],
 									"variable": [
 										{
-											"key": "gzcollectionid",
+											"key": "collectionId",
 											"value": "bcparks_7"
 										}
 									]
@@ -619,7 +619,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n   \"pk\": \"protectedArea\",\r\n   \"sk\": \"999\",\r\n   \"orcs\": 999,\r\n   \"displayName\": \"Whole New Protected Area\",\r\n   \"schema\": \"protectedArea\",\r\n   \"location\": {\r\n      \"type\": \"Point\",\r\n      \"coordinates\": [\r\n         89,\r\n         -89\r\n      ]\r\n   },\r\n   \"boundary\": {\r\n      \"type\": \"Polygon\",\r\n      \"coordinates\": [\r\n         [\r\n            [\r\n               89.123,\r\n               -89.123\r\n            ],\r\n            [\r\n               88.122,\r\n               -88.122\r\n            ],\r\n            [\r\n               87.121,\r\n               -87.121\r\n            ],\r\n            [\r\n               86.12,\r\n               -86.12\r\n            ]\r\n         ]\r\n      ]\r\n   },\r\n   \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n   \"timezone\": \"America/Vancouver\",\r\n   \"minMapZoom\": 100,\r\n   \"maxMapZoom\": 125,\r\n   \"imageUrl\": \"www.example.com\"\r\n}",
+									"raw": "{\r\n   \"pk\": \"protectedArea\",\r\n   \"sk\": \"999\"   \"displayName\": \"Whole New Protected Area\",\r\n   \"schema\": \"protectedArea\",\r\n   \"location\": {\r\n      \"type\": \"Point\",\r\n      \"coordinates\": [\r\n         89,\r\n         -89\r\n      ]\r\n   },\r\n   \"boundary\": {\r\n      \"type\": \"Polygon\",\r\n      \"coordinates\": [\r\n         [\r\n            [\r\n               89.123,\r\n               -89.123\r\n            ],\r\n            [\r\n               88.122,\r\n               -88.122\r\n            ],\r\n            [\r\n               87.121,\r\n               -87.121\r\n            ],\r\n            [\r\n               86.12,\r\n               -86.12\r\n            ]\r\n         ]\r\n      ]\r\n   },\r\n   \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n   \"timezone\": \"America/Vancouver\",\r\n   \"minMapZoom\": 100,\r\n   \"maxMapZoom\": 125,\r\n   \"imageUrl\": \"www.example.com\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -827,7 +827,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "[\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"998\",\r\n      \"orcs\": 998,\r\n      \"displayName\": \"Whole New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n      \"timezone\": \"America/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   },\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"999\",\r\n      \"orcs\": 999,\r\n      \"displayName\": \"Another New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n      \"timezone\": \"America/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   }\r\n]",
+							"raw": "[\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"998\",\r      \"displayName\": \"Whole New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n      \"timezone\": \"America/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   },\r\n   {\r\n      \"pk\": \"protectedArea\",\r\n      \"sk\": \"999\",\r      \"displayName\": \"Another New Protected Area\",\r\n      \"schema\": \"protectedArea\",\r\n      \"location\": {\r\n         \"type\": \"Point\",\r\n         \"coordinates\": [\r\n            89,\r\n            -89\r\n         ]\r\n      },\r\n      \"boundary\": {\r\n         \"type\": \"Polygon\",\r\n         \"coordinates\": [\r\n            [\r\n               [\r\n                  89.123,\r\n                  -89.123\r\n               ],\r\n               [\r\n                  88.122,\r\n                  -88.122\r\n               ],\r\n               [\r\n                  87.121,\r\n                  -87.121\r\n               ],\r\n               [\r\n                  86.12,\r\n                  -86.12\r\n               ]\r\n            ]\r\n         ]\r\n      },\r\n      \"boundaryUrl\": \"http://s3.amazonaws.com/bucket/\",\r\n      \"timezone\": \"America/Vancouver\",\r\n      \"minMapZoom\": 100,\r\n      \"maxMapZoom\": 125,\r\n      \"imageUrl\": \"www.example.com\"\r\n   }\r\n]",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -988,7 +988,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"fcCollectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Lake\",\r\n        \"description\": \"a lake\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"naturalFeature\",\r\n        \"facilitySubType\": \"lake\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [{ \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::1\" }, { \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::2\" }],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\"\r\n    },\r\n    {\r\n        \"orcs\": 997,\r\n        \"fcCollectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Peak\",\r\n        \"description\": \"a mountain\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"naturalFeature\",\r\n        \"facilitySubType\": \"summit\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [{ \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::1\" }, { \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::2\" }],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"collectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Lake\",\r\n        \"description\": \"a lake\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"naturalFeature\",\r\n        \"facilitySubType\": \"lake\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [{ \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::1\" }, { \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::2\" }],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\"\r\n    },\r\n    {\r\n        \"collectionId\": \"bcparks_997\",\r\n        \"displayName\": \"Musacheak Peak\",\r\n        \"description\": \"a mountain\",\r\n        \"schema\": \"facility\",\r\n        \"facilityType\": \"naturalFeature\",\r\n        \"facilitySubType\": \"summit\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::997#3\",\r\n        \"activities\": [{ \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::1\" }, { \"pk\": \"activity::bcparks_1\", \"sk\": \"backcountryCamp::2\" }],\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -996,17 +996,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid",
+									"raw": "{{base_url}}/facilities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -1044,17 +1044,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid",
+									"raw": "{{base_url}}/facilities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -1097,17 +1097,17 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:fcCollectionId",
+									"raw": "{{base_url}}/facilities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fcCollectionId"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "fcCollectionId",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -1155,7 +1155,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 998,\r\n        \"fcCollectionId\": \"bcparks_998\",\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilitySubType\": \"parkingLot\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\",\r\n        \"activities\": [{ \"pk\": \"dayuse\", \"sk\": \"1\" }]\r\n    },\r\n    {\r\n        \"orcs\": 998,\r\n        \"fcCollectionId\": \"bcparks_998\",\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilitySubType\": \"parkingLot\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\",\r\n        \"activities\": [{ \"pk\": \"dayuse\", \"sk\": \"1\" }]\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"collectionId\": \"bcparks_998\",\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilitySubType\": \"parkingLot\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\",\r\n        \"activities\": [{ \"pk\": \"dayuse\", \"sk\": \"1\" }]\r\n    },\r\n    {\r\n        \"collectionId\": \"bcparks_998\",\r\n        \"displayName\": \"Musacheak Side Parking Lot\",\r\n        \"description\": \"Where you park your car\",\r\n        \"schema\": \"facility\",\r\n        \"facilitySubType\": \"parkingLot\",\r\n        \"address\": \"8675 Road St.\",\r\n        \"geozone\": \"geozone::bcparks::998#3\",\r\n        \"isVisible\": true,\r\n        \"timezone\": \"America/Vancouver\",\r\n        \"location\": {\r\n            \"type\": \"point\",\r\n            \"coordinates\": [\r\n                89.234,\r\n                -89.234\r\n            ]\r\n        },\r\n        \"minMapZoom\": 123,\r\n        \"maxMapZoom\": 456,\r\n        \"showOnMap\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Musacheak\",\r\n        \"activities\": [{ \"pk\": \"dayuse\", \"sk\": \"1\" }]\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1163,13 +1163,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=structure",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1179,7 +1179,7 @@
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1217,13 +1217,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=structure",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1233,7 +1233,7 @@
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1276,13 +1276,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=structure",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1292,7 +1292,7 @@
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1335,13 +1335,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/facilities/:fccollectionid?facilityType=structure&facilityId=1",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=structure&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fccollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1355,7 +1355,7 @@
 									],
 									"variable": [
 										{
-											"key": "fccollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1390,13 +1390,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:fcCollectionId?facilityType=parking&facilityId=1",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=parking&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":fcCollectionId"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1410,7 +1410,7 @@
 									],
 									"variable": [
 										{
-											"key": "fcCollectionId",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1486,13 +1486,13 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/facilities/:facCollectionId?facilityType=structure&facilityId=1",
+									"raw": "{{base_url}}/facilities/:collectionId?facilityType=structure&facilityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"facilities",
-										":facCollectionId"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -1506,7 +1506,7 @@
 									],
 									"variable": [
 										{
-											"key": "facCollectionId",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -1898,7 +1898,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_997\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n            \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 997,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_997\",\r\n            \"sk\": \"2\"\r\n        },\r\n        \"facilities\": [\r\n            \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_997\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n            \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail north side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_997\",\r\n            \"sk\": \"2\"\r\n        },\r\n        \"facilities\": [\r\n            \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1906,13 +1906,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs",
+									"raw": "{{base_url}}/activities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":collectionId"
 									],
 									"variable": [
 										{
@@ -1954,17 +1954,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid",
+									"raw": "{{base_url}}/activities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -2007,17 +2007,17 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid",
+									"raw": "{{base_url}}/activities/:collectionId",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_997"
 										}
 									]
@@ -2065,7 +2065,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "[\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_998\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n             \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"orcs\": 998,\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_998\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n             \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
+									"raw": "[\r\n    {\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_998\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n             \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    },\r\n    {\r\n        \"displayName\": \"Dayuse Spot 2 at Cheakamus\",\r\n        \"description\": \"Hiking trail south side\",\r\n        \"schema\": \"activity\",\r\n        \"activityType\": \"dayuse\",\r\n        \"activitySubType\": \"vehicleParking\",\r\n        \"geozone\": {\r\n            \"pk\": \"geozone::bcparks_998\",\r\n            \"sk\": \"1\"\r\n        },\r\n        \"facilities\": [\r\n             \"parkingLot::1\"\r\n        ],\r\n        \"isVisible\": true,\r\n        \"imageUrl\": \"www.example.com\",\r\n        \"searchTerms\": \"Cheakamus\"\r\n    }\r\n]",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -2073,13 +2073,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2089,7 +2089,7 @@
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -2127,13 +2127,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2143,7 +2143,7 @@
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -2186,13 +2186,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2233,13 +2233,13 @@
 											}
 										},
 										"url": {
-											"raw": "{{vanity_url}}/activities/:acCollectionId/:activityType/:activityId/:startDate/bookings",
+											"raw": "{{vanity_url}}/activities/:collectionId/:activityType/:activityId/:startDate/bookings",
 											"host": [
 												"{{vanity_url}}"
 											],
 											"path": [
 												"activities",
-												":acCollectionId",
+												":collectionId",
 												":activityType",
 												":activityId",
 												":startDate",
@@ -2247,7 +2247,7 @@
 											],
 											"variable": [
 												{
-													"key": "acCollectionId",
+													"key": "collectionId",
 													"value": "bcparks_1"
 												},
 												{
@@ -2299,13 +2299,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse&activityId=1",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse&activityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2319,7 +2319,7 @@
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -2354,13 +2354,13 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:accollectionid?activityType=dayuse&activityId=1",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse&activityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":accollectionid"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2374,7 +2374,7 @@
 									],
 									"variable": [
 										{
-											"key": "accollectionid",
+											"key": "collectionId",
 											"value": "bcparks_998"
 										}
 									]
@@ -2450,13 +2450,13 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/activities/:orcs?activityType=dayuse&activityId=1",
+									"raw": "{{base_url}}/activities/:collectionId?activityType=dayuse&activityId=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"activities",
-										":orcs"
+										":collectionId"
 									],
 									"query": [
 										{
@@ -2547,7 +2547,7 @@
 									}
 								},
 								"url": {
-									"raw": "{{vanity_url}}/bookings?acCollectionId=bcparks_250&activityType=backcountryCamp&activityId=1",
+									"raw": "{{vanity_url}}/bookings?collectionId=bcparks_250&activityType=backcountryCamp&activityId=1",
 									"host": [
 										"{{vanity_url}}"
 									],
@@ -2556,7 +2556,7 @@
 									],
 									"query": [
 										{
-											"key": "acCollectionId",
+											"key": "collectionId",
 											"value": "bcparks_250"
 										},
 										{
@@ -2578,7 +2578,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/bookings?acCollectionId=bcparks_250&activityType=backcountryCamp&activityId=1&startDate=2025-05-13&endDate=2025-05-17",
+									"raw": "{{base_url}}/bookings?collectionId=bcparks_250&activityType=backcountryCamp&activityId=1&startDate=2025-05-13&endDate=2025-05-17",
 									"host": [
 										"{{base_url}}"
 									],
@@ -2587,7 +2587,7 @@
 									],
 									"query": [
 										{
-											"key": "acCollectionId",
+											"key": "collectionId",
 											"value": "bcparks_250"
 										},
 										{

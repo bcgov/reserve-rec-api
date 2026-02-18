@@ -1,0 +1,89 @@
+site_name: BC Parks Reservation System Documentation
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.expand
+    - toc.integrate
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+    - navigation.tracking
+    - navigation.instant
+    - navigation.footer
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - toc.follow
+    - content.tabs.link
+    - content.tooltips
+    - content.code.select
+    - content.code.highlight
+    - content.code.line_numbers
+    - content.code.wrap
+  palette:
+    scheme: slate
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: docs
+  - pymdownx.tabbed
+  - pymdownx.arithmatex
+  - pymdownx.critic
+  - pymdownx.mark
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.tasklist
+  - pymdownx.emoji
+
+extra:
+  mermaid2:
+    arguments:
+      config: docs/mkdocs/mermaid-config.json
+
+
+nav:
+  - Overview: index.md
+  - Data Model:
+      - Introduction: data-model/introduction.md
+      - Data Model Overview:
+          - Data Storage: data-model/data-storage.md
+          - Property Types: data-model/primitive-property-types.md
+      - Contexts:
+          - Data Categorization: contexts/data-categorization.md
+          - Data Contexts: contexts/data-contexts.md
+          - Admin User Journey Phases: contexts/admin-user-journey-phases.md
+          - Public User Journey Phases: contexts/public-user-journey-phases.md
+      - Datatypes:
+          - Collections: datatypes/collections.md
+          - Geozones: datatypes/geozones.md
+          - Facilities: datatypes/facilities.md
+          - Activities: datatypes/activities.md
+          - Products: datatypes/products.md
+          - ProductDates: datatypes/product-dates.md
+          - AvailabilitySignals: datatypes/availability-signals.md
+          - Assets: datatypes/assets.md
+          - Inventory: datatypes/inventory.md
+          - Bookings: datatypes/bookings.md
+          - BookingDates: datatypes/booking-dates.md
+          - Policies:
+            - Overview: datatypes/policies/policies-overview.md
+            - Policy Primitives: datatypes/policies/policy-primitives.md
+            - Reservation Policies: datatypes/policies/reservation-policies.md
+            - Party Policies: datatypes/policies/party-policies.md
+            - Fee Policies: datatypes/policies/fee-policies.md
+            - Change Policies: datatypes/policies/change-policies.md
+  - Features:
+      - QR Codes: features/qr-code.md
