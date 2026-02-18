@@ -1,0 +1,42 @@
+{
+  "pk": "facility::bcparks_1",
+  "sk": "campground::1",
+  "schema": "facility",
+  "globalId": "23ertrg4-t54e-tyhr-ghnj-rer4323e543t",
+  "collectionId": "bcparks_1",
+  "facilityType": "campground",
+  "facilitySubType": "",
+  "facilityId": 1,
+  "identifier": 1,
+  "displayName": "Bedwell Lake Campground",
+  "description": "Main Bedwell Lake campground on the edge of pristine Bedwell Lake. There are ### tentpads at this campground",
+  "envelope": {
+    "type": "envelope",
+    "coordinates": [
+      [-125.61, 49.51],
+      [-125.60, 49.50]
+    ]
+  },
+  "boundaryUrl": "s3://...",
+  "location": {
+    "type": "point",
+    "coordinates": [
+      -125.592,
+      49.490
+    ]
+  },
+  "path": {},
+  "minMapZoom": 9,
+  "maxMapZoom": 19,
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "timezone": "America/Vancouver",
+  "isVisible": true,
+  "creationDate": "2026-01-06T15:30:00.000Z",
+  "lastUpdated": "2026-01-06T15:30:00.000Z",
+  "version": 1,
+  "searchTerms": "bedwell lake, baby bedwell lake, strathcona park...",
+  "adminNotes": ""
+}

@@ -67,17 +67,17 @@ class CDKProject {
   }
 
   /**
-   * Gets the deployment environment name from the CDK context.
+   * Gets the deployment environment name for resource naming and config lookups.
    * Used for environment-specific resource naming and configuration.
-   * If a sandboxName is provided, it appends it to create an isolated sandbox environment.
+   * If a sandboxName is provided, it returns just the sandbox name for shorter resource names.
    *
-   * @returns {string} The deployment environment name (dev, test, prod, or dev-sandboxName) or 'local' as default
+   * @returns {string} The deployment environment name (dev, test, prod, or sandboxName) or 'local' as default
    */
   getDeploymentName() {
     const baseName = this.context?.DEPLOYMENT_NAME || 'local';
     const sandboxName = this.getSandboxName();
     if (sandboxName) {
-      return `${baseName}-${sandboxName}`;
+      return sandboxName;
     }
     return baseName;
   }

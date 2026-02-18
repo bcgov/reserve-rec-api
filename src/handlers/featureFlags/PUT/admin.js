@@ -1,5 +1,8 @@
 const { Exception, logger, sendResponse, validateSuperAdminAuth, writeAuditLog, getNowISO } = require('/opt/base');
-const { getOne, putItem, marshall, batchWriteData, REFERENCE_DATA_TABLE_NAME, AUDIT_TABLE_NAME } = require('/opt/dynamodb');
+const { getOne, marshall, batchWriteData, REFERENCE_DATA_TABLE_NAME, AUDIT_TABLE_NAME, PutItemCommand } = require('/opt/dynamodb');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+
+const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'ca-central-1' });
 
 exports.handler = async (event, context) => {
   logger.info('Update Feature Flags', event);
@@ -43,8 +46,12 @@ exports.handler = async (event, context) => {
       version: (currentConfig?.version || 0) + 1
     };
 
-    // Save to DynamoDB
-    await putItem(updatedConfig, REFERENCE_DATA_TABLE_NAME);
+    // Save to DynamoDB - use PutItemCommand directly without condition expression to allow updates
+    const putCommand = new PutItemCommand({
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      Item: marshall(updatedConfig)
+    });
+    await dynamoClient.send(putCommand);
 
     // Write audit log
     await writeAuditLog(
@@ -71,12 +78,12 @@ exports.handler = async (event, context) => {
     }, 'Feature flags updated successfully', null, context);
 
   } catch (error) {
-    logger.error('Error updating feature flags', error);
+    logger.error('Error updating feature flags', error?.message || error);
     return sendResponse(
       Number(error?.code) || 400,
       null,
       error?.message || 'Error updating feature flags',
-      error?.error || error,
+      error?.message || 'Unknown error',
       context
     );
   }
