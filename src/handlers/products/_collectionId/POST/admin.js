@@ -17,11 +17,18 @@ exports.handler = async (event, context) => {
     const missingParams = [];
     if (!body) missingParams.push("body");
     if (!collectionId) missingParams.push("collectionId");
-    if (!body.activityType) missingParams.push("activityType (in body)");
-    if (!body.activityId) missingParams.push("activityId (in body)");
 
     if (missingParams.length > 0) {
       throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+    }
+
+    // If body is an array, validate each item has required fields
+    if (body.length > 0) {
+      for (const item of body) {
+        if (!item.activityType || !item.activityId) {
+          throw new Error("Each item in body must include activityType and activityId");
+        }
+      }
     }
 
     // Add collection and schema
@@ -45,7 +52,7 @@ exports.handler = async (event, context) => {
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error",
+      error?.mgs || error.message || "Error",
       error?.error || error,
       context
     );

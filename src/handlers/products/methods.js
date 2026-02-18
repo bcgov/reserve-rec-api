@@ -180,9 +180,6 @@ async function getProductByProductId(
   activityType, 
   activityId,
   productId, 
-  fetchActivities = false, 
-  fetchGeozones = false,
-  fetchFacilities = false
 ) {
   logger.info("Get Product By ProductId");
   try {
@@ -194,40 +191,6 @@ async function getProductByProductId(
       `product::${collectionId}::${activityType}::${activityId}`,
       `${productId}::base`
     );
-
-    // Batch get related items if requested
-    let batchGetPromises = [];
-    
-    if (fetchActivities && res?.activities?.length) {
-      logger.debug(`Fetching activities: ${JSON.stringify(res.activities, null, 2)}`);
-      batchGetPromises.push(
-        batchGetData(res.activities, REFERENCE_DATA_TABLE_NAME).then(data => {
-          res.activities = data;
-        })
-      );
-    }
-
-    if (fetchGeozones && res?.geozones?.length) {
-      logger.debug(`Fetching geozones: ${JSON.stringify(res.geozones, null, 2)}`);
-      batchGetPromises.push(
-        batchGetData(res.geozones, REFERENCE_DATA_TABLE_NAME).then(data => {
-          res.geozones = data;
-        })
-      );
-    }
-
-    if (fetchFacilities && res?.facilities?.length) {
-      logger.debug(`Fetching facilities: ${JSON.stringify(res.facilities, null, 2)}`);
-      batchGetPromises.push(
-        batchGetData(res.facilities, REFERENCE_DATA_TABLE_NAME).then(data => {
-          res.facilities = data;
-        })
-      );
-    }
-
-    if (batchGetPromises.length > 0) {
-      await Promise.all(batchGetPromises);
-    }
 
     logger.debug(`Product: ${JSON.stringify(res, null, 2)}`);
     return res;
