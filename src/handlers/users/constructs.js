@@ -7,6 +7,9 @@ const defaults = {
   resources: {
     getUsersFunction: {
       name: 'GetUsersFunction',
+    },
+    searchUsersFunction: {
+      name: 'SearchUsersFunction',
     }
   }
 };
@@ -60,6 +63,37 @@ class UsersConstruct extends LambdaConstruct {
       ],
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
+
+    // POST /users/search - Search users in OpenSearch
+    this.searchResource = this.usersResource.addResource('search');
+
+    this.searchUsersFunction = this.generateBasicLambdaFn(
+      scope,
+      'searchUsersFunction',
+      'src/handlers/users/search/POST',
+      'admin.handler',
+      {
+        basicRead: true,
+      }
+    );
+
+    // Add OpenSearch read permissions
+    // Grant OpenSearch permissions to search function
+    if (props?.openSearchDomainArn) {
+      this.searchUsersFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'es:ESHttpGet',
+          'es:ESHttpPost',
+        ],
+        resources: [`${props.openSearchDomainArn}/*`],
+      }));
+    }
+
+    // POST /users/search
+    this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchUsersFunction), {
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
   }
 }
