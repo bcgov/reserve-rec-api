@@ -10,6 +10,7 @@ const { createPublicApiStack } = require('../lib/public-api-stack/public-api-sta
 const { createTransactionalDataStack } = require('../lib/transactional-data-stack/transactional-data-stack.js');
 const { createBookingWorkflowStack } = require('../lib/booking-workflow-stack/booking-workflow-stack.js');
 const { createEmailDispatchStack } = require('../lib/email-dispatch-stack/email-dispatch-stack.js');
+const { createPublicIdentityIntegrationStack } = require('../lib/public-identity-integration-stack/public-identity-integration-stack.js');
 
 /**
  * Main CDK Project class that orchestrates the creation and management of all CDK stacks
@@ -312,14 +313,15 @@ class CDKProject {
 
     const coreStack = await this.addStack('coreStack', createCoreStack);
     const adminIdentityStack = await this.addStack('adminIdentityStack', createAdminIdentityStack);
-    const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
     const openSearchStack = await this.addStack('openSearchStack', createOpenSearchStack);
     const transactionalDataStack = await this.addStack('transactionalDataStack', createTransactionalDataStack);
+    const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
     const bookingWorkflowStack = await this.addStack('bookingWorkflowStack', createBookingWorkflowStack);
     const emailDispatchStack = await this.addStack('emailDispatchStack', createEmailDispatchStack);
     const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
+    const publicIdentityIntegrationStack = await this.addStack('publicIdentityIntegrationStack', createPublicIdentityIntegrationStack);
 
     publicApiStack.addDependency(referenceDataStack);
     publicApiStack.addDependency(bookingWorkflowStack);
@@ -336,6 +338,8 @@ class CDKProject {
     transactionalDataStack.addDependency(openSearchStack);
     adminIdentityStack.addDependency(coreStack);
     publicIdentityStack.addDependency(coreStack);
+    publicIdentityIntegrationStack.addDependency(publicIdentityStack);
+    publicIdentityIntegrationStack.addDependency(transactionalDataStack);
     // roleAggregatorStack.addDependency(adminIdentityStack);
     // roleAggregatorStack.addDependency(publicIdentityStack);
     // roleAggregatorStack.addDependency(openSearchStack);
