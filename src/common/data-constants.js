@@ -103,6 +103,13 @@ const TRANSACTION_STATUS_ENUMS = [
   'unknown'
 ];
 
+const INVENTORY_STATUS_ENUMS = [
+  'available',
+  'held',
+  'reserved',
+  'releasing'
+];
+
 const DURATION_PROPERTY_ENUMS = [
   'years',
   'months',
@@ -140,6 +147,7 @@ module.exports = {
   DURATION_PROPERTY_ENUMS,
   TIME_24H_ENUMS,
   TRANSACTION_STATUS_ENUMS,
+  INVENTORY_STATUS_ENUMS,
   ALLOWED_FILTERS,
   BOOKING_STATUS_ENUMS,
   SUB_ACTIVITY_TYPE_ENUMS,

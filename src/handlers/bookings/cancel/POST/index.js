@@ -56,6 +56,19 @@ exports.handler = async (event, context) => {
       });
     }
 
+    // Check if booking is in a cancellable state
+    const cancellableStatuses = ['in progress', 'confirmed'];
+    if (!cancellableStatuses.includes(booking.bookingStatus)) {
+      throw new Exception(
+        `Booking has status "${booking.bookingStatus}" and cannot be cancelled`,
+        { code: 400 }
+      );
+    }
+
+    // TODO: Add cancellation window validation when policy infrastructure is implemented
+    // Should check booking.reservationPolicySnapshot.temporalWindows.cancellationWindow
+    // to determine if current time is within allowed cancellation period
+
     const result = await cancellationPublishCommand(booking, reason);
 
     logger.info(
