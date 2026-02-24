@@ -1,15 +1,17 @@
 const { logger, sendMessage, sendResponse } = require('/opt/base');
 const { batchWriteData, marshall, unmarshall, USER_ID_PARTITION, runQuery } = require('/opt/dynamodb');
-const { OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, bulkWriteDocuments } = require('/opt/opensearch');
+const { OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, OPENSEARCH_USER_INDEX_NAME, bulkWriteDocuments } = require('/opt/opensearch');
 const API_STAGE = process.env.API_STAGE;
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL;
 
 // These are the schemas that we want to transfer to OpenSearch transactional data index
 const schemasTransferrable = [
-  'booking',
-  'user'
+  'booking'
 ];
 
+const usersTransfererrable = [
+  'user'
+]
 
 exports.handler = async function (event, context) {
   logger.info('Transactional Data Stream Handler');
@@ -32,10 +34,10 @@ exports.handler = async function (event, context) {
 
       // Check if schema should go to reference data index
       const isTransDataSchema = schemasTransferrable.includes(schema);
-
+      const isUserDataSchema = usersTransfererrable.includes(schema);
       // If the schema is not in any list of schemas to transfer, skip
       // TODO: We may want to revisit this later for admin purposes
-      if (!isTransDataSchema && eventName !== 'REMOVE') {
+      if (!isTransDataSchema && !isUserDataSchema && eventName !== 'REMOVE') {
         logger.debug(`Skipping schema ${schema} - not in list of schemas to transfer`);
         continue;
       }
@@ -79,6 +81,10 @@ exports.handler = async function (event, context) {
     if (transDataIndexUpsertDocs.length > 0) {
       logger.debug(`Writing ${transDataIndexUpsertDocs.length} documents to ${OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME}`);
       await bulkWriteDocuments(transDataIndexUpsertDocs, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME);
+    }
+    if (usersTransfererrable.length > 0) {
+      logger.debug(`Processing ${usersTransfererrable.length} user documents to ${OPENSEARCH_USER_INDEX_NAME}`);
+      await bulkWriteDocuments(usersTransfererrable, OPENSEARCH_USER_INDEX_NAME);
     }
 
     // await sendToAllConnections();
