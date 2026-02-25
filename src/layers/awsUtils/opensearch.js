@@ -687,5 +687,6 @@ module.exports = {
   createIndex,
   deleteIndex,
   listIndices,
-  nonKeyableTerms
+  nonKeyableTerms,
+  OPENSEARCH_USER_INDEX_NAME
 };
