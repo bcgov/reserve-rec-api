@@ -19,6 +19,8 @@ exports.handler = async function (event, context) {
   try {
     let transDataIndexUpsertDocs = [];
     let transDataIndexDeleteDocs = [];
+    let userIndexUpsertDocs = [];
+    let userIndexDeleteDocs = [];
 
     for (const record of event?.Records) {
       const eventName = record.eventName;
@@ -30,7 +32,7 @@ exports.handler = async function (event, context) {
       const creationTime = createDate.toISOString();
 
       const gsipk = record.dynamodb.Keys.pk;
-      const schema = newImage?.schema?.S;
+      const schema = newImage?.schema?.S || oldImage?.schema?.S;
 
       // Check if schema should go to reference data index
       const isTransDataSchema = schemasTransferrable.includes(schema);
@@ -45,7 +47,9 @@ exports.handler = async function (event, context) {
       // This forms the primary key in opensearch so we can reference it later to update/remove if need be
       const openSearchId = `${record.dynamodb.Keys.pk.S}#${record.dynamodb.Keys.sk.S}`;
 
-      logger.info(`openSearchId:${JSON.stringify(openSearchId)}, schema:${schema}, targetIndex:${OPENSEARCH_REFERENCE_DATA_INDEX_NAME}`);
+      // Determine target index based on schema
+      const targetIndex = isUserDataSchema ? OPENSEARCH_USER_INDEX_NAME : OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME;
+      logger.info(`openSearchId:${JSON.stringify(openSearchId)}, schema:${schema}, targetIndex:${targetIndex}`);
 
       switch (record.eventName) {
         case 'MODIFY':
@@ -56,8 +60,12 @@ exports.handler = async function (event, context) {
           };
           doc['id'] = openSearchId;
 
-          // put doc by index, based on schema
-          transDataIndexUpsertDocs.push(doc);
+          // Route document to correct index based on schema
+          if (isUserDataSchema) {
+            userIndexUpsertDocs.push(doc);
+          } else {
+            transDataIndexUpsertDocs.push(doc);
+          }
           logger.debug(JSON.stringify(doc));
         } break;
         case 'REMOVE': {
@@ -66,8 +74,12 @@ exports.handler = async function (event, context) {
             id: openSearchId,
           };
 
-          // put doc by index, based on schema
-          transDataIndexDeleteDocs.push(doc);
+          // Route document to correct index based on schema
+          if (isUserDataSchema) {
+            userIndexDeleteDocs.push(doc);
+          } else {
+            transDataIndexDeleteDocs.push(doc);
+          }
           logger.debug(JSON.stringify(doc));
         }
       }
@@ -82,9 +94,15 @@ exports.handler = async function (event, context) {
       logger.debug(`Writing ${transDataIndexUpsertDocs.length} documents to ${OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME}`);
       await bulkWriteDocuments(transDataIndexUpsertDocs, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME);
     }
-    if (usersTransfererrable.length > 0) {
-      logger.debug(`Processing ${usersTransfererrable.length} user documents to ${OPENSEARCH_USER_INDEX_NAME}`);
-      await bulkWriteDocuments(usersTransfererrable, OPENSEARCH_USER_INDEX_NAME);
+
+    // Process user index documents
+    if (userIndexDeleteDocs.length > 0) {
+      logger.debug(`Deleting ${userIndexDeleteDocs.length} documents from ${OPENSEARCH_USER_INDEX_NAME}`);
+      await bulkWriteDocuments(userIndexDeleteDocs, OPENSEARCH_USER_INDEX_NAME, 'delete');
+    }
+    if (userIndexUpsertDocs.length > 0) {
+      logger.debug(`Writing ${userIndexUpsertDocs.length} documents to ${OPENSEARCH_USER_INDEX_NAME}`);
+      await bulkWriteDocuments(userIndexUpsertDocs, OPENSEARCH_USER_INDEX_NAME);
     }
 
     // await sendToAllConnections();
