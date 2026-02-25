@@ -1,7 +1,7 @@
 /**
  * User Search/List Handler
  * 
- * Searches OpenSearch transactional-data-index for users (filtered by schema='user')
+ * Searches OpenSearch user-index for users
  * When query/text is provided: Full-text search across email, name, phone number, license plate fields
  * When query/text is empty/omitted: Returns all users (sorted, paginated)
  * 
@@ -9,7 +9,7 @@
  */
 
 const { logger, sendResponse } = require('/opt/base');
-const { OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, OSQuery } = require('/opt/opensearch');
+const { OPENSEARCH_USER_INDEX_NAME, OSQuery } = require('/opt/opensearch');
 
 exports.handler = async function (event, context) {
   if (event.httpMethod === "OPTIONS") {
@@ -31,7 +31,7 @@ exports.handler = async function (event, context) {
 
     const searchText = userQuery || text;
 
-    let query = new OSQuery(OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, {
+    let query = new OSQuery(OPENSEARCH_USER_INDEX_NAME, {
       size,
       from,
       sortField,
