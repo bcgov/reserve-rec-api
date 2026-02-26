@@ -469,6 +469,17 @@ async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
   await getDynamoDBClient().send(new PutItemCommand(putObj));
 }
 
+async function updateItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
+  let putObj = {
+    TableName: tableName,
+    Item: marshall(obj),
+    ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+  };
+
+  logger.debug(`Updating item:`, putObj);
+  await getDynamoDBClient().send(new PutItemCommand(putObj));
+}
+
 /**
  * Retrieves data from DynamoDB in parallel using batch get requests. Fires off multiple async requests to DynamoDB, but waits for all to complete before returning.
  *
@@ -653,6 +664,7 @@ module.exports = {
   getByGSI,
   parallelizedBatchGetData,
   putItem,
+  updateItem,
   runQuery,
   runScan,
   marshall,
