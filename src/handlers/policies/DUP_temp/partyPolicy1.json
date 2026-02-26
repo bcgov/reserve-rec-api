@@ -1,0 +1,25 @@
+{
+  "pk": "policy::party::1",
+  "sk": "v1",
+  "schema": "policy",
+  "globalId": "d9f8c7e6-5a4b-4c3d-9e2f-1a0b5c6d7e8f",
+  "policyType": "party",
+  "policyId": "1",
+  "policyIdVersion": 1,
+  "isLatest": true,
+  "displayName": "Standard Day Use Party Policy #1 (Summer 2026)",
+  "description": "This is the standard party policy for day-use offerings in summer 2026. It allows parties to be composed of 1 to 4 people (passes). There are no specific rules around party composition for this policy.",
+  "productRules": {
+    "partyCategories": [
+      {
+        "id": "passes",
+        "label": "Number of Passes",
+        "minCount": 1,
+        "maxCount": 4
+      }
+    ],
+    "partyCompositionRules": []
+  },
+  "createdAt": "2026-02-25T10:00:00Z",
+  "lastUpdated": "2026-02-25T10:00:00Z"
+}
