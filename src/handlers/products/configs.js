@@ -153,6 +153,30 @@ const PRODUCT_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    reservationPolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    partyPolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    feePolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    changePolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
     isVisible: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
