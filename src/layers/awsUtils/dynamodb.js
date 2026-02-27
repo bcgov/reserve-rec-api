@@ -344,7 +344,7 @@ async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_
   };
 
   const item = await runQuery(params);
-  return item?.items ?? [];
+  return item ?? [];
 }
 
 
