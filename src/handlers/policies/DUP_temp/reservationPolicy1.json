@@ -1,0 +1,120 @@
+{
+  "pk": "policy::reservation::1",
+  "sk": "v1",
+  "schema": "policy",
+  "globalId": "d9f8c7e6-5a4b-4c3d-9e2f-1a0b5c6d7e8f",
+  "policyType": "reservation",
+  "policyId": "1",
+  "policyIdVersion": 1,
+  "isLatest": true,
+  "displayName": "Standard Day Use Reservation Policy #1 (Summer 2026)",
+  "description": "This is the standard reservation policy for day-use products in summer 2026. It allows bookings to be made up to 2 days in advance at 7am PST/PDT and only one day can be booked at a time. Products under this policy are discoverable from Jan 1 2026 to Dec 31 2026. It allows customers to hold a reservation for up to 30 minutes while they complete the booking process. The availabilityEstimationPattern uses a tiered approach with updates every 5 minutes. The policy includes temporal windows for discovery and reservation, with specific rules for when reservations can be made based on the product date.",
+  "reservationContext": {
+    "discoveryWindowStart": "2026-01-01T07:00:00-08:00",
+    "discoveryWindowEnd": "2026-12-31T23:59:59-08:00"
+  },
+  "productRules": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minTotalDays": 1,
+    "maxTotalDays": 1,
+    "holdDuration": {
+      "minutes": 30
+    },
+    "availabilityEstimationPattern": {
+      "estimationMode": "tiered",
+      "cadence": {
+        "id": "5min",
+        "label": "Every 5 minutes"
+      },
+      "tiers": [
+        {
+          "id": "full",
+          "label": "Full",
+          "maxPercentage": 0
+        },
+        {
+          "id": "low",
+          "label": "Low",
+          "maxPercentage": 0.25
+        },
+        {
+          "id": "medium",
+          "label": "Medium",
+          "maxPercentage": 0.75
+        },
+        {
+          "id": "high",
+          "label": "High",
+          "maxPercentage": 1.0
+        }
+      ]
+    },
+    "temporalWindows": [
+      {
+        "id": "discoveryWindow",
+        "label": "Discovery Window",
+        "open": {
+          "anchorRef": "discoveryWindowStart"
+        },
+        "close": {
+          "anchorRef": "discoveryWindowEnd"
+        }
+      }
+    ]
+  },
+  "productDateRules": {
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minDailyInventory": 1,
+    "maxDailyInventory": 1,
+    "temporalWindows": [
+      {
+        "id": "discoveryWindow",
+        "label": "Discovery Window",
+        "open": {
+          "anchorRef": "discoveryWindowStart"
+        },
+        "close": {
+          "anchorRef": "discoveryWindowEnd"
+        }
+      },
+      {
+        "id": "reservationWindow",
+        "label": "Reservation Window",
+        "open": {
+          "anchorRef": "productDate",
+          "duration": {
+            "direction": "before",
+            "weeks": 2
+          },
+          "timeOfDay": {
+            "hour": 7
+          }
+        },
+        "close": {
+          "anchorRef": "productDate",
+          "timeOfDay": {
+            "hour": 17
+          }
+        }
+      },
+      {
+        "id": "reservationWindow",
+        "label": "Reservation Window",
+        "open": {
+          "anchorRef": "reservationWindow.open"
+        },
+        "close": {
+          "anchorRef": "reservationWindow.open",
+          "duration": {
+            "direction": "after",
+            "hours": 24
+          }
+        }
+      }
+    ]
+  },
+  "createdAt": "2026-02-25T10:00:00Z",
+  "lastUpdated": "2026-02-25T10:00:00Z"
+}

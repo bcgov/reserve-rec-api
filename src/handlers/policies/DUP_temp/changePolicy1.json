@@ -1,0 +1,22 @@
+{
+  "pk": "policy::change::1",
+  "sk": "v1",
+  "schema": "policy",
+  "globalId": "550e8400-e29b-41d4-a716-446655440000",
+  "policyType": "change",
+  "policyId": "1",
+  "policyIdVersion": 1,
+  "isLatest": true,
+  "displayName": "Standard Day Use Change Policy #1 (Summer 2026)",
+  "description": "This is the standard change policy for day-use products in summer 2026. No changes or cancellations are allowed under this policy.",
+  "productRules": {
+    "isChangeAllowed": false,
+    "isCancellationAllowed": false
+  },
+  "productDateRules": {
+    "isChangeAllowed": false,
+    "isCancellationAllowed": false
+  },
+  "createdAt": "2026-02-25T10:00:00Z",
+  "lastUpdated": "2026-02-25T10:00:00Z"
+}
