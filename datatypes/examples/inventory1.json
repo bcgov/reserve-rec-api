@@ -1,0 +1,20 @@
+{
+  "pk": "inventory::mockPark1::backcountryCamp::1::1::2026-02-09",
+  "sk": "asset::mockPark1::campground::1::tentPad::6::1",
+  "schema": "inventory",
+  "globalId": "c8e7a2b7-6f3d-4e2a-9c8a-2f1b7d8e5a4c",
+  "inventoryId": 1,
+  "allocationType": "fixed",
+  "assetRef": {
+    "pk": "asset::mockPark1::campground::1",
+    "sk": "campsite::6"
+  },
+  "date": "2026-02-09",
+  "productDateRef": {
+    "pk": "productDate::mockPark1::backcountryCamp::1::1",
+    "sk": "2026-02-09"
+  },
+  "productDateVersion": 1,
+  "allocationStatus": "available",
+  "createdAt": "2025-12-01T12:00:00Z"
+}

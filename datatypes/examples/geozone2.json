@@ -1,0 +1,44 @@
+{
+  "pk": "geozone::bcparks_1",
+  "sk": "2",
+  "schema": "geozone",
+  "globalId": "345fg5e-4b7a-4c9f-9f22-1a4e8c9d77aa",
+  "collectionId": "bcparks_1",
+  "geozoneId": 2,
+  "identifier": 2,
+  "displayName": "Bedwell Trail Area",
+  "description": "The Bedwell Lake Trail area in Strathcona Provincial Park is a steep but well‑built route leading to spectacular subalpine lakes surrounded by rugged mountain peaks, offering some of the park’s best day‑hiking and backcountry camping.",
+  "envelope": {
+    "type": "envelope",
+    "coordinates": [
+      [-125.610, 49.522],
+      [-125.522, 49.482]
+    ]
+  },
+  "boundary": {
+    "type": "polygon",
+    "coordinates": [
+      [-125.000, 49.000],
+      [-125.000, 49.000]
+    ]
+  },
+  "boundaryUrl": "",
+  "location": {
+    "type": "point",
+    "coordinates": [-125.589, 49.498]
+  },
+
+  "minMapZoom": 8,
+  "maxMapZoom": 18,
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "timezone": "America/Vancouver",
+  "isVisible": true,
+  "creationDate": "2026-01-05T22:30:00.000Z",
+  "lastUpdated": "2026-01-05T22:30:00.000Z",
+  "version": 1,
+  "searchTerms": "bedwell lake, baby bedwell lake, cream lake...",
+  "adminNotes": "..."
+}
