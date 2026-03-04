@@ -76,7 +76,7 @@ async function getProductsByCollectionId(collectionId, activityType, activityId,
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
-    
+
     let queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
@@ -135,7 +135,7 @@ async function getProductsByActivityType(
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
     const paginated = params?.paginated || true;
-    
+
     let queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
@@ -176,10 +176,10 @@ async function getProductsByActivityType(
  * @throws {Exception} With code 400 if database operation fails
  */
 async function getProductByProductId(
-  collectionId, 
-  activityType, 
+  collectionId,
+  activityType,
   activityId,
-  productId, 
+  productId,
 ) {
   logger.info("Get Product By ProductId");
   try {
@@ -256,7 +256,7 @@ async function processItem(
   if (!collectionId) {
     throw new Error(`collectionId is required`, { code: 400 });
   }
-  
+
   if (!activityType && !item.activityType) {
     throw new Error(`activityType is not specified in one of the requests.`, { code: 400 });
   }
@@ -422,7 +422,7 @@ async function getProductsByActivity(orcs, activityType, activityId) {
 async function getProductById(orcs, activityType, activityId, productId, fetchObj = null, startDate = null, endDate = null) {
   logger.info('Get Product By Id');
   try {
-    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::properties`);
+    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
       POLICY_TYPES.map(policyType => {
