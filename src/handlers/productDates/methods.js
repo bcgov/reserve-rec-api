@@ -5,12 +5,19 @@ const { buildDateRange } = require("/opt/base");
 const { DateTime } = require("luxon");
 const { resolveTemporalAnchor, resolveTemporalWindow } = require("../../common/data-utils");
 
-async function fetchProductDates(queryTime = null, collectionId, activityType, activityId, productId, startDate, endDate, bypassDiscoveryRules = false) {
+async function fetchProductDates(props) {
   try {
+    const {
+      queryTime = new Date().toISOString(),
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      startDate,
+      endDate,
+      bypassDiscoveryRules = false
+    } = props;
 
-    if (!queryTime) {
-      queryTime = new Date().toISOString();
-    }
 
     const productDatePK = `productDate::${collectionId}::${activityType}::${activityId}::${productId}`;
 

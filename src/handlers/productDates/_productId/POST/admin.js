@@ -33,9 +33,6 @@ exports.handler = async (event, context) => {
 
     const { productDates, availabilitySignals } = await initializeProductDates(collectionId, activityType, activityId, productId, startDate, endDate);
 
-    console.log('productDates.length:', productDates.length);
-    console.log('availabilitySignals.length:', availabilitySignals.length);
-
     // Use quickApiPutHandler to create the put items
 
     // TODO Turn off developerMode and properly vet the incoming data before writing to DynamoDB. For now, developerMode allows us to skip some validation and write directly to DynamoDB for faster testing.

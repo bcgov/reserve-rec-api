@@ -33,7 +33,17 @@ exports.handler = async (event, context) => {
 
     logger.debug(`Fetching Product Dates for Product ${collectionId}::${activityType}::${activityId}::${productId} with startDate ${startDate} and endDate ${endDate}. Bypass discovery rules: ${bypassDiscoveryRules}`);
 
-    const productDates = await fetchProductDates(collectionId, activityType, activityId, productId, startDate, endDate, bypassDiscoveryRules);
+    const props = {
+      collectionId: collectionId,
+      activityType: activityType,
+      activityId: activityId,
+      productId: productId,
+      startDate: startDate,
+      endDate: endDate,
+      bypassDiscoveryRules: bypassDiscoveryRules,
+    }
+
+    const productDates = await fetchProductDates(props);
 
     return sendResponse(200, productDates, "Success", null, context);
 
