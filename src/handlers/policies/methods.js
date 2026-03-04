@@ -2,8 +2,8 @@
  * Functionality for policies
  */
 
-const { REFERENCE_DATA_TABLE_NAME, batchTransactData, getOne, incrementCounter, runQuery } = require('/opt/dynamodb');
-const { Exception } = require('/opt/base');
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData, batchGetData, getOne, incrementCounter, runQuery } = require('/opt/dynamodb');
+const { Exception, logger } = require('/opt/base');
 const { quickApiPutHandler, quickApiUpdateHandler } = require("../../common/data-utils");
 const {
   POLICY_BOOKING_API_PUT_CONFIG,
@@ -293,9 +293,54 @@ async function processPutItem(item, policyType, policyId) {
   return returnedItems;
 }
 
+async function getAllPoliciesByProduct(productPk, productSk) {
+  try {
+    // Grab the product to get the policies
+    const product = await getOne(productPk, productSk);
+    logger.debug('Product with policiies: ', product)
+    
+    if (!product) {
+      throw new Exception(`No product found for pk '${productPk}' and sk '${productSk}'`, { code: 400 });
+    }
+    
+    // Get all the policies from the product
+    const policies = {
+      reservationPolicy: product['reservationPolicy'],
+      partyPolicy: product['partyPolicy'],
+      feePolicy: product['feePolicy'],
+      changePolicy: product['changePolicy'],
+    }
+    logger.debug('Policies on the product: ', policies)
+
+    // Get each individual policy and create a pk::sk key for batchGet
+    const uniquePolicyMap = new Map();
+    for (const [, policy] of Object.entries(policies)) {
+      if (policy?.pk && policy?.sk) {
+        const policyKey = `${policy.pk}::${policy.sk}`;
+        uniquePolicyMap.set(policyKey, { pk: policy.pk, sk: policy.sk });
+      }
+    }
+
+    const uniquePolicyKeys = Array.from(uniquePolicyMap.values());
+    logger.debug('uniquePolicyKeys', uniquePolicyKeys)
+
+    // Batch fetch all entities
+    const entities = await batchGetData(uniquePolicyKeys, REFERENCE_DATA_TABLE_NAME);
+    logger.info('Entities: ', entities)
+
+    return entities;
+
+  } catch(error) {
+    console.log('error:', error);
+    throw new Exception('Error getting policies by product', { code: 400, error: error });
+  }
+};
+    
+
 module.exports = {
   handlePolicyPost,
   handlePolicyPut,
+  getAllPoliciesByProduct,
   getPolicyByIdVersion,
-  getPolicyById,
+  getPolicyById
 };

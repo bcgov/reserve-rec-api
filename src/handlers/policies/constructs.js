@@ -51,6 +51,18 @@ class PoliciesConstruct extends LambdaConstruct {
       }
     );
 
+    // GET /policies
+    this.policiesResource.addMethod('GET', new apigw.LambdaIntegration(this.policiesGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /policies/{policyType}
+    this.policiesTypeResource.addMethod('GET', new apigw.LambdaIntegration(this.policiesGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
     // GET /policies/{policyType}/{policyId}
     this.policiesPolicyTypeIdResource.addMethod('GET', new apigw.LambdaIntegration(this.policiesGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
