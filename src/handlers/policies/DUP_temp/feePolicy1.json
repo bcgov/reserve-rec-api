@@ -1,0 +1,40 @@
+{
+  "pk": "policy::fee::1",
+  "sk": "v1",
+  "schema": "policy",
+  "globalId": "d9f8c7e6-5a4b-4c3d-9e2f-1a0b5c6d7e8f",
+  "policyType": "fee",
+  "policyId": "1",
+  "policyIdVersion": 1,
+  "isLatest": false,
+  "displayName": "Standard Day Use Fee Policy",
+  "description": "This is the standard fee policy for day-use offerings. There is no fee associated with this policy.",
+  "productRules": {
+    "feeSchedule": [],
+    "lineItems": [
+      {
+        "id": "noCharge",
+        "label": "Free",
+        "type": "free",
+        "if": [],
+        "quantity": {
+          "type": "constant",
+          "value": 1
+        },
+        "rate": {
+          "type": "constant",
+          "value": 0
+        },
+        "taxApplied": [],
+        "discountsApplied": [],
+        "isReturnable": false
+      }
+    ]
+  },
+  "productDateRules": {
+    "feeSchedule": [],
+    "lineItems": []
+  },
+  "createdAt": "2026-02-25T10:00:00Z",
+  "lastUpdated": "2026-02-25T10:00:00Z"
+}

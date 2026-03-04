@@ -242,9 +242,6 @@ async function quickApiPutHandler(tableName, createList, config) {
         // set the api config for the item
         let itemConfig = item?.config ? item.config : config;
         let itemData = item?.data;
-        
-        logger.debug(`[quickApiPutHandler] itemData keys: ${Object.keys(itemData).join(', ')}`);
-        logger.debug(`[quickApiPutHandler] itemData.collectionId: ${itemData.collectionId}`);
 
         if (Object.keys(itemData).length === 0) {
           throw new Exception(`No field data provided with item.`, { code: 400, error: `Item data should be of the form: {field: <value>}` });
@@ -253,14 +250,11 @@ async function quickApiPutHandler(tableName, createList, config) {
         // If overwrites are allowed, check if the item already exists
         let existingItem = null;
         if (itemConfig?.allowOverwrite) {
-          existingItem = await getOne(itemData.pk, itemData.sk);
+          existingItem = await getOne(itemData?.pk, itemData?.sk);
         }
 
         // Build the validation request
         let dataToValidate = buildValidationRequest(itemData, itemConfig?.fields);
-        
-        logger.debug(`[quickApiPutHandler] dataToValidate keys: ${Object.keys(dataToValidate).join(', ')}`);
-        logger.debug(`[quickApiPutHandler] dataToValidate.collectionId: ${JSON.stringify(dataToValidate.collectionId)}`);
 
         // validate the request data using the config
         validateRequestData(dataToValidate, itemConfig);
@@ -293,6 +287,7 @@ async function quickApiPutHandler(tableName, createList, config) {
 
         createItems.push(createCommand);
       } catch (error) {
+        console.log(`error with ${JSON.stringify(item, null, 2)}`);
         if (config?.failOnError) {
           throw error;
         }
@@ -506,8 +501,96 @@ async function getAndAttachNestedProperties(item, properties) {
   }
 }
 
+function formatForQuickApi(itemArray) {
+  return itemArray.map((item) => {
+    return {
+      key: {
+        pk: item.pk,
+        sk: item.sk,
+      },
+      data: item,
+    };
+  });
+}
+
 function generateGlobalId() {
   return crypto.randomUUID();
+}
+
+function resolveTemporalWindow(temporalWindow, timezone, refStore = {}) {
+  const resolvedWindow = {
+    id: temporalWindow?.id,
+    label: temporalWindow?.label,
+    open: resolveTemporalAnchor(temporalWindow?.open, timezone, refStore),
+    close: resolveTemporalAnchor(temporalWindow?.close, timezone, refStore)
+  };
+  refStore[resolvedWindow.id] = {
+    open: resolvedWindow.open,
+    close: resolvedWindow.close
+  };
+  return resolvedWindow;
+}
+
+function resolveTemporalAnchor(temporalAnchor, timezone, refStore = {}) {
+  // Get calendar date
+  let anchorRef = null;
+  if (temporalAnchor?.anchorRef) {
+    let refComponents = temporalAnchor?.anchorRef?.split('.');
+    function getNestedRef(refObj, refComponents, idx = 0) {
+      if (!refObj || idx >= refComponents.length) return refObj;
+      return getNestedRef(refObj[refComponents[idx]], refComponents, idx + 1);
+    }
+    anchorRef = getNestedRef(refStore, refComponents);
+  } else if (temporalAnchor?.fixedDateTime) {
+    anchorRef = temporalAnchor.fixedDateTime;
+  }
+
+
+  if (!anchorRef) {
+    throw new Exception(`Unable to resolve temporal anchor with id ${temporalAnchor?.id}. No anchorRef or fixedDateTime provided, or anchorRef is invalid (fixedDateTime=${temporalAnchor?.fixedDateTime}, anchorRef=${temporalAnchor?.anchorRef}). `, { code: 400 });
+  }
+
+  // Split anchorRef into calendar date and time components (if time component is not provided, we only care about calendardate.)
+  // If time is not provided, and timeOfDay is not set, and keepInputTime is not set, then input time will not be considered.
+  const expectDateTimeFormat = Boolean(temporalAnchor?.timeOfDay || temporalAnchor?.keepInputTime);
+  let [calendarDate, time] = splitDateTime(anchorRef, true);
+
+  // Apply duration offset
+  if (temporalAnchor?.duration) {
+    let initDate = DateTime.fromISO(`${calendarDate}T00:00:00`, { zone: timezone });
+    const direction = temporalAnchor.duration?.direction || 'before';
+    const durObj = { ...temporalAnchor.duration };
+    delete durObj.direction;
+    const duration = Duration.fromObject(durObj);
+    let adjustedDate = direction === 'before' ? initDate.minus(duration) : initDate.plus(duration);
+    calendarDate = splitDateTime(adjustedDate.toISO(), false);
+  }
+
+  // Set final time of day if provided.
+
+  if (temporalAnchor?.timeOfDay) {
+    const { hour, minute, second } = temporalAnchor.timeOfDay;
+    let adjustedDate = DateTime.fromISO(`${calendarDate}T00:00:00`, { zone: timezone }).set({ hour, minute, second });
+    [calendarDate, time] = splitDateTime(adjustedDate.toISO(), true);
+  } else if (temporalAnchor?.keepInputTime && time) {
+    let adjustedDate = DateTime.fromISO(`${calendarDate}T${time}`, { zone: timezone });
+    [calendarDate, time] = splitDateTime(adjustedDate.toISO(), true);
+  }
+
+
+  if (expectDateTimeFormat) {
+    if (!time) {
+      throw new Exception(`Temporal anchor with id ${temporalAnchor?.id} is expected to resolve to a date-time format, but no time component could be resolved. Please ensure that the anchorRef resolves to a date-time string, or that timeOfDay or keepInputTime is set on the temporal anchor.`, { code: 400 });
+    }
+    const finalDateTime = `${calendarDate}T${time}`;
+    refStore[temporalAnchor?.id] = finalDateTime;
+    return finalDateTime;
+  }
+
+  refStore[temporalAnchor?.id] = calendarDate;
+
+  return calendarDate;
+
 }
 
 module.exports = {
@@ -515,6 +598,9 @@ module.exports = {
   getAndAttachNestedProperties,
   getNextIdentifier,
   generateGlobalId,
+  formatForQuickApi,
   quickApiPutHandler,
   quickApiUpdateHandler,
+  resolveTemporalAnchor,
+  resolveTemporalWindow
 };
