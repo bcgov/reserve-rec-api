@@ -531,6 +531,28 @@ function resolveTemporalWindow(temporalWindow, timezone, refStore = {}) {
   return resolvedWindow;
 }
 
+function splitDateTime(dateTime, includeTime = false) {
+
+  let calendarDate, time;
+
+  if (includeTime) {
+    if (dateTime.includes('T')) {
+      [calendarDate, time] = dateTime.split('T');
+    } else {
+      calendarDate = dateTime;
+      time = '00:00:00';
+    }
+    return [calendarDate, time];
+  } else {
+    if (dateTime.includes('T')) {
+      calendarDate = dateTime.split('T')[0];
+    } else {
+      calendarDate = dateTime;
+    }
+    return calendarDate;
+  }
+}
+
 function resolveTemporalAnchor(temporalAnchor, timezone, refStore = {}) {
   // Get calendar date
   let anchorRef = null;
