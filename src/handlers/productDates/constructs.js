@@ -90,6 +90,42 @@ class ProductDatesConstruct extends LambdaConstruct {
   }
 }
 
+class PublicProductDatesConstruct extends LambdaConstruct {
+  constructor(scope, id, props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+    const handlerPrefix = props?.handlerPrefix || 'admin';
+    const handlerName = `${handlerPrefix}.handler`;
+
+    // Add /public/product-dates/{collectionId}/{activityType}/{activityId}/{productId} resource
+    // Add /product-dates resource
+    this.productDatesResource = this.resolveApi().root.addResource('product-dates');
+
+    this.productDatesByProductResource = this.productDatesResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
+
+    // // ProductDates GET by Product ID Lambda Function
+    this.productDatesGetByDatesFunction = this.generateBasicLambdaFn(
+      scope,
+      'productDatesGetFunction',
+      'src/handlers/productDates/_productId/GET',
+      handlerName,
+      {
+        basicRead: true,
+      }
+    );
+
+    // GET /product-dates/{collectionId}/{activityType}/{activityId}/{productId}
+    this.productDatesByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.productDatesGetByDatesFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+  }
+}
+
 module.exports = {
   ProductDatesConstruct,
+  PublicProductDatesConstruct
 };

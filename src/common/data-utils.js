@@ -593,12 +593,22 @@ function resolveTemporalAnchor(temporalAnchor, timezone, refStore = {}) {
 
 }
 
+function formatProjectionsForQuery(projections) {
+  if (!projections || projections?.length === 0) {
+    return null;
+  }
+  let projectionsMap = {};
+  projections.map((proj) => projectionsMap[`#${proj}`] = proj);
+  return projectionsMap;
+}
+
 module.exports = {
   buildCompKeysFromSkField,
   getAndAttachNestedProperties,
   getNextIdentifier,
   generateGlobalId,
   formatForQuickApi,
+  formatProjectionsForQuery,
   quickApiPutHandler,
   quickApiUpdateHandler,
   resolveTemporalAnchor,
