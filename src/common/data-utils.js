@@ -2,6 +2,7 @@ const { getOne, marshall, runQuery, batchGetData, REFERENCE_DATA_TABLE_NAME } = 
 const { Exception, getNowISO, logger } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("../common/data-constants");
 const crypto = require("crypto");
+const { DateTime, Duration } = require('luxon');
 
 const DEFAULT_FIELD_ACTION = 'set';
 const FIELD_ACTIONS = ['set', 'add', 'append', 'remove'];
