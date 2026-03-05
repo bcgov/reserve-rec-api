@@ -9,6 +9,22 @@ const ALLOWED_FILTERS = [
   { name: "productId", type: "string" },
 ];
 
+const PUBLIC_PRODUCTDATE_PROJECTIONS = [
+  "pk",
+  "sk",
+  "collectionId",
+  "assetList",
+  "activityType",
+  "activityId",
+  "productId",
+  "date",
+  "availabilitySignal",
+  "displayName",
+  "reservationContext",
+  "version",
+  "schema"
+]
+
 // TODO complete later (remove developerMode)
 const PRODUCTDATE_API_PUT_CONFIG = {
   failOnError: true,
@@ -62,4 +78,5 @@ const AVAILABILITYSIGNAL_API_PUT_CONFIG = {
 module.exports = {
   PRODUCTDATE_API_PUT_CONFIG,
   AVAILABILITYSIGNAL_API_PUT_CONFIG,
+  PUBLIC_PRODUCTDATE_PROJECTIONS,
 };

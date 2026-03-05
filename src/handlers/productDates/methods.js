@@ -3,7 +3,7 @@ const { getOne, batchTransactData, runQuery, REFERENCE_DATA_TABLE_NAME } = requi
 const { getProductById } = require("../products/methods");
 const { buildDateRange } = require("/opt/base");
 const { DateTime } = require("luxon");
-const { resolveTemporalAnchor, resolveTemporalWindow } = require("../../common/data-utils");
+const { formatProjectionsForQuery, resolveTemporalAnchor, resolveTemporalWindow } = require("../../common/data-utils");
 
 async function fetchProductDates(props) {
   try {
@@ -15,7 +15,8 @@ async function fetchProductDates(props) {
       productId,
       startDate,
       endDate,
-      bypassDiscoveryRules = false
+      bypassDiscoveryRules = false,
+      projectionFields = null
     } = props;
 
 
@@ -42,7 +43,13 @@ async function fetchProductDates(props) {
       query.ExpressionAttributeValues[':currentDateTime'] = { S: queryTime };
     }
 
-    logger.info(`Querying ProductDates for Product ${productId} with activity '${activityType} ${activityId}' between dates ${startDate} and ${endDate}. Bypass discovery rules: ${bypassDiscoveryRules}`, { query });
+    if (projectionFields) {
+      const projectionsMap = formatProjectionsForQuery(projectionFields);
+      query.ExpressionAttributeNames = { ...query.ExpressionAttributeNames, ...projectionsMap };
+      query.ProjectionExpression = Object.keys(projectionsMap).join(', ');
+    }
+
+    logger.debug(`Querying ProductDates for Product ${productId} with activity '${activityType} ${activityId}' between dates ${startDate} and ${endDate}. Bypass discovery rules: ${bypassDiscoveryRules}`, { query });
 
     const result = await runQuery(query);
 
