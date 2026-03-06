@@ -24,11 +24,10 @@ class BaseLayerConstruct extends Construct {
           command: [],
           local: {
             tryBundle(outputDir) {
-              buildDist(baseLayerPath, outputDir, {
+              return buildDist(baseLayerPath, outputDir, {
                 env: props?.environment,
                 nodejsPath: NODEJS_PATH,
-              }
-              );
+              });
             }
           }
         }
@@ -61,11 +60,10 @@ class AwsUtilsLayerConstruct extends Construct {
           command: [],
           local: {
             tryBundle(outputDir) {
-              buildDist(awsUtilsLayerPath, outputDir, {
+              return buildDist(awsUtilsLayerPath, outputDir, {
                 env: props?.environment,
                 nodejsPath: NODEJS_PATH,
-              }
-              );
+              });
             }
           }
         }

@@ -1,0 +1,112 @@
+'use strict';
+
+const { LambdaConstruct } = require('../../../lib/helpers/base-lambda');
+const apigw = require('aws-cdk-lib/aws-apigateway');
+
+const defaults = {
+  resources: {
+    joinFunction: {
+      name: 'WaitingRoomJoin',
+    },
+    claimFunction: {
+      name: 'WaitingRoomClaim',
+    },
+    heartbeatFunction: {
+      name: 'WaitingRoomHeartbeat',
+    },
+  },
+};
+
+/**
+ * CDK construct for the waiting room public API endpoints:
+ *   POST /waiting-room/join
+ *   POST /waiting-room/claim
+ *
+ * Requires props:
+ *   - api: RestApi
+ *   - authorizer: RequestAuthorizer
+ *   - environment: { WAITING_ROOM_TABLE_NAME, HMAC_SIGNING_KEY_ARN, ... }
+ *   - layers: Lambda layer array
+ *   - waitingRoomTable: DynamoDB Table construct (for IAM grants)
+ *   - hmacSigningKey: Secrets Manager Secret construct (for IAM grants)
+ */
+class WaitingRoomPublicConstruct extends LambdaConstruct {
+  constructor(scope, id, props) {
+    super(scope, id, {
+      ...props,
+      defaults,
+    });
+
+    // /waiting-room resource
+    this.waitingRoomResource = this.resolveApi().root.addResource('waiting-room');
+
+    // POST /waiting-room/join
+    this.joinFunction = this.generateBasicLambdaFn(
+      scope,
+      'joinFunction',
+      'src/handlers/waiting-room/join',
+      'handler',
+      { memorySize: 256, timeout: require('aws-cdk-lib').Duration.seconds(15) }
+    );
+
+    this.waitingRoomResource.addResource('join').addMethod(
+      'POST',
+      new apigw.LambdaIntegration(this.joinFunction),
+      {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      }
+    );
+
+    // POST /waiting-room/claim
+    this.claimFunction = this.generateBasicLambdaFn(
+      scope,
+      'claimFunction',
+      'src/handlers/waiting-room/claim',
+      'handler',
+      { memorySize: 256, timeout: require('aws-cdk-lib').Duration.seconds(15) }
+    );
+
+    this.waitingRoomResource.addResource('claim').addMethod(
+      'POST',
+      new apigw.LambdaIntegration(this.claimFunction),
+      {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      }
+    );
+
+    // POST /waiting-room/heartbeat
+    this.heartbeatFunction = this.generateBasicLambdaFn(
+      scope,
+      'heartbeatFunction',
+      'src/handlers/waiting-room/heartbeat',
+      'handler',
+      { memorySize: 256, timeout: require('aws-cdk-lib').Duration.seconds(15) }
+    );
+
+    this.waitingRoomResource.addResource('heartbeat').addMethod(
+      'POST',
+      new apigw.LambdaIntegration(this.heartbeatFunction),
+      {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      }
+    );
+
+    // Grant DynamoDB read/write permissions to all API Lambdas
+    if (props.waitingRoomTable) {
+      props.waitingRoomTable.grantReadWriteData(this.joinFunction);
+      props.waitingRoomTable.grantReadWriteData(this.claimFunction);
+      props.waitingRoomTable.grantReadWriteData(this.heartbeatFunction);
+    }
+
+    // Grant Secrets Manager read permissions for the HMAC key
+    if (props.hmacSigningKey) {
+      props.hmacSigningKey.grantRead(this.claimFunction);
+      props.hmacSigningKey.grantRead(this.heartbeatFunction);
+    }
+  }
+}
+
+module.exports = { WaitingRoomPublicConstruct };

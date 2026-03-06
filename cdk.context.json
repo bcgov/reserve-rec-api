@@ -1,0 +1,6 @@
+{
+  "key-provider:account=623829546818:aliasName=alias/ReserveRecApi-Dev-CoreStack-KmsKey:region=ca-central-1": {
+    "keyId": "b6b19e5b-4d1b-44ef-9b6b-a11dc5ad3df0"
+  },
+  "ssm:account=623829546818:parameterName=/reserveRecApi/wr/originVerifySecret:region=ca-central-1": "6efa9752433a5d960bd967fbac038ad1cc5e0372d05d8642feee4d10bcb1294e"
+}

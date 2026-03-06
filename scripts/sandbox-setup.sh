@@ -28,6 +28,7 @@ STACKS=(
   "referenceDataStack"
   "adminApiStack"
   "publicApiStack"
+  "waitingRoomStack"
 )
 
 echo "Step 1: Copying SSM config parameters..."
@@ -241,6 +242,26 @@ for MAPPING in "${!SECRET_MAPPINGS[@]}"; do
     echo "    ⚠ WARNING: Source secret not found in ${BASE_ENV}, skipping"
   fi
 done
+
+echo ""
+echo "Step 3: Generating origin verify secret for CloudFront→API Gateway WAF..."
+echo "--------------------------------------------------------------------------"
+
+ORIGIN_VERIFY_SSM_PATH="/${APP_NAME}/${DEPLOYMENT_NAME}/originVerifySecret"
+
+EXISTING_SECRET=$(aws ssm get-parameter --region ${REGION} --name "${ORIGIN_VERIFY_SSM_PATH}" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+
+if [ -n "${EXISTING_SECRET}" ]; then
+  echo "  ✓ Already exists, skipping: ${ORIGIN_VERIFY_SSM_PATH}"
+else
+  NEW_SECRET=$(openssl rand -hex 32)
+  aws ssm put-parameter --region ${REGION} \
+    --name "${ORIGIN_VERIFY_SSM_PATH}" \
+    --type String \
+    --value "${NEW_SECRET}" \
+    --description "Shared secret for CloudFront X-Origin-Verify header (WAF enforcement) — sandbox ${SANDBOX_NAME}" >/dev/null
+  echo "  ✓ Created: ${ORIGIN_VERIFY_SSM_PATH}"
+fi
 
 echo ""
 echo "========================================="

@@ -6,6 +6,39 @@ const { getOne } = require('/opt/dynamodb');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 /**
+ * Parses the bcparks-admission cookie value from a Cookie header string.
+ * Returns the raw token string or null.
+ */
+function parseAdmissionCookie(cookieHeader) {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';');
+  for (const cookie of cookies) {
+    const idx = cookie.indexOf('=');
+    if (idx === -1) continue;
+    if (cookie.slice(0, idx).trim() === 'bcparks-admission') {
+      return cookie.slice(idx + 1).trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Decodes the base64url payload from an admission token WITHOUT HMAC validation.
+ * Used only to extract context fields for downstream Lambdas.
+ * The booking handler performs full HMAC validation.
+ */
+function decodeAdmissionPayload(tokenStr) {
+  if (!tokenStr) return null;
+  const dot = tokenStr.indexOf('.');
+  if (dot === -1) return null;
+  try {
+    return JSON.parse(Buffer.from(tokenStr.slice(0, dot), 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Normalize event format to handle both API Gateway v1.0 and v2.0 payload formats
  * and both TOKEN and REQUEST authorizer types
  */
@@ -80,6 +113,13 @@ exports.handler = async function (event, context, callback) {
   // Normalize the event format
   const normalizedEvent = normalizeAuthorizerEvent(event);
   logger.debug(`Normalized event authorizer type: ${normalizedEvent.authorizerType}`);
+
+  // Parse admission cookie early so it's available in both try and catch paths.
+  // NOTE: Only decodes the payload — does NOT validate HMAC signature.
+  // Full HMAC validation is performed by the booking handler.
+  const cookieStr = normalizedEvent.headers?.cookie || normalizedEvent.headers?.Cookie || '';
+  const admissionToken = parseAdmissionCookie(cookieStr);
+  const admissionPayload = admissionToken ? decodeAdmissionPayload(admissionToken) : null;
   logger.debug(`Normalized event payload version: ${JSON.stringify(normalizedEvent.payloadVersion)}`);
   logger.debug(`Normalized headers: ${JSON.stringify(normalizedEvent.headers)}`);
 
@@ -143,7 +183,15 @@ exports.handler = async function (event, context, callback) {
     // Generate policy with appropriate context
     let authResponse = generatePolicy('public', 'Allow', fullAPIMethods);
     authResponse = handleContextAndAPIKey(authResponse, payload, headers, isAuthenticated);
-    
+
+    // Attach admission cookie context (unverified — HMAC validation in booking handler)
+    authResponse.context = {
+      ...authResponse.context,
+      admissionPresent: admissionToken ? 'true' : 'false',
+      admissionFacilityKey: admissionPayload?.fk || '',
+      admissionDateKey: admissionPayload?.dk || '',
+    };
+
     logger.debug('Final authResponse', JSON.stringify(authResponse));
     return authResponse;
 
@@ -152,6 +200,12 @@ exports.handler = async function (event, context, callback) {
     // For public API, allow requests even on error but mark as guest
     let authResponse = generatePolicy('public', 'Allow', fullAPIMethods);
     authResponse = handleContextAndAPIKey(authResponse, null, normalizedEvent.headers, false);
+    authResponse.context = {
+      ...authResponse.context,
+      admissionPresent: admissionToken ? 'true' : 'false',
+      admissionFacilityKey: admissionPayload?.fk || '',
+      admissionDateKey: admissionPayload?.dk || '',
+    };
     return authResponse;
   }
 };
