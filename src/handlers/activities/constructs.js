@@ -60,12 +60,12 @@ class ActivitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Activities POST by Collection ID Lambda Function
+    // Activities POST by Collection ID Lambda Function (admin-only, no public handler)
     this.activitiesCollectionIdPostFunction = this.generateBasicLambdaFn(
       scope,
       'activitiesCollectionIdPostFunction',
       'src/handlers/activities/_collectionId/POST',
-      handlerName,
+      'admin',
       {
         basicReadWrite: true,
       }
@@ -77,12 +77,12 @@ class ActivitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Activities PUT by Collection ID Lambda Function
+    // Activities PUT by Collection ID Lambda Function (admin-only, no public handler)
     this.activitiesCollectionIdPutFunction = this.generateBasicLambdaFn(
       scope,
       'activitiesCollectionIdPutFunction',
       'src/handlers/activities/_collectionId/PUT',
-      handlerName,
+      'admin',
       {
         basicReadWrite: true,
       }
@@ -100,12 +100,12 @@ class ActivitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Activities DELETE by Collection ID Lambda Function
+    // Activities DELETE by Collection ID Lambda Function (admin-only, no public handler)
     this.activitiesCollectionIdDeleteFunction = this.generateBasicLambdaFn(
       scope,
       'activitiesCollectionIdDeleteFunction',
       'src/handlers/activities/_collectionId/DELETE',
-      handlerName,
+      'admin',
       {
         basicReadWrite: true,
       }

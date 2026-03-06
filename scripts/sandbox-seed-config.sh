@@ -17,7 +17,7 @@ set -e
 
 SANDBOX_NAME="${1:?Usage: ./scripts/sandbox-seed-config.sh <sandbox-name> [base-env]}"
 BASE_ENV="${2:-dev}"
-DEPLOYMENT_NAME="${BASE_ENV}-${SANDBOX_NAME}"
+DEPLOYMENT_NAME="${SANDBOX_NAME}"
 REGION="${AWS_REGION:-ca-central-1}"
 
 echo ""
@@ -43,7 +43,7 @@ get_ssm() {
 echo "Step 1: Fetching values from SSM..."
 
 # Admin values
-ADMIN_API_URL=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminApiStack/adminApiUrl")
+ADMIN_API_URL=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminApiStack/adminApiUrl" | sed 's|/$||')
 ADMIN_USER_POOL_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminIdentityStack/adminUserPoolId")
 ADMIN_USER_POOL_CLIENT_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminIdentityStack/adminUserPoolClientId")
 ADMIN_IDENTITY_POOL_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminIdentityStack/adminIdentityPoolId")
@@ -51,19 +51,15 @@ ADMIN_USER_POOL_DOMAIN=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/adminIdentit
 ADMIN_CLOUDFRONT=$(get_ssm "/reserveRecAdmin/${DEPLOYMENT_NAME}/distributionStack/distributionDomainName")
 
 # Public values
-PUBLIC_API_URL=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/publicApiStack/publicApiUrl")
+PUBLIC_API_URL=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/publicApiStack/publicApiUrl" | sed 's|/$||')
 PUBLIC_USER_POOL_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/publicIdentityStack/publicUserPoolId")
 PUBLIC_USER_POOL_CLIENT_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/publicIdentityStack/publicUserPoolClientId")
 PUBLIC_IDENTITY_POOL_ID=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/publicIdentityStack/publicIdentityPoolId")
 PUBLIC_CLOUDFRONT=$(get_ssm "/reserveRecPublic/${DEPLOYMENT_NAME}/distributionStack/distributionDomainName")
+WS_URL=$(get_ssm "/reserveRecApi/${DEPLOYMENT_NAME}/waitingRoomStack/wsApiUrl")
 
-# Validate required values
+# Validate required values (admin values are optional — admin frontend may not be deployed)
 missing_values=()
-[ -z "$ADMIN_API_URL" ] && missing_values+=("ADMIN_API_URL")
-[ -z "$ADMIN_USER_POOL_ID" ] && missing_values+=("ADMIN_USER_POOL_ID")
-[ -z "$ADMIN_USER_POOL_CLIENT_ID" ] && missing_values+=("ADMIN_USER_POOL_CLIENT_ID")
-[ -z "$ADMIN_IDENTITY_POOL_ID" ] && missing_values+=("ADMIN_IDENTITY_POOL_ID")
-[ -z "$ADMIN_CLOUDFRONT" ] && missing_values+=("ADMIN_CLOUDFRONT")
 [ -z "$PUBLIC_API_URL" ] && missing_values+=("PUBLIC_API_URL")
 [ -z "$PUBLIC_USER_POOL_ID" ] && missing_values+=("PUBLIC_USER_POOL_ID")
 [ -z "$PUBLIC_USER_POOL_CLIENT_ID" ] && missing_values+=("PUBLIC_USER_POOL_CLIENT_ID")
@@ -77,8 +73,17 @@ if [ ${#missing_values[@]} -gt 0 ]; then
     echo "  - ${val}"
   done
   echo ""
-  echo "Make sure both the API and frontend sandboxes are deployed first."
+  echo "Make sure the API and public frontend sandboxes are deployed first."
   exit 1
+fi
+
+# Warn about missing admin values but continue
+if [ -z "$ADMIN_API_URL" ] || [ -z "$ADMIN_CLOUDFRONT" ]; then
+  echo "  NOTE: Admin API/CloudFront values not found — skipping admin config seeding."
+  echo "        Deploy the admin frontend sandbox if admin access is needed."
+  SKIP_ADMIN=true
+else
+  SKIP_ADMIN=false
 fi
 
 echo "  Admin API URL:        ${ADMIN_API_URL}"
@@ -91,29 +96,38 @@ echo ""
 
 # Construct domain URLs
 ADMIN_USER_POOL_DOMAIN_URL="${ADMIN_USER_POOL_DOMAIN}.auth.${REGION}.amazoncognito.com"
-PUBLIC_USER_POOL_DOMAIN_URL="reserve-rec-public-identity-${DEPLOYMENT_NAME}.auth.${REGION}.amazoncognito.com"
+# Look up actual Cognito domain from the pool (sandboxes share the dev pool, so domain may be dev-based)
+PUBLIC_USER_POOL_DOMAIN=$(aws cognito-idp describe-user-pool \
+  --region "${REGION}" --user-pool-id "${PUBLIC_USER_POOL_ID}" \
+  --query 'UserPool.Domain' --output text 2>/dev/null || echo "")
+PUBLIC_USER_POOL_DOMAIN_URL="${PUBLIC_USER_POOL_DOMAIN}.auth.${REGION}.amazoncognito.com"
 
 # =============================================================================
 # STEP 2: Create DynamoDB config entries
 # =============================================================================
 echo "Step 2: Creating DynamoDB config entries..."
 
-TABLE_NAME="ReserveRecApi-Dev-${SANDBOX_NAME}-ReferenceDataStack-ReferenceDataTable"
+SANDBOX_NAME_CAP="$(echo "${SANDBOX_NAME:0:1}" | tr '[:lower:]' '[:upper:]')${SANDBOX_NAME:1}"
+TABLE_NAME="ReserveRecApi-${SANDBOX_NAME_CAP}-ReferenceDataStack-ReferenceDataTable"
 
-# Admin config item
-echo "  Creating admin config..."
-aws dynamodb put-item --region "${REGION}" --table-name "${TABLE_NAME}" --item '{
-  "pk": {"S": "config"},
-  "sk": {"S": "admin"},
-  "ENVIRONMENT": {"S": "'"${DEPLOYMENT_NAME}"'"},
-  "API_LOCATION": {"S": "'"${ADMIN_API_URL}"'"},
-  "ADMIN_USER_POOL_ID": {"S": "'"${ADMIN_USER_POOL_ID}"'"},
-  "ADMIN_USER_POOL_CLIENT_ID": {"S": "'"${ADMIN_USER_POOL_CLIENT_ID}"'"},
-  "ADMIN_IDENTITY_POOL_ID": {"S": "'"${ADMIN_IDENTITY_POOL_ID}"'"},
-  "ADMIN_USER_POOL_DOMAIN_URL": {"S": "'"${ADMIN_USER_POOL_DOMAIN_URL}"'"},
-  "COGNITO_REDIRECT_URI": {"S": "https://'"${ADMIN_CLOUDFRONT}"'"}
-}'
-echo "    Done."
+# Admin config item (only if admin frontend is deployed)
+if [ "$SKIP_ADMIN" = "false" ]; then
+  echo "  Creating admin config..."
+  aws dynamodb put-item --region "${REGION}" --table-name "${TABLE_NAME}" --item '{
+    "pk": {"S": "config"},
+    "sk": {"S": "admin"},
+    "ENVIRONMENT": {"S": "'"${DEPLOYMENT_NAME}"'"},
+    "API_LOCATION": {"S": "'"${ADMIN_API_URL}"'"},
+    "ADMIN_USER_POOL_ID": {"S": "'"${ADMIN_USER_POOL_ID}"'"},
+    "ADMIN_USER_POOL_CLIENT_ID": {"S": "'"${ADMIN_USER_POOL_CLIENT_ID}"'"},
+    "ADMIN_IDENTITY_POOL_ID": {"S": "'"${ADMIN_IDENTITY_POOL_ID}"'"},
+    "ADMIN_USER_POOL_DOMAIN_URL": {"S": "'"${ADMIN_USER_POOL_DOMAIN_URL}"'"},
+    "COGNITO_REDIRECT_URI": {"S": "https://'"${ADMIN_CLOUDFRONT}"'"}
+  }'
+  echo "    Done."
+else
+  echo "  Skipping admin config (admin frontend not deployed)."
+fi
 
 # Public config item
 echo "  Creating public config..."
@@ -126,7 +140,8 @@ aws dynamodb put-item --region "${REGION}" --table-name "${TABLE_NAME}" --item '
   "PUBLIC_USER_POOL_CLIENT_ID": {"S": "'"${PUBLIC_USER_POOL_CLIENT_ID}"'"},
   "PUBLIC_IDENTITY_POOL_ID": {"S": "'"${PUBLIC_IDENTITY_POOL_ID}"'"},
   "PUBLIC_USER_POOL_DOMAIN_URL": {"S": "'"${PUBLIC_USER_POOL_DOMAIN_URL}"'"},
-  "COGNITO_REDIRECT_URI": {"S": "https://'"${PUBLIC_CLOUDFRONT}"'"}
+  "COGNITO_REDIRECT_URI": {"S": "https://'"${PUBLIC_CLOUDFRONT}"'"},
+  "WS_URL": {"S": "'"${WS_URL}"'"}
 }'
 echo "    Done."
 echo ""
@@ -135,6 +150,11 @@ echo ""
 # STEP 3: Update Admin Identity SSM config with sandbox CloudFront URLs
 # =============================================================================
 echo "Step 3: Updating Admin Identity SSM config with sandbox CloudFront URLs..."
+
+if [ "$SKIP_ADMIN" = "true" ]; then
+  echo "  Skipping (admin frontend not deployed)."
+  echo ""
+fi
 
 ADMIN_IDENTITY_CONFIG_PATH="/reserveRecApi/${DEPLOYMENT_NAME}/adminIdentityStack/config"
 ADMIN_IDENTITY_CONFIG=$(get_ssm "${ADMIN_IDENTITY_CONFIG_PATH}")
@@ -170,6 +190,44 @@ else
     --overwrite >/dev/null
 
   echo "  Added https://${ADMIN_CLOUDFRONT} to admin callback/logout URLs."
+
+  # Also update Cognito client directly — CDK redeploy won't detect SSM-only changes
+  if [ -n "${ADMIN_USER_POOL_ID}" ] && [ -n "${ADMIN_USER_POOL_CLIENT_ID}" ]; then
+    CURRENT_CLIENT=$(aws cognito-idp describe-user-pool-client \
+      --region "${REGION}" --user-pool-id "${ADMIN_USER_POOL_ID}" \
+      --client-id "${ADMIN_USER_POOL_CLIENT_ID}" --query 'UserPoolClient' --output json 2>/dev/null || echo "")
+    if [ -n "${CURRENT_CLIENT}" ]; then
+      python3 - <<PYEOF
+import subprocess, json, sys
+
+client = json.loads("""${CURRENT_CLIENT}""")
+cf = "https://${ADMIN_CLOUDFRONT}"
+
+callbacks = client.get('CallbackURLs', [])
+logouts   = client.get('LogoutURLs', [])
+for u in [cf, cf + '/']:
+    if u not in callbacks: callbacks.append(u)
+for u in [cf, cf + '/logout']:
+    if u not in logouts: logouts.append(u)
+
+cmd = [
+  'aws', 'cognito-idp', 'update-user-pool-client',
+  '--region', '${REGION}',
+  '--user-pool-id', client['UserPoolId'],
+  '--client-id', client['ClientId'],
+  '--callback-urls', json.dumps(callbacks),
+  '--logout-urls', json.dumps(logouts),
+]
+for p in client.get('SupportedIdentityProviders', []):   cmd += ['--supported-identity-providers', p]
+for f in client.get('AllowedOAuthFlows', []):            cmd += ['--allowed-o-auth-flows', f]
+for s in client.get('AllowedOAuthScopes', []):           cmd += ['--allowed-o-auth-scopes', s]
+if client.get('AllowedOAuthFlowsUserPoolClient'):        cmd += ['--allowed-o-auth-flows-user-pool-client']
+for f in client.get('ExplicitAuthFlows', []):            cmd += ['--explicit-auth-flows', f]
+subprocess.run(cmd, check=True, capture_output=True)
+print("  Updated Cognito admin client callback/logout URLs directly.")
+PYEOF
+    fi
+  fi
 fi
 echo ""
 
@@ -212,6 +270,44 @@ else
     --overwrite >/dev/null
 
   echo "  Added https://${PUBLIC_CLOUDFRONT} to public callback/logout URLs."
+
+  # Also update Cognito client directly — CDK redeploy won't detect SSM-only changes
+  if [ -n "${PUBLIC_USER_POOL_ID}" ] && [ -n "${PUBLIC_USER_POOL_CLIENT_ID}" ]; then
+    CURRENT_CLIENT=$(aws cognito-idp describe-user-pool-client \
+      --region "${REGION}" --user-pool-id "${PUBLIC_USER_POOL_ID}" \
+      --client-id "${PUBLIC_USER_POOL_CLIENT_ID}" --query 'UserPoolClient' --output json 2>/dev/null || echo "")
+    if [ -n "${CURRENT_CLIENT}" ]; then
+      python3 - <<PYEOF
+import subprocess, json, sys
+
+client = json.loads("""${CURRENT_CLIENT}""")
+cf = "https://${PUBLIC_CLOUDFRONT}"
+
+callbacks = client.get('CallbackURLs', [])
+logouts   = client.get('LogoutURLs', [])
+for u in [cf, cf + '/']:
+    if u not in callbacks: callbacks.append(u)
+for u in [cf, cf + '/logout']:
+    if u not in logouts: logouts.append(u)
+
+cmd = [
+  'aws', 'cognito-idp', 'update-user-pool-client',
+  '--region', '${REGION}',
+  '--user-pool-id', client['UserPoolId'],
+  '--client-id', client['ClientId'],
+  '--callback-urls', json.dumps(callbacks),
+  '--logout-urls', json.dumps(logouts),
+]
+for p in client.get('SupportedIdentityProviders', []):   cmd += ['--supported-identity-providers', p]
+for f in client.get('AllowedOAuthFlows', []):            cmd += ['--allowed-o-auth-flows', f]
+for s in client.get('AllowedOAuthScopes', []):           cmd += ['--allowed-o-auth-scopes', s]
+if client.get('AllowedOAuthFlowsUserPoolClient'):        cmd += ['--allowed-o-auth-flows-user-pool-client']
+for f in client.get('ExplicitAuthFlows', []):            cmd += ['--explicit-auth-flows', f]
+subprocess.run(cmd, check=True, capture_output=True)
+print("  Updated Cognito public client callback/logout URLs directly.")
+PYEOF
+    fi
+  fi
 fi
 echo ""
 
@@ -229,12 +325,9 @@ echo "SSM configs updated with sandbox CloudFront URLs."
 echo ""
 echo "NEXT STEPS:"
 echo ""
-echo "  1. Redeploy identity stacks to update Cognito callback URLs:"
-echo "     cd reserve-rec-api && nix-shell --run \"SANDBOX_NAME=${SANDBOX_NAME} yarn sandbox:deploy\""
-echo ""
-echo "  2. Publish admin frontend:"
+echo "  1. Publish admin frontend (if not already done):"
 echo "     cd reserve-rec-admin && SANDBOX_NAME=${SANDBOX_NAME} yarn sandbox:publish"
 echo ""
-echo "  3. Publish public frontend:"
+echo "  2. Publish public frontend (if not already done):"
 echo "     cd reserve-rec-public && SANDBOX_NAME=${SANDBOX_NAME} yarn sandbox:publish"
 echo ""

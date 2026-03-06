@@ -25,7 +25,7 @@ class AdminAuthorizerConstruct extends Construct {
           command: [],
           local: {
             tryBundle(outputDir) {
-              buildDist(authFunctionEntry, outputDir, props?.environment);
+              return buildDist(authFunctionEntry, outputDir, props?.environment);
             }
           }
         }
@@ -71,7 +71,7 @@ class PublicAuthorizerConstruct extends Construct {
           command: [],
           local: {
             tryBundle(outputDir) {
-              buildDist(authFunctionEntry, outputDir, props?.environment);
+              return buildDist(authFunctionEntry, outputDir, props?.environment);
             }
           }
         }

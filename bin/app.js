@@ -11,6 +11,7 @@ const { createTransactionalDataStack } = require('../lib/transactional-data-stac
 const { createBookingWorkflowStack } = require('../lib/booking-workflow-stack/booking-workflow-stack.js');
 const { createEmailDispatchStack } = require('../lib/email-dispatch-stack/email-dispatch-stack.js');
 const { createPublicIdentityIntegrationStack } = require('../lib/public-identity-integration-stack/public-identity-integration-stack.js');
+const { createWaitingRoomStack } = require('../lib/waiting-room-stack/waiting-room-stack.js');
 
 /**
  * Main CDK Project class that orchestrates the creation and management of all CDK stacks
@@ -319,6 +320,7 @@ class CDKProject {
     const bookingWorkflowStack = await this.addStack('bookingWorkflowStack', createBookingWorkflowStack);
     const emailDispatchStack = await this.addStack('emailDispatchStack', createEmailDispatchStack);
     const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
+    const waitingRoomStack = await this.addStack('waitingRoomStack', createWaitingRoomStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
     const publicIdentityIntegrationStack = await this.addStack('publicIdentityIntegrationStack', createPublicIdentityIntegrationStack);
@@ -326,7 +328,9 @@ class CDKProject {
     publicApiStack.addDependency(referenceDataStack);
     publicApiStack.addDependency(bookingWorkflowStack);
     publicApiStack.addDependency(emailDispatchStack);
+    publicApiStack.addDependency(waitingRoomStack);
     adminApiStack.addDependency(referenceDataStack);
+    adminApiStack.addDependency(waitingRoomStack);
     openSearchStack.addDependency(adminIdentityStack);
     openSearchStack.addDependency(publicIdentityStack);
     bookingWorkflowStack.addDependency(coreStack);
@@ -340,6 +344,8 @@ class CDKProject {
     publicIdentityStack.addDependency(coreStack);
     publicIdentityIntegrationStack.addDependency(publicIdentityStack);
     publicIdentityIntegrationStack.addDependency(transactionalDataStack);
+    waitingRoomStack.addDependency(coreStack);
+    waitingRoomStack.addDependency(publicIdentityStack);
     // roleAggregatorStack.addDependency(adminIdentityStack);
     // roleAggregatorStack.addDependency(publicIdentityStack);
     // roleAggregatorStack.addDependency(openSearchStack);
