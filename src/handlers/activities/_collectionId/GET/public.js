@@ -27,7 +27,22 @@ async function getWaitingRoomStatus(collectionId, activityType, activityId, star
       TableName: WAITING_ROOM_TABLE_NAME,
       Key: marshall({ pk, sk: 'META' }),
     }));
-    if (!result.Item) return { waitingRoomActive: false };
+    if (!result.Item) {
+      // Facility-specific queue not found — check Mode 2 global queue
+      const today = new Date().toISOString().slice(0, 10);
+      const mode2Pk = `QUEUE#MODE2#global#1#${today}`;
+      const mode2Result = await getClient().send(new GetItemCommand({
+        TableName: WAITING_ROOM_TABLE_NAME,
+        Key: marshall({ pk: mode2Pk, sk: 'META' }),
+      }));
+      if (mode2Result.Item) {
+        const mode2Meta = unmarshall(mode2Result.Item);
+        if (mode2Meta.queueStatus !== 'closed') {
+          return { waitingRoomActive: true };
+        }
+      }
+      return { waitingRoomActive: false };
+    }
     const meta = unmarshall(result.Item);
     const active = meta.queueStatus !== 'closed';
     return {

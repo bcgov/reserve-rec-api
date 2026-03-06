@@ -58,6 +58,13 @@ exports.handler = async (event, context) => {
       try {
         const queueMeta = await getQueueMeta(queueId);
         waitingRoomActive = !!(queueMeta && queueMeta.queueStatus !== 'closed');
+        if (!waitingRoomActive) {
+          // Also check Mode 2 global queue
+          const today = new Date().toISOString().slice(0, 10);
+          const mode2QueueId = `QUEUE#MODE2#global#1#${today}`;
+          const mode2Meta = await getQueueMeta(mode2QueueId);
+          waitingRoomActive = !!(mode2Meta && mode2Meta.queueStatus !== 'closed');
+        }
       } catch (err) {
         logger.warn('Failed to check waiting room status — failing open:', err);
       }
