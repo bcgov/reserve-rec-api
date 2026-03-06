@@ -86,6 +86,12 @@ else
   SKIP_ADMIN=false
 fi
 
+# Warn about missing waiting room values but continue
+if [ -z "$WS_URL" ]; then
+  echo "  NOTE: WS_URL not found — waiting room WebSocket URL will be empty in public config."
+  echo "        Deploy the waiting room stack first if waiting room support is needed."
+fi
+
 echo "  Admin API URL:        ${ADMIN_API_URL}"
 echo "  Admin CloudFront:     ${ADMIN_CLOUDFRONT}"
 echo "  Admin User Pool:      ${ADMIN_USER_POOL_ID}"

@@ -56,6 +56,31 @@ jobs:
       - name: CDK Deploy
         run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
 
+      ### Sync WS_URL into the DynamoDB public config record.
+      ### The waiting room stack publishes wsApiUrl to SSM after deploy.
+      ### Skipped gracefully if the waiting room stack has not been deployed yet.
+      - name: Sync WS_URL to public config
+        env:
+          CONTEXT: dev
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ENV_CAP="$(echo "${CONTEXT:0:1}" | tr '[:lower:]' '[:upper:]')${CONTEXT:1}"
+          TABLE="ReserveRecApi-${ENV_CAP}-ReferenceDataStack-ReferenceDataTable"
+          WS_URL=$(aws ssm get-parameter --region "$REGION" \
+            --name "/reserveRecApi/${CONTEXT}/waitingRoomStack/wsApiUrl" \
+            --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          if [ -n "$WS_URL" ]; then
+            aws dynamodb update-item \
+              --region "$REGION" \
+              --table-name "$TABLE" \
+              --key '{"pk": {"S": "config"}, "sk": {"S": "public"}}' \
+              --update-expression "SET WS_URL = :val" \
+              --expression-attribute-values "{\":val\": {\"S\": \"$WS_URL\"}}"
+            echo "WS_URL set to: $WS_URL"
+          else
+            echo "NOTE: waitingRoomStack not deployed — WS_URL not updated."
+          fi
+
       ### Save cdk.out cache
       - name: Save cdk.out cache
         uses: actions/cache@v4
