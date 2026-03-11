@@ -101,6 +101,18 @@ const FACILITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    isOpen: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    passesRequired: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
     timezone: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
@@ -130,6 +142,12 @@ const FACILITY_API_PUT_CONFIG = {
       }
     },
     imageUrl: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    agreements: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
@@ -198,6 +216,18 @@ const FACILITY_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    isOpen: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    passesRequired: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
     timezone: {
       rulesFn: ({ value, action }) => {
         rf.expectValueInList(value, TIMEZONE_ENUMS);
@@ -223,6 +253,12 @@ const FACILITY_API_UPDATE_CONFIG = {
       }
     },
     imageUrl: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    agreements: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);

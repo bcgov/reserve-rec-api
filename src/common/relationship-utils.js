@@ -1,6 +1,13 @@
 const { logger, Exception } = require("/opt/base");
-const { batchWriteData, REFERENCE_DATA_TABLE_NAME, ENTITY_RELATIONSHIP_INDEX, batchTransactData, runQuery, marshall } = require("/opt/dynamodb");
-const { quickApiPutHandler } = require("./data-utils");
+const { 
+  batchWriteData,
+  REFERENCE_DATA_TABLE_NAME,
+  ENTITY_RELATIONSHIP_INDEX,
+  batchTransactData,
+  runQuery,
+  marshall
+ } = require("/opt/dynamodb");
+const { quickApiPutHandler, quickApiUpdateHandler } = require("./data-utils");
 
 /*
   * Helper function to determine if schemas should be swapped
@@ -146,6 +153,117 @@ function createRelationshipItem(pk1, sk1, pk2, sk2) {
   return relationshipItem;
 }
 
+// Canonical mapping from plural field names to singular schema names
+const FIELD_TO_SCHEMA = {
+  facilities: 'facility',
+  geozones: 'geozone',
+  activities: 'activity',
+  products: 'product',
+};
+
+/**
+ * Queries existing relationship items for a given source entity + target schema.
+ * Automatically selects the forward table scan or GSI based on the hierarchy.
+ *
+ * @param {string} sourcePk - e.g. 'facility::bcparks_15'
+ * @param {string} sourceSk - e.g. 'accessPoint::1'
+ * @param {string} targetSchema - e.g. 'activity'
+ * @param {string} tableName
+ * @returns {Promise<Array>} Unmarshalled relationship items
+ */
+async function queryRelationshipsBySchema(sourcePk, sourceSk, targetSchema, tableName = REFERENCE_DATA_TABLE_NAME) {
+  const sourceSchema = sourcePk.split('::')[0];
+  const relationshipPk = `rel::${sourcePk}::${sourceSk}`;
+
+  // If source is lower in hierarchy it was stored as pk2; query via GSI.
+  // Otherwise it was stored as pk1; query the main table directly.
+  if (shouldSwapSchemas(sourceSchema, targetSchema)) {
+    const query = {
+      TableName: tableName,
+      IndexName: ENTITY_RELATIONSHIP_INDEX,
+      KeyConditionExpression: 'gsipk = :gsipk',
+      FilterExpression: 'schema1 = :schema1',
+      ExpressionAttributeValues: {
+        ':gsipk': { S: relationshipPk },
+        ':schema1': { S: targetSchema }
+      }
+    };
+    const result = await runQuery(query, null, null, false);
+    return result.items || [];
+  } else {
+    const query = {
+      TableName: tableName,
+      KeyConditionExpression: 'pk = :pk',
+      FilterExpression: 'schema2 = :schema2',
+      ExpressionAttributeValues: {
+        ':pk': { S: relationshipPk },
+        ':schema2': { S: targetSchema }
+      }
+    };
+    const result = await runQuery(query, null, null, false);
+    return result.items || [];
+  }
+}
+
+/**
+ * Diffs existing DB relationships against the incoming entity list.
+ * Returns relationship items to add and delete transactions to execute.
+ *
+ * @param {Array}  existingItems   - Unmarshalled relationship items from the DB
+ * @param {Array}  incomingEntities - Entities from the request body (each has pk + sk)
+ * @param {string} sourcePk
+ * @param {string} sourceSk
+ * @param {string} targetSchema
+ * @param {string} tableName
+ * @returns {{ toAdd: Array, toDelete: Array }}
+ */
+function diffRelationships(existingItems, incomingEntities, sourcePk, sourceSk, targetSchema, tableName) {
+  const sourceSchema = sourcePk.split('::')[0];
+  const useGSI = shouldSwapSchemas(sourceSchema, targetSchema);
+
+  // Extract the target entity's pk/sk from a stored relationship item
+  const getTargetKey = (item) => useGSI
+    ? { pk: item.pk1, sk: item.sk1 }  // source was pk2, so target is pk1
+    : { pk: item.pk2, sk: item.sk2 }; // source was pk1, so target is pk2
+
+  const incomingSet = new Set((incomingEntities || []).map(e => `${e.pk}::${e.sk}`));
+  const existingByTarget = new Map(
+    existingItems.map(item => {
+      const t = getTargetKey(item);
+      return [`${t.pk}::${t.sk}`, item];
+    })
+  );
+
+  const toAdd = [];
+  const toDelete = [];
+
+  // Incoming entities not yet in the DB → create relationship items
+  for (const entity of (incomingEntities || [])) {
+    if (!existingByTarget.has(`${entity.pk}::${entity.sk}`)) {
+      let pk1 = sourcePk, sk1 = sourceSk, pk2 = entity.pk, sk2 = entity.sk;
+      if (useGSI) {
+        [pk1, sk1, pk2, sk2] = [pk2, sk2, pk1, sk1];
+      }
+      toAdd.push({ PutRequest: { Item: createRelationshipItem(pk1, sk1, pk2, sk2) } });
+    }
+  }
+
+  // Existing relationships whose target is absent from incoming → delete
+  for (const [key, item] of existingByTarget) {
+    if (!incomingSet.has(key)) {
+      toDelete.push({
+        action: 'Delete',
+        data: {
+          TableName: tableName,
+          Key: marshall({ pk: item.pk, sk: item.sk })
+        }
+      });
+    }
+  }
+
+  return { toAdd, toDelete };
+}
+
 /**
  * Batch writes relationship items to DynamoDB
  * Uses the existing batchWriteData function from the dynamodb layer
@@ -180,7 +298,8 @@ async function batchWriteRelationships(relationshipItems, tableName) {
  * @param {string} config.schema - Entity schema (e.g., 'activity', 'facility', 'geozone')
  * @param {string} config.collectionId - Collection ID
  * @param {Object} config.body - Request body with entity data
- * @param {string} config.entityType - Entity type for parseRequest (e.g., activityType, facilityType)
+ * @param {Array} [config.parseArgs=[]] - Extra args spread into parseRequest after the method, e.g. [facilityType, facilityId]
+ * @param {string} [config.requestMethod='POST'] - HTTP verb forwarded to parseRequest (e.g. 'POST', 'PUT')
  * @param {Array<string>} config.relationshipFields - Fields to extract as relationships
  * @param {Object} config.putConfig - PUT configuration for quickApiPutHandler
  * @param {Function} config.parseRequest - The parseRequest function from entity methods
@@ -198,7 +317,8 @@ async function createEntityWithRelationships(config) {
     schema,
     collectionId,
     body,
-    entityType,
+    parseArgs = [],
+    requestMethod = 'POST',
     relationshipFields,
     putConfig,
     parseRequest,
@@ -210,29 +330,20 @@ async function createEntityWithRelationships(config) {
   let success = false;
   let attempt = 1;
   let allRelationshipItems = [];
+  let allDeleteTransactions = [];
 
   while (attempt <= maxRetries && !success) {
     // Parse the request to get entity items
-    postRequests = await parseRequest(collectionId, body, "POST", entityType);
+    postRequests = await parseRequest(collectionId, body, requestMethod, ...parseArgs);
 
-    // Extract relationship fields for each entity in the batch
-    allRelationshipItems = [];
-    for (let i = 0; i < postRequests.length; i++) {
-      const postRequest = postRequests[i];
-      if (postRequest.key && postRequest.data) {
-        const result = extractAndCreateRelationships(
-          schema,
-          postRequest.key.pk,
-          postRequest.key.sk,
-          postRequest.data,
-          relationshipFields
-        );
-
-        // Use cleaned data without relationship fields
-        postRequests[i].data = result.cleanedData;
-        allRelationshipItems.push(...result.relationshipItems);
-      }
-    }
+    // For each entity item in the batch, process relationship fields
+    ({ postRequests, allRelationshipItems, allDeleteTransactions } = await searchAndDeleteRelationshipsForBatch(
+      postRequests,
+      schema,
+      relationshipFields,
+      tableName,
+      requestMethod
+    ));
 
     if (allRelationshipItems.length > 0) {
       logger.info(
@@ -240,18 +351,34 @@ async function createEntityWithRelationships(config) {
       );
     }
 
-    // Use quickApiPutHandler to create the put items
-    const putItems = await quickApiPutHandler(
-      tableName,
-      postRequests,
-      putConfig
-    );
+    let updateRequest;
+    if (requestMethod === 'POST') {
+      // For POST requests, we create new items
+      updateRequest = await quickApiPutHandler(
+        tableName,
+        postRequests,
+        putConfig
+      );
+    } else if (requestMethod === 'PUT') {
+      // If it's a PUT request, we need to update the item
+      updateRequest = await quickApiUpdateHandler(
+        tableName,
+        postRequests,
+        putConfig
+      );
+    };
 
     try {
-      // Attempt to create the entity
-      await batchTransactData(putItems);
+      // Write the entity itself
+      await batchTransactData(updateRequest);
 
-      // After successfully creating the entity, create the relationships
+      // Delete stale relationship records (PUT only)
+      if (allDeleteTransactions.length > 0) {
+        logger.info(`Deleting ${allDeleteTransactions.length} stale relationships`);
+        await batchTransactData(allDeleteTransactions);
+      }
+
+      // Write new relationship records
       if (allRelationshipItems.length > 0) {
         logger.info('Writing relationship items to database');
         await batchWriteRelationships(allRelationshipItems, tableName);
@@ -271,13 +398,66 @@ async function createEntityWithRelationships(config) {
     }
   }
 
-  return {
-    success,
-    postRequests,
-    relationshipCount: allRelationshipItems.length,
-    attempts: attempt
-  };
+  return postRequests;
 }
+
+/*
+ * Helper function to process a batch of entity requests and handle relationship extraction and diffing
+ * This is used within the createEntityWithRelationships workflow to keep the main function cleaner
+ * 
+ * @param {Array} postRequests - Array of entity requests with data to be created/updated
+ * @param {string} schema - Entity schema (e.g., 'activity', 'facility', 'geozone')
+ * @param {Array<string>} relationshipFields - Fields to extract as relationships
+ * @param {string} tableName - DynamoDB table name
+ * @param {string} requestMethod - HTTP verb forwarded to parseRequest (e.g. 'POST', 'PUT')
+ * 
+ * @returns {Promise<Object>} Object with:
+ *   - postRequests: Updated array of entity requests with relationship fields removed
+ *   - allRelationshipItems: Array of relationship items to be written to DynamoDB
+ *   allDeleteTransactions: Array of delete transactions for stale relationships (PUT only)
+ */
+async function searchAndDeleteRelationshipsForBatch(postRequests, schema, relationshipFields, tableName, requestMethod) {
+  let allRelationshipItems = [];
+  let allDeleteTransactions = [];
+
+  for (let i = 0; i < postRequests.length; i++) {
+    const postRequest = postRequests[i];
+    if (!postRequest.key || !postRequest.data) continue;
+
+    const { pk, sk } = postRequest.key;
+
+    if (requestMethod === 'PUT') {
+      // PUT: diff against the DB so we can add new and remove stale relationships
+      for (const field of relationshipFields) {
+        const targetSchema = FIELD_TO_SCHEMA[field] || field;
+        const incomingEntities = postRequest.data[field] || [];
+        const existingItems = await queryRelationshipsBySchema(pk, sk, targetSchema, tableName);
+
+        logger.info(`Relationship sync for ${pk}::${sk} [${field}]: ${existingItems.length} existing, ${incomingEntities.length} incoming`);
+
+        const { toAdd, toDelete } = diffRelationships(existingItems, incomingEntities, pk, sk, targetSchema, tableName);
+
+        logger.info(`  → ${toAdd.length} to add, ${toDelete.length} to delete`);
+
+        allRelationshipItems.push(...toAdd);
+        allDeleteTransactions.push(...toDelete);
+      }
+
+      // Strip relationship fields from data before passing to the update handler
+      for (const field of relationshipFields) {
+        delete postRequests[i].data[field];
+      }
+    } else {
+      // POST: no existing relationships to worry about, just extract and create
+      const result = extractAndCreateRelationships(schema, pk, sk, postRequest.data, relationshipFields);
+      postRequests[i].data = result.cleanedData;
+      allRelationshipItems.push(...result.relationshipItems);
+    }
+  }
+
+  return { postRequests, allRelationshipItems, allDeleteTransactions };
+}
+  
 
 /**
  * Deletes all relationships associated with an entity (both forward and reverse)
@@ -386,5 +566,7 @@ module.exports = {
   createEntityWithRelationships,
   createRelationshipItem,
   deleteEntityRelationships,
+  diffRelationships,
   extractAndCreateRelationships,
+  queryRelationshipsBySchema,
 };

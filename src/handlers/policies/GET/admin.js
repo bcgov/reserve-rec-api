@@ -1,5 +1,5 @@
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { getPolicyById, getPolicyByIdVersion, getAllPoliciesByProduct } = require("../methods");
+const { getPolicyById, getPolicyByIdVersion, getAllPolicies, getAllPoliciesByProduct } = require("../methods");
 const { getByGSI, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
 
 /**
@@ -33,14 +33,9 @@ exports.handler = async (event, context) => {
       return sendResponse(200, res, "Success", null, context);
     }
 
-    
-    if (!policyType) {
-      throw new Exception("Policy Type (policyType) is required", { code: 400 });
-    }
-
-    // If we don't have a policyId or policyIdVersion
-    if (!policyId && !policyIdVersion) {
-      const res = await getByGSI('gsipk', `policy::${policyType}`, REFERENCE_DATA_TABLE_NAME, 'entityRelationship-index');
+    // Get all policies if no policyType or policyId is provided
+    if (!policyType && !policyId) {
+      const res = await getAllPolicies();
       return sendResponse(200, res, "Success", null, context);
     }
 
