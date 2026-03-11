@@ -2,7 +2,7 @@
  * Functionality for policies
  */
 
-const { REFERENCE_DATA_TABLE_NAME, batchTransactData, batchGetData, getOne, incrementCounter, runQuery } = require('/opt/dynamodb');
+const { REFERENCE_DATA_TABLE_NAME, batchTransactData, batchGetData, getOne, incrementCounter, runQuery, getByGSI, ENTITY_RELATIONSHIP_INDEX } = require('/opt/dynamodb');
 const { Exception, logger } = require('/opt/base');
 const { quickApiPutHandler, quickApiUpdateHandler } = require("../../common/data-utils");
 const {
@@ -52,6 +52,19 @@ async function getPolicyById(policyType, policyId, params = null) {
   } catch (error) {
     throw new Exception('Error getting policy', { code: 400, error: error });
   }
+}
+
+// TODO: this is currently how I decided to fetchi all the policies, but this will need to be
+//       updated in the future to support some type of filtering or pagination, as there
+//       could be a shload of policies in the system and we don't want to fetch them all at once
+async function getAllPolicies() {
+  const policyTypes = ['reservation', 'change', 'party', 'fee'];
+  const results = await Promise.all(
+    policyTypes.map(policyType =>
+      getByGSI('gsipk', `policy::${policyType}`, REFERENCE_DATA_TABLE_NAME, ENTITY_RELATIONSHIP_INDEX)
+    )
+  );
+  return results.flatMap(r => r?.items ?? []);
 }
 
 async function getPolicyByIdVersion(policyType, policyId, policyIdVersion = 'latest') {
@@ -340,6 +353,7 @@ async function getAllPoliciesByProduct(productPk, productSk) {
 module.exports = {
   handlePolicyPost,
   handlePolicyPut,
+  getAllPolicies,
   getAllPoliciesByProduct,
   getPolicyByIdVersion,
   getPolicyById

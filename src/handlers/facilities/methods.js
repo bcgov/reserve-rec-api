@@ -251,6 +251,7 @@ async function processItem(
     delete item.sk;
     delete item.facilityType;
     delete item.facilityId;
+
   } else if (requestType == "POST") {
     // Throw an error if facilityId is passed in POST request, as we only allow auto increment for POST requests
     if (facilityId) {

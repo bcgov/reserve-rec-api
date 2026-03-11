@@ -97,20 +97,19 @@ const PRODUCT_API_PUT_CONFIG = {
       }
     },
     rangeStart: {
-      isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectISODateObjFormat(value)
         rf.expectAction(action, ['set']);
       }
     },
     rangeEnd: {
-      isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectISODateObjFormat(value)
         rf.expectAction(action, ['set']);
       }
     },
     timezone: {
+      isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
@@ -178,6 +177,18 @@ const PRODUCT_API_PUT_CONFIG = {
       }
     },
     isVisible: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    passesRequired: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    qrCodeEnabled: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
         rf.expectAction(action, ['set']);
@@ -287,7 +298,43 @@ const PRODUCT_API_UPDATE_CONFIG = {
         rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
-    }
+    },
+    reservationPolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value, true);
+        rf.expectAction(action, ['set', 'remove']);
+      }
+    },
+    partyPolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value, true);
+        rf.expectAction(action, ['set', 'remove']);
+      }
+    },
+    feePolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value, true);
+        rf.expectAction(action, ['set', 'remove']);
+      }
+    },
+    changePolicy: {
+      rulesFn: ({ value, action }) => {
+        rf.expectPrimaryKey(value, true);
+        rf.expectAction(action, ['set', 'remove']);
+      }
+    },
+    passesRequired: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    qrCodeEnabled: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
   }
 };
 

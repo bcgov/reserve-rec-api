@@ -1,8 +1,8 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
-const { quickApiPutHandler } = require("../../../../common/data-utils");
+const { logger, sendResponse } = require("/opt/base");
 const { PRODUCT_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { createEntityWithRelationships } = require("../../../../common/relationship-utils.js");
+
 
 /**
  * @api {post} /products/{collectionId} POST
@@ -40,40 +40,16 @@ exports.handler = async (event, context) => {
     body['collectionId'] = collectionId;
     body['schema'] = "product";
 
-    // Attempt to batch create a product.
-    // If it fails, reset the counter on reserve-rec-counter table and try again.
-    let postRequests;
-    let success = false;
-    let attempt = 0;
-    const MAX_RETRIES = 3;
-    while (attempt <= MAX_RETRIES && !success) {
-      // Create the productId / identifier
-      postRequests = await parseRequest(collectionId, body, "POST", activityType, activityId);
-
-      // Use quickApiPutHandler to create the put items
-      const putItems = await quickApiPutHandler(
-        REFERENCE_DATA_TABLE_NAME,
-        postRequests,
-        PRODUCT_API_PUT_CONFIG
-      );
-
-      try {
-        attempt++;
-        await batchTransactData(putItems);
-        success = true;
-        logger.info(`Transaction succeeded on attempt ${attempt}`);
-      } catch (error) {
-        if (attempt >= MAX_RETRIES) {
-          logger.error(`Failed after ${MAX_RETRIES} attempts.`);
-          throw error;
-        }
-
-        // Short pause before attempting again
-        await new Promise((r) => setTimeout(r, attempt * 100));
-      }
-    }
-
-    logger.info(`Created product successfully`);
+    // Create product with relationships using consolidated workflow
+    let postRequests = await createEntityWithRelationships({
+      schema: 'product',
+      collectionId,
+      body,
+      parseArgs: [body.activityType, body.activityId],
+      relationshipFields: ['activities'],
+      putConfig: PRODUCT_API_PUT_CONFIG,
+      parseRequest
+    });
 
     return sendResponse(200, postRequests, "Success", null, context);
   } catch (error) {
