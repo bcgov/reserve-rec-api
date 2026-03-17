@@ -164,11 +164,20 @@ async function getFacilityByFacilityId(collectionId, facilityType, facilityId, f
       `facility::${collectionId}`,
       `${facilityType}::${facilityId}`
     );
-    if (fetchActivities && res?.activities?.length) {
-      logger.debug(`Fetching activities: ${JSON.stringify(res.activities, null, 2)}`);
-      // Batch get the activities and staple them to the response
-      res.activities = await batchGetData(res.activities, REFERENCE_DATA_TABLE_NAME);
+    if (fetchActivities && res) {
+      const activityRelationships = await runQuery({
+        TableName: REFERENCE_DATA_TABLE_NAME,
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": { S: `rel::facility::${collectionId}::${facilityType}::${facilityId}` },
+          ":sk": { S: `activity::` },
+        },
+      });
+
+      const activityKeys = activityRelationships.items.map(rel => ({ pk: rel.pk2, sk: rel.sk2 }));
+      res.activities = await batchGetData(activityKeys, REFERENCE_DATA_TABLE_NAME);
     }
+    
     logger.debug(`Facility: ${JSON.stringify(res, null, 2)}`);
     return res;
   } catch (error) {
