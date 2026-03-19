@@ -49,7 +49,7 @@ exports.handler = async (event, context) => {
     // Save to DynamoDB - use PutItemCommand directly without condition expression to allow updates
     const putCommand = new PutItemCommand({
       TableName: REFERENCE_DATA_TABLE_NAME,
-      Item: marshall(updatedConfig)
+      Item: marshall(updatedConfig, { removeUndefinedValues: true })
     });
     await dynamoClient.send(putCommand);
 

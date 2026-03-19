@@ -140,10 +140,7 @@ function validateRequestData(itemData, itemConfig) {
     const configProperties = Object.keys(itemConfig?.fields);
     const mandatoryFields = configProperties.filter((field) => itemConfig?.fields?.[field]?.isMandatory);
     if (mandatoryFields.length > 0) {
-      logger.debug(`[validateRequestData] Checking mandatory fields: ${mandatoryFields.join(', ')}`);
-      logger.debug(`[validateRequestData] itemData keys: ${Object.keys(itemData).join(', ')}`);
       for (const field of mandatoryFields) {
-        logger.debug(`[validateRequestData] Checking field '${field}': ${!!itemData[field]} (value: ${JSON.stringify(itemData[field])})`);
         if (!itemData[field]) {
           throw new Exception(`Mandatory field '${field}' is missing in the request`, { code: 400, error: `Field '${field}' is mandatory` });
         }
@@ -200,11 +197,9 @@ function validateRequestData(itemData, itemConfig) {
       // For validation to succeed, all rules must pass.
       if (fieldRules?.hasOwnProperty('rulesFn')) {
         try {
-          logger.debug(`[validateRequestData] Executing rulesFn for field '${field}'`);
           fieldRules?.rulesFn(itemData[field]);
-          logger.debug(`[validateRequestData] rulesFn for field '${field}' passed`);
         } catch (error) {
-          logger.error(`[validateRequestData] rulesFn for field '${field}' FAILED: ${error}`);
+          logger.error(`Validation failed for field '${field}':`, error.message || error);
           throw new Exception(`Validation failed for field '${field}'`, { code: 400, error: error });
         }
       }
@@ -277,7 +272,7 @@ async function quickApiPutHandler(tableName, createList, config) {
           action: 'Put',
           data: {
             TableName: tableName,
-            Item: marshall(itemData),
+            Item: marshall(itemData, { removeUndefinedValues: true }),
           }
         };
 
@@ -288,11 +283,14 @@ async function quickApiPutHandler(tableName, createList, config) {
 
         createItems.push(createCommand);
       } catch (error) {
-        console.log(`error with ${JSON.stringify(item, null, 2)}`);
+        logger.error(`Error building create command for item:`, {
+          error: error.message || error,
+          stack: error.stack,
+          itemKeys: Object.keys(item?.data || {})
+        });
         if (config?.failOnError) {
           throw error;
         }
-        logger.error(error);
       }
     }
     return createItems;

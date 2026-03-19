@@ -3,6 +3,12 @@ const { fetchProductDates } = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET Product Dates", event);
+  
+   // Allow CORS
+    if (event.httpMethod === "OPTIONS") {
+      return sendResponse(200, {}, "Success", null, context);
+    }
+  
   try {
 
     const collectionId = event?.pathParameters?.collectionId;
