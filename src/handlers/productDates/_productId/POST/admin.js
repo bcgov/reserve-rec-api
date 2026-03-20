@@ -2,7 +2,7 @@ const { logger, sendResponse, Exception } = require("/opt/base");
 const { initializeProductDates } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 const { quickApiPutHandler, formatForQuickApi } = require("../../../../common/data-utils");
-const { PRODUCTDATE_API_PUT_CONFIG, AVAILABILITYSIGNAL_API_PUT_CONFIG } = require("../../configs");
+const { PRODUCTDATE_API_PUT_CONFIG } = require("../../configs");
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
@@ -37,9 +37,14 @@ exports.handler = async (event, context) => {
 
     // Initialize ProductDates
 
-    const { productDates, availabilitySignals } = await initializeProductDates(collectionId, activityType, activityId, productId, startDate, endDate);
+    const productDates = await initializeProductDates(collectionId, activityType, activityId, productId, startDate, endDate);
 
     // Use quickApiPutHandler to create the put items
+
+    if (!productDates || productDates.length === 0) {
+      logger.warn(`No ProductDates were initialized for Product ${productId} with activity ${activityType} ${activityId} between dates ${startDate} and ${endDate}. Nothing to write to DynamoDB.`);
+      return sendResponse(200, [], `No ProductDates were initialized for Product ${productId} with activity ${activityType} ${activityId} between dates ${startDate} and ${endDate}. Nothing was written to DynamoDB.`, null, context);
+    }
 
     // TODO Turn off developerMode and properly vet the incoming data before writing to DynamoDB. For now, developerMode allows us to skip some validation and write directly to DynamoDB for faster testing.
     const productDatesPutItems = await quickApiPutHandler(
@@ -48,25 +53,7 @@ exports.handler = async (event, context) => {
       PRODUCTDATE_API_PUT_CONFIG
     );
 
-    // TODO Turn off developerMode and properly vet the incoming data before writing to DynamoDB. For now, developerMode allows us to skip some validation and write directly to DynamoDB for faster testing.
-    const availabilitySignalsPutItems = await quickApiPutHandler(
-      REFERENCE_DATA_TABLE_NAME,
-      formatForQuickApi(availabilitySignals),
-      AVAILABILITYSIGNAL_API_PUT_CONFIG
-    );
-
-    // Shuffle them together like Shaggy would shuffle a loaf of bread and an entire salami - one from each at a time
-    // We want to write them in the same transaction to ensure they are always in sync. If we wrote all ProductDates first and then all AvailabilitySignals, there is an increased risk that something could go wrong in between and we would end up with ProductDates but no AvailabilitySignals, which could cause issues for our application.
-
-    const itemCount = productDatesPutItems.length;
-
-    const allPutItems = [];
-    while (productDatesPutItems.length > 0) {
-      allPutItems.push(productDatesPutItems.shift());
-      allPutItems.push(availabilitySignalsPutItems.shift());
-    }
-
-    logger.info(`Prepared ${allPutItems.length} items for batch writing to DynamoDB (ProductDates and AvailabilitySignals)`);
+    logger.info(`Prepared ${productDatesPutItems.length} items for batch writing to DynamoDB (ProductDates)`);
 
     // Batch write them to DynamoDB
     let attempt = 0;
@@ -74,21 +61,21 @@ exports.handler = async (event, context) => {
     while (attempt <= MAX_RETRIES && !success) {
       attempt++;
       try {
-        await batchTransactData(allPutItems);
+        await batchTransactData(productDatesPutItems);
         success = true;
-        logger.info(`Successfully wrote ProductDates and AvailabilitySignals to DynamoDB on attempt ${attempt}`);
+        logger.info(`Successfully wrote ProductDates to DynamoDB on attempt ${attempt}`);
       }
       catch (error) {
         if (attempt > MAX_RETRIES) {
-          logger.error(`Failed to write ProductDates and AvailabilitySignals after ${MAX_RETRIES} attempts`, error);
+          logger.error(`Failed to write ProductDates after ${MAX_RETRIES} attempts`, error);
           throw error;
         }
-        logger.warn(`Attempt ${attempt} failed to write ProductDates and AvailabilitySignals. Retrying in ${RETRY_DELAY_MS}ms...`, error);
+        logger.warn(`Attempt ${attempt} failed to write ProductDates. Retrying in ${RETRY_DELAY_MS}ms...`, error);
         await new Promise(resolve => setTimeout(resolve, attempt * RETRY_DELAY_MS));
       }
     }
 
-    return sendResponse(200, [], `Successfully initialized ${itemCount} ProductDates for Product ${productId} with activity ${activityType} ${activityId}`, null, context);
+    return sendResponse(200, [], `Successfully initialized ${productDatesPutItems.length} ProductDates for Product ${productId} with activity ${activityType} ${activityId}`, null, context);
 
   } catch (error) {
     logger.error("Error in POST Product Dates", error);

@@ -96,7 +96,6 @@ async function initializeProductDates(collectionId, activityType, activityId, pr
     // initialize array of ProductDates
 
     let productDates = [];
-    let availabilitySignals = [];
 
     // Build the date range for the ProductDates to be created for
 
@@ -107,8 +106,14 @@ async function initializeProductDates(collectionId, activityType, activityId, pr
     for (const date of dates) {
 
       // Initialize availability signal for the ProductDate
-      let availabilitySignal = initializeAvailabilitySignal(product, date);
-      availabilitySignals.push(availabilitySignal);
+
+      /**
+       * === Note - AvailabilitySignals are likely no longer needed after this change
+       * https://github.com/bcgov/reserve-rec-api/pull/331
+       * Reasoning: https://github.com/bcgov/reserve-rec-api/issues/326
+       *  */
+      // let availabilitySignal = initializeAvailabilitySignal(product, date);
+      // availabilitySignals.push(availabilitySignal);
 
       // Initialize the ProductDate
 
@@ -122,10 +127,7 @@ async function initializeProductDates(collectionId, activityType, activityId, pr
         productId: productId,
         date: date,
         displayName: `${product?.displayName} - ${date}`,
-        availabilitySignal: {
-          pk: availabilitySignal.pk,
-          sk: availabilitySignal.sk,
-        },
+        availabilityEstimationPattern: product?.availabilityEstimationPattern || null,
         // No need to store allDatesBookedIntervalIds for now - there will be none for DUP.
         // allDatesBookedIntervalIds: getAllDatesBookedIntervalIds(product, date),
         assetList: product?.assetList || [],
@@ -140,10 +142,10 @@ async function initializeProductDates(collectionId, activityType, activityId, pr
       productDates.push(productDate);
     }
 
-    logger.debug(`Initialized ${productDates?.length} ProductDates and corresponding AvailabilitySignals for Product ${productId} with activity '${activityType} ${activityId}' between dates ${effectiveStartDate} and ${effectiveEndDate}`);
+    logger.debug(`Initialized ${productDates?.length} ProductDates for Product ${productId} with activity '${activityType} ${activityId}' between dates ${effectiveStartDate} and ${effectiveEndDate}`);
 
 
-    return { productDates, availabilitySignals };
+    return productDates;
 
   } catch (error) {
     logger.error("Error in initializeProductDates", error);
@@ -233,23 +235,14 @@ async function deleteProductDates(collectionId, activityType, activityId, produc
 
     let productDatePK = `productDate::${collectionId}::${activityType}::${activityId}::${productId}`;
 
-    // we have to delete the availability signals too
-
-    let availabilitySignalPK = `availabilitySignal::${collectionId}::${activityType}::${activityId}::${productId}`;
+    // === Note: we no longer also have to delete availability signals
 
     for (const date of dates) {
       deleteItems.push({
         TableName: REFERENCE_DATA_TABLE_NAME,
         Key: {
-          pk: {S: productDatePK},
-          sk: {S: date}
-        }
-      });
-      deleteItems.push({
-        TableName: REFERENCE_DATA_TABLE_NAME,
-        Key: {
-          pk: {S: availabilitySignalPK},
-          sk: {S: date}
+          pk: { S: productDatePK },
+          sk: { S: date }
         }
       });
     }
@@ -259,7 +252,7 @@ async function deleteProductDates(collectionId, activityType, activityId, produc
     await batchTransactData(deleteItems, 'Delete');
 
     logger.info(`Successfully deleted ${deleteItems.length} ProductDate items for Product ${productId} with activity '${activityType} ${activityId}' between dates ${startDate} and ${endDate}`);
-    return deleteItems.length / 2; // divide by 2 because we are deleting both ProductDates and AvailabilitySignals
+    return deleteItems.length;
 
   } catch (error) {
     logger.error("Error in deleteProductDates", error);
