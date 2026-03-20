@@ -1,0 +1,64 @@
+{
+  "pk": "facility::bcparks_9398",
+  "sk": "trailSegment::1",
+  "schema": "facility",
+  "globalId": "2342fg4-r4rr-asf4-ytrt-rt345ertae543t",
+  "collectionId": "bcparks_1",
+  "facilityType": "trailSegment",
+  "facilitySubType": "",
+  "facilityId": 1,
+  "identifier": 1,
+  "displayName": "Juan de Fuca Trail",
+  "description": "Coastal Trail on southwest Vancouver Island spanning from China Beach to Botanical Beach",
+  "envelope": {
+    "type": "envelope",
+    "coordinates": [
+      [
+        -125.61,
+        49.51
+      ],
+      [
+        -125.60,
+        49.50
+      ]
+    ]
+  },
+  "boundaryUrl": "s3://...",
+  "location": {
+    "type": "point",
+    "coordinates": [
+      -124.093,
+      48.438
+    ]
+  },
+  "path": {
+    "type": "polyline",
+    "coordinates": [
+      [
+        -124.093,
+        48.438
+      ],
+      [
+        -124.092,
+        48.437
+      ],
+      [
+        -124.091,
+        48.436
+      ]
+    ]
+  },
+  "minMapZoom": 5,
+  "maxMapZoom": 20,
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "timezone": "America/Vancouver",
+  "isVisible": true,
+  "creationDate": "2026-01-06T15:30:00.000Z",
+  "lastUpdated": "2026-01-06T15:30:00.000Z",
+  "version": 1,
+  "searchTerms": "juan de fuca, china beach, chin beach, bear beach, sombrio beach, botanical beach, payzant...",
+  "adminNotes": ""
+}
