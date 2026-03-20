@@ -40,6 +40,15 @@ exports.handler = async (event, context) => {
     body['collectionId'] = collectionId;
     body['schema'] = "product";
 
+    // Automatically construct the activities relationship from activityId and activityType
+    if (body.activityId && body.activityType && collectionId) {
+      body['activities'] = [{
+        pk: `activity::${collectionId}`,
+        sk: `${body.activityType}::${body.activityId}`
+      }];
+      logger.info(`Constructed activity relationship: ${body['activities'][0].pk}::${body['activities'][0].sk}`);
+    }
+
     // Create product with relationships using consolidated workflow
     let postRequests = await createEntityWithRelationships({
       schema: 'product',

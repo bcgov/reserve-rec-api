@@ -327,15 +327,28 @@ async function getAllPoliciesByProduct(productPk, productSk) {
 
     // Get each individual policy and create a pk::sk key for batchGet
     const uniquePolicyMap = new Map();
-    for (const [, policy] of Object.entries(policies)) {
-      if (policy?.pk && policy?.sk) {
-        const policyKey = `${policy.pk}::${policy.sk}`;
-        uniquePolicyMap.set(policyKey, { pk: policy.pk, sk: policy.sk });
+    for (const [policyType, policy] of Object.entries(policies)) {
+      // Handle both old format (pk/sk directly) and new format (primaryKey object)
+      const pk = policy?.primaryKey?.pk || policy?.pk;
+      const sk = policy?.primaryKey?.sk || policy?.sk;
+      
+      logger.debug(`Processing ${policyType}: pk=${pk}, sk=${sk}`);
+      
+      if (pk && sk) {
+        const policyKey = `${pk}::${sk}`;
+        uniquePolicyMap.set(policyKey, { pk, sk });
+        logger.debug(`Added policy key: ${policyKey}`);
       }
     }
 
     const uniquePolicyKeys = Array.from(uniquePolicyMap.values());
-    logger.debug('uniquePolicyKeys', uniquePolicyKeys)
+    logger.debug('uniquePolicyKeys:', JSON.stringify(uniquePolicyKeys))
+
+    // If no policy keys found, return empty array
+    if (uniquePolicyKeys.length === 0) {
+      logger.info('No policy keys found on product');
+      return [];
+    }
 
     // Batch fetch all entities
     const entities = await batchGetData(uniquePolicyKeys, REFERENCE_DATA_TABLE_NAME);
@@ -344,8 +357,13 @@ async function getAllPoliciesByProduct(productPk, productSk) {
     return entities;
 
   } catch(error) {
-    console.log('error:', error);
-    throw new Exception('Error getting policies by product', { code: 400, error: error });
+    logger.error('Error getting policies by product:', error.message || error);
+    const safeError = {
+      message: error.message || 'Unknown error',
+      code: error.$metadata?.httpStatusCode || error.code,
+      name: error.name
+    };
+    throw new Exception('Error getting policies by product', { code: 400, error: safeError });
   }
 };
     

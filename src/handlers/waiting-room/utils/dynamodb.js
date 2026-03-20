@@ -637,7 +637,7 @@ async function batchWriteEntries(items) {
   for (let i = 0; i < items.length; i += CHUNK_SIZE) {
     const chunk = items.slice(i, i + CHUNK_SIZE);
     const requests = chunk.map(item => ({
-      PutRequest: { Item: marshall(item) },
+      PutRequest: { Item: marshall(item, { removeUndefinedValues: true }) },
     }));
     let remaining = {
       RequestItems: { [TABLE_NAME]: requests },

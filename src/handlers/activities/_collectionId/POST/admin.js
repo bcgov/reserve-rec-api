@@ -9,7 +9,8 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  * Create Activities
  */
 exports.handler = async (event, context) => {
-  logger.info(`POST Activities: ${event}`);
+  logger.info(`POST Activities - START`);
+  
   try {
     const collectionId = String(event?.pathParameters?.collectionId);
     if (!collectionId) {

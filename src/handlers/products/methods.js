@@ -331,12 +331,98 @@ async function processItem(
     if (item?.activitySubType === null || item?.activitySubType === undefined) {
       delete item.activitySubType;
     }
+
+    // Resolve policy references by fetching full policies and extracting Product-level fields
+    item = await resolvePolicyReferences(item);
   }
 
   return {
     key: { pk: pk, sk: sk },
     data: item,
   };
+}
+
+/**
+ *
+ * Resolves policy references by fetching full policy objects and extracting Product-level fields.
+ * Converts simple primaryKey references into fully resolved policy objects according to Product schema.
+ *
+ * @param {Object} item - Product item containing policy references
+ * @returns {Promise<Object>} Product item with resolved policy objects
+ */
+async function resolvePolicyReferences(item) {
+  const policyFields = ['reservationPolicy', 'partyPolicy', 'feePolicy', 'changePolicy'];
+  
+  for (const policyField of policyFields) {
+    if (item[policyField]) {
+      const policyRef = item[policyField];
+      
+      // If it's just a primaryKey object, fetch and resolve the full policy
+      if (policyRef.pk && policyRef.sk) {
+        try {
+          // Fetch the full policy from the database
+          const fullPolicy = await getOne(policyRef.pk, policyRef.sk, REFERENCE_DATA_TABLE_NAME);
+          
+          if (!fullPolicy) {
+            throw new Error(`Policy not found: ${policyRef.pk}::${policyRef.sk}`);
+          }
+          
+          // Resolve policy according to Product schema
+          const resolvedPolicy = {
+            primaryKey: {
+              pk: policyRef.pk,
+              sk: policyRef.sk
+            }
+          };
+          
+          // Extract Product-level fields based on policy type
+          if (policyField === 'reservationPolicy') {
+            resolvedPolicy.isDiscoverable = fullPolicy.isDiscoverable ?? true;
+            resolvedPolicy.isReservable = fullPolicy.isReservable ?? true;
+            resolvedPolicy.minTotalDays = fullPolicy.minTotalDays ?? 1;
+            resolvedPolicy.maxTotalDays = fullPolicy.maxTotalDays ?? 14;
+            if (fullPolicy.holdDuration !== undefined) {
+              resolvedPolicy.holdDuration = fullPolicy.holdDuration;
+            }
+            if (fullPolicy.temporalWindows?.discoveryWindow) {
+              resolvedPolicy.temporalWindows = {
+                discoveryWindow: fullPolicy.temporalWindows.discoveryWindow
+              };
+            }
+          } else if (policyField === 'partyPolicy') {
+            // Copy relevant party policy fields if they exist
+            if (fullPolicy.partyCategories) {
+              resolvedPolicy.partyCategories = fullPolicy.partyCategories;
+            }
+            if (fullPolicy.partyCompositionRules) {
+              resolvedPolicy.partyCompositionRules = fullPolicy.partyCompositionRules;
+            }
+          } else if (policyField === 'feePolicy') {
+            // Copy fee schedule and line items if they exist
+            if (fullPolicy.feeSchedule) {
+              resolvedPolicy.feeSchedule = fullPolicy.feeSchedule;
+            }
+            if (fullPolicy.lineItems) {
+              resolvedPolicy.lineItems = fullPolicy.lineItems;
+            }
+          } else if (policyField === 'changePolicy') {
+            // Copy change policy rules if they exist
+            if (fullPolicy.rules) {
+              resolvedPolicy.rules = fullPolicy.rules;
+            }
+          }
+          
+          item[policyField] = resolvedPolicy;
+        } catch (error) {
+          logger.error(`Error resolving ${policyField}:`, error);
+          throw new Exception(`Failed to resolve ${policyField}: ${error.message}`, { code: 400, error });
+        }
+      }
+      // If it already has a primaryKey property, assume it's already resolved (for PUT requests)
+    }
+  }
+  
+  return item;
 }
 
 async function getProducts(collectionId, activityType, activityId, seasonId = null, productId = null, options = {}) {
@@ -422,7 +508,7 @@ async function getProductsByActivity(orcs, activityType, activityId) {
 async function getProductById(orcs, activityType, activityId, productId, fetchObj = null, startDate = null, endDate = null) {
   logger.info('Get Product By Id');
   try {
-    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}`);
+    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::base`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
       POLICY_TYPES.map(policyType => {
@@ -644,4 +730,5 @@ module.exports = {
   getProductsByActivityType,
   getProductByProductId,
   parseRequest,
+  resolvePolicyReferences,
 };

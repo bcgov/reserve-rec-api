@@ -8,6 +8,12 @@ const { getRequestClaimsFromEvent, logger, sendResponse, Exception } = require("
 
 exports.handler = async (event, context) => {
   logger.info("GET Product Dates - Public Handler", event);
+   // Allow CORS
+  if (event.httpMethod === "OPTIONS") {
+    return sendResponse(200, {}, "Success", null, context);
+  }
+
+  
   try {
 
     const user = getRequestClaimsFromEvent(event);

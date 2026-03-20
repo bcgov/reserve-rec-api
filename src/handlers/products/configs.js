@@ -134,6 +134,64 @@ const PRODUCT_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    assetList: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['object']);
+        // Validate each AssetRef has required fields
+        value.forEach(assetRef => {
+          if (!assetRef.primaryKey) {
+            throw new Error('AssetRef must include primaryKey');
+          }
+          rf.expectPrimaryKey(assetRef.primaryKey);
+          if (!assetRef.allocationType) {
+            throw new Error('AssetRef must include allocationType');
+          }
+          if (!['fixed', 'flex'].includes(assetRef.allocationType)) {
+            throw new Error('AssetRef allocationType must be "fixed" or "flex"');
+          }
+          if (!assetRef.quantity || typeof assetRef.quantity !== 'number') {
+            throw new Error('AssetRef must include numeric quantity');
+          }
+        });
+        rf.expectAction(action, ['set']);
+      }
+    },
+    availabilityEstimationPattern: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['object']);
+        if (!value.estimationMode) {
+          throw new Error('availabilityEstimationPattern must include estimationMode');
+        }
+        if (!['exact', 'tiered'].includes(value.estimationMode)) {
+          throw new Error('estimationMode must be "exact" or "tiered"');
+        }
+        if (!value.cadence || typeof value.cadence !== 'object') {
+          throw new Error('availabilityEstimationPattern must include cadence object');
+        }
+        if (value.estimationMode === 'tiered' && !value.tiers) {
+          throw new Error('tiered estimationMode requires tiers array');
+        }
+        rf.expectAction(action, ['set']);
+      }
+    },
+    waitRoomConfig: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['object']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    allDatesReservedIntervals: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['object']);
+        // Validate each DateInterval
+        value.forEach(interval => {
+          if (!interval.id || !interval.label || !interval.startDate || !interval.endDate) {
+            throw new Error('DateInterval must include id, label, startDate, and endDate');
+          }
+        });
+        rf.expectAction(action, ['set']);
+      }
+    },
     isReservable: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
@@ -154,25 +212,65 @@ const PRODUCT_API_PUT_CONFIG = {
     },
     reservationPolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format - will be resolved by handler
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('reservationPolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set']);
       }
     },
     partyPolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format - will be resolved by handler
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('partyPolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set']);
       }
     },
     feePolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format - will be resolved by handler
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('feePolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set']);
       }
     },
     changePolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format - will be resolved by handler
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('changePolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set']);
       }
     },
@@ -263,6 +361,64 @@ const PRODUCT_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    assetList: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['object']);
+        // Validate each AssetRef has required fields
+        value.forEach(assetRef => {
+          if (!assetRef.primaryKey) {
+            throw new Error('AssetRef must include primaryKey');
+          }
+          rf.expectPrimaryKey(assetRef.primaryKey);
+          if (!assetRef.allocationType) {
+            throw new Error('AssetRef must include allocationType');
+          }
+          if (!['fixed', 'flex'].includes(assetRef.allocationType)) {
+            throw new Error('AssetRef allocationType must be "fixed" or "flex"');
+          }
+          if (!assetRef.quantity || typeof assetRef.quantity !== 'number') {
+            throw new Error('AssetRef must include numeric quantity');
+          }
+        });
+        rf.expectAction(action, ['set']);
+      }
+    },
+    availabilityEstimationPattern: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['object']);
+        if (!value.estimationMode) {
+          throw new Error('availabilityEstimationPattern must include estimationMode');
+        }
+        if (!['exact', 'tiered'].includes(value.estimationMode)) {
+          throw new Error('estimationMode must be "exact" or "tiered"');
+        }
+        if (!value.cadence || typeof value.cadence !== 'object') {
+          throw new Error('availabilityEstimationPattern must include cadence object');
+        }
+        if (value.estimationMode === 'tiered' && !value.tiers) {
+          throw new Error('tiered estimationMode requires tiers array');
+        }
+        rf.expectAction(action, ['set']);
+      }
+    },
+    waitRoomConfig: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['object']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    allDatesReservedIntervals: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ['object']);
+        // Validate each DateInterval
+        value.forEach(interval => {
+          if (!interval.id || !interval.label || !interval.startDate || !interval.endDate) {
+            throw new Error('DateInterval must include id, label, startDate, and endDate');
+          }
+        });
+        rf.expectAction(action, ['set']);
+      }
+    },
     isReservable: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
@@ -301,25 +457,65 @@ const PRODUCT_API_UPDATE_CONFIG = {
     },
     reservationPolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('reservationPolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set', 'remove']);
       }
     },
     partyPolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('partyPolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set', 'remove']);
       }
     },
     feePolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('feePolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set', 'remove']);
       }
     },
     changePolicy: {
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value, true);
+        rf.expectType(value, ['object']);
+        // Accept either simple format {pk, sk} or resolved format {primaryKey, ...fields}
+        if (value.pk && value.sk) {
+          // Simple primaryKey format
+          rf.expectPrimaryKey(value);
+        } else if (value.primaryKey) {
+          // Fully resolved format with primaryKey property
+          rf.expectPrimaryKey(value.primaryKey);
+        } else {
+          throw new Error('changePolicy must include either pk/sk or primaryKey');
+        }
         rf.expectAction(action, ['set', 'remove']);
       }
     },

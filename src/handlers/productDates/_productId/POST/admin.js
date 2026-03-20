@@ -9,6 +9,12 @@ const RETRY_DELAY_MS = 100;
 
 exports.handler = async (event, context) => {
   logger.info("POST Product Dates", event);
+
+  // Allow Options
+  if (event.httpMethod === "OPTIONS") {
+    return sendResponse(200, {}, "Success", null, context);
+  }
+
   try {
 
     // Validate required parameters from body.
