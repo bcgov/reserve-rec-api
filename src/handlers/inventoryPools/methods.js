@@ -68,6 +68,7 @@ async function initializeInventoryPools(props) {
 
     logger.debug(`Initializing InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
 
+
     // === Validate that the ProductDates exist for the given date range ===
     const productDates = await fetchProductDates({ collectionId, activityType, activityId, productId, startDate, endDate, bypassDiscoveryRules });
 
@@ -113,6 +114,7 @@ async function initializeInventoryPools(props) {
             productDateVersion: productDate.version,
             capacity: asset.quantity,
             availability: asset.quantity,
+            availabilityEstimationPattern: productDate?.availabilityEstimationPattern || null,
           };
 
           inventoryPoolsToCreate.push(inventoryPoolRecord);
