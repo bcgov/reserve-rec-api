@@ -69,7 +69,7 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
         }
 
         // Build update expression
-        const { updateExpression, expressionAttributeNames, expressionAttributeValues } = updateExpressionBuilder(itemData);
+        const { updateExpression, expressionAttributeNames, expressionAttributeValues } = updateExpressionBuilder(itemData, item);
 
         // Create updateObject
         const updateObj = {
@@ -80,9 +80,16 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
             UpdateExpression: updateExpression,
             ExpressionAttributeNames: expressionAttributeNames,
             ExpressionAttributeValues: expressionAttributeValues,
-            ConditionExpression: 'attribute_exists(pk)',
           }
         };
+
+        // Add ConditionalExpression if provided in config
+        if (itemConfig?.conditionExpression) {
+          updateObj.data.ConditionExpression = itemConfig.conditionExpression;
+        } else {
+          // By default, prevent updates to non-existent items
+          updateObj.data.ConditionExpression = 'attribute_exists(pk)';
+        }
 
         // remove ExpressionAttributeValues if empty (possible if action is remove only)
         if (Object.keys(expressionAttributeValues).length === 0) {
