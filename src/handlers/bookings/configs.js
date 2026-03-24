@@ -4,6 +4,30 @@ const { ACTIVITY_TYPE_ENUMS, BOOKING_STATUS_ENUMS, SUB_ACTIVITY_TYPE_ENUMS, TIME
 const rf = new rulesFns();
 
 const BOOKING_PUT_CONFIG = {
+  developerMode: true,
+  failOnError: true,
+  autoTimeStamp: true,
+  autoVersion: true,
+  allowOverwrite: false,
+  fields: {
+    pk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    sk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    }
+  }
+};
+
+const BOOKING_PUT_CONFIG_TEMP = {
   failOnError: true,
   autoTimeStamp: true,
   autoVersion: true,

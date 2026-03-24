@@ -1,6 +1,6 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { createBooking } = require("../methods");
+const { createBooking, initInventoryPoolCheckRequest } = require("../methods");
 const { BOOKING_PUT_CONFIG } = require("../configs");
 const { quickApiPutHandler } = require("../../../common/data-utils");
 const { TRANSACTIONAL_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
@@ -12,6 +12,10 @@ exports.handler = async (event, context) => {
   logger.info("Bookings POST:", event);
 
   try {
+    // Get the query time
+
+    const queryTime = new Date().toISOString();
+
     // Get relevant data from the event
 
     const body = JSON.parse(event?.body);
@@ -19,19 +23,28 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is required", { code: 400 });
     }
 
-  const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId || body?.collectionId;
-  const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || body?.activityType;
-  const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || body?.activityId;
-  const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
+    const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId || body?.collectionId;
+    const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || body?.activityType;
+    const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || body?.activityId;
+    const productId = event?.pathParameters?.productId || event?.queryStringParameters?.productId || body?.productId;
+    const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
-  const claims = getRequestClaimsFromEvent(event);
-  
-  // Reject unauthenticated users - authentication required for booking creation
-  if (!claims || !claims.sub) {
-    throw new Exception("Authentication required to create a booking", { code: 401 });
-  }
-  
-  body['userId'] = claims.sub;
+    let endDate = event?.queryStringParameters?.endDate || body?.endDate;
+    const quantity = event?.queryStringParameters?.quantity || body?.quantity;
+
+    if (!endDate) {
+      endDate = startDate;
+    }
+
+    const claims = getRequestClaimsFromEvent(event);
+
+    // Reject unauthenticated users - authentication required for booking creation
+    if (!claims || !claims.sub) {
+      throw new Exception("Authentication required to create a booking", { code: 401 });
+    }
+
+    body['userId'] = claims.sub;
+    body['endDate'] = endDate;
 
     // Validate required parameters
     const missingParams = [];
@@ -41,6 +54,8 @@ exports.handler = async (event, context) => {
     if (!activityType) missingParams.push("activityType");
     if (!activityId) missingParams.push("activityId");
     if (!startDate) missingParams.push("startDate");
+    if (!productId) missingParams.push("productId");
+    if (!quantity) missingParams.push("quantity");
 
     if (missingParams.length > 0) {
       throw new Exception(
@@ -128,31 +143,60 @@ exports.handler = async (event, context) => {
       }
     }
 
-    let postRequests = await createBooking(collectionId, activityType, activityId, startDate, body);
+    let postRequest = await createBooking(collectionId, activityType, activityId, startDate, body);
 
-    const putItems = await quickApiPutHandler(
+    let putItems = await quickApiPutHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,
-      postRequests,
+      postRequest,
       BOOKING_PUT_CONFIG
     );
+
+    // === Check the relevant InventoryPools ===
+
+    // Review for availability and decrement by the appropriate quantity. The initInventoryPoolCheckRequest method prepares the necessary data for this check without using quickApiPutHandler since the logic is more complex than a standard put operation, and may involve conditional checks and updates based on current inventory levels.
+
+    // TODO: Go back and refactor the booking creation process to integrate the inventory pool check more seamlessly. It is currently added after the booking has already been initialized to avoid changing the current booking logic.
+
+    let inventoryRequests = await initInventoryPoolCheckRequest({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      startDate,
+      endDate,
+      queryTime,
+      invQuantity: quantity
+    });
+
+    putItems = putItems.concat(inventoryRequests);
 
     const res = await batchTransactData(putItems);
 
     const response = {
       res: res,
-      booking: postRequests,
-    }
+      booking: postRequest,
+      inventoryRequests: inventoryRequests
+    };
 
     return sendResponse(200, response, "Success", null, context);
 
   } catch (error) {
     logger.error("Booking creation error:", error);
+    if (error?.name === "TransactionCanceledException") {
+      // 1. Inspect the error object
+      error.CancellationReasons.forEach((reason, index) => {
+        // 2. Identify failed items
+        if (reason.Code !== "None") {
+          console.log(`Item[${index}] Code: ${reason.Code}, Message: ${reason.Message}`);
+        }
+      });
+    }
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
       error?.message,
-      error?.error || error,
+      error,
       context
     );
   }
-}
+};

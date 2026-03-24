@@ -161,6 +161,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'src/handlers/bookings/POST',
       'public.handler',
       {
+        basicReadWrite: true,
         transDataBasicReadWrite: true,
       }
     );
