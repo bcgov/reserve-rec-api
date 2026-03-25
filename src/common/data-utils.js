@@ -1,5 +1,5 @@
 const { getOne, marshall, runQuery, batchGetData, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
-const { Exception, getNowISO, logger } = require("/opt/base");
+const { Exception, getNowISO, logger, epochToISO, isoToEpoch } = require("/opt/base");
 const { DEFAULT_API_UPDATE_CONFIG } = require("../common/data-constants");
 const crypto = require("crypto");
 const { DateTime, Duration } = require('luxon');
@@ -524,13 +524,20 @@ function generateGlobalId() {
 }
 
 function resolveTemporalWindow(temporalWindow, timezone, refStore = {}) {
+  const open = resolveTemporalAnchor(temporalWindow?.open, timezone, refStore);
+  const close = resolveTemporalAnchor(temporalWindow?.close, timezone, refStore);
   const resolvedWindow = {
     id: temporalWindow?.id,
     label: temporalWindow?.label,
-    open: resolveTemporalAnchor(temporalWindow?.open, timezone, refStore),
-    close: resolveTemporalAnchor(temporalWindow?.close, timezone, refStore)
+    ts: {
+      open: open.ts,
+      close: close.ts,
+    },
+    open: open.millis,
+    close: close.millis
   };
   refStore[resolvedWindow.id] = {
+    ts: resolvedWindow.ts,
     open: resolvedWindow.open,
     close: resolvedWindow.close
   };
@@ -578,6 +585,11 @@ function resolveTemporalAnchor(temporalAnchor, timezone, refStore = {}) {
     throw new Exception(`Unable to resolve temporal anchor with id ${temporalAnchor?.id}. No anchorRef or fixedDateTime provided, or anchorRef is invalid (fixedDateTime=${temporalAnchor?.fixedDateTime}, anchorRef=${temporalAnchor?.anchorRef}). `, { code: 400 });
   }
 
+  if (typeof anchorRef !== 'string') {
+    anchorRef = epochToISO(anchorRef); // Normalize the anchorRef to ISO format to handle cases where time component may be missing or in different formats.
+  }
+
+
   // Split anchorRef into calendar date and time components (if time component is not provided, we only care about calendardate.)
   // If time is not provided, and timeOfDay is not set, and keepInputTime is not set, then input time will not be considered.
   const expectDateTimeFormat = Boolean(temporalAnchor?.timeOfDay || temporalAnchor?.keepInputTime);
@@ -612,13 +624,18 @@ function resolveTemporalAnchor(temporalAnchor, timezone, refStore = {}) {
     }
     const finalDateTime = `${calendarDate}T${time}`;
     refStore[temporalAnchor?.id] = finalDateTime;
-    return finalDateTime;
+    return {
+      ts: finalDateTime,
+      millis: isoToEpoch(finalDateTime)
+    };
   }
 
   refStore[temporalAnchor?.id] = calendarDate;
 
-  return calendarDate;
-
+  return {
+    ts: calendarDate,
+    millis: isoToEpoch(calendarDate)
+  };
 }
 
 function formatProjectionsForQuery(projections) {

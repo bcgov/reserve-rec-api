@@ -61,7 +61,7 @@ const sendResponse = function (code, data, message, error, context, other = null
     error: error,
     context: context
   };
-  
+
   // Prepare headers
   const headers = {
     "Content-Type": "application/json",
@@ -71,12 +71,12 @@ const sendResponse = function (code, data, message, error, context, other = null
     "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
     "Access-Control-Allow-Credentials": true
   };
-  
+
   // If other fields are present, add them to body
   if (other) {
     body = Object.assign(body, other);
   }
-  
+
   const response = {
     statusCode: code,
     headers: headers,
@@ -110,13 +110,24 @@ const getNowISO = function (tz = null) {
   return getNow(tz).toISO();
 };
 
-
 const getNow = function (tz = null) {
   if (!tz) {
     tz = 'UTC';
   }
   return DateTime.now().setZone(tz);
 };
+
+const getNowEpoch = function () {
+  return DateTime.now().toMillis();
+}
+
+const epochToISO = function (epochMillis, tz = DEFAULT_TIMEZONE) {
+  return DateTime.fromMillis(epochMillis).setZone(tz).toISO();
+}
+
+const isoToEpoch = function (isoString) {
+  return DateTime.fromISO(isoString).toMillis();
+}
 
 async function httpGet(url, params = null, headers = null) {
   try {
@@ -211,22 +222,22 @@ function getRequestClaimsFromEvent(event) {
 
     // First check if this is an authenticated request via authorizer context
     const authContext = event.requestContext?.authorizer;
-    
+
     if (authContext) {
       // Check if user is authenticated (new public authorizer format)
       const isAuthenticated = authContext.isAuthenticated === 'true' || authContext.isAuthenticated === true;
-      
+
       if (!isAuthenticated) {
         // Unauthenticated user - no guest access allowed for bookings
         logger.info('Unauthenticated user detected from authorizer context - no claims available');
         return null;
       }
-      
+
       // Authenticated user - return claims from context or claims object
       if (authContext.claims) {
         return authContext.claims;
       }
-      
+
       // New context format - construct claims object from individual fields
       if (authContext.userId && authContext.userId !== 'guest') {
         return {
@@ -273,7 +284,7 @@ const VALIDATION_PATTERNS = {
  */
 const calculatePartySize = function(partyInformation) {
   if (!partyInformation) return 0;
-  return (partyInformation.adult || 0) + 
+  return (partyInformation.adult || 0) +
          (partyInformation.senior || 0) +
          (partyInformation.youth || 0) +
          (partyInformation.child || 0);
@@ -292,7 +303,7 @@ const calculatePartySize = function(partyInformation) {
 async function writeAuditLog(user, entityId, operation, metadata = {}, marshallFn, batchWriteFn, auditTableName) {
   try {
     const timestamp = new Date().toISOString();
-    
+
     const auditRecord = {
       pk: marshallFn(user),
       sk: marshallFn(timestamp),
@@ -305,7 +316,7 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
         timestamp
       })
     };
-    
+
     await batchWriteFn([auditRecord], 25, auditTableName);
     logger.debug('Audit log written', { user, entityId, operation });
   } catch (error) {
@@ -324,15 +335,15 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
 function validateSuperAdminAuth(event, operationContext = 'operation') {
   // Extract claims from authorizer context
   const claims = event.requestContext?.authorizer?.claims || getRequestClaimsFromEvent(event);
-  
+
   if (!claims) {
     logger.warn('No authorization claims found in request');
     throw new Exception("Unauthorized - Authentication required", { code: 401 });
   }
-  
+
   // Check if user is a SuperAdmin
   const cognitoGroups = claims['cognito:groups'] || [];
-  const isSuperAdmin = cognitoGroups.some(group => 
+  const isSuperAdmin = cognitoGroups.some(group =>
     group.includes('SuperAdminGroup')
   );
 
@@ -352,10 +363,13 @@ module.exports = {
   buildDateRange,
   calculatePartySize,
   checkWarmup,
+  epochToISO,
   handleCORS,
   getNow,
+  getNowEpoch,
   getNowISO,
   getRequestClaimsFromEvent,
+  isoToEpoch,
   logger,
   sendMessage,
   sendResponse,
