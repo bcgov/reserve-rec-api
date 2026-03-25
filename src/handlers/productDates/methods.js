@@ -1,5 +1,5 @@
 const { logger, Exception } = require("/opt/base");
-const { getOne, batchTransactData, runQuery, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
+const { getOne, batchTransactData, runQuery, REFERENCE_DATA_TABLE_NAME, marshall } = require("/opt/dynamodb");
 const { getProductById } = require("../products/methods");
 const { buildDateRange } = require("/opt/base");
 const { DateTime } = require("luxon");
@@ -8,7 +8,7 @@ const { formatProjectionsForQuery, resolveTemporalAnchor, resolveTemporalWindow 
 async function fetchProductDates(props) {
   try {
     const {
-      queryTime = new Date().toISOString(),
+      queryTime = new Date().getTime(),
       collectionId,
       activityType,
       activityId,
@@ -18,7 +18,6 @@ async function fetchProductDates(props) {
       bypassDiscoveryRules = false,
       projectionFields = null
     } = props;
-
 
     const productDatePK = `productDate::${collectionId}::${activityType}::${activityId}::${productId}`;
 
@@ -40,7 +39,7 @@ async function fetchProductDates(props) {
         '#close': 'close'
       };
       query.ExpressionAttributeValues[':isDiscoverable'] = { BOOL: true };
-      query.ExpressionAttributeValues[':currentDateTime'] = { S: queryTime };
+      query.ExpressionAttributeValues[':currentDateTime'] = { N: String(queryTime) };
     }
 
     if (projectionFields) {
@@ -194,7 +193,7 @@ function resolveProductDateReservationContext(product, date, reservationPolicy) 
   };
 
   for (const anchor of temporalAnchors) {
-    resolvedTemporalAnchors[anchor?.id] = resolveTemporalAnchor(anchor, product?.timezone, refStore);
+    resolvedTemporalAnchors[anchor?.id] = resolveTemporalAnchor(anchor, product?.timezone, refStore).millis;
   }
 
   for (const window of temporalWindows) {

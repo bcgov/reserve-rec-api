@@ -3,12 +3,12 @@ const { fetchProductDates } = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET Product Dates", event);
-  
+
    // Allow CORS
     if (event.httpMethod === "OPTIONS") {
       return sendResponse(200, {}, "Success", null, context);
     }
-  
+
   try {
 
     const collectionId = event?.pathParameters?.collectionId;
@@ -23,7 +23,7 @@ exports.handler = async (event, context) => {
     let startDate = event?.queryStringParameters?.startDate || null;
     let endDate = event?.queryStringParameters?.endDate || null;
 
-    let bypassDiscoveryRules = event?.queryStringParameters?.bypassDiscoveryRules === 'true' ? true : false;
+    let bypassDiscoveryRules = event?.queryStringParameters?.bypassDiscoveryRules && event.queryStringParameters.bypassDiscoveryRules === 'true' ? true : false;
 
     // If startDate and endDate are not provided, we will return the next two weeks of ProductDates for the Product by default. This is to prevent accidentally returning a huge amount of data if someone forgets to provide a date range.
 

@@ -352,21 +352,21 @@ async function processItem(
  */
 async function resolvePolicyReferences(item) {
   const policyFields = ['reservationPolicy', 'partyPolicy', 'feePolicy', 'changePolicy'];
-  
+
   for (const policyField of policyFields) {
     if (item[policyField]) {
       const policyRef = item[policyField];
-      
+
       // If it's just a primaryKey object, fetch and resolve the full policy
       if (policyRef.pk && policyRef.sk) {
         try {
           // Fetch the full policy from the database
           const fullPolicy = await getOne(policyRef.pk, policyRef.sk, REFERENCE_DATA_TABLE_NAME);
-          
+
           if (!fullPolicy) {
             throw new Error(`Policy not found: ${policyRef.pk}::${policyRef.sk}`);
           }
-          
+
           // Resolve policy according to Product schema
           const resolvedPolicy = {
             primaryKey: {
@@ -374,7 +374,7 @@ async function resolvePolicyReferences(item) {
               sk: policyRef.sk
             }
           };
-          
+
           // Extract Product-level fields based on policy type
           if (policyField === 'reservationPolicy') {
             resolvedPolicy.isDiscoverable = fullPolicy.isDiscoverable ?? true;
@@ -411,7 +411,7 @@ async function resolvePolicyReferences(item) {
               resolvedPolicy.rules = fullPolicy.rules;
             }
           }
-          
+
           item[policyField] = resolvedPolicy;
         } catch (error) {
           logger.error(`Error resolving ${policyField}:`, error);
@@ -421,7 +421,7 @@ async function resolvePolicyReferences(item) {
       // If it already has a primaryKey property, assume it's already resolved (for PUT requests)
     }
   }
-  
+
   return item;
 }
 
@@ -508,7 +508,7 @@ async function getProductsByActivity(orcs, activityType, activityId) {
 async function getProductById(orcs, activityType, activityId, productId, fetchObj = null, startDate = null, endDate = null) {
   logger.info('Get Product By Id');
   try {
-    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::base`);
+    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
       POLICY_TYPES.map(policyType => {

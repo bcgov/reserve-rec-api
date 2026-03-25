@@ -280,8 +280,11 @@ async function initInventoryPoolCheckRequest(props) {
 
     props['bypassDiscoveryRules'] = false;
     props['projectionFields'] = PUBLIC_PRODUCTDATE_PROJECTIONS;
+    props['queryTime'] = new Date().getTime();
 
     await validateInventoryPoolCheckProps(props);
+
+    logger.debug(`Inventory Request Props validated successfully: ${props}`);
 
     // ==== Get Product ====
     const productPK = `product::${props.collectionId}::${props.activityType}::${props.activityId}`;
@@ -290,14 +293,6 @@ async function initInventoryPoolCheckRequest(props) {
     if (!product) {
       throw new Exception(`Product not found (CollectionID: ${props.collectionId}, Type: ${props.activityType}, ID: ${props.activityId}, ProductID: ${props.productId})`, { code: 404 });
     }
-
-    // ==== Get QueryTime ====
-
-    if (!product?.timezone) {
-      throw new Exception("Product timezone is required for inventory pool check", { code: 400 });
-    }
-
-    props['queryTime']= getNowISO(product?.timezone);
 
     // ==== Get Product Dates ====
     const productDates = await fetchProductDates(props);
@@ -437,7 +432,7 @@ async function validateBookingRequest(product, productDates, props) {
     // Convert the queryTime to the product's timezone
 
     // ==== Validate ProductDate data on each day ====
-    logger.debug(`Query time: ${props.queryTime.ts}`);
+    logger.debug(`Query time: ${props.queryTime}`);
     logger.debug(`Inventory quantity requested: ${props.invQuantity}`);
 
     for (const productDate of productDates.items) {
@@ -527,10 +522,6 @@ async function createBooking(
     const start = getStartOfDayUTC(startDate);
     const end = getStartOfDayUTC(body.endDate);
     const today = getStartOfDayUTC(now.toISOString().split('T')[0]);
-
-    console.log('start', start);
-    console.log('end', end);
-    console.log('today', today);
 
     if (isNaN(start.getTime())) {
       throw new Exception("Invalid start date format", { code: 400 });
