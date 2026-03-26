@@ -16,11 +16,5 @@
     "roleName": "ParkOperatorRole",
     "description": "Role for park operators with access to park management features",
     "groupName": "ParkOperatorGroup"
-  },
-  "unauthorizedUser":{
-    "key": "unauthorizedUser",
-    "roleName": "UnauthorizedUserRole",
-    "description": "Role for newly added users with no permissions until assigned a specific role",
-    "groupName": "UnauthorizedUserGroup"
   }
 }
