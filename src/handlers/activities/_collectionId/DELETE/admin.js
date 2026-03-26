@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
 const { deleteEntityRelationships } = require("../../../../common/relationship-utils");
 
@@ -8,7 +8,10 @@ const { deleteEntityRelationships } = require("../../../../common/relationship-u
  */
 exports.handler = async (event, context) => {
   logger.info(`DELETE Activities: ${event}`);
+  
   try {
+    const authContext = checkAuthContext(event, 'superadmin');
+
     const collectionId = event?.pathParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType;
     const activityId = event?.pathParameters?.activityId;

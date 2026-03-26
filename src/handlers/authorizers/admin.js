@@ -1,8 +1,8 @@
 // Authorizer for admin API access
 
-const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken } = require('./methods');
+const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken, queryAndGenerateResources } = require('./methods');
 const { logger } = require('/opt/base');
-const { getOne, USER_ID_PARTITION } = require('/opt/dynamodb');
+const { getOne, USER_ID_PARTITION, batchGetData } = require('/opt/dynamodb');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 /**
@@ -93,7 +93,12 @@ exports.handler = async function (event, context, callback) {
     if (!dbConfig) {
       throw new Error("No config found for admin authorizer.");
     }
-    config = { ...dbConfig, ...config };
+    // DB values are the fallback; non-empty env vars take priority
+    config = {
+      ...dbConfig,
+      ADMIN_USER_POOL_ID: dbConfig.ADMIN_USER_POOL_ID || process.env.ADMIN_USER_POOL_ID,
+      ADMIN_USER_POOL_CLIENT_ID: dbConfig.ADMIN_USER_POOL_CLIENT_ID || process.env.ADMIN_USER_POOL_CLIENT_ID
+    };
   }
 
   // default admin verifier
@@ -106,6 +111,13 @@ exports.handler = async function (event, context, callback) {
   try {
     const headers = normalizedEvent.headers;
     const authorization = getAuthorizationToken(normalizedEvent);
+
+    // Compute the ARN prefix once
+    // e.g. arn:aws:execute-api:ca-central-1:123456789012:abc123
+    //      arn:aws:execute-api:ca-central-1: <arnParts> :<apiId>
+    const arnParts = normalizedEvent.methodArn.split(':');
+    const arnPrefix = arnParts.slice(0, 5).join(':');
+    const apiId = arnParts[5].split('/')[0];
 
     // Parse the input for methodArn
     logger.debug(`event.methodArn, ${normalizedEvent.methodArn}`);
@@ -128,42 +140,103 @@ exports.handler = async function (event, context, callback) {
 
     logger.info("Parse Token");
     const tokenData = await parseToken(headers, authorization);
-    logger.debug(`tokenData: ${tokenData}`);
+    logger.debug(`tokenData: ${JSON.stringify(tokenData)}`);
     if (tokenData?.valid && tokenData?.valid === true) {
       const payload = await validateToken(verifier, tokenData.token);
-      logger.debug(`payload: ${payload}`);
-
-      // For now, so long as the token is valid, we will allow the user.
-      // Later we will check group membership.
-
-      return await authorizeAll(event);
+      logger.debug(`payload: ${JSON.stringify(payload)}`);
 
       const sub = payload.sub;
-      logger.debug("sub:", sub);
+      logger.debug(`sub: ${sub}`);
 
-      // Grab the user's groups and inject into the context.
-      const userData = await getOne(USER_ID_PARTITION, sub);
-      logger.debug("userData:", userData);
+      // User hasn't been assigned a group in Cognito (yet)
+      if (payload?.["cognito:groups"].some(group => group === 'unauthorized' || group.length === 0)) {
+        console.log("Deny, user is in unauthorized group");
+        return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
+      } else if (payload?.["cognito:groups"].some(group => {
+        // Any users that have been manually added to the SuperAdmin group in Cognito are granted everything
+        return (group === 'ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup' ||
+                group === 'ReserveRecApi-Test-AdminIdentityStack-SuperAdminGroup');
+      })) {
+        return {
+          principalId: sub,
+          policyDocument: {
+            Version: '2012-10-17',
+            Statement: [{
+              Action: 'execute-api:Invoke',
+              Effect: 'Allow',
+              Resource: `${arnPrefix}:${apiId}/*`
+            }]
+          },
+          context: {
+            isAuthenticated: 'true',
+            isAdmin: 'true',
+            permissions: JSON.stringify({ superadmin: 'superadmin' }),
+            cognitoSub: sub,
+            username: payload.username || '',
+          }
+        };
+      }
 
-      // Generate the methodArn for the user to access the API
-      if (userData.claims?.includes('sysadmin')) {
-        const arnPrefix = normalizedEvent.methodArn.split(':').slice(0, 6);
-        const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
-        const apiIDString = arnPrefix[5];
-        const apiString = apiIDString.split('/')[0];
-        const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/' + process.env.STAGE_NAME + '/*';
-        console.log("fullAPIMethods:", fullAPIMethods);
-        return generatePolicy(sub, 'Allow', fullAPIMethods);
-      } else {
-        console.log("Deny");
+      // Grab the user's groups and the available staff.
+      const userData = await getOne(`${USER_ID_PARTITION}::${sub}`, 'base');
+      logger.debug(`userData: ${JSON.stringify(userData)}`);
+
+      // If no permissions, user's sub still needs to be added to database
+      if (!userData || !userData.permissions) {
+        console.log("Deny, no permissions found for user - please add user sub to database with appropriate permissions");
         return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
       }
+
+      // Get permissions as { bcparks_7: 'limited', bcparks_363: 'staff' } etc.
+      const permissions = userData.permissions
+
+      const allowedARNs = new Set();
+      const stage = process.env.STAGE_NAME || '*';
+      const basePath = `${arnPrefix}:${apiId}/${stage}`;
+
+      // Get the unique tiers this user has, e.g., "staff", "limited"
+      const userTiers = [...new Set(Object.values(permissions))];
+
+      // Get the resource maps for each tier
+      // e.g. "staff" => ["GET/facilities/*", "POST/facilities/*"]
+      //      "limited" => ["GET/facilities/*"]
+      const resourceMaps = await batchGetData(userTiers.map(tier => ({ pk: `resourceMap::${tier}`, sk: 'latest' })));
+
+      for (const resource of resourceMaps) {
+        for (const path of resource.allowedPaths) {
+          // Add the path as a wildcarded ARN
+          // e.g. "arn:.../GET/facilities/*"
+          allowedARNs.add(`${basePath}/${path}`);
+        }
+      }
+
+      // Always allow any authenticated user to retrieve their own permissions
+      allowedARNs.add(`${basePath}/GET/users/me`);
+
+      const policy = {
+        principalId: sub,
+        policyDocument: {
+          Statement: [{
+            Action: 'execute-api:Invoke',
+            Effect: 'Allow',
+            Resource: Array.from(allowedARNs)
+          }]
+        },
+        context: {
+          isAuthenticated: 'true',
+          permissions: JSON.stringify(permissions),
+          cognitoSub: sub,
+          username: payload.username || '',
+        }
+      };
+
+      return policy
     } else {
       console.log("Invalid token");
       return await getDenyPolicy(normalizedEvent.methodArn);
     }
   } catch (e) {
-    logger.error(JSON.stringify(e));
+    logger.error("Error in admin authorizer:", e);
   }
 
   console.log("Deny");

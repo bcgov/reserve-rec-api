@@ -1,5 +1,5 @@
 const { getOne, REFERENCE_DATA_TABLE_NAME } = require('/opt/dynamodb');
-const { sendResponse, logger } = require('/opt/base');
+const { sendResponse, logger, checkAuthContext } = require('/opt/base');
 
 exports.handler = async (event, context) => {
   logger.debug('Get Feature Flags (admin)', event);
@@ -10,6 +10,8 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    const authContext = checkAuthContext(event, "superadmin");
+
     const configItem = await getOne('config', 'featureFlags', REFERENCE_DATA_TABLE_NAME);
     
     // Return full record including metadata

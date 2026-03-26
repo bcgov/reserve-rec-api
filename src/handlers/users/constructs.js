@@ -8,6 +8,9 @@ const defaults = {
     getUsersFunction: {
       name: 'GetUsersFunction',
     },
+    getMeFunction: {
+      name: 'GetMeFunction',
+    },
     searchUsersFunction: {
       name: 'SearchUsersFunction',
     }
@@ -23,6 +26,9 @@ class UsersConstruct extends LambdaConstruct {
 
     // Add /users resource
     this.usersResource = this.resolveApi().root.addResource('users');
+
+    // GET /users/me
+    this.meResource = this.usersResource.addResource('me');
 
     // Add /UserPool identifier resource
     this.userPoolIdResource = this.usersResource.addResource('{userPoolId}');
@@ -63,6 +69,20 @@ class UsersConstruct extends LambdaConstruct {
       ],
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
+
+    // GET /users/me returns the calling user's permissions from the authorizer context
+    this.getMeFunction = this.generateBasicLambdaFn(
+      scope,
+      'getMeFunction',
+      'src/handlers/users/me/GET',
+      'index.handler',
+      {} // no DynamoDB access needed — reads from authorizer context only
+    );
+
+    this.meResource.addMethod('GET', new apigateway.LambdaIntegration(this.getMeFunction), {
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
     // POST /users/search - Search users in OpenSearch
     this.searchResource = this.usersResource.addResource('search');

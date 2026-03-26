@@ -2,7 +2,7 @@ const {
   getGeozonesByCollectionId,
   getGeozonesByGeozoneId,
 } = require("../../methods");
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../../configs");
 
 /**
@@ -17,6 +17,8 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    const authContext = checkAuthContext(event);
+
     const collectionId = event?.pathParameters?.collectionId;
     const geozoneId = event?.pathParameters?.geozoneId || event?.queryStringParameters?.geozoneId || null;
 
@@ -58,6 +60,12 @@ exports.handler = async (event, context) => {
         filters,
         event?.queryStringParameters || null
       );
+    }
+
+    // If the user isn't a superadmin, remove adminNotes from the response
+    if (res && authContext.permissions !== 'superadmin') {
+      const removedFields = ({ adminNotes, ...allowedFields }) => allowedFields;
+      res = Array.isArray(res) ? res.map(removedFields) : removedFields(res);
     }
 
     return sendResponse(200, res, "Success", null, context);

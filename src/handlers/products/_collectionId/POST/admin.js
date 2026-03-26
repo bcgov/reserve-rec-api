@@ -1,4 +1,4 @@
-const { logger, sendResponse } = require("/opt/base");
+const { logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { PRODUCT_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
 const { createEntityWithRelationships } = require("../../../../common/relationship-utils.js");
@@ -11,6 +11,8 @@ const { createEntityWithRelationships } = require("../../../../common/relationsh
 exports.handler = async (event, context) => {
   logger.info("POST Products", event);
   try {
+    const authContext = checkAuthContext(event, "superadmin");
+
     const body = JSON.parse(event?.body);
     const collectionId = String(event?.pathParameters?.collectionId);
     const activityType = event?.queryStringParameters?.activityType || event.pathParameters?.activityType || body?.activityType;

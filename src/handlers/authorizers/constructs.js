@@ -44,9 +44,8 @@ class AdminAuthorizerConstruct extends Construct {
       authorizerName: requestAuthorizerId,
       handler: this.adminAuthorizerFunction,
       identitySources: [apigw.IdentitySource.header('Authorization')],
-      // TODO: Adjust the TTL values as needed.
-      // TTL is currently disabled to ensure each request is freshly authorized.
-      resultsCacheTtl: Duration.seconds(0),
+      // TTL is currently set to 5 mins to not hit authorizer on every request
+      resultsCacheTtl: Duration.minutes(5),
     });
 
   }
