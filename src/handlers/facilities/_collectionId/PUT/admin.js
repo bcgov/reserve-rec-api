@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
@@ -11,6 +11,8 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
 exports.handler = async (event, context) => {
   logger.info(`PUT Facilities: ${event}`);
   try {
+    const authContext = checkAuthContext(event, 'staff');
+
     const collectionId = event?.pathParameters?.collectionId;
     const facilityType = event?.pathParameters?.facilityType || event?.queryStringParameters?.facilityType || null;
     const facilityId = event?.pathParameters?.facilityId || event?.queryStringParameters?.facilityId || null;

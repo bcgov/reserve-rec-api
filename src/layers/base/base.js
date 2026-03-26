@@ -199,6 +199,61 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
+function checkAuthContext(event, requiredTier = null, collectionId = null) {
+  // Accept explicit collectionId (e.g. from query params) or fall back to path parameter
+  const colId = collectionId || event?.pathParameters?.collectionId;
+  
+  try {
+    const authContext = {
+      sub: event.requestContext?.authorizer?.principalId || event.requestContext?.claims?.sub,
+    };
+
+    authContext.permissions = JSON.parse(event?.requestContext?.authorizer?.permissions || '{}');
+    const isSuperAdmin = authContext.permissions['superadmin'] === 'superadmin';
+
+    if (isSuperAdmin) {
+      return authContext; // SuperAdmin has access to everything, don't need to check further
+    }
+
+    // If a collectionId is specified, check authContext.permissions for that collection
+    if (colId) {
+      if (!authContext.permissions[colId]) {
+        throw new Exception(
+          "Unauthorized: User does not have access to this specific collection.",
+          { code: 403 },
+        );
+      }
+
+      // If a requiredTier is specified e.g. 'staff' for POST/PUT,
+      // verify the user's tier for this collection matches
+      if (requiredTier && authContext.permissions[colId] !== requiredTier) {
+        throw new Exception(
+          `Unauthorized: User does not have the required permission tier for this operation.`,
+          { code: 403 },
+        );
+      }
+
+    // No collectionId — check that the user holds the required tier in at least one collection
+    } else {
+      if (requiredTier && !Object.values(authContext.permissions).includes(requiredTier)) {
+        throw new Exception(
+          `Unauthorized: User does not have the required permission tier for this operation.`,
+          { code: 403 },
+        );
+      }
+    }
+
+    return authContext;
+  } catch (e) {
+    // Let errors bubble up
+    if (e instanceof Exception) {
+      throw e;
+    }
+    logger.warn('Could not parse permissions from authorizer context');
+    throw new Exception("Unauthorized - Invalid permissions format", { code: 401 });
+  }
+}
+
 function getRequestClaimsFromEvent(event) {
   try {
     // Check Authorization header for JWT token
@@ -368,6 +423,7 @@ module.exports = {
   getNow,
   getNowEpoch,
   getNowISO,
+  checkAuthContext,
   getRequestClaimsFromEvent,
   isoToEpoch,
   logger,

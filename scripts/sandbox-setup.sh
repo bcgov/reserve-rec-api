@@ -90,6 +90,7 @@ inject_identity_overrides() {
     SUPER_ADMIN_ROLE_ARN=$(aws ssm get-parameter --region ${REGION} --name "/${APP_NAME}/${BASE_ENV}/adminIdentityStack/superAdminRoleArn" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
     ADMINISTRATOR_ROLE_ARN=$(aws ssm get-parameter --region ${REGION} --name "/${APP_NAME}/${BASE_ENV}/adminIdentityStack/administratorRoleArn" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
     PARK_OPERATOR_ROLE_ARN=$(aws ssm get-parameter --region ${REGION} --name "/${APP_NAME}/${BASE_ENV}/adminIdentityStack/parkOperatorRoleArn" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+    UNAUTHORIZED_USER_ROLE_ARN=$(aws ssm get-parameter --region ${REGION} --name "/${APP_NAME}/${BASE_ENV}/adminIdentityStack/unauthorizedUserRoleArn" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
     
     OVERRIDES_JSON=$(cat <<EOF
 {
@@ -103,7 +104,8 @@ inject_identity_overrides() {
   "cognitoUnauthRoleArn": "${COGNITO_UNAUTH_ROLE_ARN}",
   "superAdminRoleArn": "${SUPER_ADMIN_ROLE_ARN}",
   "administratorRoleArn": "${ADMINISTRATOR_ROLE_ARN}",
-  "parkOperatorRoleArn": "${PARK_OPERATOR_ROLE_ARN}"
+  "parkOperatorRoleArn": "${PARK_OPERATOR_ROLE_ARN}",
+  "unauthorizedUserRoleArn": "${UNAUTHORIZED_USER_ROLE_ARN}"
 }
 EOF
 )

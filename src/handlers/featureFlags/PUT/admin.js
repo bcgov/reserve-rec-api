@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, validateSuperAdminAuth, writeAuditLog, getNowISO } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext, writeAuditLog, getNowISO } = require('/opt/base');
 const { getOne, marshall, batchWriteData, REFERENCE_DATA_TABLE_NAME, AUDIT_TABLE_NAME, PutItemCommand } = require('/opt/dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 
@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
 
   try {
     // Enforce superadmin authorization
-    const claims = validateSuperAdminAuth(event, 'update feature flags');
+    const authContext = checkAuthContext(event, 'superadmin');
     
     const body = JSON.parse(event?.body);
     if (!body || !body.flags) {
@@ -40,8 +40,8 @@ exports.handler = async (event, context) => {
       flags: body.flags,
       metadata: {
         lastUpdated: timestamp,
-        updatedBy: claims.sub,
-        updatedByEmail: claims.email || 'unknown'
+        updatedBy: authContext.cognitoSub || 'unknown',
+        updatedByUsername: authContext.username || 'unknown'
       },
       version: (currentConfig?.version || 0) + 1
     };
@@ -55,13 +55,13 @@ exports.handler = async (event, context) => {
 
     // Write audit log
     await writeAuditLog(
-      claims.sub,
+      authContext.cognitoSub,
       'featureFlags',
       'FEATURE_FLAGS_UPDATE',
       {
         previousFlags,
         newFlags: body.flags,
-        changedBy: claims.email || claims.sub,
+        changedBy: authContext.username || authContext.cognitoSub,
         timestamp
       },
       marshall,
@@ -69,7 +69,7 @@ exports.handler = async (event, context) => {
       AUDIT_TABLE_NAME
     );
 
-    logger.info('Feature flags updated successfully', { updatedBy: claims.sub, newFlags: body.flags });
+    logger.info('Feature flags updated successfully', { updatedBy: authContext.cognitoSub, newFlags: body.flags });
 
     return sendResponse(200, {
       flags: updatedConfig.flags,

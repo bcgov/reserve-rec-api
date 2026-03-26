@@ -10,8 +10,11 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  */
 exports.handler = async (event, context) => {
   logger.info(`PUT Activities: ${event}`);
+
   try {
-    const collectionId = event?.pathParameters?.collectionId;
+    const authContext = checkAuthContext(event, 'staff');
+
+    const collectionId = event?.pathParameters?.collectionId;    
     const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || null;
     const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || null;
 

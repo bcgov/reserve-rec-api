@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext} = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { GEOZONE_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
@@ -11,6 +11,8 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
 exports.handler = async (event, context) => {
   logger.info("POST Geozones", event);
   try {
+    const authContext = checkAuthContext(event, "superadmin");
+
     const collectionId = String(event?.pathParameters?.collectionId);
 
     if (!collectionId) {

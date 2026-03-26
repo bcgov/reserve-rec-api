@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { ACTIVITY_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
@@ -9,10 +9,12 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  * Create Activities
  */
 exports.handler = async (event, context) => {
-  logger.info(`POST Activities - START`);
+  logger.info(`POST Activities: ${event}`);
   
   try {
-    const collectionId = String(event?.pathParameters?.collectionId);
+    const authContext = checkAuthContext(event, 'staff');
+
+    const collectionId = event?.pathParameters?.collectionId;
     if (!collectionId) {
       throw new Exception("collectionId is required", { code: 400 });
     }

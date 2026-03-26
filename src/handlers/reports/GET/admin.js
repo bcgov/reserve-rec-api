@@ -10,7 +10,7 @@
  *   - facilityId (optional): Filter by specific activity/facility ID
  */
 
-const { logger, sendResponse, handleCORS, Exception, validateSuperAdminAuth } = require("/opt/base");
+const { logger, sendResponse, handleCORS, Exception, checkAuthContext } = require("/opt/base");
 const { runQuery, getOne, TRANSACTIONAL_DATA_TABLE_NAME, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
@@ -30,6 +30,10 @@ exports.handler = async (event, context) => {
     if (!collectionId) {
       throw new Exception("collectionId is required", { code: 400 });
     }
+
+    // Require at least 'staff' tier for this collection; superadmins always pass
+    checkAuthContext(event, 'staff', collectionId);
+
     if (!arrivalDate) {
       throw new Exception("arrivalDate is required", { code: 400 });
     }

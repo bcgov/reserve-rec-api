@@ -1,3 +1,4 @@
+const { getOne } = require('/opt/dynamodb');
 const { logger } = require('/opt/base');
 
 const API_STAGE = process.env.API_STAGE || 'api';
@@ -56,6 +57,11 @@ async function getUserData(sub) {
     logger.error('Error fetching user data:', error);
     throw error;
   }
+}
+
+async function queryAndGenerateResources(tier) {
+  const resources = await getOne(`resourceMap::${tier}`, `latest`);
+  return resources ? resources?.allowedResources || {} : {};
 }
 
 async function getDenyPolicy(methodArn) {
@@ -136,5 +142,6 @@ module.exports = {
   getUserData,
   handleContextAndAPIKey,
   parseToken,
-  validateToken,
+  queryAndGenerateResources,
+  validateToken,  
 };
