@@ -27,6 +27,8 @@ const BOOKING_PUT_CONFIG = {
   }
 };
 
+const BOOKINGDATES_PUT_CONFIG = BOOKING_PUT_CONFIG; // For now, BookingDate items have the same config as Booking items, but we can customize this in the future if needed
+
 const BOOKING_PUT_CONFIG_TEMP = {
   failOnError: true,
   autoTimeStamp: true,
@@ -463,5 +465,6 @@ const BOOKING_UPDATE_CONFIG = {
 
 module.exports = {
   BOOKING_PUT_CONFIG,
-  BOOKING_UPDATE_CONFIG
+  BOOKING_UPDATE_CONFIG,
+  BOOKINGDATES_PUT_CONFIG
 };
