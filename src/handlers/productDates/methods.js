@@ -204,6 +204,7 @@ function resolveProductDateReservationContext(product, date, reservationPolicy) 
     isReservable: productDateReservationPolicy?.isReservable || true,
     minDailyInventory: productDateReservationPolicy?.minDailyInventory || 1,
     maxDailyInventory: productDateReservationPolicy?.maxDailyInventory || 1,
+    temporalAnchors: resolvedTemporalAnchors,
     temporalWindows: resolvedTemporalWindows
   };
   return policy;

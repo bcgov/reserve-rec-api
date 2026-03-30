@@ -15,7 +15,7 @@ const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
 } = require("../activities/methods");
-const { getAndAttachNestedProperties, quickApiPutHandler } = require("../../common/data-utils");
+const { getAndAttachNestedProperties, quickApiPutHandler, quickApiUpdateHandler,  } = require("../../common/data-utils");
 const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
@@ -28,7 +28,7 @@ const {
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
 const { DateTime } = require("luxon");
-const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG } = require("./configs");
+const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 
 const DEFAULT_SESSION_LENGTH = 30; // in minutes
@@ -640,7 +640,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // For now, cart timer, session timer, hold timer, etc... are all used interchangeably and represent the amount of time that inventory will be held for a user while they complete the booking process.
 
     const timeout = product?.holdDuration?.minutes || DEFAULT_SESSION_LENGTH;
-    const sessionExpiry = addMinutes(new Date(), timeout).toISOString();
+    const sessionExpiry = addMinutes(new Date(), timeout).getTime();
 
     // === Build the child BookingDates first
     const bookingDateItems = productDates.items.map((productDate) => initBookingDateItem(globalId, product, productDate, assetRef, props));
@@ -682,68 +682,12 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
           sk: bd.sk,
         };
       }),
-      // Sanitized named occupant information
-      namedOccupant: props?.namedOccupant
-        ? {
-          firstName: sanitizeString(props.namedOccupant.firstName, 100),
-          lastName: sanitizeString(props.namedOccupant.lastName, 100),
-          contactInfo: {
-            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
-            mobilePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.mobilePhone,
-              20
-            ),
-            homePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.homePhone,
-              20
-            ),
-            streetAddress: sanitizeString(
-              props.namedOccupant.contactInfo?.streetAddress,
-              200
-            ),
-            unitNumber: sanitizeString(
-              props.namedOccupant.contactInfo?.unitNumber,
-              20
-            ),
-            postalCode: sanitizeString(
-              props.namedOccupant.contactInfo?.postalCode,
-              20
-            ),
-            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
-            province: sanitizeString(
-              props.namedOccupant.contactInfo?.province,
-              50
-            ),
-            country: sanitizeString(
-              props.namedOccupant.contactInfo?.country,
-              50
-            ),
-          },
-        }
-        : null,
-      // Sanitized vehicle information (max 5 vehicles)
-      vehicleInformation: Array.isArray(props.vehicleInformation)
-        ? props.vehicleInformation.slice(0, 5).map((v) => ({
-          licensePlate: sanitizeString(v.licensePlate, 20),
-          licensePlateRegistrationRegion: sanitizeString(
-            v.licensePlateRegistrationRegion,
-            50
-          ),
-          vehicleMake: sanitizeString(v.vehicleMake, 50),
-          vehicleModel: sanitizeString(v.vehicleModel, 50),
-          vehicleColour: sanitizeString(v.vehicleColour, 30),
-        }))
-        : [],
-
-      // Sanitized equipment information
-      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
-
-      // === Not yet implemented: ===
-      // itineraryRuleSnapshot,
-      // itinerary,
-      // partyContext,
-      // feeContext,
-      // changeContext,
+      // // === Not yet implemented: ===
+      // // itineraryRuleSnapshot,
+      // // itinerary,
+      // // partyContext,
+      // // feeContext,
+      // // changeContext,
     };
 
     for (const key in bookingItem?.namedOccupant?.contactInfo) {
@@ -968,7 +912,6 @@ function formatBookingResponsePublic(bookingResponse) {
         reservationContext: booking.reservationContext,
         partyContext: booking.partyContext,
         feeContext: booking.feeContext,
-        status: booking.status,
         userId: booking.userId,
         displayName: booking.displayName,
         arrivalDate: booking.reservationContext?.arrivalDate,
@@ -1003,215 +946,76 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-
-/**
- * This function is outdated.
- * @param {*} collectionId
- * @param {*} activityType
- * @param {*} activityId
- * @param {*} startDate
- * @param {*} body
- * @returns
- */
-async function createBookingOld(
-  collectionId,
-  activityType,
-  activityId,
-  startDate,
-  body
-) {
-  logger.debug(
-    "Creating booking:",
-    collectionId,
-    activityType,
-    activityId,
-    startDate,
-    body
-  );
+async function completeBooking(bookingId, sessionId, props) {
   try {
-    // ===== STEP 1: Validate Activity Exists =====
-    const activity = await getActivityByActivityId(
-      collectionId,
-      activityType,
-      activityId
-    );
 
-    if (!activity) {
-      throw new Exception(
-        `Activity not found (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId})`,
-        { code: 404 }
-      );
+    // === get queryTime ===
+    const queryTime = new Date().getTime();
+    props['queryTime'] = queryTime;
+
+    // === Get original Booking ===
+
+    const booking = await getBookingByBookingId(bookingId);
+
+    // If no booking found, throw error
+    if (!booking) {
+      throw new Exception(`Booking not found (BookingID: ${bookingId})`, { code: 404 });
     }
 
-    // ===== STEP 2: Validate Dates =====
-    // Parse dates as UTC (timezone is metadata only, not used for validation)
-    const now = new Date();
-    const start = getStartOfDayUTC(startDate);
-    const end = getStartOfDayUTC(body.endDate);
-    const today = getStartOfDayUTC(now.toISOString().split('T')[0]);
+    // === Validate the Booking can be completed ===
 
-    if (isNaN(start.getTime())) {
-      throw new Exception("Invalid start date format", { code: 400 });
-    }
+    validateBookingCompletion(booking, sessionId, props);
 
-    if (isNaN(end.getTime())) {
-      throw new Exception("Invalid end date format", { code: 400 });
-    }
+    // For now, BookingDates do not have to be updated when finalizing the booking, but this may need to change in the future
 
-    // Validate booking window (default: max 2 days in future, may vary by activity type)
-    const maxDaysAhead =
-      activity.maxBookingDaysAhead ?? DEFAULT_MAX_BOOKING_DAYS_AHEAD;
-    const maxDate = addDays(today, maxDaysAhead);
-    if (start > maxDate) {
-      throw new Exception(
-        `Cannot book more than ${maxDaysAhead} days in advance`,
-        { code: 400 }
-      );
-    }
+    // === Update the Booking item with any necessary changes for finalization ===
 
-    // ===== STEP 3: Validate and Sanitize Party Information =====
-    const partyInfo = {
-      adult: parseInt(body.partyInformation?.adult) || 0,
-      senior: parseInt(body.partyInformation?.senior) || 0,
-      youth: parseInt(body.partyInformation?.youth) || 0,
-      child: parseInt(body.partyInformation?.child) || 0,
-    };
-
-    // Ensure all occupant counts are non-negative
-    if (
-      partyInfo.adult < 0 ||
-      partyInfo.senior < 0 ||
-      partyInfo.youth < 0 ||
-      partyInfo.child < 0
-    ) {
-      throw new Exception("Occupant counts must be non-negative", {
-        code: 400,
-      });
-    }
-
-    const totalOccupants =
-      partyInfo.adult + partyInfo.senior + partyInfo.youth + partyInfo.child;
-
-    // Occupants are optional (totalOccupants can be 0)
-
-    // Validate max occupants (default: 4, may vary by activity type)
-    const maxOccupants = activity.maxOccupants ?? DEFAULT_MAX_OCCUPANTS;
-    if (totalOccupants > maxOccupants) {
-      throw new Exception(`Maximum ${maxOccupants} occupants allowed`, {
-        code: 400,
-      });
-    }
-
-    // Validate vehicle count (max 1)
-    const vehicleCount = parseInt(body.partyInformation?.vehicle) || 0;
-    if (vehicleCount < 0) {
-      throw new Exception("Vehicle count must be non-negative", { code: 400 });
-    }
-
-    const maxVehicles = activity.maxVehicles ?? DEFAULT_MAX_VEHICLES;
-    if (vehicleCount > maxVehicles) {
-      throw new Exception(`Maximum ${maxVehicles} vehicle allowed`, {
-        code: 400,
-      });
-    }
-
-    // ===== STEP 4: Calculate Fees Server-Side =====
-    const feeInformation = calculateBookingFees(
-      activity,
-      partyInfo,
-      start,
-      end
-    );
-
-    // Log if client sent different price than calculated
-    if (
-      body.feeInformation &&
-      Math.abs((body.feeInformation.total || 0) - feeInformation.total) > 0.01
-    ) {
-      logger.info(
-        `Client sent price ${body.feeInformation.total}, server calculated ${feeInformation.total}`
-      );
-    }
-
-    // ===== STEP 5: Generate Secure IDs =====
-    const globalId = crypto.randomUUID();
-    const sessionId = crypto.randomUUID();
-    const sessionExpiry = addMinutes(new Date(), 30).toISOString();
-
-    // ===== STEP 6: Whitelist and Sanitize Input Fields =====
-    let bookingRequest = {
-      // Server-controlled fields
-      pk: `booking::${collectionId}::${activityType}::${activityId}`,
-      sk: `${startDate}::${globalId}`,
-      schema: "booking",
-      globalId: globalId,
-      bookingId: globalId,
-      sessionId: sessionId,
-      sessionExpiry: sessionExpiry,
-      activityType: activityType,
-      activityId: activityId,
-      collectionId: collectionId,
-      startDate: startDate,
-      bookingStatus: "in progress",
-      userId: body.userId, // Already validated/overridden in POST handler
-
-      // Server-calculated fields
-      feeInformation: feeInformation,
-
-      // Validated client fields
-      endDate: body.endDate,
-      displayName:
-        activity.displayName || sanitizeString(body.displayName, 200),
-      timezone: activity.timezone || "America/Vancouver",
-      bookedAt: new Date().toISOString(),
-
-      partyInformation: partyInfo,
-
-      rateClass: body.rateClass || "standard", // TODO: Validate against allowed values
-
-      // Sanitized named occupant information
-      namedOccupant: body.namedOccupant
+    let updatedBookingItem = {
+      // === Server-controlled fields ===
+      bookingCompletionTime: queryTime,
+      status: BOOKING_STATUS_ENUMS[1],
+      // // Sanitized named occupant information
+      namedOccupant: props?.namedOccupant
         ? {
-          firstName: sanitizeString(body.namedOccupant.firstName, 100),
-          lastName: sanitizeString(body.namedOccupant.lastName, 100),
+          firstName: sanitizeString(props.namedOccupant.firstName, 100),
+          lastName: sanitizeString(props.namedOccupant.lastName, 100),
           contactInfo: {
-            email: sanitizeString(body.namedOccupant.contactInfo?.email, 200),
+            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
             mobilePhone: sanitizeString(
-              body.namedOccupant.contactInfo?.mobilePhone,
+              props.namedOccupant.contactInfo?.mobilePhone,
               20
             ),
             homePhone: sanitizeString(
-              body.namedOccupant.contactInfo?.homePhone,
+              props.namedOccupant.contactInfo?.homePhone,
               20
             ),
             streetAddress: sanitizeString(
-              body.namedOccupant.contactInfo?.streetAddress,
+              props.namedOccupant.contactInfo?.streetAddress,
               200
             ),
             unitNumber: sanitizeString(
-              body.namedOccupant.contactInfo?.unitNumber,
+              props.namedOccupant.contactInfo?.unitNumber,
               20
             ),
             postalCode: sanitizeString(
-              body.namedOccupant.contactInfo?.postalCode,
+              props.namedOccupant.contactInfo?.postalCode,
               20
             ),
-            city: sanitizeString(body.namedOccupant.contactInfo?.city, 100),
+            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
             province: sanitizeString(
-              body.namedOccupant.contactInfo?.province,
+              props.namedOccupant.contactInfo?.province,
               50
             ),
             country: sanitizeString(
-              body.namedOccupant.contactInfo?.country,
+              props.namedOccupant.contactInfo?.country,
               50
             ),
           },
         }
         : null,
-
       // Sanitized vehicle information (max 5 vehicles)
-      vehicleInformation: Array.isArray(body.vehicleInformation)
-        ? body.vehicleInformation.slice(0, 5).map((v) => ({
+      vehicleInformation: Array.isArray(props.vehicleInformation)
+        ? props.vehicleInformation.slice(0, 5).map((v) => ({
           licensePlate: sanitizeString(v.licensePlate, 20),
           licensePlateRegistrationRegion: sanitizeString(
             v.licensePlateRegistrationRegion,
@@ -1224,85 +1028,74 @@ async function createBookingOld(
         : [],
 
       // Sanitized equipment information
-      equipmentInformation: sanitizeString(body.equipmentInformation, 1000),
-
-      // Entry/exit points (TODO: Validate these exist in database)
-      entryPoint: body.entryPoint,
-      exitPoint: body.exitPoint,
-      location: body.location,
-    };
-
-    for (const key in bookingRequest?.contactInfo) {
-      if (!bookingRequest.contactInfo || bookingRequest.contactInfo[key] === "") {
-        delete bookingRequest.contactInfo[key];
-      }
+      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
     }
 
-    for (const key in bookingRequest) {
-      if (!bookingRequest || bookingRequest[key] === "" || !bookingRequest[key]?.length) {
-        delete bookingRequest[key];
-      }
-    }
+    // Format the update request for the Booking item
 
-    logger.info(
-      `Booking created with server-calculated price: $${feeInformation.total}`
+    const bookingUpdateRequest = await quickApiUpdateHandler(
+      TRANSACTIONAL_DATA_TABLE_NAME,
+      [
+        {
+          key: {
+            pk: booking.pk,
+            sk: booking.sk,
+          },
+          data: updatedBookingItem,
+        }
+      ],
+      BOOKING_UPDATE_CONFIG
     );
 
-    return [
-      {
-        key: {
-          pk: bookingRequest.pk,
-          sk: bookingRequest.sk,
-        },
-        data: bookingRequest,
-      },
-    ];
+    console.log('bookingUpdateRequest', bookingUpdateRequest);
+
+    return bookingUpdateRequest;
+
 
   } catch (error) {
-    // Re-throw Exception instances as-is
-    if (error instanceof Exception) {
-      throw error;
-    }
-    // Wrap other errors
-    throw new Exception("Error creating booking", {
-      code: 400,
-      error: error,
-    });
+    logger.error(`Booking finalization failed.`);
+    throw error;
   }
 }
 
-async function completeBooking(bookingId, sessionId, clientTransactionId) {
+function validateBookingCompletion(booking, sessionId, props) {
   try {
-    const booking = await getBookingByBookingId(bookingId);
-    console.log("booking: ", booking);
+    const queryTime = props.queryTime;
+    const bookingId = booking.bookingId;
 
-    // If the booking isn't 'in progress', we cannot alter it.
-    if (booking.bookingStatus !== "in progress") {
-      throw new Exception(`Booking cannot be altered at this state.`, {
-        code: 400,
-      });
+    // If the booking isn't 'in progress', we shouldn't be trying to complete it - throw error;
+    if (booking.status !== BOOKING_STATUS_ENUMS[0]) {
+      throw new Exception(`Booking is not '${BOOKING_STATUS_ENUMS[0]}' and cannot be completed (BookingID: ${bookingId}, Status: ${booking.status})`, { code: 400 });
     }
 
-    // If the booking doesn't have the same session ID, then we fail
+    // If the sessionId doesn't match, throw error
     if (booking.sessionId !== sessionId) {
-      throw new Exception(`Booking cannot be altered at this state.`, {
-        code: 400,
-      });
+      throw new Exception(`Invalid session ID for booking completion (BookingID: ${bookingId})`, { code: 403 });
     }
 
-    // Set the booking as complete and return the putItem
-    return {
-      key: { pk: booking.pk, sk: booking.sk },
-      data: {
-        bookingStatus: "confirmed",
-        clientTransactionId: clientTransactionId,
-      },
-    };
+    // If the session has expired, throw error
+    if (booking.sessionExpiry < queryTime) {
+      throw new Exception(`Session has expired for booking completion (BookingID: ${bookingId})`, { code: 403 });
+    }
+
+    // If the reservation window has closed, throw error
+    const resWindow = booking.reservationContext?.temporalWindows?.reservationWindow;
+    if (resWindow && (queryTime < resWindow.open || queryTime > resWindow.close)) {
+      throw new Exception(`It is outside the reservation window for booking completion (BookingID: ${bookingId})`, { code: 400 });
+    }
+
+    // If no named occupant information is provided, throw error (for now, we require named occupant information to complete the booking - this may be relaxed in the future)
+    if (!props?.namedOccupant) {
+      throw new Exception(`Named occupant information is required for booking completion (BookingID: ${bookingId})`, { code: 400 });
+    }
+
+    // TODO: Validate against other change, reservation, party and fee policies as needed.
+
+    return true;
+
   } catch (error) {
-    throw new Exception("Error updating booking", {
-      code: 400,
-      error: error,
-    });
+    logger.error(`Error validating booking completion for booking ID ${booking?.bookingId}.`);
+    throw error;
   }
 }
 

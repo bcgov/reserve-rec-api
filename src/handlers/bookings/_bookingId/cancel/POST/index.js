@@ -12,7 +12,7 @@ const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("
 const {
   cancellationPublishCommand,
   getBookingByBookingId,
-} = require("../../methods");
+} = require("../../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Bookings Cancel POST:", event);
