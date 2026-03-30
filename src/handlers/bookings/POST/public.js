@@ -1,9 +1,7 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { createBooking, initInventoryPoolCheckRequest } = require("../methods");
-const { BOOKING_PUT_CONFIG } = require("../configs");
-const { quickApiPutHandler } = require("../../../common/data-utils");
-const { TRANSACTIONAL_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { createBooking, formatBookingResponsePublic, } = require("../methods");
+const { batchTransactData } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
@@ -143,40 +141,21 @@ exports.handler = async (event, context) => {
       }
     }
 
-    let postRequest = await createBooking(collectionId, activityType, activityId, startDate, body);
-
-    let putItems = await quickApiPutHandler(
-      TRANSACTIONAL_DATA_TABLE_NAME,
-      postRequest,
-      BOOKING_PUT_CONFIG
-    );
-
-    // === Check the relevant InventoryPools ===
-
-    // Review for availability and decrement by the appropriate quantity. The initInventoryPoolCheckRequest method prepares the necessary data for this check without using quickApiPutHandler since the logic is more complex than a standard put operation, and may involve conditional checks and updates based on current inventory levels.
-
-    // TODO: Go back and refactor the booking creation process to integrate the inventory pool check more seamlessly. It is currently added after the booking has already been initialized to avoid changing the current booking logic.
-
-    let inventoryRequests = await initInventoryPoolCheckRequest({
+    let bookingRequestItems = await createBooking({
       collectionId,
       activityType,
       activityId,
       productId,
       startDate,
       endDate,
-      queryTime,
-      invQuantity: quantity
-    });
+      invQuantity: quantity,
+      userId: claims.sub,
+      ...body
+    })
 
-    putItems = putItems.concat(inventoryRequests);
+    const res = await batchTransactData(bookingRequestItems);
 
-    const res = await batchTransactData(putItems);
-
-    const response = {
-      res: res,
-      booking: postRequest,
-      inventoryRequests: inventoryRequests
-    };
+    const response = formatBookingResponsePublic(bookingRequestItems);
 
     return sendResponse(200, response, "Success", null, context);
 

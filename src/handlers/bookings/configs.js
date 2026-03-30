@@ -27,6 +27,10 @@ const BOOKING_PUT_CONFIG = {
   }
 };
 
+const BOOKINGDATES_PUT_CONFIG = BOOKING_PUT_CONFIG; // For now, BookingDate items have the same config as Booking items, but we can customize this in the future if needed
+
+const BOOKING_UPDATE_CONFIG = BOOKING_PUT_CONFIG; // For now, use the same config for updates, but in the future we may want to allow different fields or rules for updates vs creates, in which case we can create a separate config object for updates
+
 const BOOKING_PUT_CONFIG_TEMP = {
   failOnError: true,
   autoTimeStamp: true,
@@ -428,40 +432,9 @@ const BOOKING_PUT_CONFIG_TEMP = {
   }
 };
 
-const BOOKING_UPDATE_CONFIG = {
-  failOnError: true,
-  autoTimestamp: true,
-  autoVersion: true,
-  fields: {
-    bookingStatus: {
-      isMandatory: true,
-      rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, BOOKING_STATUS_ENUMS);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    clientTransactionId: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    cancellationReason: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    cancelledAt: {
-      rulesFn: ({ value, action }) => {
-        rf.expectType(value, ['string']);
-        rf.expectAction(action, ['set']);
-      }
-    }
-  }
-};
 
 module.exports = {
   BOOKING_PUT_CONFIG,
-  BOOKING_UPDATE_CONFIG
+  BOOKING_UPDATE_CONFIG,
+  BOOKINGDATES_PUT_CONFIG
 };

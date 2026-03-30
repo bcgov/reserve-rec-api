@@ -10,6 +10,9 @@ const defaults = {
     bookingsPOSTFunction: {
       name: 'BookingsPOST',
     },
+    bookingsCompletePOSTFunction: {
+      name: 'BookingsCompletePOST',
+    },
     bookingsCancelPOSTFunction: {
       name: 'BookingsCancelPOST',
     },
@@ -172,16 +175,33 @@ class PublicBookingsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
+    // POST /bookings/{bookingId}/complete Lambda function
+    this.bookingsCompleteFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsCompletePOSTFunction',
+      'src/handlers/bookings/_bookingId/complete/POST',
+      'public.handler',
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
     // POST /bookings/{bookingId}/cancel Lambda function
     this.bookingsCancelPostFunction = this.generateBasicLambdaFn(
       scope,
       'bookingsCancelPOSTFunction',
-      'src/handlers/bookings/cancel/POST',
+      'src/handlers/bookings/_bookingId/cancel/POST',
       'index.handler',
       {
         transDataBasicReadWrite: true,
       }
     );
+
+    // POST /bookings/{bookingId}/complete
+    this.bookingsByBookingIdResource.addResource('complete').addMethod('POST', new apigw.LambdaIntegration(this.bookingsCompleteFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
     // POST /bookings/{bookingId}/cancel
     this.bookingsByBookingIdResource.addResource('cancel').addMethod('POST', new apigw.LambdaIntegration(this.bookingsCancelPostFunction), {

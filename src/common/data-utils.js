@@ -508,6 +508,9 @@ async function getAndAttachNestedProperties(item, properties) {
 }
 
 function formatForQuickApi(itemArray) {
+  if (!itemArray || !Array.isArray(itemArray)) {
+    itemArray = [itemArray];
+  };
   return itemArray.map((item) => {
     return {
       key: {
