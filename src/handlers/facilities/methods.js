@@ -176,7 +176,7 @@ async function getFacilityByFacilityId(collectionId, facilityType, facilityId, f
 
       // If there are activity relationships, batch get the activities and add them to the response
       if (activityRelationships?.Items?.length > 0) {
-        const activityKeys = activityRelationships.items.map(rel => ({ pk: rel.pk2, sk: rel.sk2 }));
+        const activityKeys = activityRelationships.Items.map(rel => ({ pk: rel.pk2, sk: rel.sk2 }));
         res.activities = await batchGetData(activityKeys, REFERENCE_DATA_TABLE_NAME);
       } else {
         res.activities = [];
