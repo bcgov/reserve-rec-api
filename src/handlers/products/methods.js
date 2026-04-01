@@ -1,8 +1,22 @@
 const crypto = require('crypto');
 const { TABLE_NAME, REFERENCE_DATA_TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetData, marshall, incrementCounter, batchGetData } = require('/opt/dynamodb');
-const { Exception, buildDateRange, buildDateTimeFromShortDate, getNow, logger } = require('/opt/base');
+const {
+  Exception,
+  buildDateRange,
+  buildDateTimeFromShortDate,
+  getNow,
+  filterByRole,
+  logger,
+} = require("/opt/base");
 const { POLICY_TYPES } = require('../policies/configs');
-const { PRODUCT_API_PUT_CONFIG, PRODUCT_DAILY_PROPERTIES_CONFIG, PRODUCT_DEFAULT_PROPERTY_NAMES, PRODUCT_DEFAULT_SCHEDULE_RANGE, ALLOWED_FILTERS } = require('./configs');
+const {
+  PRODUCT_API_PUT_CONFIG,
+  PRODUCT_DAILY_PROPERTIES_CONFIG,
+  PRODUCT_DEFAULT_PROPERTY_NAMES,
+  PRODUCT_DEFAULT_SCHEDULE_RANGE,
+  ALLOWED_FILTERS,
+  ROLE_BASED_FILTERS
+} = require("./configs");
 const { quickApiPutHandler } = require('../../common/data-utils');
 
 /**
@@ -721,6 +735,62 @@ async function deleteOldProducts(productsToDelete) {
   }
 }
 
+async function fetchProducts(collectionId, activityType, activityId, productId, queryParams, authContext) {
+  if (!collectionId) {
+      throw new Exception("Product Collection ID (collectionId) is required", { code: 400 });
+    }
+
+    // Validate that activityType and activityId are provided
+    if (!activityType || !activityId) {
+      throw new Exception("activityType and activityId are required query parameters", { code: 400 });
+    }
+
+    let res = null;
+    let filters = {};
+    let allowedFilters = ALLOWED_FILTERS;
+    
+    // Loop through each allowed filter to check if it's in queryParams
+    allowedFilters.forEach((filter) => {
+      if (queryParams[filter.name]) {
+        // If the filter.name is found in queryParams, add it to the result object
+        filters[filter.name] =
+          queryParams[filter.name] === "true"
+            ? true
+            : queryParams[filter.name] === "false"
+              ? false
+              : queryParams[filter.name];
+      }
+    });
+
+    // Get product by productId
+    if (productId) {
+      res = await getProductByProductId(
+        collectionId, 
+        activityType, 
+        activityId,
+        productId
+      );
+    }
+    // Get all products for this activity
+    else {
+      res = await getProductsByCollectionId(
+        collectionId,
+        activityType,
+        activityId,
+        filters,
+        queryParams || null
+      );
+    }
+
+    // Check user's role from authContext (if provided), otherwise provide default return
+    const role = authContext?.permissions?.[collectionId] ?? "default";
+
+    // Filter by the role of the user - for public, that's 'default' (least privilege)
+    return filterByRole(res, role, ROLE_BASED_FILTERS);
+}
+
+
+
 module.exports = {
   buildSchedule,
   getProducts,
@@ -729,6 +799,7 @@ module.exports = {
   getProductsByCollectionId,
   getProductsByActivityType,
   getProductByProductId,
+  fetchProducts,
   parseRequest,
   resolvePolicyReferences,
 };

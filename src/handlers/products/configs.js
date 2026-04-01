@@ -9,6 +9,12 @@ const ALLOWED_FILTERS = [
   { name: "productId", type: "string" },
 ];
 
+const ROLE_BASED_FILTERS = {
+  staff: ["adminNotes"],
+  limited: ["adminNotes"],
+  default: ["adminNotes", "creationDate", "lastUpdated", "version"],
+};
+
 const PRODUCT_API_PUT_CONFIG = {
   failOnError: true,
   autoTimestamp: true,
@@ -559,4 +565,5 @@ module.exports = {
   PRODUCT_DEFAULT_SCHEDULE_RANGE,
   PRODUCT_DAILY_PROPERTIES_CONFIG,
   PRODUCT_DEFAULT_PROPERTY_NAMES,
+  ROLE_BASED_FILTERS
 }

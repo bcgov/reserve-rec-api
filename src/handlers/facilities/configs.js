@@ -8,6 +8,12 @@ const ALLOWED_FILTERS = [
   { name: "showOnMap", type: "boolean" },
 ];
 
+const ROLE_BASED_FILTERS = {
+  staff: ["adminNotes"],
+  limited: ["adminNotes"],
+  default: ["adminNotes", "creationDate", "lastUpdated", "version"],
+};
+
 const FACILITY_API_PUT_CONFIG = {
   failOnError: true,
   autoTimestamp: true,
@@ -282,5 +288,6 @@ const FACILITY_API_UPDATE_CONFIG = {
 module.exports = {
   ALLOWED_FILTERS,
   FACILITY_API_PUT_CONFIG,
-  FACILITY_API_UPDATE_CONFIG
+  FACILITY_API_UPDATE_CONFIG,
+  ROLE_BASED_FILTERS
 };

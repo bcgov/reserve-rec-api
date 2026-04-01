@@ -18,15 +18,12 @@ const defaults = {
   }
 }
 
-class FacilitiesConstruct extends LambdaConstruct {
+class PublicFacilitiesConstruct extends LambdaConstruct {
   constructor(scope, id,  props) {
     super(scope, id, {
       ...props,
       defaults: defaults
     });
-
-    const handlerPrefix = props?.handlerPrefix || 'public';
-    const handlerName = `${handlerPrefix}.handler`;
 
     // Add /facilities resource
     this.facilitiesResource = this.resolveApi().root.addResource('facilities');
@@ -45,7 +42,67 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdGetFunction',
       'src/handlers/facilities/_collectionId/GET',
-      handlerName,
+      'public.handler',
+      {
+        basicReadWrite: true,
+      }
+    );
+
+    // GET /facilities/{collectionId}
+    this.facilitiesCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /facilities/{collectionId}/{facilityType}
+    this.facilitiesFacilityTypeResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /facilities/{collectionId}/{facilityType}/{facilityId}
+    this.facilitiesFacilityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Add permissions to all functions
+    const functions = [
+      this.facilitiesCollectionIdGetFunction,
+    ];
+
+    for (const func of functions) {
+      this.grantBasicRefDataTableReadWrite(func);
+    }
+
+  }
+}
+
+class AdminFacilitiesConstruct extends LambdaConstruct {
+  constructor(scope, id,  props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+    // Add /facilities resource
+    this.facilitiesResource = this.resolveApi().root.addResource('facilities');
+
+    // Add /facilities/{collectionId} resource
+    this.facilitiesCollectionIdResource = this.facilitiesResource.addResource('{collectionId}');
+
+    // Add /facilities/{collectionId}/{facilityType} resource
+    this.facilitiesFacilityTypeResource = this.facilitiesCollectionIdResource.addResource('{facilityType}');
+
+    // Add /facilities/{collectionId}/{facilityId} resource
+    this.facilitiesFacilityIdResource = this.facilitiesFacilityTypeResource.addResource('{facilityId}');
+
+    // Facilities GET by Collection ID Lambda Function
+    this.facilitiesCollectionIdGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'facilitiesCollectionIdGetFunction',
+      'src/handlers/facilities/_collectionId/GET',
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -74,7 +131,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdPostFunction',
       'src/handlers/facilities/_collectionId/POST',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -97,7 +154,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdPutFunction',
       'src/handlers/facilities/_collectionId/PUT',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -126,7 +183,7 @@ class FacilitiesConstruct extends LambdaConstruct {
       scope,
       'facilitiesCollectionIdDeleteFunction',
       'src/handlers/facilities/_collectionId/DELETE',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -154,5 +211,6 @@ class FacilitiesConstruct extends LambdaConstruct {
 }
 
 module.exports = {
-  FacilitiesConstruct,
+  PublicFacilitiesConstruct,
+  AdminFacilitiesConstruct,
 };

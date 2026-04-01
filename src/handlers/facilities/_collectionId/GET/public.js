@@ -1,12 +1,12 @@
-const { logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { logger, sendResponse } = require("/opt/base");
 const { fetchFacilities } = require("../../methods");
 
 /**
  * @api {get} /facilities/{collectionId} GET
- * Fetch Facilities Admin
+ * Fetch Facilities Public
  */
 exports.handler = async (event, context) => {
-  logger.info(`GET Facilities Admin: ${event}`);
+  logger.info(`GET Facilities Public: ${event}`);
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);
@@ -18,9 +18,7 @@ exports.handler = async (event, context) => {
   const { ...queryParams } = event?.queryStringParameters || {};
 
   try {
-    const authContext = checkAuthContext(event);
-
-    const res = await fetchFacilities(collectionId, facilityType, facilityId, queryParams, authContext);
+    const res = await fetchFacilities(collectionId, facilityType, facilityId, queryParams);
 
     return sendResponse(200, res, "Success", null, context);
   } catch (error) {

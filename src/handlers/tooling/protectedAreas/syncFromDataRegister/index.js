@@ -1,4 +1,7 @@
 /**
+ * PROTECTED AREAS HAVE BEEN REMOVED AS OF 2024-04-01 (no joke).
+ * Keeping this script for posterity.
+ * 
  * Syncs protected area data from the Data Register to the Reserve Rec Database.
  * If a protected area is not already in the Reserve Rec Database, it will be added.
  */
