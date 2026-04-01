@@ -199,6 +199,60 @@ async function sendMessage(targetConnectionId, domainName, stage, message) {
   }
 }
 
+/**
+ * Helper function to parse and remove key/data items from the object
+ *
+ * @param {Object} obj - object
+ * @param {Array} fields - fields that need to be filtered out
+ *
+ * @returns {Object} Filtered object
+ */
+function removeFields(obj, fields) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const filter = Object.fromEntries(
+    Object.entries(obj).filter(([key]) => !fields.includes(key))
+  );
+
+  return filter;
+}
+  
+/**
+ * Filter and sanitize the response for user role
+ *
+ * @param {Object} res - response data object from dynamo query
+ * @param {String} role - user role which is used for removing items
+ * @param {Object} ROLE_BASED_FILTERS - object of roles with an array of attributes that
+ *                                      need to be removed
+ *
+ * @returns {Object} Filtered response data object
+ */
+function filterByRole(res, role = 'default', ROLE_BASED_FILTERS) {
+  // Return the response as-is for superadmin
+  if (role === 'superadmin') {
+    return res
+  }
+
+  // Determine the fields to remove by role, e.g. "adminNotes" 
+  // No role means user gets default role (least privilege)
+  const fieldsToFilter = ROLE_BASED_FILTERS[role] ?? ROLE_BASED_FILTERS.default;
+  
+  // Use helper function to sanitize the res object with allowed items
+  const sanitizedRes = Array.isArray(res) 
+    ? res.map((obj) => removeFields(obj, fieldsToFilter)) 
+    : removeFields(res, fieldsToFilter);
+
+  return sanitizedRes;
+}
+
+/**
+ * 
+ * @param {Object} event - event object
+ * @param {string} requiredTier - required tier ( e.g. limited, staff) required to continue
+ * @param {string} collectionId - collectionId passed by endpoint
+ * 
+ * @returns {Object} - authContext from the event (given it passes all checks)
+ */
+
 function checkAuthContext(event, requiredTier = null, collectionId = null) {
   // Accept explicit collectionId (e.g. from query params) or fall back to path parameter
   const colId = collectionId || event?.pathParameters?.collectionId;
@@ -423,6 +477,7 @@ module.exports = {
   getNow,
   getNowEpoch,
   getNowISO,
+  filterByRole,
   checkAuthContext,
   getRequestClaimsFromEvent,
   isoToEpoch,

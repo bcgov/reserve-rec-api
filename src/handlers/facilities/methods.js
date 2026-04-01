@@ -1,6 +1,13 @@
-const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
-const { Exception, logger } = require("/opt/base");
-const { ALLOWED_FILTERS } = require("./configs");
+const {
+  REFERENCE_DATA_TABLE_NAME,
+  batchGetData,
+  runQuery,
+  getOne,
+  marshall,
+  incrementCounter,
+} = require("/opt/dynamodb");
+const { Exception, logger, filterByRole } = require("/opt/base");
+const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
 
 /**
  * Adds any filter expressions if any filters were added to query.
@@ -33,7 +40,7 @@ function addFilters(queryObj, filters) {
 
         queryObj.ExpressionAttributeNames[`#${item.name}`] = item.name;
         queryObj.ExpressionAttributeValues[`:${item.name}`] = marshall(
-          filters[item.name]
+          filters[item.name],
         );
       }
     });
@@ -62,7 +69,11 @@ function addFilters(queryObj, filters) {
  * @throws {Exception} With code 400 if database operation fails
  *
  */
-async function getFacilitiesByCollectionId(collectionId, filters, params = null) {
+async function getFacilitiesByCollectionId(
+  collectionId,
+  filters,
+  params = null,
+) {
   logger.info("Get Facilities by Facility Collection ID");
   try {
     const limit = params?.limit || null;
@@ -113,7 +124,7 @@ async function getFacilitiesByFacilityType(
   collectionId,
   facilityType,
   filters,
-  params = null
+  params = null,
 ) {
   logger.info("Get Facility by Facility Type");
   try {
@@ -157,32 +168,45 @@ async function getFacilitiesByFacilityType(
  *
  * @throws {Exception} With code 400 if database operation fails
  */
-async function getFacilityByFacilityId(collectionId, facilityType, facilityId, fetchActivities = false) {
+async function getFacilityByFacilityId(
+  collectionId,
+  facilityType,
+  facilityId,
+  fetchActivities = false,
+) {
   logger.info("Get Facility By Facility Type and ID");
   try {
     let res = await getOne(
       `facility::${collectionId}`,
-      `${facilityType}::${facilityId}`
+      `${facilityType}::${facilityId}`,
     );
     if (fetchActivities && res) {
       const activityRelationships = await runQuery({
         TableName: REFERENCE_DATA_TABLE_NAME,
         KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
         ExpressionAttributeValues: {
-          ":pk": { S: `rel::facility::${collectionId}::${facilityType}::${facilityId}` },
+          ":pk": {
+            S: `rel::facility::${collectionId}::${facilityType}::${facilityId}`,
+          },
           ":sk": { S: `activity::` },
         },
       });
 
       // If there are activity relationships, batch get the activities and add them to the response
       if (activityRelationships?.items?.length > 0) {
-        const activityKeys = activityRelationships.items.map(rel => ({ pk: rel.pk2, sk: rel.sk2 }));
-        res.activities = await batchGetData(activityKeys, REFERENCE_DATA_TABLE_NAME);
+        const activityKeys = activityRelationships.items.map((rel) => ({
+          pk: rel.pk2,
+          sk: rel.sk2,
+        }));
+        res.activities = await batchGetData(
+          activityKeys,
+          REFERENCE_DATA_TABLE_NAME,
+        );
       } else {
         res.activities = [];
       }
     }
-    
+
     logger.debug(`Facility: ${JSON.stringify(res, null, 2)}`);
     return res;
   } catch (error) {
@@ -202,18 +226,36 @@ async function getFacilityByFacilityId(collectionId, facilityType, facilityId, f
  *
  * @returns {Array} Array of processed update requests
  */
-async function parseRequest(collectionId, body, requestType, facilityType, facilityId = null) {
+async function parseRequest(
+  collectionId,
+  body,
+  requestType,
+  facilityType,
+  facilityId = null,
+) {
   let updateRequests = [];
   // Check if the request is a batch request
   if (Array.isArray(body)) {
     for (let item of body) {
       updateRequests.push(
-        await processItem(collectionId, item, requestType, facilityType, facilityId)
+        await processItem(
+          collectionId,
+          item,
+          requestType,
+          facilityType,
+          facilityId,
+        ),
       );
     }
   } else {
     updateRequests.push(
-      await processItem(collectionId, body, requestType, facilityType, facilityId)
+      await processItem(
+        collectionId,
+        body,
+        requestType,
+        facilityType,
+        facilityId,
+      ),
     );
   }
 
@@ -237,14 +279,16 @@ async function processItem(
   item,
   requestType,
   facilityType,
-  facilityId = null
+  facilityId = null,
 ) {
   const pk = `facility::${collectionId}`;
   let sk = null;
 
   // You should have a facilityType in queryParams or the item
   if (!facilityType && !item.facilityType) {
-    throw new Error(`facilityType is not specified in one of the requests.`, { code: 400 });
+    throw new Error(`facilityType is not specified in one of the requests.`, {
+      code: 400,
+    });
   }
 
   // facilityType should be taken from queryParams, but can be taken from item if it's a bulk update
@@ -253,7 +297,9 @@ async function processItem(
   if (requestType == "PUT") {
     // Throw an error if facilityId is not passed in
     if (!facilityId && !item.facilityId) {
-      throw new Error(`facilityId is not specified in one of the requests.`, { code: 400 });
+      throw new Error(`facilityId is not specified in one of the requests.`, {
+        code: 400,
+      });
     }
 
     // facilityId should be taken from queryParams, but can be taken from item if it's a bulk update
@@ -265,20 +311,19 @@ async function processItem(
     delete item.sk;
     delete item.facilityType;
     delete item.facilityId;
-
   } else if (requestType == "POST") {
     // Throw an error if facilityId is passed in POST request, as we only allow auto increment for POST requests
     if (facilityId) {
       throw new Error(
         "Can't specify facilityId in POST request; must be null to allow auto increment",
-        { code: 400 }
+        { code: 400 },
       );
     }
 
     // Make sure defaults are set for the item
-    item['collectionId'] = collectionId;
-    item['facilityType'] = facilityType;
-    if (!item?.hasOwnProperty('showOnMap')) {
+    item["collectionId"] = collectionId;
+    item["facilityType"] = facilityType;
+    if (!item?.hasOwnProperty("showOnMap")) {
       item.showOnMap = true;
     }
 
@@ -309,10 +354,69 @@ async function processItem(
   };
 }
 
+async function fetchFacilities(
+  collectionId,
+  facilityType,
+  facilityId,
+  queryParams,
+  authContext,
+) {
+  if (!collectionId) {
+    throw new Exception("Facility Collection ID (collectionId) is required", {
+      code: 400,
+    });
+  }
+
+  let filters = {};
+  let res = null;
+  let allowedFilters = ALLOWED_FILTERS;
+  // Loop through each allowed filter to check if it's in queryParams
+  allowedFilters.forEach((filter) => {
+    if (queryParams[filter.name]) {
+      // If the filter.name is found in queryParams, add it to the result object
+      filters[filter.name] =
+        queryParams[filter.name] === "true"
+          ? true
+          : queryParams[filter.name] === "false"
+            ? false
+            : queryParams[filter.name];
+    }
+  });
+
+  if (facilityType && facilityId) {
+    res = await getFacilityByFacilityId(
+      collectionId,
+      facilityType,
+      facilityId,
+      queryParams?.fetchActivities || false,
+    );
+  }
+
+  if (facilityType && !facilityId) {
+    res = await getFacilitiesByFacilityType(
+      collectionId,
+      facilityType,
+      filters,
+      queryParams,
+    );
+  }
+
+  if (!facilityType && !facilityId) {
+    res = await getFacilitiesByCollectionId(collectionId, filters, queryParams);
+  }
+
+  // Check user's role from authContext (if provided), otherwise provide default return
+  const role = authContext?.permissions?.[collectionId] ?? "default";
+
+  // Filter by the role of the user - for public, that's 'default' (least privilege)
+  return filterByRole(res, role, ROLE_BASED_FILTERS);
+}
+
 module.exports = {
   getFacilitiesByCollectionId,
   getFacilitiesByFacilityType,
   getFacilityByFacilityId,
+  fetchFacilities,
   parseRequest,
-  processItem
+  processItem,
 };

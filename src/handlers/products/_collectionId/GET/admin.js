@@ -1,79 +1,27 @@
-const {
-  getProductsByCollectionId,
-  getProductByProductId,
-} = require("../../methods");
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
-const { ALLOWED_FILTERS } = require("../../configs");
+const { fetchProducts } = require("../../methods");
+const { logger, sendResponse, checkAuthContext } = require("/opt/base");
 
 /**
  * @api {get} /products/{collectionId} GET
- * Fetch Products
+ * Fetch Products Admin
  */
 exports.handler = async (event, context) => {
-  logger.info(`GET Products: ${event}`);
+  logger.info(`GET Products Admin: ${event}`);
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);
   }
 
+  const collectionId = event?.pathParameters?.collectionId;
+  const activityType = event?.pathParameters?.activityType || event?.queryStringParameters?.activityType || null;
+  const activityId = event?.pathParameters?.activityId || event?.queryStringParameters?.activityId || null;
+  const productId = event?.pathParameters?.productId || event?.queryStringParameters?.productId || null;
+  const { ...queryParams } = event?.queryStringParameters || {};
+
   try {
     const authContext = checkAuthContext(event);
 
-    const collectionId = event?.pathParameters?.collectionId;
-    if (!collectionId) {
-      throw new Exception("Product Collection ID (collectionId) is required", { code: 400 });
-    }
-
-    const { activityType, activityId, productId, ...queryParams } =
-      event?.queryStringParameters || {};
-
-    // Validate that activityType and activityId are provided
-    if (!activityType || !activityId) {
-      throw new Exception("activityType and activityId are required query parameters", { code: 400 });
-    }
-
-    let res = null;
-    let filters = {};
-    let allowedFilters = ALLOWED_FILTERS;
-    
-    // Loop through each allowed filter to check if it's in queryParams
-    allowedFilters.forEach((filter) => {
-      if (queryParams[filter.name]) {
-        // If the filter.name is found in queryParams, add it to the result object
-        filters[filter.name] =
-          queryParams[filter.name] === "true"
-            ? true
-            : queryParams[filter.name] === "false"
-              ? false
-              : queryParams[filter.name];
-      }
-    });
-
-    // Get product by productId
-    if (productId) {
-      res = await getProductByProductId(
-        collectionId, 
-        activityType, 
-        activityId,
-        productId
-      );
-    }
-    // Get all products for this activity
-    else {
-      res = await getProductsByCollectionId(
-        collectionId,
-        activityType,
-        activityId,
-        filters,
-        event?.queryStringParameters || null
-      );
-    }
-
-    // If the user isn't a superadmin, remove adminNotes from the response
-    if (res && authContext.permissions !== 'superadmin') {
-      const removedFields = ({ adminNotes, ...allowedFields }) => allowedFields;
-      res = Array.isArray(res) ? res.map(removedFields) : removedFields(res);
-    }
+    const res = await fetchProducts(collectionId, activityType, activityId, productId, queryParams, authContext)
 
     return sendResponse(200, res, "Success", null, context);
   } catch (error) {

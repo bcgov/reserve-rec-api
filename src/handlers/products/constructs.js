@@ -18,15 +18,12 @@ const defaults = {
   }
 }
 
-class ProductsConstruct extends LambdaConstruct {
+class PublicProductsConstruct extends LambdaConstruct {
   constructor(scope, id,  props) {
     super(scope, id, {
       ...props,
       defaults: defaults
     });
-
-    const handlerPrefix = props?.handlerPrefix || 'admin';
-    const handlerName = `${handlerPrefix}.handler`;
 
     // Add /products resource
     this.productsResource = this.resolveApi().root.addResource('products');
@@ -45,7 +42,61 @@ class ProductsConstruct extends LambdaConstruct {
       scope,
       'productsCollectionIdGetFunction',
       'src/handlers/products/_collectionId/GET',
-      handlerName,
+      'public.handler',
+      {
+        basicReadWrite: true,
+      }
+    );
+
+    // GET /products/{collectionId}
+    this.productsCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /products/{collectionId}/{activityType}/{activityId}
+    this.productsActivityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Add permissions to all functions
+    const functions = [
+      this.productsCollectionIdGetFunction,
+    ];
+
+    for (const func of functions) {
+      this.grantBasicRefDataTableReadWrite(func);
+    }
+
+  }
+}
+
+class AdminProductsConstruct extends LambdaConstruct {
+  constructor(scope, id,  props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+    // Add /products resource
+    this.productsResource = this.resolveApi().root.addResource('products');
+
+    // Add /products/{collectionId} resource
+    this.productsCollectionIdResource = this.productsResource.addResource('{collectionId}');
+
+    // Add /products/{collectionId}/{activityType}/{activityId} resource
+    this.productsActivityIdResource = this.productsCollectionIdResource.addResource('{activityType}').addResource('{activityId}');
+
+    // Add /products/{collectionId}/{activityType}/{activityId}/{productId} resource
+    this.productsProductIdResource = this.productsActivityIdResource.addResource('{productId}');
+
+    // Products GET by Collection ID Lambda Function
+    this.productsCollectionIdGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'productsCollectionIdGetFunction',
+      'src/handlers/products/_collectionId/GET',
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -68,7 +119,7 @@ class ProductsConstruct extends LambdaConstruct {
       scope,
       'productsCollectionIdPostFunction',
       'src/handlers/products/_collectionId/POST',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -85,7 +136,7 @@ class ProductsConstruct extends LambdaConstruct {
       scope,
       'productsCollectionIdPutFunction',
       'src/handlers/products/_collectionId/PUT',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -108,7 +159,7 @@ class ProductsConstruct extends LambdaConstruct {
       scope,
       'productsCollectionIdDeleteFunction',
       'src/handlers/products/_collectionId/DELETE',
-      handlerName,
+      'admin.handler',
       {
         basicReadWrite: true,
       }
@@ -136,5 +187,6 @@ class ProductsConstruct extends LambdaConstruct {
 }
 
 module.exports = {
-  ProductsConstruct,
+  PublicProductsConstruct,
+  AdminProductsConstruct,
 };
