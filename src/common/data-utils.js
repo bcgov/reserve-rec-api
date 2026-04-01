@@ -44,8 +44,8 @@ async function quickApiUpdateHandler(tableName, updateList, config = DEFAULT_API
         // Extract the data from the item and force it to be of the form field: {value: <value>, action?: <action>}
         let itemData = {};
         for (const field of Object.keys(item?.data)) {
-          if (item?.data[field]?.hasOwnProperty('value')) {
-            itemData[field] = item.data[field];
+          if (item?.data[field]?.hasOwnProperty('action')) {
+            itemData[field] = { value: item.data[field]?.value || null, action: item.data[field].action };
           } else {
             itemData[field] = { value: item?.data[field], action: DEFAULT_FIELD_ACTION };
           }

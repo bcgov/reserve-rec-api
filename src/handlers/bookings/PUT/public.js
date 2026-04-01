@@ -21,16 +21,10 @@ exports.handler = async (event, context) => {
     if (!sessionId) {
       throw new Exception("Session ID is required", { code: 400 });
     }
-    
+
     const updateRequests = await completeBooking(bookingId, sessionId);
 
-    const putItems = await quickApiUpdateHandler(
-      TABLE_NAME,
-      [updateRequests],
-      BOOKING_UPDATE_CONFIG
-    );
-
-    const res = await batchTransactData(putItems);
+    const res = await batchTransactData(updateRequests);
 
     const response = {
       res: res,

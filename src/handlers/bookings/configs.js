@@ -27,9 +27,9 @@ const BOOKING_PUT_CONFIG = {
   }
 };
 
-const BOOKINGDATES_PUT_CONFIG = BOOKING_PUT_CONFIG; // For now, BookingDate items have the same config as Booking items, but we can customize this in the future if needed
+const BOOKINGDATES_PUT_CONFIG = {...BOOKING_PUT_CONFIG}; // For now, BookingDate items have the same config as Booking items, but we can customize this in the future if needed
 
-const BOOKING_UPDATE_CONFIG = BOOKING_PUT_CONFIG; // For now, use the same config for updates, but in the future we may want to allow different fields or rules for updates vs creates, in which case we can create a separate config object for updates
+const BOOKING_UPDATE_CONFIG = {...BOOKING_PUT_CONFIG}; // For now, use the same config for updates, but in the future we may want to allow different fields or rules for updates vs creates, in which case we can create a separate config object for updates
 
 const BOOKING_PUT_CONFIG_TEMP = {
   failOnError: true,

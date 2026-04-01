@@ -6,6 +6,7 @@ const {
   getOne,
   REFERENCE_DATA_TABLE_NAME,
   TRANSACTIONAL_DATA_TABLE_NAME,
+  SPARSE_GSI1_NAME,
   USERID_INDEX_NAME,
   USERID_PROPERTY_NAME,
 } = require("/opt/dynamodb");
@@ -15,7 +16,7 @@ const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
 } = require("../activities/methods");
-const { getAndAttachNestedProperties, quickApiPutHandler, quickApiUpdateHandler,  } = require("../../common/data-utils");
+const { getAndAttachNestedProperties, quickApiPutHandler, quickApiUpdateHandler } = require("../../common/data-utils");
 const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
@@ -360,14 +361,15 @@ async function initInventoryPoolCheckRequest(props) {
             pk: marshall(inventoryPK),
             sk: marshall(inventorySK)
           },
-          UpdateExpression: "SET #availability = #availability - :quantity",
+          UpdateExpression: "ADD #availability :decrement",
           ExpressionAttributeNames: {
             "#availability": "availability"
           },
           ExpressionAttributeValues: {
-            ":quantity": marshall(props?.invQuantity)
+            ":decrement": marshall(props?.invQuantity * -1),
+            ":minimum": marshall(props?.invQuantity)
           },
-          ConditionExpression: "attribute_exists(pk) AND #availability >= :quantity"
+          ConditionExpression: "attribute_exists(pk) AND #availability >= :minimum"
         }
       };
 
@@ -669,6 +671,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       displayName: props?.displayName || formatBookingName(product?.displayName, startDate, endDate),
       bookingInitTime: queryTime,
       status: BOOKING_STATUS_ENUMS[0],
+      isPending: 'PENDING', // For expiry sparse GSI1
       timezone: product.timezone,
       asset: assetRef?.primaryKey,
       reservationPolicySnapshot: deleteEmptyAttributes(product.reservationPolicy),
@@ -842,6 +845,10 @@ function initBookingDateItem(bookingId, product, productDate, assetRef, props) {
       pk: `bookingDate::${bookingId}`,
       sk: productDate.date,
       schema: 'bookingDate',
+      productDate: {
+        pk: productDate.pk,
+        sk: productDate.sk,
+      },
       globalId: globalId,
       bookingId: bookingId,
       userId: props?.userId,
@@ -974,6 +981,7 @@ async function completeBooking(bookingId, sessionId, props) {
       // === Server-controlled fields ===
       bookingCompletionTime: queryTime,
       status: BOOKING_STATUS_ENUMS[1],
+      isPending: { action: 'remove' },
       // // Sanitized named occupant information
       namedOccupant: props?.namedOccupant
         ? {
@@ -1029,11 +1037,11 @@ async function completeBooking(bookingId, sessionId, props) {
 
       // Sanitized equipment information
       equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
-    }
+    };
 
     // Format the update request for the Booking item
 
-    const bookingUpdateRequest = await quickApiUpdateHandler(
+    let bookingUpdateRequest = await quickApiUpdateHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,
       [
         {
@@ -1967,6 +1975,55 @@ async function refundPublishCommand(booking, reason) {
   return result;
 }
 
+async function getExpiredBookings() {
+  try {
+    const now = new Date().getTime();
+    console.log('now', now);
+
+    const expiredBookingsQuery = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      IndexName: SPARSE_GSI1_NAME,
+      KeyConditionExpression: "#isPending = :isPending AND #expiry < :now",
+      ExpressionAttributeNames: {
+        "#isPending": "isPending",
+        "#expiry": "sessionExpiry",
+      },
+      ExpressionAttributeValues: {
+        ":isPending": { S: 'PENDING' },
+        ":now": { N: now.toString() },
+      },
+    };
+
+    console.log('expiredBookingsQuery', expiredBookingsQuery);
+
+    return await runQuery(expiredBookingsQuery, null, null, false);
+
+  } catch (error) {
+    logger.error("Error fetching expired bookings.");
+    throw error;
+  }
+}
+
+async function getBookingDatesByBookingId(bookingId) {
+  try {
+    const pk = `bookingDate::${bookingId}`;
+    const bookingDatesQuery = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      KeyConditionExpression: "#pk = :pk",
+      ExpressionAttributeNames: {
+        "#pk": "pk",
+      },
+      ExpressionAttributeValues: {
+        ":pk": { S: pk },
+      },
+    };
+    return await runQuery(bookingDatesQuery, null, null, false);
+  } catch (error) {
+    logger.error(`Error fetching booking dates for booking ${bookingId}.`);
+    throw error;
+  }
+}
+
 module.exports = {
   allBookingsSortAndPaginate,
   buildActivityFilters,
@@ -1982,6 +2039,8 @@ module.exports = {
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
+  getBookingDatesByBookingId,
+  getExpiredBookings,
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   sanitizeString,
