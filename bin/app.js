@@ -317,9 +317,9 @@ class CDKProject {
     const publicIdentityStack = await this.addStack('publicIdentityStack', createPublicIdentityStack);
     const openSearchStack = await this.addStack('openSearchStack', createOpenSearchStack);
     const transactionalDataStack = await this.addStack('transactionalDataStack', createTransactionalDataStack);
+    const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
     const bookingWorkflowStack = await this.addStack('bookingWorkflowStack', createBookingWorkflowStack);
     const emailDispatchStack = await this.addStack('emailDispatchStack', createEmailDispatchStack);
-    const referenceDataStack = await this.addStack('referenceDataStack', createReferenceDataStack);
     const waitingRoomStack = await this.addStack('waitingRoomStack', createWaitingRoomStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);

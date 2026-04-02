@@ -8,10 +8,12 @@
  * by a subscriber Lambda functions found in /bookings/cancel/subscriber and
  * transactions/refunds/subscriber.
  */
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent,  } = require("/opt/base");
+const { batchTransactData } = require("/opt/dynamodb");
 const {
   cancellationPublishCommand,
   getBookingByBookingId,
+  flagCancelledBooking
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
@@ -50,7 +52,7 @@ exports.handler = async (event, context) => {
     }
 
     // Check if booking is already cancelled
-    if (booking.bookingStatus === "cancelled") {
+    if (booking.status === "cancelled") {
       throw new Exception(`Booking ${bookingId} is already cancelled`, {
         code: 400,
       });
@@ -58,9 +60,9 @@ exports.handler = async (event, context) => {
 
     // Check if booking is in a cancellable state
     const cancellableStatuses = ['in progress', 'confirmed'];
-    if (!cancellableStatuses.includes(booking.bookingStatus)) {
+    if (!cancellableStatuses.includes(booking.status)) {
       throw new Exception(
-        `Booking has status "${booking.bookingStatus}" and cannot be cancelled`,
+        `Booking has status "${booking.status}" and cannot be cancelled`,
         { code: 400 }
       );
     }
@@ -69,7 +71,30 @@ exports.handler = async (event, context) => {
     // Should check booking.reservationPolicySnapshot.temporalWindows.cancellationWindow
     // to determine if current time is within allowed cancellation period
 
-    const result = await cancellationPublishCommand(booking, reason);
+    // For now, by default - the cancellation must occur before the booking's checkout time, if it exists.
+
+    const queryTime = new Date().getTime();
+
+    console.log('queryTime', queryTime);
+
+    const checkoutTime = booking?.reservationContext?.checkoutTime;
+
+    console.log('checkoutTime', checkoutTime);
+
+    if (checkoutTime && queryTime > checkoutTime) {
+      throw new Exception(
+        `Booking cannot be cancelled after the checkout time of ${new Date(checkoutTime).toISOString()}`,
+        { code: 400 }
+      );
+    }
+
+    // NOTE: because we are not yet issuing refunds, we can do a major shortcut here for the time being: instead of publishing a message to SNS and letting the subscriber handle the cancellation and refund, we can just update the booking `isPending` flag back to 'PENDING'. This will allow the expired Booking cleanup runner to pick up the cancelled booking alongside the other expired Bookings and return the related Inventory back to its respective pool. This is obviously not a long term solution, but it allows us to bypass the refund logic for now while still effectively cancelling the booking and freeing up inventory.
+
+    // const result = await cancellationPublishCommand(booking, reason);
+
+    const updateRequest = await flagCancelledBooking(booking, queryTime);
+
+    const result = await batchTransactData(updateRequest);
 
     logger.info(
       `Cancellation message published for booking ${bookingId}. Result: ${result}`
