@@ -2024,6 +2024,42 @@ async function getBookingDatesByBookingId(bookingId) {
   }
 }
 
+async function flagCancelledBooking(booking, queryTime) {
+  try {
+
+      const updateItem = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      Key: {
+        pk: { S: booking.pk },
+        sk: { S: booking.sk },
+      },
+      UpdateExpression: "SET #status = :status, #cancellationTime = :cancelledAt, #isPending = :isPending",
+      ExpressionAttributeNames: {
+        "#status": "status",
+        "#cancellationTime": "cancellationTime",
+        "#isPending": "isPending",
+      },
+      ExpressionAttributeValues: {
+        ":status": { S: BOOKING_STATUS_ENUMS[2] },
+        ":cancelledAt": { N: queryTime.toString() },
+        ":isPending": { S: 'PENDING' },
+      }
+    }
+
+    // return update formatted for batchTransactData
+    return [
+      {
+        data: updateItem,
+        action: 'Update'
+      }
+    ];
+
+  } catch (error) {
+    logger.error(`Error flagging cancelled booking ${booking.bookingId}.`);
+    throw error;
+  }
+}
+
 module.exports = {
   allBookingsSortAndPaginate,
   buildActivityFilters,
@@ -2035,6 +2071,7 @@ module.exports = {
   createBooking,
   fetchAllActivities,
   fetchBookingsWithPagination,
+  flagCancelledBooking,
   formatBookingResponsePublic,
   getBookingsByActivityDetails,
   getBookingByBookingId,
