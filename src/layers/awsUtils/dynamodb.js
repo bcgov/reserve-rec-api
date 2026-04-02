@@ -7,6 +7,7 @@ const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'refe
 const TRANSACTIONAL_DATA_TABLE_NAME = process.env.TRANSACTIONAL_DATA_TABLE_NAME || 'transactional-data';
 const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
 const GLOBALID_PROPERTY_NAME = process.env.GLOBALID_PROPERTY_NAME || 'globalId';
+const SPARSE_GSI1_NAME = process.env.SPARSE_GSI1_NAME || 'sparse-index-1';
 const USERID_INDEX_NAME = process.env.USERID_INDEX_NAME || 'userId-index';
 const ENTITY_RELATIONSHIP_INDEX = process.env.ENTITY_RELATIONSHIP_INDEX || 'entityRelationship-index';
 const USERID_PROPERTY_NAME = process.env.USERID_PROPERTY_NAME || 'userId';
@@ -641,6 +642,7 @@ module.exports = {
   GLOBALID_INDEX_NAME,
   GLOBALID_PROPERTY_NAME,
   PUBSUB_TABLE_NAME,
+  SPARSE_GSI1_NAME,
   USERID_INDEX_NAME,
   ENTITY_RELATIONSHIP_INDEX,
   USERID_PROPERTY_NAME,

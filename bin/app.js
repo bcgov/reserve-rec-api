@@ -335,6 +335,7 @@ class CDKProject {
     openSearchStack.addDependency(publicIdentityStack);
     bookingWorkflowStack.addDependency(coreStack);
     bookingWorkflowStack.addDependency(transactionalDataStack);
+    bookingWorkflowStack.addDependency(referenceDataStack);
     emailDispatchStack.addDependency(coreStack);
     referenceDataStack.addDependency(coreStack);
     referenceDataStack.addDependency(openSearchStack);

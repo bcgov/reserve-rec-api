@@ -26,7 +26,6 @@ exports.handler = async (event, context) => {
 
     const response = {
       res: res,
-      booking: updateRequests,
     }
 
     return sendResponse(200, response, "Success", null, context);
