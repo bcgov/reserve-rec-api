@@ -26,18 +26,19 @@ const CODE_PASS_THROUGH = [
   '}',
 ].join('\n');
 
-// Mode 2 ON — redirect to /waitingroom.html unless bcparks-admission cookie present.
-// Static assets (JS chunks, CSS, fonts, images) are always passed through so that
-// Angular's lazy-loaded chunks are never rewritten to /waitingroom.html, which would
-// cause "Expected JavaScript but received text/html" module import failures.
-// Only HTML navigation routes (no extension or .html) are gated.
+// Mode 2 ON — gate only the booking/checkout paths. Anonymous browsing, login,
+// and all other navigation pass through unmodified so that guest users can still
+// browse the site and authenticate normally.
+// Admitted users carry a bcparks-admission cookie that lets them through.
+// The intended destination is preserved as ?returnUrl= so the waiting room can
+// redirect back to it after admission.
 const CODE_GATE = [
   'async function handler(event) {',
   '  var request = event.request;',
   '  var uri = request.uri;',
-  '  var lastDot = uri.lastIndexOf(\'.\');',
-  '  var ext = lastDot !== -1 ? uri.slice(lastDot) : \'\';',
-  '  if (ext && ext !== \'.html\') {',
+  '  var gated = uri === \'/checkout\' || uri.startsWith(\'/checkout/\')',
+  '           || uri === \'/reservation-flow\' || uri.startsWith(\'/reservation-flow/\');',
+  '  if (!gated) {',
   '    return request;',
   '  }',
   '  var cookies = request.cookies;',
@@ -45,6 +46,7 @@ const CODE_GATE = [
   '    return request;',
   '  }',
   "  request.uri = '/waitingroom.html';",
+  "  request.querystring = 'returnUrl=' + encodeURIComponent(uri);",
   '  return request;',
   '}',
 ].join('\n');
