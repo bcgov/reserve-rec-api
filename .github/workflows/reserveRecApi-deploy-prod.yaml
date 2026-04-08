@@ -1,0 +1,91 @@
+name: Deploy ReserveRecApi Prod
+
+run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Prod Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseTag:
+        description: "Tag of version to be promoted to prod"
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-reserve-rec-api-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: reserveRecApiProd
+    strategy:
+      max-parallel: 1
+      matrix:
+        node-version: [20.x]
+    steps:
+      ### Restore cdk.out cache
+      - name: Restore cdk.out cache
+        uses: actions/cache@v4
+        with:
+          path: cdk.out
+          # A static cache key is fine since cdk deploy will overwrite files as needed
+          key: ${{ runner.os }}-prod-cdk-out
+          restore-keys: |
+            ${{ runner.os }}-prod-cdk-out-
+
+      ### Checkout GitHub Repo
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install AWS CDK
+        run: |
+          yarn
+          yarn global add aws-cdk
+
+      ### Assume AWS IAM Role
+      - name: Get AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
+
+      ### CDK Deploy
+      ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
+      - name: CDK Deploy
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --rollback
+
+      ### Sync WS_URL into the DynamoDB public config record.
+      ### The waiting room stack publishes wsApiUrl to SSM after deploy.
+      ### Skipped gracefully if the waiting room stack has not been deployed yet.
+      - name: Sync WS_URL to public config
+        env:
+          CONTEXT: prod
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ENV_CAP="$(echo "${CONTEXT:0:1}" | tr '[:lower:]' '[:upper:]')${CONTEXT:1}"
+          TABLE="ReserveRecApi-${ENV_CAP}-ReferenceDataStack-ReferenceDataTable"
+          WS_URL=$(aws ssm get-parameter --region "$REGION" \
+            --name "/reserveRecApi/${CONTEXT}/waitingRoomStack/wsApiUrl" \
+            --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          if [ -n "$WS_URL" ]; then
+            aws dynamodb update-item \
+              --region "$REGION" \
+              --table-name "$TABLE" \
+              --key '{"pk": {"S": "config"}, "sk": {"S": "public"}}' \
+              --update-expression "SET WS_URL = :val" \
+              --expression-attribute-values "{\":val\": {\"S\": \"$WS_URL\"}}"
+            echo "WS_URL set to: $WS_URL"
+          else
+            echo "NOTE: waitingRoomStack not deployed — WS_URL not updated."
+          fi
+
+      ### Save cdk.out cache
+      - name: Save cdk.out cache
+        uses: actions/cache@v4
+        with:
+          path: cdk.out
+          key: ${{ runner.os }}-prod-cdk-out
