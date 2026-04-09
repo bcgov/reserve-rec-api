@@ -97,9 +97,15 @@ exports.handler = async (event) => {
         }
         
         const payload = JSON.parse(Buffer.from(jwtParts[1], 'base64url').toString());
+        // BCSC test accounts never have verified emails. Cognito resets email_verified
+        // to false on every login when the email attribute is mapped from the provider.
+        // Force it true for non-prod so the booking UI doesn't block test users.
+        if (env !== 'prod') {
+          payload.email_verified = true;
+        }
         return {
           statusCode: 200,
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           },
