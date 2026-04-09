@@ -14,6 +14,9 @@ const defaults = {
     heartbeatFunction: {
       name: 'WaitingRoomHeartbeat',
     },
+    mode2StatusFunction: {
+      name: 'WaitingRoomMode2Status',
+    },
   },
 };
 
@@ -94,11 +97,28 @@ class WaitingRoomPublicConstruct extends LambdaConstruct {
       }
     );
 
+    // GET /waiting-room/mode2/status (public, no auth)
+    this.mode2StatusFunction = this.generateBasicLambdaFn(
+      scope,
+      'mode2StatusFunction',
+      'src/handlers/waiting-room/GET',
+      'mode2-status',
+      { memorySize: 128, timeout: require('aws-cdk-lib').Duration.seconds(10) }
+    );
+
+    const mode2Resource = this.waitingRoomResource.addResource('mode2');
+    mode2Resource.addResource('status').addMethod(
+      'GET',
+      new apigw.LambdaIntegration(this.mode2StatusFunction),
+      { authorizationType: apigw.AuthorizationType.NONE }
+    );
+
     // Grant DynamoDB read/write permissions to all API Lambdas
     if (props.waitingRoomTable) {
       props.waitingRoomTable.grantReadWriteData(this.joinFunction);
       props.waitingRoomTable.grantReadWriteData(this.claimFunction);
       props.waitingRoomTable.grantReadWriteData(this.heartbeatFunction);
+      props.waitingRoomTable.grantReadData(this.mode2StatusFunction);
     }
 
     // Grant Secrets Manager read permissions for the HMAC key
