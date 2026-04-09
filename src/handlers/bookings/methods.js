@@ -140,6 +140,39 @@ function sanitizeString(value, maxLength = 200) {
   return String(value).trim().slice(0, maxLength);
 }
 
+function buildVehicleInformation(vehicleInformation) {
+  if (!Array.isArray(vehicleInformation)) {
+    return [];
+  }
+
+  return vehicleInformation.slice(0, 5).map((vehicle = {}) => ({
+    licensePlate: vehicle.licensePlate || vehicle.plateNumber,
+    licensePlateRegistrationRegion: vehicle.licensePlateRegistrationRegion || vehicle.registrationRegion,
+  }));
+}
+
+function buildNamedOccupant(namedOccupant) {
+  if (!namedOccupant) {
+    return null;
+  }
+
+  const email = sanitizeString(namedOccupant.contactInfo?.email, 200);
+  const mobilePhone = sanitizeString(namedOccupant.contactInfo?.mobilePhone, 20);
+
+  return {
+    firstName: sanitizeString(namedOccupant.firstName, 100),
+    lastName: sanitizeString(namedOccupant.lastName, 100),
+    ...(email || mobilePhone
+      ? {
+        contactInfo: {
+          ...(email ? { email } : {}),
+          ...(mobilePhone ? { mobilePhone } : {}),
+        },
+      }
+      : {}),
+  };
+}
+
 async function getBookingsByUserId(userId, props) {
   logger.debug("Getting booking by userId:", userId);
   try {
@@ -376,7 +409,7 @@ async function initInventoryPoolCheckRequest(props) {
       inventoryRequests.push(inventoryRequest);
     }
 
-    logger.debug("Generated inventory requests for booking:", inventoryRequests);
+    logger.debug(`Generated ${Object.keys(inventoryRequests || {}).length} inventory request(s) for booking`);
 
     return inventoryRequests;
 
@@ -488,7 +521,16 @@ async function validateBookingRequest(product, productDates, props) {
 
 async function createBooking(props) {
   try {
-    logger.debug("Creating booking with properties:", props);
+    logger.debug('Creating booking', {
+      collectionId: props?.collectionId,
+      activityType: props?.activityType,
+      activityId: props?.activityId,
+      productId: props?.productId,
+      startDate: props?.startDate,
+      endDate: props?.endDate,
+      invQuantity: props?.invQuantity,
+      smsOptIn: Boolean(props?.smsOptIn),
+    });
 
     const {
       collectionId,
@@ -609,7 +651,7 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
       inventoryRequests.push(inventoryRequest);
     }
 
-    logger.debug("Generated inventory requests for booking:", inventoryRequests);
+    logger.debug(`Generated ${Object.keys(inventoryRequests || {}).length} inventory request(s) for booking`);
 
     return inventoryRequests;
   } catch (error) {
@@ -649,7 +691,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
 
     logger.debug(`${bookingDateItems.length} booking date items initialized for booking creation.`);
 
-    // === Whitelist and sanitize input fields ===
+    // === Whitelist input fields ===
     let bookingItem = {
       // === Server-controlled fields ===
       pk: `booking::${collectionId}::${activityType}::${activityId}::${productId}`,
@@ -665,6 +707,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       activityType: activityType,
       activityId: activityId,
       productId: productId,
+      quantity: Number(props?.invQuantity) || Number(props?.quantity) || 1,
       startDate: startDate,
       endDate: endDate,
       userId: userId,
@@ -678,6 +721,11 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       reservationContext: buildBookingReservationContext(product, productDates, queryTime),
       partyPolicySnapshot: deleteEmptyAttributes(product.partyPolicy),
       partyContext: deleteEmptyAttributes(props.partyInformation),
+      smsOptIn: Boolean(props?.smsOptIn),
+      // Persist guest details at create-time so confirmation reads consistent data before/after payment completion.
+      namedOccupant: buildNamedOccupant(props?.namedOccupant),
+      vehicleInformation: buildVehicleInformation(props.vehicleInformation),
+      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
       feePolicySnapshot: deleteEmptyAttributes(product.feePolicy),
       bookingDates: bookingDateItems.map((bd) => {
         return {
@@ -692,12 +740,6 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       // // feeContext,
       // // changeContext,
     };
-
-    for (const key in bookingItem?.namedOccupant?.contactInfo) {
-      if (!props.namedOccupant?.contactInfo || props.namedOccupant.contactInfo[key] === "") {
-        delete bookingItem.namedOccupant.contactInfo[key];
-      }
-    }
 
     logger.debug(`Booking item initialized for booking creation.`);
 
@@ -824,7 +866,11 @@ function buildBookingReservationContext(product, productDates, queryTime) {
       ...product.reservationContext,
     };
 
-    logger.debug(`Built booking reservation context: ${bookingReservationContext}`);
+    logger.debug('Built booking reservation context', {
+      arrivalDate: bookingReservationContext?.arrivalDate,
+      departureDate: bookingReservationContext?.departureDate,
+      totalDays: bookingReservationContext?.totalDays,
+    });
 
     return bookingReservationContext;
 
@@ -982,62 +1028,21 @@ async function completeBooking(bookingId, sessionId, props) {
       bookingCompletionTime: queryTime,
       status: BOOKING_STATUS_ENUMS[1],
       isPending: { action: 'remove' },
-      // // Sanitized named occupant information
-      namedOccupant: props?.namedOccupant
-        ? {
-          firstName: sanitizeString(props.namedOccupant.firstName, 100),
-          lastName: sanitizeString(props.namedOccupant.lastName, 100),
-          contactInfo: {
-            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
-            mobilePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.mobilePhone,
-              20
-            ),
-            homePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.homePhone,
-              20
-            ),
-            streetAddress: sanitizeString(
-              props.namedOccupant.contactInfo?.streetAddress,
-              200
-            ),
-            unitNumber: sanitizeString(
-              props.namedOccupant.contactInfo?.unitNumber,
-              20
-            ),
-            postalCode: sanitizeString(
-              props.namedOccupant.contactInfo?.postalCode,
-              20
-            ),
-            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
-            province: sanitizeString(
-              props.namedOccupant.contactInfo?.province,
-              50
-            ),
-            country: sanitizeString(
-              props.namedOccupant.contactInfo?.country,
-              50
-            ),
-          },
-        }
-        : null,
-      // Sanitized vehicle information (max 5 vehicles)
-      vehicleInformation: Array.isArray(props.vehicleInformation)
-        ? props.vehicleInformation.slice(0, 5).map((v) => ({
-          licensePlate: sanitizeString(v.licensePlate, 20),
-          licensePlateRegistrationRegion: sanitizeString(
-            v.licensePlateRegistrationRegion,
-            50
-          ),
-          vehicleMake: sanitizeString(v.vehicleMake, 50),
-          vehicleModel: sanitizeString(v.vehicleModel, 50),
-          vehicleColour: sanitizeString(v.vehicleColour, 30),
-        }))
-        : [],
-
-      // Sanitized equipment information
-      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
     };
+
+    // Apply user detail updates only when explicitly provided.
+    // Some callers complete the booking without posting these fields (e.g., payment webhook).
+    if (props && typeof props === 'object' && props.namedOccupant) {
+      updatedBookingItem.namedOccupant = buildNamedOccupant(props.namedOccupant);
+    }
+
+    if (props && typeof props === 'object' && Array.isArray(props.vehicleInformation)) {
+      updatedBookingItem.vehicleInformation = buildVehicleInformation(props.vehicleInformation);
+    }
+
+    if (props && typeof props === 'object' && Object.prototype.hasOwnProperty.call(props, 'equipmentInformation')) {
+      updatedBookingItem.equipmentInformation = sanitizeString(props.equipmentInformation, 1000);
+    }
 
     // Format the update request for the Booking item
 
@@ -1055,7 +1060,7 @@ async function completeBooking(bookingId, sessionId, props) {
       BOOKING_UPDATE_CONFIG
     );
 
-    console.log('bookingUpdateRequest', bookingUpdateRequest);
+    logger.debug(`Prepared ${bookingUpdateRequest.length} booking update request(s)`);
 
     return bookingUpdateRequest;
 
@@ -1092,8 +1097,8 @@ function validateBookingCompletion(booking, sessionId, props) {
       throw new Exception(`It is outside the reservation window for booking completion (BookingID: ${bookingId})`, { code: 400 });
     }
 
-    // If no named occupant information is provided, throw error (for now, we require named occupant information to complete the booking - this may be relaxed in the future)
-    if (!props?.namedOccupant) {
+    // Require named occupant information either in the completion payload or already on the booking.
+    if (!props?.namedOccupant && !booking?.namedOccupant) {
       throw new Exception(`Named occupant information is required for booking completion (BookingID: ${bookingId})`, { code: 400 });
     }
 

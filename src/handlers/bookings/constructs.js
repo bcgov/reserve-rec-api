@@ -222,6 +222,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     for (const func of readFunctions) {
       this.grantBasicTransDataTableRead(func);
+      this.grantBasicRefDataTableRead(func);
     }
 
     // Add permissions to write functions

@@ -5,9 +5,10 @@ const { batchTransactData } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
+const { enqueueSmsReminderIfNeeded } = require('../notifications');
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings POST:", event);
+  logger.info("Bookings POST Activated");
 
   try {
     // Get the query time
@@ -156,6 +157,7 @@ exports.handler = async (event, context) => {
     const res = await batchTransactData(bookingRequestItems);
 
     const response = formatBookingResponsePublic(bookingRequestItems);
+    await enqueueSmsReminderIfNeeded(body, response);
 
     return sendResponse(200, response, "Success", null, context);
 
@@ -170,11 +172,19 @@ exports.handler = async (event, context) => {
         }
       });
     }
+
+    const safeError = {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      cancellationReasons: error?.CancellationReasons || null,
+    };
+
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
       error?.message,
-      error,
+      safeError,
       context
     );
   }
