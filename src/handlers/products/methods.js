@@ -522,7 +522,7 @@ async function getProductsByActivity(orcs, activityType, activityId) {
 async function getProductById(orcs, activityType, activityId, productId, fetchObj = null, startDate = null, endDate = null) {
   logger.info('Get Product By Id');
   try {
-    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}`);
+    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::base`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
       POLICY_TYPES.map(policyType => {
