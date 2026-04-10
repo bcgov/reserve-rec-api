@@ -137,6 +137,7 @@ exports.handler = async function (event, context, callback) {
   }
 
   // Create verifier only if we have valid config
+  // TODO: Consider using tokenUse 'id' instead of 'access' if the frontend can be updated to use ID tokens for auth (more standard for Cognito)
   let verifier = null;
   if (config.PUBLIC_USER_POOL_ID && config.PUBLIC_USER_POOL_CLIENT_ID) {
     verifier = CognitoJwtVerifier.create({
@@ -150,6 +151,23 @@ exports.handler = async function (event, context, callback) {
     const headers = normalizedEvent.headers;
     const authorization = getAuthorizationToken(normalizedEvent);
 
+    // DEBUG: Log authorization status
+    logger.info("==== AUTHORIZATION DEBUG ====");
+    logger.info(`Authorization header present: ${!!authorization}`);
+    logger.info(`Verifier created: ${!!verifier}`);
+    if (authorization) {
+      logger.info(`Authorization header value (first 30 chars): ${authorization.substring(0, 30)}...`);
+    }
+    if (verifier) {
+      logger.info(`User Pool ID: ${config.PUBLIC_USER_POOL_ID}`);
+      logger.info(`Client ID: ${config.PUBLIC_USER_POOL_CLIENT_ID}`);
+    } else {
+      logger.error(`❌ Verifier NOT created!`);
+      logger.error(`USER_POOL_ID set: ${!!config.PUBLIC_USER_POOL_ID}`);
+      logger.error(`CLIENT_ID set: ${!!config.PUBLIC_USER_POOL_CLIENT_ID}`);
+    }
+    logger.info("============================");
+
     // Parse the methodArn to construct wildcard policy
     const arnPrefix = normalizedEvent.methodArn.split(':').slice(0, 6);
     const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
@@ -161,23 +179,42 @@ exports.handler = async function (event, context, callback) {
     let payload = null;
     let isAuthenticated = false;
 
-    if (authorization && verifier) {
-      logger.info("Attempting to parse and validate token");
-      const tokenData = await parseToken(headers, authorization);
-      
-      if (tokenData?.valid && tokenData?.valid === true) {
-        try {
-          payload = await validateToken(verifier, tokenData.token);
-          isAuthenticated = true;
-          logger.info("Token is valid - authenticated user");
-          logger.debug(`payload: ${JSON.stringify(payload)}`);
-        } catch (error) {
-          logger.info("Token validation failed - treating as guest");
-          logger.debug(`Token validation error: ${error}`);
-        }
-      }
+    if (!authorization) {
+      logger.info("❌ No authorization header - defaulting to guest");
+    } else if (!verifier) {
+      logger.error("❌ Verifier not available - cannot validate token - defaulting to guest");
     } else {
-      logger.info("No authorization token present - guest access");
+      logger.info("✓ Authorization header present and verifier ready - attempting validation");
+
+      try {
+        const tokenData = await parseToken(headers, authorization);
+        logger.info(`Token parse result: valid=${tokenData?.valid}, hasToken=${!!tokenData?.token}`);
+
+        if (tokenData?.valid && tokenData?.valid === true) {
+          try {
+            logger.info("Attempting token validation with Cognito...");
+            payload = await validateToken(verifier, tokenData.token);
+            isAuthenticated = true;
+            logger.info("✓✓ TOKEN VALIDATED SUCCESSFULLY - User authenticated");
+            logger.info(`User sub: ${payload?.sub}`);
+            logger.info(`Username: ${payload?.username || 'N/A'}`);
+            logger.debug(`Full payload: ${JSON.stringify(payload)}`);
+          } catch (error) {
+            logger.error("❌ Token validation failed - treating as guest");
+            logger.error(`Validation error: ${error.message}`);
+            logger.error(`Error name: ${error.name}`);
+            logger.debug(`Error stack: ${error.stack}`);
+          }
+        } else {
+          logger.warn("❌ Token parse returned invalid - check token format");
+          logger.warn(`Expected format: 'Authorization: Bearer <token>'`);
+          logger.debug(`Parsed token data: ${JSON.stringify(tokenData)}`);
+        }
+      } catch (parseError) {
+        logger.error("❌ Error during token parsing:");
+        logger.error(`Parse error: ${parseError.message}`);
+        logger.debug(`Parse error stack: ${parseError.stack}`);
+      }
     }
 
     // Generate policy with appropriate context
