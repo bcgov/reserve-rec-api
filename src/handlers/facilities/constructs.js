@@ -126,7 +126,7 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Facilities POST by Collection ID Lambda Function
+    // Facilities POST by Collection ID Lambda Function (admin only)
     this.facilitiesCollectionIdPostFunction = this.generateBasicLambdaFn(
       scope,
       'facilitiesCollectionIdPostFunction',
@@ -149,7 +149,7 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Facilities PUT by Collection ID Lambda Function
+    // Facilities PUT by Collection ID Lambda Function (admin only)
     this.facilitiesCollectionIdPutFunction = this.generateBasicLambdaFn(
       scope,
       'facilitiesCollectionIdPutFunction',
@@ -178,7 +178,7 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Facilities DELETE by Collection ID Lambda Function
+    // Facilities DELETE by Collection ID Lambda Function (admin only)
     this.facilitiesCollectionIdDeleteFunction = this.generateBasicLambdaFn(
       scope,
       'facilitiesCollectionIdDeleteFunction',

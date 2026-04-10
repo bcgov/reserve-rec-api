@@ -376,7 +376,7 @@ async function initInventoryPoolCheckRequest(props) {
       inventoryRequests.push(inventoryRequest);
     }
 
-    logger.debug("Generated inventory requests for booking:", inventoryRequests);
+    logger.debug(`Generated ${Object.keys(inventoryRequests || {}).length} inventory request(s) for booking`);
 
     return inventoryRequests;
 
@@ -488,7 +488,16 @@ async function validateBookingRequest(product, productDates, props) {
 
 async function createBooking(props) {
   try {
-    logger.debug("Creating booking with properties:", props);
+    logger.debug('Creating booking', {
+      collectionId: props?.collectionId,
+      activityType: props?.activityType,
+      activityId: props?.activityId,
+      productId: props?.productId,
+      startDate: props?.startDate,
+      endDate: props?.endDate,
+      invQuantity: props?.invQuantity,
+      smsOptIn: Boolean(props?.smsOptIn),
+    });
 
     const {
       collectionId,
@@ -609,7 +618,7 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
       inventoryRequests.push(inventoryRequest);
     }
 
-    logger.debug("Generated inventory requests for booking:", inventoryRequests);
+    logger.debug(`Generated ${Object.keys(inventoryRequests || {}).length} inventory request(s) for booking`);
 
     return inventoryRequests;
   } catch (error) {
@@ -678,6 +687,58 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       reservationContext: buildBookingReservationContext(product, productDates, queryTime),
       partyPolicySnapshot: deleteEmptyAttributes(product.partyPolicy),
       partyContext: deleteEmptyAttributes(props.partyInformation),
+      smsOptIn: Boolean(props?.smsOptIn),
+      namedOccupant: props?.namedOccupant
+        ? {
+          firstName: sanitizeString(props.namedOccupant.firstName, 100),
+          lastName: sanitizeString(props.namedOccupant.lastName, 100),
+          contactInfo: {
+            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
+            mobilePhone: sanitizeString(
+              props.namedOccupant.contactInfo?.mobilePhone,
+              20
+            ),
+            homePhone: sanitizeString(
+              props.namedOccupant.contactInfo?.homePhone,
+              20
+            ),
+            streetAddress: sanitizeString(
+              props.namedOccupant.contactInfo?.streetAddress,
+              200
+            ),
+            unitNumber: sanitizeString(
+              props.namedOccupant.contactInfo?.unitNumber,
+              20
+            ),
+            postalCode: sanitizeString(
+              props.namedOccupant.contactInfo?.postalCode,
+              20
+            ),
+            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
+            province: sanitizeString(
+              props.namedOccupant.contactInfo?.province,
+              50
+            ),
+            country: sanitizeString(
+              props.namedOccupant.contactInfo?.country,
+              50
+            ),
+          },
+        }
+        : null,
+      vehicleInformation: Array.isArray(props.vehicleInformation)
+        ? props.vehicleInformation.slice(0, 5).map((v) => ({
+          licensePlate: sanitizeString(v.licensePlate, 20),
+          licensePlateRegistrationRegion: sanitizeString(
+            v.licensePlateRegistrationRegion,
+            50
+          ),
+          vehicleMake: sanitizeString(v.vehicleMake, 50),
+          vehicleModel: sanitizeString(v.vehicleModel, 50),
+          vehicleColour: sanitizeString(v.vehicleColour, 30),
+        }))
+        : [],
+      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
       feePolicySnapshot: deleteEmptyAttributes(product.feePolicy),
       bookingDates: bookingDateItems.map((bd) => {
         return {
@@ -824,7 +885,11 @@ function buildBookingReservationContext(product, productDates, queryTime) {
       ...product.reservationContext,
     };
 
-    logger.debug(`Built booking reservation context: ${bookingReservationContext}`);
+    logger.debug('Built booking reservation context', {
+      arrivalDate: bookingReservationContext?.arrivalDate,
+      departureDate: bookingReservationContext?.departureDate,
+      totalDays: bookingReservationContext?.totalDays,
+    });
 
     return bookingReservationContext;
 
@@ -982,7 +1047,6 @@ async function completeBooking(bookingId, sessionId, props) {
       bookingCompletionTime: queryTime,
       status: BOOKING_STATUS_ENUMS[1],
       isPending: { action: 'remove' },
-      // // Sanitized named occupant information
       namedOccupant: props?.namedOccupant
         ? {
           firstName: sanitizeString(props.namedOccupant.firstName, 100),
@@ -1021,7 +1085,6 @@ async function completeBooking(bookingId, sessionId, props) {
           },
         }
         : null,
-      // Sanitized vehicle information (max 5 vehicles)
       vehicleInformation: Array.isArray(props.vehicleInformation)
         ? props.vehicleInformation.slice(0, 5).map((v) => ({
           licensePlate: sanitizeString(v.licensePlate, 20),
@@ -1034,8 +1097,6 @@ async function completeBooking(bookingId, sessionId, props) {
           vehicleColour: sanitizeString(v.vehicleColour, 30),
         }))
         : [],
-
-      // Sanitized equipment information
       equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
     };
 
@@ -1055,7 +1116,7 @@ async function completeBooking(bookingId, sessionId, props) {
       BOOKING_UPDATE_CONFIG
     );
 
-    console.log('bookingUpdateRequest', bookingUpdateRequest);
+    logger.debug(`Prepared ${bookingUpdateRequest.length} booking update request(s)`);
 
     return bookingUpdateRequest;
 
