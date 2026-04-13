@@ -27,16 +27,16 @@ Relationships are stored as separate items in the DynamoDB Reference Data table 
   // Primary keys for forward lookup
   pk: "rel::activity::bcparks_250::dayUse::1",
   sk: "facility::bcparks_250::parking::5",
-  
+
   // GSI keys for reverse lookup
   gsipk: "rel::facility::bcparks_250::parking::5",
   gsisk: "activity::bcparks_250::dayUse::1",
-  
+
   // Metadata
   schema: "relationship",
   schema1: "activity",
   schema2: "facility",
-  
+
   // Original entity keys
   pk1: "activity::bcparks_250",
   sk1: "dayUse::1",
@@ -93,7 +93,7 @@ The system maintains a strict hierarchy to ensure relationships are always store
 | Activity | Geozone, Facility |
 | Product | Activity (implicit via pk structure) |
 
-**Note:** Products are intrinsically linked to activities through their primary key structure (`product::bcparks_250::backcountryCamp::1::3::base`), so explicit product-activity relationships are not needed.
+**Note:** Products are intrinsically linked to activities through their primary key structure (`product::bcparks_250::backcountryCamp::1::3`), so explicit product-activity relationships are not needed.
 
 ---
 
@@ -465,13 +465,13 @@ exports.handler = async (event, context) => {
     // Step 1: Delete all relationships
     const pk = `activity::${collectionId}`;
     const sk = `${activityType}::${activityId}`;
-    
+
     const relationshipResult = await deleteEntityRelationships(
-      'activity', 
-      pk, 
+      'activity',
+      pk,
       sk
     );
-    
+
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
     // Step 2: Delete the entity itself

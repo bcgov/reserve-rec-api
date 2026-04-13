@@ -27,8 +27,8 @@ exports.handler = async (event, context) => {
 
     // First, delete all relationships associated with this product
     const pk = `product::${collectionId}::${activityType}::${activityId}`;
-    const sk = `${productId}::base`;
-    
+    const sk = `${productId}`;
+
     logger.info(`Deleting relationships for: rel::${pk}::${sk}`);
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
@@ -37,7 +37,7 @@ exports.handler = async (event, context) => {
     const deleteItem = createDeleteCommand(collectionId, activityType, activityId, productId);
 
     const res = await batchTransactData([deleteItem]);
-    
+
     return sendResponse(200, {
       ...res,
       relationshipsDeleted: relationshipResult.deletedCount
@@ -61,7 +61,7 @@ function createDeleteCommand(collectionId, activityType, activityId, productId) 
       TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
         pk: `product::${collectionId}::${activityType}::${activityId}`,
-        sk: `${productId}::base`,
+        sk: `${productId}`,
       }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },
