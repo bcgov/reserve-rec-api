@@ -2,7 +2,6 @@
 
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { getBookingsByUserId, getBookingByBookingId } = require("../methods");
-const { generateQRURL, generateQRCodeDataURL } = require("../../../../lib/handlers/emailDispatch/qrCodeHelper");
 
 /**
  * Generate QR code data for a booking (only for confirmed bookings)
@@ -11,12 +10,20 @@ const { generateQRURL, generateQRCodeDataURL } = require("../../../../lib/handle
  * @returns {Promise<object|null>} QR code data or null
  */
 async function generateQRCodeForBooking(bookingId, booking) {
+  // QR is enabled by default; set ENABLE_BOOKING_QR=false to disable explicitly.
+  if (process.env.ENABLE_BOOKING_QR === 'false') {
+    return null;
+  }
+
   // Only generate QR codes for confirmed bookings
-  if (booking?.bookingStatus !== 'confirmed') {
+  const bookingIsConfirmed = booking?.bookingStatus === 'confirmed' || booking?.status === 'confirmed';
+  if (!bookingIsConfirmed) {
     return null;
   }
 
   try {
+    // Lazy-load QR utilities to avoid loading heavy dependencies for non-confirmed bookings.
+    const { generateQRURL, generateQRCodeDataURL } = require("../../../../lib/handlers/emailDispatch/qrCodeHelper");
     const qrUrl = generateQRURL(bookingId);
     const qrCodeDataUrl = await generateQRCodeDataURL(qrUrl);
     return {
@@ -34,7 +41,9 @@ async function generateQRCodeForBooking(bookingId, booking) {
 }
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings GET:", event);
+  logger.info('Bookings GET Activated', {
+    bookingId: event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId || null,
+  });
 
   // Allow CORS
   if (event.httpMethod === 'OPTIONS') {
