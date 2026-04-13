@@ -12,6 +12,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
+const { sendConfirmationEmail, getRegionBranding } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
@@ -21,16 +22,15 @@ const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
   DEFAULT_TAX_PERCENT,
-  DEFAULT_MAX_BOOKING_DAYS_AHEAD,
-  DEFAULT_MAX_OCCUPANTS,
-  DEFAULT_MAX_VEHICLES,
-  BOOKING_STATUS_ENUMS
+  BOOKING_STATUS_ENUMS,
+  PARK_NAMES_BY_COLLECTION_ID
 } = require("../../common/data-constants");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
 const { DateTime } = require("luxon");
 const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
+const { getUserInfoByUserName } = require("../users/methods");
 
 const DEFAULT_SESSION_LENGTH = 30; // in minutes
 
@@ -1046,6 +1046,7 @@ async function completeBooking(bookingId, sessionId, props) {
       // === Server-controlled fields ===
       bookingCompletionTime: queryTime,
       status: BOOKING_STATUS_ENUMS[1],
+      // Remove pending state from GSI1
       isPending: { action: 'remove' },
       namedOccupant: props?.namedOccupant
         ? {
@@ -1116,14 +1117,65 @@ async function completeBooking(bookingId, sessionId, props) {
       BOOKING_UPDATE_CONFIG
     );
 
-    logger.debug(`Prepared ${bookingUpdateRequest.length} booking update request(s)`);
+    const emailParams = await generateEmailParams(booking, updatedBookingItem);
 
-    return bookingUpdateRequest;
+    return {
+      updateRequests: bookingUpdateRequest,
+      emailParams: emailParams
+    };
 
 
   } catch (error) {
     logger.error(`Booking finalization failed.`);
     throw error;
+  }
+}
+
+async function generateEmailParams(booking, updatedBookingItem) {
+  try {
+
+    // get bookingDates
+    const bookingDates = await getBookingDatesByBookingId(booking.bookingId);
+
+    // get parkName
+    const parkName = PARK_NAMES_BY_COLLECTION_ID[booking.collectionId];
+
+    let emailParams = {
+      booking: {
+        bookingId: booking.bookingId,
+        invQuantity: bookingDates?.items?.reduce((total, item) => {
+          const dailyInventory = item.quantity || 0;
+          return total + dailyInventory;
+        }, 0),
+        arrivalDate: booking.reservationContext?.arrivalDate?.ts,
+        departureDate: booking.reservationContext?.departureDate?.ts,
+        accountBookingUrl: null,
+        activityType: booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1),
+        productName: booking.displayName,
+        qrCodeDataUrl: null,
+        cancellationUrl: null,
+      },
+      customer: {
+        firstName: updatedBookingItem.namedOccupant?.firstName || '',
+        lastName: updatedBookingItem.namedOccupant?.lastName || '',
+        licensePlate: updatedBookingItem.vehicleInformation?.[0]?.licensePlate || '',
+        licensePlateRegion: updatedBookingItem.vehicleInformation?.[0]?.licensePlateRegistrationRegion || '',
+      },
+      location: {
+        parkName: parkName
+      },
+      branding: {
+        logoUrl: 'https://bcparks.ca/assets/logos/default-logo.png',
+      }
+    };
+
+    console.log('emailParams', emailParams);
+
+    return emailParams;
+
+  } catch (error) {
+    logger.error('Error generating email parameters for booking confirmation:', error);
+    return null;
   }
 }
 
@@ -2088,7 +2140,7 @@ async function getBookingDatesByBookingId(bookingId) {
 async function flagCancelledBooking(booking, queryTime) {
   try {
 
-      const updateItem = {
+    const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       Key: {
         pk: { S: booking.pk },
@@ -2105,7 +2157,7 @@ async function flagCancelledBooking(booking, queryTime) {
         ":cancelledAt": { N: queryTime.toString() },
         ":isPending": { S: 'PENDING' },
       }
-    }
+    };
 
     // return update formatted for batchTransactData
     return [
@@ -2118,6 +2170,103 @@ async function flagCancelledBooking(booking, queryTime) {
   } catch (error) {
     logger.error(`Error flagging cancelled booking ${booking.bookingId}.`);
     throw error;
+  }
+}
+
+/**
+ * Send booking confirmation email to SQS queue
+ * @param {object} booking - Booking data from DynamoDB
+ * @returns {Promise<Object>} SQS response
+ */
+async function sendBookingConfirmationEmail(booking, userName) {
+  try {
+
+    // get account email:
+    const userInfo = await getUserInfoByUserName(userName, 'public');
+
+    const accountEmail = userInfo?.UserAttributes?.find(attr => attr.Name === 'email')?.Value;
+
+    if (!accountEmail) {
+      logger.warn('Cannot send confirmation email - no email address found for user', {
+        bookingId: booking.bookingId,
+        userName: userName
+      });
+      return null;
+    }
+
+    // Calculate number of guests from partyContext
+    const partyInfo = booking.partyContext || {};
+    const numberOfGuests = (partyInfo.adult || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0) + (partyInfo.senior || 0) || 1;
+
+    // Extract booking data
+    const bookingData = {
+      bookingId: booking.bookingId || booking.globalId,
+      bookingReference: booking.bookingReference || booking.bookingId || booking.globalId,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      numberOfNights: booking.reservationContext?.totalDays || 1,
+      numberOfGuests: numberOfGuests,
+      status: booking.status || 'in-progress'
+    };
+
+    // Extract location data
+    const locationData = {
+      parkName: booking.displayName || 'BC Parks',
+      facilityName: booking.displayName || booking.facilityName,
+      siteNumber: booking.siteNumber,
+      region: booking.collectionId || 'default',
+      address: booking.address
+    };
+
+    // Extract customer data from namedOccupant
+    const namedOccupant = booking.namedOccupant || {};
+    const contactInfo = namedOccupant.contactInfo || {};
+
+
+    const customerData = {
+      firstName: namedOccupant.firstName || 'Guest',
+      lastName: namedOccupant.lastName || '',
+      email: contactInfo.email,
+      phone: contactInfo.mobilePhone,
+      address: {
+        street: contactInfo.streetAddress || '',
+        city: contactInfo.city || '',
+        province: contactInfo.province || '',
+        postalCode: contactInfo.postalCode || '',
+        country: contactInfo.country || 'CA'
+      }
+    };
+
+    // Get region-specific branding
+    const brandingData = {};
+    // const brandingData = getRegionBranding(locationData);
+
+    // Send confirmation email to SQS queue
+    const result = await sendConfirmationEmail({
+      email: accountEmail,
+      bookingData,
+      customerData,
+      locationData,
+      brandingData,
+      locale: booking.locale || 'en'
+    });
+
+    logger.info('Booking confirmation email queued successfully', {
+      bookingId: booking.bookingId,
+      recipient: customerData.email,
+      messageId: result.messageId
+    });
+
+    return result;
+
+  } catch (error) {
+    logger.error('Failed to queue booking confirmation email', {
+      bookingId: booking?.bookingId,
+      error: error.message,
+      stack: error.stack
+    });
+    // Don't throw - email failure shouldn't break the booking flow
+    return null;
   }
 }
 
@@ -2142,6 +2291,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   sanitizeString,
+  sendBookingConfirmationEmail,
   validateAdminRequirements,
   validateDateRange,
   validateCollectionAccess,

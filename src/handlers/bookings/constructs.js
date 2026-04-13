@@ -183,8 +183,17 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'public.handler',
       {
         transDataBasicReadWrite: true,
+        basicRead: true,
       }
     );
+
+    // Add permissions for Lambda to read from Cognito User Pools
+    this.bookingsCompleteFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser"
+      ],
+      resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
+    }));
 
     // POST /bookings/{bookingId}/cancel Lambda function
     this.bookingsCancelPostFunction = this.generateBasicLambdaFn(
@@ -194,6 +203,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       'index.handler',
       {
         transDataBasicReadWrite: true,
+        basicRead: true,
       }
     );
 
