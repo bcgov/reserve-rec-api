@@ -203,7 +203,7 @@ async function getProductByProductId(
 
     let res = await getOne(
       `product::${collectionId}::${activityType}::${activityId}`,
-      `${productId}::base`
+      `${productId}`
     );
 
     logger.debug(`Product: ${JSON.stringify(res, null, 2)}`);
@@ -295,7 +295,7 @@ async function processItem(
     }
 
     // Construct SK from the provided productId
-    sk = `${productId}::base`;
+    sk = `${productId}`;
 
     // Remove items that can't be in a PUT request
     delete item.pk;
@@ -325,7 +325,7 @@ async function processItem(
     productId = await incrementCounter(pk, ["counter"]);
 
     // Construct SK from the new productId
-    sk = `${productId}::base`;
+    sk = `${productId}`;
 
     // Generate globalId if not present
     if (!item.globalId) {
