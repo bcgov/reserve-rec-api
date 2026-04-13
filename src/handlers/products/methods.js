@@ -522,7 +522,7 @@ async function getProductsByActivity(orcs, activityType, activityId) {
 async function getProductById(orcs, activityType, activityId, productId, fetchObj = null, startDate = null, endDate = null) {
   logger.info('Get Product By Id');
   try {
-    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}::base`);
+    let res = await getOne(`product::${orcs}::${activityType}::${activityId}`, `${productId}`);
     let promiseObj = {};
     if (fetchObj?.fetchPolicies) {
       POLICY_TYPES.map(policyType => {
@@ -748,7 +748,7 @@ async function fetchProducts(collectionId, activityType, activityId, productId, 
     let res = null;
     let filters = {};
     let allowedFilters = ALLOWED_FILTERS;
-    
+
     // Loop through each allowed filter to check if it's in queryParams
     allowedFilters.forEach((filter) => {
       if (queryParams[filter.name]) {
@@ -765,8 +765,8 @@ async function fetchProducts(collectionId, activityType, activityId, productId, 
     // Get product by productId
     if (productId) {
       res = await getProductByProductId(
-        collectionId, 
-        activityType, 
+        collectionId,
+        activityType,
         activityId,
         productId
       );
