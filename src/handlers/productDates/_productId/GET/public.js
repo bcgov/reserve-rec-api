@@ -18,8 +18,6 @@ exports.handler = async (event, context) => {
 
     const user = getRequestClaimsFromEvent(event);
 
-    console.log('user:', user);
-
     if (!user) {
       throw new Exception("Unauthorized.", { code: 401 });
     }

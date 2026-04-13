@@ -372,16 +372,22 @@ const BOOKING_PUT_CONFIG_TEMP = {
       }
     },
     entryPoint: {
-      isMandatory: true,
+      isMandatory: false,
+      allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        if (value !== null && value !== undefined) {
+          rf.expectPrimaryKey(value);
+        }
         rf.expectAction(action, ['set']);
       }
     },
     exitPoint: {
-      isMandatory: true,
+      isMandatory: false,
+      allowEmpty: true,
       rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKey(value);
+        if (value !== null && value !== undefined) {
+          rf.expectPrimaryKey(value);
+        }
         rf.expectAction(action, ['set']);
       }
     },

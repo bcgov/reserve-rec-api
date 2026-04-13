@@ -91,7 +91,7 @@ class AdminProductsConstruct extends LambdaConstruct {
     // Add /products/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.productsProductIdResource = this.productsActivityIdResource.addResource('{productId}');
 
-    // Products GET by Collection ID Lambda Function
+    // Products GET by Collection ID Lambda Function (public access)
     this.productsCollectionIdGetFunction = this.generateBasicLambdaFn(
       scope,
       'productsCollectionIdGetFunction',
@@ -104,17 +104,15 @@ class AdminProductsConstruct extends LambdaConstruct {
 
     // GET /products/{collectionId}
     this.productsCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // GET /products/{collectionId}/{activityType}/{activityId}
     this.productsActivityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
-    // Products POST by Collection ID Lambda Function
+    // Products POST by Collection ID Lambda Function (admin only)
     this.productsCollectionIdPostFunction = this.generateBasicLambdaFn(
       scope,
       'productsCollectionIdPostFunction',
@@ -131,7 +129,7 @@ class AdminProductsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Products PUT by Collection ID Lambda Function
+    // Products PUT by Collection ID Lambda Function (admin only)
     this.productsCollectionIdPutFunction = this.generateBasicLambdaFn(
       scope,
       'productsCollectionIdPutFunction',
@@ -154,7 +152,7 @@ class AdminProductsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // Products DELETE by Collection ID Lambda Function
+    // Products DELETE by Collection ID Lambda Function (admin only)
     this.productsCollectionIdDeleteFunction = this.generateBasicLambdaFn(
       scope,
       'productsCollectionIdDeleteFunction',
