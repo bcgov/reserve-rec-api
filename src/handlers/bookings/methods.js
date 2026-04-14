@@ -412,7 +412,7 @@ async function validateBookingRequest(product, productDates, props) {
     // ===== Validate Product data ====
 
     // Is the Product reservable?
-    if (!product?.reservationContext?.isReservable) {
+    if (!product?.reservationPolicy?.isReservable) {
       throw "Product is not reservable";
     }
 
@@ -421,13 +421,12 @@ async function validateBookingRequest(product, productDates, props) {
 
     logger.debug(`Number of days requested: ${numberOfDays}`);
 
-    if (product.reservationContext?.minBookingDays && numberOfDays < product.reservationContext.minBookingDays) {
-      throw `Minimum ${product.reservationContext.minBookingDays} booking days required`;
+    if (product.reservationPolicy?.minTotalDays && numberOfDays < product.reservationPolicy.minTotalDays) {
+      throw `Minimum ${product.reservationPolicy.minTotalDays} booking days required`;
     }
 
-
-    if (product.reservationContext?.maxBookingDays && numberOfDays > product.reservationContext.maxBookingDays) {
-      throw `Maximum ${product.reservationContext.maxBookingDays} booking days allowed`;
+    if (product.reservationPolicy?.maxTotalDays && numberOfDays > product.reservationPolicy.maxTotalDays) {
+      throw `Maximum ${product.reservationPolicy.maxTotalDays} booking days allowed`;
     }
 
     // === Calculate queryTime in the timezone of the product for accurate reservation window validation ===
@@ -580,6 +579,7 @@ async function createBooking(props) {
     throw error;
   }
 }
+
 
 function createInventoryRequests(assetRef, productDates, invQuantity) {
   try {
