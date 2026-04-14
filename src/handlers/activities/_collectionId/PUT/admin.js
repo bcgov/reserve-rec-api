@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { ACTIVITY_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");

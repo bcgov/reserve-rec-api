@@ -104,12 +104,14 @@ class AdminProductsConstruct extends LambdaConstruct {
 
     // GET /products/{collectionId}
     this.productsCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.NONE,
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
     });
 
     // GET /products/{collectionId}/{activityType}/{activityId}
     this.productsActivityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.NONE,
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
     });
 
     // Products POST by Collection ID Lambda Function (admin only)
