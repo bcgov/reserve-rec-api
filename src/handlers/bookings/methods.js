@@ -677,7 +677,9 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       startDate: startDate,
       endDate: endDate,
       userId: userId,
-      displayName: props?.displayName || formatBookingName(product?.displayName, startDate, endDate),
+      displayName: formatBookingName(product?.displayName, startDate, endDate),
+      productDisplayName: product?.displayName,
+      facilityDisplayName: sanitizeString(props?.facilityDisplayName, 200),
       bookingInitTime: queryTime,
       status: BOOKING_STATUS_ENUMS[0],
       isPending: 'PENDING', // For expiry sparse GSI1
