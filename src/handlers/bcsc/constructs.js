@@ -19,6 +19,11 @@ class BCSCConstruct extends Construct {
       throw new Error('BCSCConstruct: Missing required property "api" in props');
     }
 
+    // Shorten function names to stay under 64 character Lambda limit
+    const appName = scope.getAppName?.() || 'App';
+    const deploymentName = scope.getDeploymentName?.() || 'Dev';
+    const functionNameBase = `${appName}-${deploymentName}-bcsc`.slice(0, 48); // Leave room for suffix
+
     // BCSC GET Handler
     this.bcscGetHandler = new lambda.Function(this, 'BCSCGetHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -31,7 +36,7 @@ class BCSCConstruct extends Construct {
       },
       timeout: Duration.seconds(30),
       memorySize: 256,
-      functionName: `${scope.stackName}-BCSCGetHandler`,
+      functionName: `${functionNameBase}-get`.slice(0, 64),
     });
 
     // BCSC POST Handler
@@ -46,7 +51,7 @@ class BCSCConstruct extends Construct {
       },
       timeout: Duration.seconds(30),
       memorySize: 256,
-      functionName: `${scope.stackName}-BCSCPostHandler`,
+      functionName: `${functionNameBase}-post`.slice(0, 64),
     });
 
     // Add KMS permissions for both handlers
@@ -92,6 +97,22 @@ class BCSCConstruct extends Construct {
     // bcsc/token/{env} - Token exchange endpoint
     const tokenResource = bcscResource.addResource('token');
     const tokenEnvResource = tokenResource.addResource('{env}');
+
+    [bcscResource, jwksResource, userinfoResource, userinfoEnvResource, tokenResource, tokenEnvResource]
+      .forEach((resource) => {
+        resource.addCorsPreflight({
+          allowCredentials: true,
+          allowOrigins: apigw.Cors.ALL_ORIGINS,
+          allowMethods: apigw.Cors.ALL_METHODS,
+          allowHeaders: [
+            'Content-Type',
+            'X-Amz-Date',
+            'Authorization',
+            'X-Api-Key',
+            'X-Amz-Security-Token',
+          ],
+        });
+      });
     
     // POST /bcsc/token/{env} - Token exchange (used by Cognito)
     tokenEnvResource.addMethod('POST', new apigw.LambdaIntegration(this.bcscPostHandler));

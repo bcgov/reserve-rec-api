@@ -75,24 +75,24 @@ class InventoryConstruct extends LambdaConstruct {
 
     // GET /inventory/{collectionId}/{activityType}/{activityId}/{productId}?date=YYYY-MM-DD will be used to fetch Inventory records for a given Product on a specific date.
 
-    this.inventoryByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryGetByProductFunction, {
+    this.inventoryByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryGetByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
 
     // POST /inventory/{collectionId}/{activityType}/{activityId}/{productId} will be used to create Inventory records for a given Product and date range. The request body should include the date range and the inventory level for each date in the range. This will allow us to create Inventory records for each date in the range with the appropriate inventory level.
 
-    this.inventoryByProductResource.addMethod('POST', new apigw.LambdaIntegration(this.inventoryPostByProductFunction, {
+    this.inventoryByProductResource.addMethod('POST', new apigw.LambdaIntegration(this.inventoryPostByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
 
     // DELETE /inventory/{collectionId}/{activityType}/{activityId}/{productId} will be used to delete Inventory records for a given Product and date range. The request body should include the date range.
 
-    this.inventoryByProductResource.addMethod('DELETE', new apigw.LambdaIntegration(this.inventoryDeleteByProductFunction, {
+    this.inventoryByProductResource.addMethod('DELETE', new apigw.LambdaIntegration(this.inventoryDeleteByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
   }
 }
 

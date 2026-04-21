@@ -37,6 +37,12 @@ class GeozonesConstruct extends LambdaConstruct {
     // Add /geozones/{collectionId}/{geozoneId} resource
     this.geozonesGeozoneIdResource = this.geozonesCollectionIdResource.addResource('{geozoneId}');
 
+    this.addCorsPreflightForResources([
+      this.geozonesResource,
+      this.geozonesCollectionIdResource,
+      this.geozonesGeozoneIdResource,
+    ]);
+
     // Geozones GET by Collection ID Lambda Function
     this.geozonesCollectionIdGetFunction = this.generateBasicLambdaFn(
       scope,

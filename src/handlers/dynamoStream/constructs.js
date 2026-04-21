@@ -18,11 +18,12 @@ class DynamoStreamConstruct extends Construct {
       throw new Error('DynamoStreamConstruct requires a table property in props');
     }
 
-    // Create the DynamoDB Stream processing Lambda function
+    // Create the DynamoDB Stream processing Lambda function=
     const streamFunctionId = scope.createScopedId(id, 'Function');
-    console.log('streamFunctionId:', streamFunctionId);
+    // 64-character limit
+    const functionName = `${scope.getAppName()}-${scope.getDeploymentName()}-${handlerPrefix}`.slice(0, 64);
     this.streamFunction = new NodejsFunction(this, streamFunctionId, {
-      functionName: streamFunctionId,
+      functionName: functionName,
       description: props?.description || `DynamoDB Stream processor for ${scope.getAppName()} - ${scope.getDeploymentName()} environment`,
       code: lambda.Code.fromAsset('src/handlers/dynamoStream'),
       handler: handlerName,

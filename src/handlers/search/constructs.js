@@ -29,6 +29,10 @@ class AdminSearchLambda extends LambdaConstruct {
     // Create the /search resource
     this.searchResource = api.root.addResource('search');
 
+    this.addCorsPreflightForResources([
+      this.searchResource,
+    ]);
+
     // Add POST method to /search resource
     this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchFunction), {
       authorizationType: apigateway.AuthorizationType.CUSTOM,
@@ -73,6 +77,10 @@ class PublicSearchLambda extends LambdaConstruct {
 
     // Create the /search resource
     this.searchResource = api.root.addResource('search');
+
+    this.addCorsPreflightForResources([
+      this.searchResource,
+    ]);
 
     // Add POST method to /search resource
     this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchFunction), {

@@ -20,6 +20,11 @@ class ReportsConstruct extends LambdaConstruct {
     // /reports/daily-passes resource
     this.dailyPassesResource = this.reportsResource.addResource('daily-passes');
 
+    this.addCorsPreflightForResources([
+      this.reportsResource,
+      this.dailyPassesResource,
+    ]);
+
     // GET /reports/daily-passes Lambda (30s timeout for larger datasets)
     this.dailyPassesGETFunction = this.generateBasicLambdaFn(
       scope,

@@ -25,6 +25,10 @@ class AdminFeatureFlagsConstruct extends LambdaConstruct {
     // Add /featureFlags resource
     this.featureFlagsResource = this.resolveApi().root.addResource('featureFlags');
 
+    this.addCorsPreflightForResources([
+      this.featureFlagsResource,
+    ]);
+
     // GET /featureFlags (public - no auth required)
     this.featureFlagsGetPublicFunction = this.generateBasicLambdaFn(
       scope,
@@ -80,6 +84,10 @@ class PublicFeatureFlagsConstruct extends LambdaConstruct {
 
     // Add /featureFlags resource
     this.featureFlagsResource = this.resolveApi().root.addResource('featureFlags');
+
+    this.addCorsPreflightForResources([
+      this.featureFlagsResource,
+    ]);
 
     // GET /featureFlags (public - no auth required)
     this.featureFlagsGetPublicFunction = this.generateBasicLambdaFn(

@@ -254,6 +254,14 @@ function filterByRole(res, role = 'default', ROLE_BASED_FILTERS) {
  */
 
 function checkAuthContext(event, requiredTier = null, collectionId = null) {
+  // Bypass auth checks when running locally with SAM
+  if (process.env.AWS_SAM_LOCAL === 'true') {
+    return {
+      sub: 'local-dev',
+      permissions: { superadmin: 'superadmin' },
+    };
+  }
+
   // Accept explicit collectionId (e.g. from query params) or fall back to path parameter
   const colId = collectionId || event?.pathParameters?.collectionId;
   

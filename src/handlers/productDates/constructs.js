@@ -35,6 +35,11 @@ class ProductDatesConstruct extends LambdaConstruct {
     // Add /product-dates/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.productDatesByProductResource = this.productDatesResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
 
+    this.addCorsPreflightForResources([
+      this.productDatesResource,
+      this.productDatesByProductResource,
+    ]);
+
     // // ProductDates GET by Product ID Lambda Function
     this.productDatesGetByDatesFunction = this.generateBasicLambdaFn(
       scope,
@@ -105,6 +110,11 @@ class PublicProductDatesConstruct extends LambdaConstruct {
     this.productDatesResource = this.resolveApi().root.addResource('product-dates');
 
     this.productDatesByProductResource = this.productDatesResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
+
+    this.addCorsPreflightForResources([
+      this.productDatesResource,
+      this.productDatesByProductResource,
+    ]);
 
     // // ProductDates GET by Product ID Lambda Function
     this.productDatesGetByDatesFunction = this.generateBasicLambdaFn(

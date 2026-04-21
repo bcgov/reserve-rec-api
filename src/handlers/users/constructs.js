@@ -87,6 +87,14 @@ class UsersConstruct extends LambdaConstruct {
     // POST /users/search - Search users in OpenSearch
     this.searchResource = this.usersResource.addResource('search');
 
+    this.addCorsPreflightForResources([
+      this.usersResource,
+      this.meResource,
+      this.userPoolIdResource,
+      this.userSubResource,
+      this.searchResource,
+    ]);
+
     this.searchUsersFunction = this.generateBasicLambdaFn(
       scope,
       'searchUsersFunction',

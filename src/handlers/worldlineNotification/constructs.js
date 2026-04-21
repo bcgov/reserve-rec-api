@@ -5,7 +5,7 @@ const iam = require("aws-cdk-lib/aws-iam");
 const defaults = {
   resources: {
     worldlineNotificationPostFunction: {
-      name: 'WorldlineNotificationPOST',
+      name: 'WLineNotePost',
     }
   }
 };

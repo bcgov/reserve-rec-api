@@ -27,6 +27,19 @@ class PingApiConstruct extends Construct {
 
     this.pingResource = api.root.addResource('ping');
 
+    this.pingResource.addCorsPreflight({
+      allowCredentials: true,
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowMethods: apigateway.Cors.ALL_METHODS,
+      allowHeaders: [
+        'Content-Type',
+        'X-Amz-Date',
+        'Authorization',
+        'X-Api-Key',
+        'X-Amz-Security-Token',
+      ],
+    });
+
     this.pingResource.addMethod('GET', new apigateway.LambdaIntegration(this.testLambdaFunction));
   }
 }

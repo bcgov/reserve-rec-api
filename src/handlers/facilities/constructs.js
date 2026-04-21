@@ -37,6 +37,13 @@ class PublicFacilitiesConstruct extends LambdaConstruct {
     // Add /facilities/{collectionId}/{facilityId} resource
     this.facilitiesFacilityIdResource = this.facilitiesFacilityTypeResource.addResource('{facilityId}');
 
+    this.addCorsPreflightForResources([
+      this.facilitiesResource,
+      this.facilitiesCollectionIdResource,
+      this.facilitiesFacilityTypeResource,
+      this.facilitiesFacilityIdResource,
+    ]);
+
     // Facilities GET by Collection ID Lambda Function
     this.facilitiesCollectionIdGetFunction = this.generateBasicLambdaFn(
       scope,
@@ -96,6 +103,13 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
 
     // Add /facilities/{collectionId}/{facilityId} resource
     this.facilitiesFacilityIdResource = this.facilitiesFacilityTypeResource.addResource('{facilityId}');
+
+    this.addCorsPreflightForResources([
+      this.facilitiesResource,
+      this.facilitiesCollectionIdResource,
+      this.facilitiesFacilityTypeResource,
+      this.facilitiesFacilityIdResource,
+    ]);
 
     // Facilities GET by Collection ID Lambda Function
     this.facilitiesCollectionIdGetFunction = this.generateBasicLambdaFn(

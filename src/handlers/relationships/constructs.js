@@ -13,7 +13,7 @@ const defaults = {
       name: 'RelationshipsDELETE',
     },
     relationshipsReverseGetFunction: {
-      name: 'RelationshipsReverseGET',
+      name: 'RelationshipsRevGET',
     }
   }
 }
@@ -51,6 +51,17 @@ class RelationshipsConstruct extends LambdaConstruct {
 
     // Add /relationships/reverse/{pk2}/{sk2} resource
     this.relationshipsReverseSk2Resource = this.relationshipsReversePk2Resource.addResource('{sk2}');
+
+    this.addCorsPreflightForResources([
+      this.relationshipsResource,
+      this.relationshipsPk1Resource,
+      this.relationshipsSk1Resource,
+      this.relationshipsPk2Resource,
+      this.relationshipsSk2Resource,
+      this.relationshipsReverseResource,
+      this.relationshipsReversePk2Resource,
+      this.relationshipsReverseSk2Resource,
+    ]);
 
     // Relationships GET Lambda Function
     this.relationshipsGetFunction = this.generateBasicLambdaFn(

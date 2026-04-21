@@ -40,6 +40,13 @@ class PoliciesConstruct extends LambdaConstruct {
     // Add /policies/{policyType}/{policyId}/{policyIdVersion} resource
     this.policiesPolicyTypeIdVersionResource = this.policiesPolicyTypeIdResource.addResource('{policyIdVersion}');
 
+    this.addCorsPreflightForResources([
+      this.policiesResource,
+      this.policiesTypeResource,
+      this.policiesPolicyTypeIdResource,
+      this.policiesPolicyTypeIdVersionResource,
+    ]);
+
     // Policies GET Lambda Function
     this.policiesGetFunction = this.generateBasicLambdaFn(
       scope,

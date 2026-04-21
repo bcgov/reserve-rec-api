@@ -37,6 +37,13 @@ class PublicProductsConstruct extends LambdaConstruct {
     // Add /products/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.productsProductIdResource = this.productsActivityIdResource.addResource('{productId}');
 
+    this.addCorsPreflightForResources([
+      this.productsResource,
+      this.productsCollectionIdResource,
+      this.productsActivityIdResource,
+      this.productsProductIdResource,
+    ]);
+
     // Products GET by Collection ID Lambda Function
     this.productsCollectionIdGetFunction = this.generateBasicLambdaFn(
       scope,
@@ -91,7 +98,14 @@ class AdminProductsConstruct extends LambdaConstruct {
     // Add /products/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.productsProductIdResource = this.productsActivityIdResource.addResource('{productId}');
 
-    // Products GET by Collection ID Lambda Function (public access)
+    this.addCorsPreflightForResources([
+      this.productsResource,
+      this.productsCollectionIdResource,
+      this.productsActivityIdResource,
+      this.productsProductIdResource,
+    ]);
+
+    // Products GET by Collection ID Lambda Function
     this.productsCollectionIdGetFunction = this.generateBasicLambdaFn(
       scope,
       'productsCollectionIdGetFunction',

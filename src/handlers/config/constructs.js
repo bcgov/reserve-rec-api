@@ -24,6 +24,10 @@ class AdminConfigLambdas extends LambdaConstruct {
 
     this.configResource = this.api.root.addResource('config');
 
+    this.addCorsPreflightForResources([
+      this.configResource,
+    ]);
+
     // No authorization for this resource
     this.configResource.addMethod('GET', new apigateway.LambdaIntegration(this.configGetFunction), {
       authorizationType: apigateway.AuthorizationType.NONE
@@ -52,6 +56,10 @@ class PublicConfigLambdas extends LambdaConstruct {
     });
 
     this.configResource = this.api.root.addResource('config');
+
+    this.addCorsPreflightForResources([
+      this.configResource,
+    ]);
 
     // No authorization for this resource
     this.configResource.addMethod('GET', new apigateway.LambdaIntegration(this.configGetFunction), {

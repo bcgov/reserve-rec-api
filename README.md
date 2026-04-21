@@ -118,10 +118,13 @@ This project uses AWS Cloud Development Kit (CDK) to define infrastructure as co
 **REST API endpoints and business logic**
 
 #### Admin API Stack (`adminApiStack`)
+- **Nested Stack Architecture**: The stack is decomposed into a hub-and-spoke model. `AdminApiCoreNestedStack` owns the API Gateway and Authorizer; all domain areas (geozones, facilities, activities, products, users, bookings, verify, reports, etc.) are provisioned in their own nested stacks to stay well under CloudFormation's 500-resource-per-stack limit.
 - **Data Management Endpoints**: Park administration, user management, reporting
 - **Lambda Functions**: Business logic for administrative operations
-- **API Gateway**: RESTful endpoints with request validation
-- **Authorization**: Integration with admin Cognito user pool
+- **API Gateway**: RESTful endpoints with request validation. The `RestApi` is created with `deploy: false`; the root stack owns the `Deployment` and `Stage` resources and declares explicit dependencies on every domain nested stack to ensure correct redeployment ordering.
+- **Authorization**: Integration with admin Cognito user pool, provided by `AdminApiCoreNestedStack` and shared with domain stacks via authorizer reference.
+- **Feature Flags**: Each domain area can be selectively enabled or disabled at synth time via `ENABLE_*` environment variables (see [Environment Configuration](#environment-configuration)).
+- **Local vs. AWS deployment**: When running locally (`@context=local`), SAM-incompatible nested stacks are replaced with flat constructs for each domain area.
 
 #### Public API Stack (`publicApiStack`)
 - **Booking Endpoints**: Facility search, availability, reservation creation
@@ -175,6 +178,34 @@ The project supports multiple deployment environments configured via `cdk.json`:
 - **AWS_REGION**: AWS region to deploy the app into (almost always `ca-central-1`)
 - **IS_OFFLINE**: If `"true"`, the synthesizing/deployment operations will not attempt to connect to remote AWS servers for context/configuration variables (if synthesizing locally for example).
 - **FAIL_FAST**: Abort synthesis of downstream stacks if an error occurs (useful for prototyping)
+
+#### Admin API Feature Flags
+
+Each domain area of the Admin API stack can be selectively enabled or disabled at synth/deploy time using environment variables. All flags default to `true` (enabled) unless explicitly set to `"false"`.
+
+| Environment Variable | Domain Area |
+|---|---|
+| `ENABLE_PING` | Ping / health-check endpoint |
+| `ENABLE_BCSC` | BC Services Card (BCSC) login endpoints |
+| `ENABLE_CONFIG` | Admin config getters |
+| `ENABLE_SEARCH` | OpenSearch-backed admin search |
+| `ENABLE_GEOZONES` | Geozone management |
+| `ENABLE_FACILITIES` | Facility management |
+| `ENABLE_ACTIVITIES` | Activity management |
+| `ENABLE_PRODUCTS` | Product management |
+| `ENABLE_POLICIES` | Policy management |
+| `ENABLE_REPORTS` | Reporting (daily passes, etc.) |
+| `ENABLE_RELATIONSHIPS` | Entity relationship management |
+| `ENABLE_FEATURE_FLAGS` | Feature flag management |
+| `ENABLE_USERS` | User management |
+| `ENABLE_BOOKINGS` | Booking management |
+| `ENABLE_VERIFY` | QR code verification |
+| `ENABLE_PRODUCT_MANAGEMENT` | Product dates and management |
+
+Example — deploy without search or reports:
+```bash
+ENABLE_SEARCH=false ENABLE_REPORTS=false yarn deploy:dev
+```
 
 ### Resource Naming Convention
 

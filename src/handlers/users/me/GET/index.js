@@ -6,12 +6,15 @@ const { sendResponse, logger } = require('/opt/base');
 exports.handler = async function (event, context) {
   logger.debug('User GET /me', JSON.stringify(event));
 
-  const authorizer = event?.requestContext?.authorizer;
-  const sub = authorizer?.principalId || null;
+  // When running locally with SAM, authorizer context is not injected
+  const authorizer = event?.requestContext?.authorizer || {};
+  const sub = process.env.AWS_SAM_LOCAL === 'true' ? 'local-dev' : (authorizer?.principalId || null);
   let permissions = {};
 
   try {
-    permissions = JSON.parse(authorizer?.permissions || '{}');
+    permissions = process.env.AWS_SAM_LOCAL === 'true'
+      ? { superadmin: 'superadmin' }
+      : JSON.parse(authorizer?.permissions || '{}');
   } catch (e) {
     logger.warn('Could not parse permissions from authorizer context');
   }

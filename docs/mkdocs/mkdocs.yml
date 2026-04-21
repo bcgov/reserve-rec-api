@@ -87,3 +87,5 @@ nav:
             - Change Policies: datatypes/policies/change-policies.md
   - Features:
       - QR Codes: features/qr-code.md
+  - Stacks:
+      - Admin API Stack: stacks/admin-api-stack.md
