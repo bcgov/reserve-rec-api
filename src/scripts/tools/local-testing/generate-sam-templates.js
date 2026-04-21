@@ -14,6 +14,9 @@ class SAMTemplateGenerator {
         this.apiAuthorizers = new Map();
         this.assetMapping = new Map();
         this.layerImportMapping = new Map();
+        this.paramToLambdaMap = new Map(); // nested stack paramName -> lambdaResourceId
+        this.apiOutputMap = new Map();    // "Outputs.outputKey" -> apiResourceId
+        this.paramToApiMap = new Map();   // nested stack paramName -> apiResourceId
 
         // Environment configuration options
         this.environmentConfig = this.buildEnvironmentConfig(options);
@@ -89,12 +92,34 @@ class SAMTemplateGenerator {
         // Step 1: Find all CloudFormation template files
         this.findTemplateFiles();
 
-        // Step 2: Parse each template file
+        // Step 2a: First pass - scan nested templates for RestApi Outputs so we can
+        // trace the cross stack chain: FeatureFlagsStack param -> CoreStack Output -> RestApi ID
+        for (const templateFile of this.templateFiles) {
+            try {
+                const template = JSON.parse(fs.readFileSync(templateFile, 'utf8'));
+                this.extractApiOutputs(template);
+            } catch (_) { /* ignore for now, will surface in main parse pass */ }
+        }
+
+        // Step 2b: Second pass — build cross-stack parameter maps (Lambda ARNs + RestApi IDs)
+        for (const templateFile of this.templateFiles) {
+            try {
+                const template = JSON.parse(fs.readFileSync(templateFile, 'utf8'));
+                this.extractNestedStackParams(template);
+            } catch (_) { /* ignore parse errors here, they'll surface in pass 3 */ }
+        }
+
+        // Step 3: Main parse pass — extract APIs, functions, layers, etc.
         for (const templateFile of this.templateFiles) {
             await this.parseTemplate(templateFile);
         }
 
-        // Step 3: Generate SAM templates for each API
+        // Step 4: Associate methods/resources from cross-stack nested templates
+        // (e.g. featureFlags, users/me — in their own nested stacks that reference
+        // the RestApi via a parameter rather than a direct Ref)
+        this.associateMethodsToApis();
+
+        // Step 5: Generate SAM templates for each API
         this.generateSAMTemplates();
 
         console.log('✅ SAM template generation completed!');
@@ -108,7 +133,7 @@ class SAMTemplateGenerator {
         const files = fs.readdirSync(this.cdkOutDir);
         this.templateFiles = files
             .filter(file => file.endsWith('.template.json'))
-            .filter(file => file.includes('-Local-'))
+            .filter(file => file.includes('Local'))
             .map(file => path.join(this.cdkOutDir, file));
 
         console.log(`📁 Found ${this.templateFiles.length} local environment CloudFormation template files:`);
@@ -139,6 +164,119 @@ class SAMTemplateGenerator {
 
         } catch (error) {
             console.error(`   ❌ Error parsing template: ${error.message}`);
+        }
+    }
+
+    /**
+     * Extract nested stack parameter mappings to resolve cross-stack Lambda ARN references.
+     * Parent stacks pass Lambda ARNs to nested stacks via CloudFormation::Stack Parameters.
+     * This builds a map from paramName -> lambdaResourceId so nested template integrations
+     * that use Ref can be resolved to the actual Lambda function.
+     */
+    extractNestedStackParams(template) {
+        if (!template.Resources) return;
+        Object.entries(template.Resources).forEach(([, resource]) => {
+            if (resource.Type === 'AWS::CloudFormation::Stack') {
+                const params = resource.Properties?.Parameters || {};
+                Object.entries(params).forEach(([paramName, paramValue]) => {
+                    if (paramValue['Fn::GetAtt']) {
+                        const [resourceId, attrPath] = paramValue['Fn::GetAtt'];
+                        if (attrPath === 'Arn') {
+                            // Lambda ARN cross-stack reference
+                            this.paramToLambdaMap.set(paramName, resourceId);
+                        } else if (attrPath && attrPath.startsWith('Outputs.')) {
+                            // Nested stack Output reference — check if it resolves to a RestApi ID
+                            const apiResourceId = this.apiOutputMap.get(attrPath);
+                            if (apiResourceId) {
+                                this.paramToApiMap.set(paramName, apiResourceId);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Scan a template for RestApi resources and record their Output keys so that
+     * parent-stack parameter chains (Fn::GetAtt on nested stack Outputs) can be
+     * resolved to the actual RestApi resource ID.
+     */
+    extractApiOutputs(template) {
+        if (!template.Resources || !template.Outputs) return;
+
+        // Collect RestApi resource IDs defined in this template
+        const restApis = new Set();
+        Object.entries(template.Resources).forEach(([resourceId, resource]) => {
+            if (resource.Type === 'AWS::ApiGateway::RestApi') {
+                restApis.add(resourceId);
+            }
+        });
+        if (restApis.size === 0) return;
+
+        // Map "Outputs.outputKey" -> apiResourceId
+        Object.entries(template.Outputs).forEach(([outputKey, output]) => {
+            if (output.Value && output.Value.Ref && restApis.has(output.Value.Ref)) {
+                this.apiOutputMap.set(`Outputs.${outputKey}`, output.Value.Ref);
+            }
+        });
+    }
+
+    /**
+     * Post-parse pass: find API Gateway Resources and Methods in nested stack templates
+     * whose RestApiId is a cross-stack parameter reference (resolved via paramToApiMap).
+     * This picks up endpoints defined in sub-stacks like FeatureFlags, Users, etc.
+     */
+    associateMethodsToApis() {
+        for (const templateFile of this.templateFiles) {
+            let template;
+            try {
+                template = JSON.parse(fs.readFileSync(templateFile, 'utf8'));
+            } catch (_) { continue; }
+            if (!template.Resources) continue;
+
+            // First add API Gateway Resources so buildResourcePath works correctly
+            Object.entries(template.Resources).forEach(([resourceId, resource]) => {
+                if (resource.Type === 'AWS::ApiGateway::Resource') {
+                    const restApiRef = resource.Properties?.RestApiId?.Ref;
+                    if (!restApiRef || !this.paramToApiMap.has(restApiRef)) return;
+                    const apiInfo = this.apis.get(this.paramToApiMap.get(restApiRef));
+                    if (!apiInfo) return;
+                    // Avoid duplicates
+                    if (!apiInfo.resources.find(r => r.resourceId === resourceId)) {
+                        apiInfo.resources.push({
+                            resourceId,
+                            pathPart: resource.Properties.PathPart,
+                            parentId: this.extractParentId(resource.Properties.ParentId)
+                        });
+                    }
+                }
+            });
+
+            // Then add Methods
+            Object.entries(template.Resources).forEach(([resourceId, resource]) => {
+                if (resource.Type === 'AWS::ApiGateway::Method') {
+                    if (resource.Properties.HttpMethod === 'OPTIONS') return;
+                    const restApiRef = resource.Properties?.RestApiId?.Ref;
+                    if (!restApiRef || !this.paramToApiMap.has(restApiRef)) return;
+                    const apiInfo = this.apis.get(this.paramToApiMap.get(restApiRef));
+                    if (!apiInfo) return;
+                    // Avoid duplicates
+                    if (apiInfo.methods.find(m => m.resourceId === resourceId)) return;
+                    const methodInfo = {
+                        resourceId,
+                        httpMethod: resource.Properties.HttpMethod,
+                        authorizationType: resource.Properties.AuthorizationType,
+                        authorizerId: resource.Properties.AuthorizerId,
+                        apiResourceId: resource.Properties.ResourceId,
+                        integration: resource.Properties.Integration
+                    };
+                    if (methodInfo.integration && methodInfo.integration.Uri) {
+                        this.extractLambdaFromIntegration(methodInfo, apiInfo);
+                    }
+                    apiInfo.methods.push(methodInfo);
+                }
+            });
         }
     }
 
@@ -248,6 +386,17 @@ class SAMTemplateGenerator {
                         value: lambdaArnPart['Fn::ImportValue'] ||
                                (lambdaArnPart['Fn::GetAtt'] && lambdaArnPart['Fn::GetAtt'][0])
                     };
+                } else {
+                    // Handle nested stack parameter references (Ref to a cross-stack parameter)
+                    const refPart = joinParts.find(part =>
+                        part['Ref'] && !part['Ref'].startsWith('AWS::')
+                    );
+                    if (refPart) {
+                        const lambdaResourceId = this.paramToLambdaMap.get(refPart['Ref']);
+                        if (lambdaResourceId) {
+                            lambdaReference = { type: 'getatt', value: lambdaResourceId };
+                        }
+                    }
                 }
             }
 

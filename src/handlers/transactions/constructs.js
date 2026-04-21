@@ -11,10 +11,10 @@ const defaults = {
       name: 'TransactionsPOST',
     },
     transactionsRefundsGetFunction: {
-      name: 'TransactionsRefundsGET',
+      name: 'TransactionsRefGET',
     },
     transactionsRefundsPostFunction: {
-      name: 'TransactionsRefundsPOST',
+      name: 'TransactionsRefPOST',
     }
   }
 };

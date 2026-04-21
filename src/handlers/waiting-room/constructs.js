@@ -6,16 +6,16 @@ const apigw = require('aws-cdk-lib/aws-apigateway');
 const defaults = {
   resources: {
     joinFunction: {
-      name: 'WaitingRoomJoin',
+      name: 'WaitRoomJoin',
     },
     claimFunction: {
-      name: 'WaitingRoomClaim',
+      name: 'WaitRoomClaim',
     },
     heartbeatFunction: {
-      name: 'WaitingRoomHeartbeat',
+      name: 'WaitRoomHeartbeat',
     },
     mode2StatusFunction: {
-      name: 'WaitingRoomMode2Status',
+      name: 'WaitRoomMode2Status',
     },
   },
 };

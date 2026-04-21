@@ -13,7 +13,7 @@ const defaults = {
       name: 'ActivitiesColIdPUT',
     },
     activitiesCollectionIdDeleteFunction:{
-      name: 'ActivitiesColIdDELETE',
+      name: 'ActivitiesColIdDEL',
     }
   }
 }
@@ -36,6 +36,12 @@ class ActivitiesConstruct extends LambdaConstruct {
 
     // Add /activities/{collectionId}/{activityType}/{activitiyId} resource
     this.activitiesActivityIdResource = this.activitiesCollectionIdResource.addResource('{activityType}').addResource('{activityId}');
+
+    this.addCorsPreflightForResources([
+      this.activitiesResource,
+      this.activitiesCollectionIdResource,
+      this.activitiesActivityIdResource,
+    ]);
 
     // Activities GET by Collection ID Lambda Function
     this.activitiesCollectionIdGetFunction = this.generateBasicLambdaFn(

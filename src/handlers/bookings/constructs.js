@@ -47,6 +47,12 @@ class AdminBookingsConstruct extends LambdaConstruct {
     // /bookings/search resource
     this.bookingsSearchResource = this.bookingsResource.addResource('search');
 
+    this.addCorsPreflightForResources([
+      this.bookingsResource,
+      this.bookingsAdminResource,
+      this.bookingsSearchResource,
+    ]);
+
     // GET /bookings/admin Lambda function
     this.bookingsAdminGetFunction = this.generateBasicLambdaFn(
       scope,
@@ -119,13 +125,30 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     // /bookings by activity resource (extends from /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings)
     // Get reference to activities resource from props
-    this.activitiesResource = this.resolveApi().root.getResource('activities')?.getResource('{collectionId}')?.getResource('{activityType}')?.getResource('{activityId}');
+    if (props?.activitiesActivityIdResourceId) {
+      // import the /activities/{collectionId}/{activityType}/{activityId} resource from API Gateway using
+      // fromResourceAttributes() since it's in a different CDK construct scope
+      this.activitiesResource = apigw.Resource.fromResourceAttributes(this, 'ImportedActivitiesActivityIdResource', {
+        restApi: this.resolveApi(),
+        resourceId: props.activitiesActivityIdResourceId,
+        path: '/activities/{collectionId}/{activityType}/{activityId}',
+      });
+    } else {
+      // Local/SAM path: both constructs share the same API object, so getResource() works.
+      this.activitiesResource = this.resolveApi().root.getResource('activities')?.getResource('{collectionId}')?.getResource('{activityType}')?.getResource('{activityId}');
+    }
 
     if (!this.activitiesResource) {
       throw new Error('PublicBookingsConstruct: Missing required /activities/{collectionId}/{activityType}/{activityId} resource in API Gateway');
     }
     // Add {startDate}/bookings resource under activities resource
     this.bookingsByActivityResource = this.activitiesResource.addResource('{startDate}').addResource('bookings');
+
+    this.addCorsPreflightForResources([
+      this.bookingsResource,
+      this.bookingsByBookingIdResource,
+      this.bookingsByActivityResource,
+    ]);
 
     // GET /bookings Lambda function
     this.bookingsGetFunction = this.generateBasicLambdaFn(

@@ -25,6 +25,12 @@ class VerifyConstruct extends LambdaConstruct {
     // /verify/{bookingId}/{hash} resource
     this.verifyHashResource = this.verifyBookingIdResource.addResource('{hash}');
 
+    this.addCorsPreflightForResources([
+      this.verifyResource,
+      this.verifyBookingIdResource,
+      this.verifyHashResource,
+    ]);
+
     // GET /verify/{bookingId}/{hash} Lambda function
     this.verifyGetFunction = this.generateBasicLambdaFn(
       scope,
