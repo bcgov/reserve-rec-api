@@ -18,7 +18,7 @@ class AdminConfigLambdas extends LambdaConstruct {
       layers: props?.layers || [],
       environment: this.resolveEnvironment(),
       description: `Handles configuration get requests for the api: ${this.api?.restApiName}`,
-      functionName: id,
+      functionName: `${this.appScope.getAppName()}-${this.appScope.getDeploymentName()}-${id}`.slice(0, 64),
       timeout: Duration.seconds(10),
     });
 
@@ -51,7 +51,7 @@ class PublicConfigLambdas extends LambdaConstruct {
       layers: props?.layers || [],
       environment: this.resolveEnvironment(),
       description: `Handles configuration get requests for the api: ${this.api?.restApiName}`,
-      functionName: id,
+      functionName: `${this.appScope.getAppName()}-${this.appScope.getDeploymentName()}-${id}`.slice(0, 64),
       timeout: Duration.seconds(10),
     });
 

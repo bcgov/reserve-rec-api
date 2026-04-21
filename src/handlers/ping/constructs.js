@@ -21,7 +21,7 @@ class PingApiConstruct extends Construct {
       layers: props?.layers || [],
       environment: props?.environment || {},
       description: `Pings the api: ${props?.environment?.API_NAME} to ensure it is working`,
-      functionName: id,
+      functionName: `${scope.appScope.getAppName()}-${scope.appScope.getDeploymentName()}-${id}`.slice(0, 64),
       timeout: Duration.seconds(10),
     });
 
