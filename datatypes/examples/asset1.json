@@ -1,0 +1,35 @@
+{
+  "pk": "asset::bcparks_1::campground::1",
+  "sk": "tentpad::1",
+  "gsi1pk": "facility::bcparks_1",
+  "gsi1sk": "campground::1",
+  "schema": "asset",
+  "globalId": "23ertrg4-t54e-tyhr-ghnj-rer4323e543t",
+  "collectionId": "bcparks_1",
+  "facilityType": "campground",
+  "facilitySubType": "",
+  "facilityId": 1,
+  "assetType": "tentpad",
+  "assetId": 1,
+  "identifier": 1,
+  "displayName": "Baby Bedwell Lake Campground Tentpad 1",
+  "description": "Tentpad 1 at Baby Bedwell Lake campground, a designated backcountry camping area on the Bedwell Lake Trail in Strathcona Provincial Park.",
+  "location": {
+    "type": "point",
+    "coordinates": [
+      -125.605,
+      49.505
+    ]
+  },
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "minMapZoom": 10,
+  "maxMapZoom": 20,
+  "creationDate": "2026-01-06T15:30:00.000Z",
+  "lastUpdated": "2026-01-06T15:30:00.000Z",
+  "version": 1,
+  "searchTerms": "baby bedwell lake, bedwell lake, strathcona park...",
+  "adminNotes": ""
+}
