@@ -22,7 +22,7 @@ class AdminSearchLambda extends LambdaConstruct {
       layers: this.resolveLayers(),
       environment: this.resolveEnvironment(),
       description: `Handles search requests for the api: ${api?.restApiName}`,
-      functionName: id,
+      functionName: `${this.appScope.getAppName()}-${this.appScope.getDeploymentName()}-${id}`.slice(0, 64),
       timeout: Duration.seconds(10),
     });
 
@@ -71,7 +71,7 @@ class PublicSearchLambda extends LambdaConstruct {
       layers: this.resolveLayers(),
       environment: this.resolveEnvironment(),
       description: `Handles search requests for the api: ${api?.restApiName}`,
-      functionName: id,
+      functionName: `${this.appScope.getAppName()}-${this.appScope.getDeploymentName()}-${id}`.slice(0, 64),
       timeout: Duration.seconds(10),
     });
 
