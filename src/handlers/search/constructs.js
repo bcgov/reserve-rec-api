@@ -84,8 +84,7 @@ class PublicSearchLambda extends LambdaConstruct {
 
     // Add POST method to /search resource
     this.searchResource.addMethod('POST', new apigateway.LambdaIntegration(this.searchFunction), {
-      authorizationType: apigateway.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigateway.AuthorizationType.NONE,
     });
 
     // Add OpenSearch policy to the function
