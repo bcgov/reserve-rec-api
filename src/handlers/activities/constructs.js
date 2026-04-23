@@ -27,6 +27,12 @@ class ActivitiesConstruct extends LambdaConstruct {
 
     const handlerPrefix = props?.handlerPrefix || 'admin';
     const handlerName = `${handlerPrefix}.handler`;
+    const getAuthType = props?.publicRead
+      ? apigw.AuthorizationType.NONE
+      : apigw.AuthorizationType.CUSTOM;
+    const getAuthOptions = props?.publicRead
+      ? {}
+      : { authorizer: this.resolveAuthorizer() };
 
     // Add /activities resource
     this.activitiesResource = this.resolveApi().root.addResource('activities');
@@ -56,14 +62,14 @@ class ActivitiesConstruct extends LambdaConstruct {
 
     // GET /activities/{collectionId}
     this.activitiesCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.activitiesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: getAuthType,
+      ...getAuthOptions,
     });
 
     // GET /activities/{collectionId}/{activityType}/{activityId}
     this.activitiesActivityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.activitiesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: getAuthType,
+      ...getAuthOptions,
     });
 
     // Activities POST by Collection ID Lambda Function (admin-only, no public handler)

@@ -129,8 +129,7 @@ class PublicProductDatesConstruct extends LambdaConstruct {
 
     // GET /product-dates/{collectionId}/{activityType}/{activityId}/{productId}
     this.productDatesByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.productDatesGetByDatesFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
   }
 }

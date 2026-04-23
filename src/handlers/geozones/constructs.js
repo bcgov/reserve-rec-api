@@ -27,6 +27,12 @@ class GeozonesConstruct extends LambdaConstruct {
 
     const handlerPrefix = props?.handlerPrefix || 'public';
     const handlerName = `${handlerPrefix}.handler`;
+    const getAuthType = props?.publicRead
+      ? apigw.AuthorizationType.NONE
+      : apigw.AuthorizationType.CUSTOM;
+    const getAuthOptions = props?.publicRead
+      ? {}
+      : { authorizer: this.resolveAuthorizer() };
 
     // Add /geozones resource
     this.geozonesResource = this.resolveApi().root.addResource('geozones');
@@ -56,14 +62,14 @@ class GeozonesConstruct extends LambdaConstruct {
 
     // GET /geozones/{collectionId}
     this.geozonesCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.geozonesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: getAuthType,
+      ...getAuthOptions,
     });
 
     // GET /geozones/{collectionId}/{geozoneId}
     this.geozonesGeozoneIdResource.addMethod('GET', new apigw.LambdaIntegration(this.geozonesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: getAuthType,
+      ...getAuthOptions,
     });
 
     // Geozones POST by Collection ID Lambda Function
