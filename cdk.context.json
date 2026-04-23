@@ -2,5 +2,6 @@
   "key-provider:account=623829546818:aliasName=alias/ReserveRecApi-Dev-CoreStack-KmsKey:region=ca-central-1": {
     "keyId": "b6b19e5b-4d1b-44ef-9b6b-a11dc5ad3df0"
   },
-  "ssm:account=623829546818:parameterName=/reserveRecApi/dev/originVerifySecret:region=ca-central-1": "aca696bfbf371e3ce8adebd7924fd444a125a726767fcf5defda22a74ec1a39b"
+  "ssm:account=623829546818:parameterName=/reserveRecApi/dev/originVerifySecret:region=ca-central-1": "aca696bfbf371e3ce8adebd7924fd444a125a726767fcf5defda22a74ec1a39b",
+  "ssm:account=628373393242:parameterName=/reserveRecApi/prod/originVerifySecret:region=ca-central-1": "e29192055009d71c8ba62b1cc4acb8fd5ff6d05e325eed84c12056f9d70d55fd"
 }
