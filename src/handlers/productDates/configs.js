@@ -18,7 +18,6 @@ const PUBLIC_PRODUCTDATE_PROJECTIONS = [
   "activityId",
   "productId",
   "date",
-  "availabilitySignal",
   "displayName",
   "reservationContext",
   "version",

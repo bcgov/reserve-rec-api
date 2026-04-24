@@ -1,7 +1,7 @@
 
 const { fetchProductDates } = require("../../methods");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../../configs");
-const { getRequestClaimsFromEvent, logger, sendResponse, Exception } = require("/opt/base");
+const { logger, sendResponse, Exception } = require("/opt/base");
 /**
  * Fetches available ProductDates from a public user perspective. This means that discovery rules will ALWAYS be applied to the query, and only ProductDates that are discoverable to the user will be returned.
  */
@@ -15,12 +15,6 @@ exports.handler = async (event, context) => {
 
   
   try {
-
-    const user = getRequestClaimsFromEvent(event);
-
-    if (!user) {
-      throw new Exception("Unauthorized.", { code: 401 });
-    }
 
     const collectionId = event?.pathParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType;
