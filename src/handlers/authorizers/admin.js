@@ -154,8 +154,7 @@ exports.handler = async function (event, context, callback) {
         return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
       } else if (payload?.["cognito:groups"].some(group => {
         // Any users that have been manually added to the SuperAdmin group in Cognito are granted everything
-        return (group === 'ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup' ||
-                group === 'ReserveRecApi-Test-AdminIdentityStack-SuperAdminGroup');
+        return group.endsWith('-AdminIdentityStack-SuperAdminGroup');
       })) {
         return {
           principalId: sub,
