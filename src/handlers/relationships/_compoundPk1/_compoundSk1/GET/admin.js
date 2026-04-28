@@ -1,4 +1,4 @@
-const { getRelationshipsByPk, getRelationshipsByGsipk, expandRelationships } = require("../../../methods");
+const { getRelationshipsByPk, getRelationshipsByGsipk, expandRelationships } = require("../../../../../common/relationship-utils");
 const { Exception, logger, sendResponse } = require("/opt/base");
 
 /**

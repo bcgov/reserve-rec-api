@@ -1,22 +1,31 @@
 const { logger, Exception } = require("/opt/base");
-const { 
-  batchWriteData,
-  REFERENCE_DATA_TABLE_NAME,
-  ENTITY_RELATIONSHIP_INDEX,
+const {
+  batchGetData,
   batchTransactData,
+  batchWriteData,
+  ENTITY_RELATIONSHIP_INDEX,
+  marshall,
+  REFERENCE_DATA_TABLE_NAME,
   runQuery,
-  marshall
- } = require("/opt/dynamodb");
+  
+} = require("/opt/dynamodb");
 const { quickApiPutHandler, quickApiUpdateHandler } = require("./data-utils");
 
-/*
-  * Helper function to determine if schemas should be swapped
-  * Ensures relationships are always created in a consistent order
-  * 
-  * @param schema1 - First entity schema
-  * @param schema2 - Second entity schema
-  * @return boolean - True if schemas should be swapped
-  */
+/**
+ * The common/relationship-utils file allows other endpoints and methods to
+ * import and use these relationship helper methods, which will allow more robust
+ * queries to DynamoDB; This allows the user to pull a Facility as well as its
+ * related Geozone, or an Activity as well as its related Facility, etc.
+ */
+
+/**
+ * Helper function to determine if schemas should be swapped
+ * Ensures relationships are always created in a consistent order
+ *
+ * @param schema1 - First entity schema
+ * @param schema2 - Second entity schema
+ * @return boolean - True if schemas should be swapped
+ */
 function shouldSwapSchemas(schema1, schema2) {
   // Define hierarchy levels, geozones are top of the charts! Products at the bottom.
   const hierarchy = { geozone: 0, facility: 1, activity: 2, product: 3 };
@@ -45,7 +54,7 @@ function extractAndCreateRelationships(
   sourcePk,
   sourceSk,
   entityData,
-  relationshipFields = []
+  relationshipFields = [],
 ) {
   logger.info(`Extracting relationships for ${sourceSchema}`);
 
@@ -87,20 +96,15 @@ function extractAndCreateRelationships(
       let sk2 = entity.sk;
 
       // Extract schemas for hierarchy check
-      const schema1 = pk1.split('::')[0];
-      const schema2 = pk2.split('::')[0];
+      const schema1 = pk1.split("::")[0];
+      const schema2 = pk2.split("::")[0];
 
       // Swap if needed to maintain consistent hierarchy order
       if (shouldSwapSchemas(schema1, schema2)) {
         [pk1, sk1, pk2, sk2] = [pk2, sk2, pk1, sk1];
       }
 
-      const relationshipItem = createRelationshipItem(
-        pk1,
-        sk1,
-        pk2,
-        sk2
-      );
+      const relationshipItem = createRelationshipItem(pk1, sk1, pk2, sk2);
 
       relationshipItems.push({
         PutRequest: {
@@ -133,8 +137,8 @@ function extractAndCreateRelationships(
  */
 function createRelationshipItem(pk1, sk1, pk2, sk2) {
   // Extract schema types from the pk for metadata
-  const schema1 = pk1.split('::')[0];
-  const schema2 = pk2.split('::')[0];
+  const schema1 = pk1.split("::")[0];
+  const schema2 = pk2.split("::")[0];
 
   const relationshipItem = {
     pk: { S: `rel::${pk1}::${sk1}` },
@@ -155,10 +159,10 @@ function createRelationshipItem(pk1, sk1, pk2, sk2) {
 
 // Canonical mapping from plural field names to singular schema names
 const FIELD_TO_SCHEMA = {
-  facilities: 'facility',
-  geozones: 'geozone',
-  activities: 'activity',
-  products: 'product',
+  facilities: "facility",
+  geozones: "geozone",
+  activities: "activity",
+  products: "product",
 };
 
 /**
@@ -171,8 +175,13 @@ const FIELD_TO_SCHEMA = {
  * @param {string} tableName
  * @returns {Promise<Array>} Unmarshalled relationship items
  */
-async function queryRelationshipsBySchema(sourcePk, sourceSk, targetSchema, tableName = REFERENCE_DATA_TABLE_NAME) {
-  const sourceSchema = sourcePk.split('::')[0];
+async function queryRelationshipsBySchema(
+  sourcePk,
+  sourceSk,
+  targetSchema,
+  tableName = REFERENCE_DATA_TABLE_NAME,
+) {
+  const sourceSchema = sourcePk.split("::")[0];
   const relationshipPk = `rel::${sourcePk}::${sourceSk}`;
 
   // If source is lower in hierarchy it was stored as pk2; query via GSI.
@@ -181,24 +190,24 @@ async function queryRelationshipsBySchema(sourcePk, sourceSk, targetSchema, tabl
     const query = {
       TableName: tableName,
       IndexName: ENTITY_RELATIONSHIP_INDEX,
-      KeyConditionExpression: 'gsipk = :gsipk',
-      FilterExpression: 'schema1 = :schema1',
+      KeyConditionExpression: "gsipk = :gsipk",
+      FilterExpression: "schema1 = :schema1",
       ExpressionAttributeValues: {
-        ':gsipk': { S: relationshipPk },
-        ':schema1': { S: targetSchema }
-      }
+        ":gsipk": { S: relationshipPk },
+        ":schema1": { S: targetSchema },
+      },
     };
     const result = await runQuery(query, null, null, false);
     return result.items || [];
   } else {
     const query = {
       TableName: tableName,
-      KeyConditionExpression: 'pk = :pk',
-      FilterExpression: 'schema2 = :schema2',
+      KeyConditionExpression: "pk = :pk",
+      FilterExpression: "schema2 = :schema2",
       ExpressionAttributeValues: {
-        ':pk': { S: relationshipPk },
-        ':schema2': { S: targetSchema }
-      }
+        ":pk": { S: relationshipPk },
+        ":schema2": { S: targetSchema },
+      },
     };
     const result = await runQuery(query, null, null, false);
     return result.items || [];
@@ -217,34 +226,49 @@ async function queryRelationshipsBySchema(sourcePk, sourceSk, targetSchema, tabl
  * @param {string} tableName
  * @returns {{ toAdd: Array, toDelete: Array }}
  */
-function diffRelationships(existingItems, incomingEntities, sourcePk, sourceSk, targetSchema, tableName) {
-  const sourceSchema = sourcePk.split('::')[0];
+function diffRelationships(
+  existingItems,
+  incomingEntities,
+  sourcePk,
+  sourceSk,
+  targetSchema,
+  tableName,
+) {
+  const sourceSchema = sourcePk.split("::")[0];
   const useGSI = shouldSwapSchemas(sourceSchema, targetSchema);
 
   // Extract the target entity's pk/sk from a stored relationship item
-  const getTargetKey = (item) => useGSI
-    ? { pk: item.pk1, sk: item.sk1 }  // source was pk2, so target is pk1
-    : { pk: item.pk2, sk: item.sk2 }; // source was pk1, so target is pk2
+  const getTargetKey = (item) =>
+    useGSI
+      ? { pk: item.pk1, sk: item.sk1 } // source was pk2, so target is pk1
+      : { pk: item.pk2, sk: item.sk2 }; // source was pk1, so target is pk2
 
-  const incomingSet = new Set((incomingEntities || []).map(e => `${e.pk}::${e.sk}`));
+  const incomingSet = new Set(
+    (incomingEntities || []).map((e) => `${e.pk}::${e.sk}`),
+  );
   const existingByTarget = new Map(
-    existingItems.map(item => {
+    existingItems.map((item) => {
       const t = getTargetKey(item);
       return [`${t.pk}::${t.sk}`, item];
-    })
+    }),
   );
 
   const toAdd = [];
   const toDelete = [];
 
   // Incoming entities not yet in the DB → create relationship items
-  for (const entity of (incomingEntities || [])) {
+  for (const entity of incomingEntities || []) {
     if (!existingByTarget.has(`${entity.pk}::${entity.sk}`)) {
-      let pk1 = sourcePk, sk1 = sourceSk, pk2 = entity.pk, sk2 = entity.sk;
+      let pk1 = sourcePk,
+        sk1 = sourceSk,
+        pk2 = entity.pk,
+        sk2 = entity.sk;
       if (useGSI) {
         [pk1, sk1, pk2, sk2] = [pk2, sk2, pk1, sk1];
       }
-      toAdd.push({ PutRequest: { Item: createRelationshipItem(pk1, sk1, pk2, sk2) } });
+      toAdd.push({
+        PutRequest: { Item: createRelationshipItem(pk1, sk1, pk2, sk2) },
+      });
     }
   }
 
@@ -252,11 +276,11 @@ function diffRelationships(existingItems, incomingEntities, sourcePk, sourceSk, 
   for (const [key, item] of existingByTarget) {
     if (!incomingSet.has(key)) {
       toDelete.push({
-        action: 'Delete',
+        action: "Delete",
         data: {
           TableName: tableName,
-          Key: marshall({ pk: item.pk, sk: item.sk })
-        }
+          Key: marshall({ pk: item.pk, sk: item.sk }),
+        },
       });
     }
   }
@@ -280,7 +304,7 @@ async function batchWriteRelationships(relationshipItems, tableName) {
   }
 
   logger.info(
-    `Writing ${relationshipItems.length} relationships to ${tableName}`
+    `Writing ${relationshipItems.length} relationships to ${tableName}`,
   );
 
   const items = relationshipItems.map((item) => item.PutRequest.Item);
@@ -293,7 +317,7 @@ async function batchWriteRelationships(relationshipItems, tableName) {
 /**
  * Complete workflow for creating entities with relationships and retry logic
  * This consolidates the common pattern used across all entity POST handlers
- * 
+ *
  * @param {Object} config - Configuration object
  * @param {string} config.schema - Entity schema (e.g., 'activity', 'facility', 'geozone')
  * @param {string} config.collectionId - Collection ID
@@ -305,7 +329,7 @@ async function batchWriteRelationships(relationshipItems, tableName) {
  * @param {Function} config.parseRequest - The parseRequest function from entity methods
  * @param {string} [config.tableName=REFERENCE_DATA_TABLE_NAME] - DynamoDB table name
  * @param {number} [config.maxRetries=3] - Maximum retry attempts
- * 
+ *
  * @returns {Promise<Object>} Object with:
  *   - success: boolean
  *   - postRequests: Array of created entity requests
@@ -318,12 +342,12 @@ async function createEntityWithRelationships(config) {
     collectionId,
     body,
     parseArgs = [],
-    requestMethod = 'POST',
+    requestMethod = "POST",
     relationshipFields,
     putConfig,
     parseRequest,
     tableName = REFERENCE_DATA_TABLE_NAME,
-    maxRetries = 3
+    maxRetries = 3,
   } = config;
 
   let postRequests;
@@ -334,39 +358,45 @@ async function createEntityWithRelationships(config) {
 
   while (attempt <= maxRetries && !success) {
     // Parse the request to get entity items
-    postRequests = await parseRequest(collectionId, body, requestMethod, ...parseArgs);
+    postRequests = await parseRequest(
+      collectionId,
+      body,
+      requestMethod,
+      ...parseArgs,
+    );
 
     // For each entity item in the batch, process relationship fields
-    ({ postRequests, allRelationshipItems, allDeleteTransactions } = await searchAndDeleteRelationshipsForBatch(
-      postRequests,
-      schema,
-      relationshipFields,
-      tableName,
-      requestMethod
-    ));
+    ({ postRequests, allRelationshipItems, allDeleteTransactions } =
+      await searchAndDeleteRelationshipsForBatch(
+        postRequests,
+        schema,
+        relationshipFields,
+        tableName,
+        requestMethod,
+      ));
 
     if (allRelationshipItems.length > 0) {
       logger.info(
-        `Extracted ${allRelationshipItems.length} total relationship items from ${postRequests.length} ${schema}(ies)`
+        `Extracted ${allRelationshipItems.length} total relationship items from ${postRequests.length} ${schema}(ies)`,
       );
     }
 
     let updateRequest;
-    if (requestMethod === 'POST') {
+    if (requestMethod === "POST") {
       // For POST requests, we create new items
       updateRequest = await quickApiPutHandler(
         tableName,
         postRequests,
-        putConfig
+        putConfig,
       );
-    } else if (requestMethod === 'PUT') {
+    } else if (requestMethod === "PUT") {
       // If it's a PUT request, we need to update the item
       updateRequest = await quickApiUpdateHandler(
         tableName,
         postRequests,
-        putConfig
+        putConfig,
       );
-    };
+    }
 
     try {
       // Write the entity itself
@@ -374,13 +404,15 @@ async function createEntityWithRelationships(config) {
 
       // Delete stale relationship records (PUT only)
       if (allDeleteTransactions.length > 0) {
-        logger.info(`Deleting ${allDeleteTransactions.length} stale relationships`);
+        logger.info(
+          `Deleting ${allDeleteTransactions.length} stale relationships`,
+        );
         await batchTransactData(allDeleteTransactions);
       }
 
       // Write new relationship records
       if (allRelationshipItems.length > 0) {
-        logger.info('Writing relationship items to database');
+        logger.info("Writing relationship items to database");
         await batchWriteRelationships(allRelationshipItems, tableName);
       }
 
@@ -401,22 +433,28 @@ async function createEntityWithRelationships(config) {
   return postRequests;
 }
 
-/*
+/**
  * Helper function to process a batch of entity requests and handle relationship extraction and diffing
  * This is used within the createEntityWithRelationships workflow to keep the main function cleaner
- * 
+ *
  * @param {Array} postRequests - Array of entity requests with data to be created/updated
  * @param {string} schema - Entity schema (e.g., 'activity', 'facility', 'geozone')
  * @param {Array<string>} relationshipFields - Fields to extract as relationships
  * @param {string} tableName - DynamoDB table name
  * @param {string} requestMethod - HTTP verb forwarded to parseRequest (e.g. 'POST', 'PUT')
- * 
+ *
  * @returns {Promise<Object>} Object with:
  *   - postRequests: Updated array of entity requests with relationship fields removed
  *   - allRelationshipItems: Array of relationship items to be written to DynamoDB
  *   allDeleteTransactions: Array of delete transactions for stale relationships (PUT only)
  */
-async function searchAndDeleteRelationshipsForBatch(postRequests, schema, relationshipFields, tableName, requestMethod) {
+async function searchAndDeleteRelationshipsForBatch(
+  postRequests,
+  schema,
+  relationshipFields,
+  tableName,
+  requestMethod,
+) {
   let allRelationshipItems = [];
   let allDeleteTransactions = [];
 
@@ -426,16 +464,30 @@ async function searchAndDeleteRelationshipsForBatch(postRequests, schema, relati
 
     const { pk, sk } = postRequest.key;
 
-    if (requestMethod === 'PUT') {
+    if (requestMethod === "PUT") {
       // PUT: diff against the DB so we can add new and remove stale relationships
       for (const field of relationshipFields) {
         const targetSchema = FIELD_TO_SCHEMA[field] || field;
         const incomingEntities = postRequest.data[field] || [];
-        const existingItems = await queryRelationshipsBySchema(pk, sk, targetSchema, tableName);
+        const existingItems = await queryRelationshipsBySchema(
+          pk,
+          sk,
+          targetSchema,
+          tableName,
+        );
 
-        logger.info(`Relationship sync for ${pk}::${sk} [${field}]: ${existingItems.length} existing, ${incomingEntities.length} incoming`);
+        logger.info(
+          `Relationship sync for ${pk}::${sk} [${field}]: ${existingItems.length} existing, ${incomingEntities.length} incoming`,
+        );
 
-        const { toAdd, toDelete } = diffRelationships(existingItems, incomingEntities, pk, sk, targetSchema, tableName);
+        const { toAdd, toDelete } = diffRelationships(
+          existingItems,
+          incomingEntities,
+          pk,
+          sk,
+          targetSchema,
+          tableName,
+        );
 
         logger.info(`  → ${toAdd.length} to add, ${toDelete.length} to delete`);
 
@@ -449,7 +501,13 @@ async function searchAndDeleteRelationshipsForBatch(postRequests, schema, relati
       }
     } else {
       // POST: no existing relationships to worry about, just extract and create
-      const result = extractAndCreateRelationships(schema, pk, sk, postRequest.data, relationshipFields);
+      const result = extractAndCreateRelationships(
+        schema,
+        pk,
+        sk,
+        postRequest.data,
+        relationshipFields,
+      );
       postRequests[i].data = result.cleanedData;
       allRelationshipItems.push(...result.relationshipItems);
     }
@@ -457,108 +515,281 @@ async function searchAndDeleteRelationshipsForBatch(postRequests, schema, relati
 
   return { postRequests, allRelationshipItems, allDeleteTransactions };
 }
-  
 
 /**
  * Deletes all relationships associated with an entity (both forward and reverse)
  * Queries both the main table and GSI to find all relationships where the entity
  * is either the source or target
- * 
+ *
  * @param {string} schema - Entity schema (e.g., 'activity', 'facility', 'geozone')
  * @param {string} pk - Primary key of the entity (e.g., 'activity::bcparks_250')
  * @param {string} sk - Sort key of the entity (e.g., 'dayuse::1')
  * @param {string} [tableName=REFERENCE_DATA_TABLE_NAME] - DynamoDB table name
- * 
+ *
  * @returns {Promise<Object>} Object with:
  *   - deletedCount: Number of relationships deleted
  *   - forwardRelationships: Number of forward relationships deleted
  *   - reverseRelationships: Number of reverse relationships deleted
  */
-async function deleteEntityRelationships(pk, sk, tableName = REFERENCE_DATA_TABLE_NAME) {
+async function deleteEntityRelationships(
+  pk,
+  sk,
+  tableName = REFERENCE_DATA_TABLE_NAME,
+) {
   logger.info(`Deleting all relationships for ${pk}:${sk}`);
-  
+
   // Construct the relationship pk using full entity pk
   // e.g., 'activity::bcparks_250' -> 'rel::activity::bcparks_250::dayUse::1'
   const relationshipPk = `rel::${pk}::${sk}`;
-  
+
   logger.info(`Querying forward relationships with pk: ${relationshipPk}`);
-  
+
   // Query for forward relationships (where this entity is the source)
   const forwardQuery = {
     TableName: tableName,
-    KeyConditionExpression: 'pk = :pk',
+    KeyConditionExpression: "pk = :pk",
     ExpressionAttributeValues: {
-      ':pk': { S: relationshipPk }
-    }
+      ":pk": { S: relationshipPk },
+    },
   };
-  
+
   const forwardResults = await runQuery(forwardQuery);
   const forwardRelationships = forwardResults.items || [];
-  
+
   logger.info(`Found ${forwardRelationships.length} forward relationships`);
-  
+
   // Query for reverse relationships (where this entity is the target) using GSI
   let reverseRelationships = [];
   try {
     const reverseQuery = {
       TableName: tableName,
       IndexName: ENTITY_RELATIONSHIP_INDEX,
-      KeyConditionExpression: 'gsipk = :gsipk',
+      KeyConditionExpression: "gsipk = :gsipk",
       ExpressionAttributeValues: {
-        ':gsipk': { S: relationshipPk }
-      }
+        ":gsipk": { S: relationshipPk },
+      },
     };
-    
+
     const reverseResults = await runQuery(reverseQuery);
     reverseRelationships = reverseResults.items || [];
-    
+
     logger.info(`Found ${reverseRelationships.length} reverse relationships`);
   } catch (gsiError) {
-    logger.warn('Error querying GSI for reverse relationships (GSI may not exist):', gsiError.message);
-    logger.info('Continuing with forward relationships only');
+    logger.warn(
+      "Error querying GSI for reverse relationships (GSI may not exist):",
+      gsiError.message,
+    );
+    logger.info("Continuing with forward relationships only");
   }
-  
+
   // Combine all relationships to delete
   const allRelationships = [...forwardRelationships, ...reverseRelationships];
-  
+
   if (allRelationships.length === 0) {
-    logger.info('No relationships to delete');
+    logger.info("No relationships to delete");
     return {
       deletedCount: 0,
       forwardRelationships: 0,
-      reverseRelationships: 0
+      reverseRelationships: 0,
     };
   }
-  
+
   logger.info(`Deleting ${allRelationships.length} total relationships`);
-  
+
   // Create delete transactions
-  const deleteTransactions = allRelationships.map(item => ({
-    action: 'Delete',
+  const deleteTransactions = allRelationships.map((item) => ({
+    action: "Delete",
     data: {
       TableName: tableName,
       Key: marshall({
         pk: item.pk,
-        sk: item.sk
-      })
-    }
+        sk: item.sk,
+      }),
+    },
   }));
-  
+
   // Execute deletes in batches (DynamoDB TransactWriteItems limit is 100)
   const batchSize = 100;
   for (let i = 0; i < deleteTransactions.length; i += batchSize) {
     const batch = deleteTransactions.slice(i, i + batchSize);
-    logger.info(`Deleting batch ${Math.floor(i / batchSize) + 1}: ${batch.length} relationships`);
+    logger.info(
+      `Deleting batch ${Math.floor(i / batchSize) + 1}: ${batch.length} relationships`,
+    );
     await batchTransactData(batch);
   }
-  
+
   logger.info(`Successfully deleted ${allRelationships.length} relationships`);
-  
+
   return {
     deletedCount: allRelationships.length,
     forwardRelationships: forwardRelationships.length,
-    reverseRelationships: reverseRelationships.length
+    reverseRelationships: reverseRelationships.length,
   };
+}
+
+/**
+ * Expand relationship items by fetching the actual target entities
+ * For bidirectional queries, determines which entity to fetch based on the query source
+ * @param {Array} relationshipItems - Array of relationship items
+ * @param {boolean} bidirectional - If true, intelligently fetch the "other" entity
+ * @param {string} sourcePk - The pk we're querying from (e.g., "rel::activity::bcparks_250::backcountryCamp::1")
+ * @returns {Promise<Array>} Relationship items with populated entity data
+ */
+async function expandRelationships(
+  relationshipItems,
+  bidirectional = false,
+  sourcePk = null,
+) {
+  if (!relationshipItems || relationshipItems.length === 0) {
+    return [];
+  }
+
+  // Extract unique entity keys
+  // For bidirectional queries, we need to intelligently pick which entity to fetch
+  const entityKeys = relationshipItems.map((rel) => {
+    // If this is a bidirectional query and we have a sourcePk
+    if (bidirectional && sourcePk) {
+      // If the relationship pk matches our source, fetch pk2::sk2 (forward direction)
+      // If the relationship pk doesn't match, fetch pk1::sk1 (reverse direction)
+      if (rel.pk === sourcePk) {
+        // Forward relationship: fetch the target (pk2::sk2)
+        return { pk: rel.pk2, sk: rel.sk2 };
+      } else {
+        // Reverse relationship: fetch the source (pk1::sk1)
+        return { pk: rel.pk1, sk: rel.sk1 };
+      }
+    }
+
+    // Default behavior: always fetch pk2::sk2
+    return { pk: rel.pk2, sk: rel.sk2 };
+  });
+
+  // Remove duplicates
+  const uniqueKeysMap = new Map();
+  for (const key of entityKeys) {
+    const keyStr = `${key.pk}::${key.sk}`;
+    uniqueKeysMap.set(keyStr, key);
+  }
+  const uniqueKeys = Array.from(uniqueKeysMap.values());
+
+  // Batch fetch all entities
+  const entities = await batchGetData(uniqueKeys, REFERENCE_DATA_TABLE_NAME);
+
+  // Create a lookup object to quickly find entities by their pk::sk
+  const entityLookup = {};
+  for (const entity of entities) {
+    const lookupKey = `${entity.pk}::${entity.sk}`;
+    entityLookup[lookupKey] = entity;
+  }
+
+  // Attach the matching entity to each relationship item
+  const expandedRelationships = [];
+  for (const rel of relationshipItems) {
+    let lookupKey;
+
+    // Use the same logic as above to determine which entity to attach
+    if (bidirectional && sourcePk) {
+      if (rel.pk === sourcePk) {
+        lookupKey = `${rel.pk2}::${rel.sk2}`;
+      } else {
+        lookupKey = `${rel.pk1}::${rel.sk1}`;
+      }
+    } else {
+      lookupKey = `${rel.pk2}::${rel.sk2}`;
+    }
+
+    const matchingEntity = entityLookup[lookupKey] || null;
+
+    expandedRelationships.push({
+      ...rel,
+      entity: matchingEntity,
+    });
+  }
+
+  return expandedRelationships;
+}
+
+/**
+ * Query relationships by pk
+ * @param {string} pk - The pk value to query (e.g., "rel::geozone::bcparks_250::1")
+ * @param {string} schema2 - Optional: filter by source schema (filters sk with begins_with)
+ * @param {object} params - Query parameters (limit, lastEvaluatedKey, paginated)
+ * @returns {Promise<object>} Query result with items array
+ */
+async function getRelationshipsByPk(pk, schema2 = null, params = {}) {
+  logger.info("Get Relationships by pk");
+  try {
+    const limit = params?.limit || null;
+    const lastEvaluatedKey = params?.lastEvaluatedKey || null;
+    const paginated = params?.paginated !== undefined ? params.paginated : true;
+    let queryObj = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: {
+        ":pk": { S: pk },
+      },
+    };
+
+    if (schema2) {
+      queryObj.KeyConditionExpression += " AND begins_with(sk, :sk)";
+      queryObj.ExpressionAttributeValues[":sk"] = { S: `${schema2}::` };
+    }
+    logger.info("Querying relationships with:", queryObj);
+
+    const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
+    logger.info(`Relationships: ${res?.items?.length} found.`);
+    return res;
+  } catch (error) {
+    throw new Exception("Error getting Relationships", {
+      code: 400,
+      error: error,
+    });
+  }
+}
+
+/**
+ * Query relationships by gsipk (reverse direction via GSI)
+ * Finds all relationships WHERE the entity is the target
+ * @param {string} gsipk - The gsipk value to query (e.g., "rel::activity::bcparks_250::backcountryCamp::1")
+ * @param {string} schema1 - Optional: filter by source schema (filters sk with begins_with)
+ * @param {object} params - Query parameters (limit, lastEvaluatedKey, paginated)
+ * @returns {Promise<object>} Query result with items array
+ */
+async function getRelationshipsByGsipk(gsipk, schema1 = null, params = {}) {
+  logger.info("Get Relationships by gsipk (reverse lookup)");
+  try {
+    const limit = params?.limit || null;
+    const lastEvaluatedKey = params?.lastEvaluatedKey || null;
+    const paginated = params?.paginated !== undefined ? params.paginated : true;
+
+    let queryObj = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      IndexName: ENTITY_RELATIONSHIP_INDEX,
+      KeyConditionExpression: "gsipk = :gsipk",
+      ExpressionAttributeValues: {
+        ":gsipk": { S: gsipk },
+      },
+    };
+
+    // If user passes in a schema, we're only grabbing that
+    // e.g. query rel::activity::[...] and schema1='geozone'
+    //      we ignore the *facility* relationships for activity
+    if (schema1) {
+      queryObj.KeyConditionExpression += " AND begins_with(gsisk, :gsisk)";
+      queryObj.ExpressionAttributeValues[":gsisk"] = { S: `${schema1}::` };
+    }
+
+    logger.info("Querying relationships (GSI) with:", queryObj);
+
+    const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
+    logger.info(`Reverse relationships: ${res?.items?.length} found.`);
+    return res;
+  } catch (error) {
+    throw new Exception("Error getting Relationships via GSI", {
+      code: 400,
+      error: error,
+    });
+  }
 }
 
 module.exports = {
@@ -567,6 +798,9 @@ module.exports = {
   createRelationshipItem,
   deleteEntityRelationships,
   diffRelationships,
+  getRelationshipsByPk,
+  getRelationshipsByGsipk,
+  expandRelationships,
   extractAndCreateRelationships,
   queryRelationshipsBySchema,
 };

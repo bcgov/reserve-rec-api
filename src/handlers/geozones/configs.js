@@ -142,7 +142,13 @@ const GEOZONE_API_PUT_CONFIG = {
         rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
-    }
+    },
+    parkLink: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
   }
 };
 
@@ -242,7 +248,13 @@ const GEOZONE_API_UPDATE_CONFIG = {
         rf.expectArray(value, ['string']);
         rf.expectAction(action, ['set']);
       }
-    }
+    },
+    parkLink: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
   }
 };
 
