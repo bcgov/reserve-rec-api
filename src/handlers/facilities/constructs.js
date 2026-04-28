@@ -57,20 +57,17 @@ class PublicFacilitiesConstruct extends LambdaConstruct {
 
     // GET /facilities/{collectionId}
     this.facilitiesCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // GET /facilities/{collectionId}/{facilityType}
     this.facilitiesFacilityTypeResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // GET /facilities/{collectionId}/{facilityType}/{facilityId}
     this.facilitiesFacilityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.facilitiesCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // Add permissions to all functions

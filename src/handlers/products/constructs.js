@@ -57,14 +57,12 @@ class PublicProductsConstruct extends LambdaConstruct {
 
     // GET /products/{collectionId}
     this.productsCollectionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // GET /products/{collectionId}/{activityType}/{activityId}
     this.productsActivityIdResource.addMethod('GET', new apigw.LambdaIntegration(this.productsCollectionIdGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
+      authorizationType: apigw.AuthorizationType.NONE,
     });
 
     // Add permissions to all functions
