@@ -265,7 +265,7 @@ async function getOneByGlobalId(globalId, tableName = REFERENCE_DATA_TABLE_NAME,
   return null;
 }
 
-/*
+/**
  * Generic function to get items by a GSI with optional sort key condition.
  * @param {string} gsiName - The name of the GSI partition key attribute.
  * @param {string} gsiValue - The value of the GSI partition key to query.

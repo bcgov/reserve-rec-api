@@ -8,6 +8,7 @@ const {
 } = require("/opt/dynamodb");
 const { Exception, logger, filterByRole } = require("/opt/base");
 const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
+const { getRelationshipsByGsipk, expandRelationships } = require("../../common/relationship-utils");
 
 /**
  * Adds any filter expressions if any filters were added to query.
@@ -173,6 +174,7 @@ async function getFacilityByFacilityId(
   facilityType,
   facilityId,
   fetchActivities = false,
+  fetchGeozones = false,
 ) {
   logger.info("Get Facility By Facility Type and ID");
   try {
@@ -204,6 +206,29 @@ async function getFacilityByFacilityId(
         );
       } else {
         res.activities = [];
+      }
+    }
+
+    if (fetchGeozones && res) {
+      // Get the geozone(s) that this facility is related to using gsi reverse lookup
+      // (because the geozone is always the main pk and facility is the gsipk of this relationship direction)
+      const facilityRelPk = `rel::facility::${collectionId}::${facilityType}::${facilityId}`;
+      const geozoneRelationships = await getRelationshipsByGsipk(
+        facilityRelPk,
+        'geozone',
+      );
+
+      if (geozoneRelationships?.items?.length > 0) {
+        const geozoneKeys = geozoneRelationships.items.map((rel) => ({
+          pk: rel.pk1,
+          sk: rel.sk1,
+        }));
+        res.geozones = await batchGetData(
+          geozoneKeys,
+          REFERENCE_DATA_TABLE_NAME,
+        );
+      } else {
+        res.geozones = [];
       }
     }
 
@@ -389,6 +414,7 @@ async function fetchFacilities(
       facilityType,
       facilityId,
       queryParams?.fetchActivities || false,
+      queryParams?.fetchGeozones || false,
     );
   }
 

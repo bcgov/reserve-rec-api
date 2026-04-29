@@ -88,8 +88,10 @@ class PublicAuthorizerConstruct extends Construct {
     this.publicRequestAuthorizer = new apigw.RequestAuthorizer(this, requestAuthorizerId, {
       authorizerName: requestAuthorizerId,
       handler: this.publicAuthorizerFunction,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
-      // TODO: Adjust the TTL values as needed.
+      // TODO: Temporary solution(?)
+      // Use requestId rather than the Authorization header so that
+      // unauthenticated requests are still forwarded to the Lambda.
+      identitySources: [apigw.IdentitySource.context('requestId')],
       // TTL is currently disabled to ensure each request is freshly authorized.
       resultsCacheTtl: Duration.seconds(0),
     });
