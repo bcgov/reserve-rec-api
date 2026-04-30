@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
     const startDate = event?.pathParameters?.startDate || event?.queryStringParameters?.startDate || body?.startDate;
 
     let endDate = event?.queryStringParameters?.endDate || body?.endDate;
-    const quantity = event?.queryStringParameters?.quantity || body?.quantity;
+    const quantity = parseInt(event?.queryStringParameters?.quantity || body?.quantity || '0', 10);
 
     if (!endDate) {
       endDate = startDate;
@@ -143,6 +143,7 @@ exports.handler = async (event, context) => {
     }
 
     let bookingRequestItems = await createBooking({
+      ...body,
       collectionId,
       activityType,
       activityId,
@@ -151,7 +152,6 @@ exports.handler = async (event, context) => {
       endDate,
       invQuantity: quantity,
       userId: claims.sub,
-      ...body
     })
 
     const res = await batchTransactData(bookingRequestItems);
