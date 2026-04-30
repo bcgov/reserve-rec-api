@@ -583,6 +583,11 @@ async function createBooking(props) {
 
 function createInventoryRequests(assetRef, productDates, invQuantity) {
   try {
+    const numericQuantity = Number(invQuantity);
+    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
+      throw new Exception(`Invalid inventory quantity: ${invQuantity}`, { code: 400 });
+    }
+
     // Get the InventoryPool SK by assetRef
     const inventorySK = [assetRef.primaryKey.pk, assetRef.primaryKey.sk].join("::");
 
@@ -609,7 +614,7 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
             "#availability": "availability"
           },
           ExpressionAttributeValues: {
-            ":quantity": marshall(invQuantity)
+            ":quantity": marshall(numericQuantity)
           },
           ConditionExpression: "attribute_exists(pk) AND #availability >= :quantity"
         }
@@ -2272,6 +2277,92 @@ async function sendBookingConfirmationEmail(booking, userName) {
   }
 }
 
+
+/**
+ * Enrich bookings with geozone display names
+ * @param {object} bookings - The bookings result object with items array
+ * @returns {Promise<object>} Bookings with geozoneDisplayName added to each booking
+ */
+async function getGeoZoneForBooking(bookings) {
+  logger.debug('getGeoZoneForBooking called with:', { 
+    hasItems: !!bookings?.items, 
+    itemCount: bookings?.items?.length || 0 
+  });
+  
+  if (!bookings?.items || bookings.items.length === 0) {
+    return bookings;
+  }
+
+  try {
+    // Get unique collectionIds from bookings
+    const collectionIds = [...new Set(bookings.items.map(b => b.collectionId).filter(Boolean))];
+    logger.debug('Unique collectionIds to fetch geozones for:', collectionIds);
+    
+    // Fetch the primary geozone for each collectionId
+    const geozoneCache = {};
+    for (const collectionId of collectionIds) {
+      try {
+        // Query all geozones for this collection
+        const queryParams = {
+          TableName: REFERENCE_DATA_TABLE_NAME,
+          KeyConditionExpression: "pk = :pk",
+          ExpressionAttributeValues: {
+            ":pk": marshall(`geozone::${collectionId}`)
+          }
+        };
+        
+        logger.debug(`Querying geozones for ${collectionId}`);
+        const result = await runQuery(queryParams);
+        
+        // Filter out the counter item after query (can't use FilterExpression on primary key)
+        if (result?.items) {
+          result.items = result.items.filter(item => item.sk !== 'counter');
+        }
+        
+        logger.debug(`Query result for ${collectionId}:`, { 
+          itemCount: result?.items?.length || 0,
+          firstItem: result?.items?.[0] ? { 
+            displayName: result.items[0].displayName,
+            geozoneId: result.items[0].geozoneId 
+          } : null
+        });
+        
+        // Get the first geozone (usually the main park/area)
+        if (result?.items && result.items.length > 0) {
+          // Sort by geozoneId to get the primary one
+          const sortedGeozones = result.items.sort((a, b) => (a.geozoneId || 0) - (b.geozoneId || 0));
+          geozoneCache[collectionId] = sortedGeozones[0].displayName;
+          logger.debug(`Cached geozone name for ${collectionId}: ${geozoneCache[collectionId]}`);
+        } else {
+          logger.warn(`No geozones found for collectionId ${collectionId}`);
+        }
+      } catch (error) {
+        logger.warn(`Failed to fetch geozone for collectionId ${collectionId}:`, error.message || error);
+        logger.error('Full error:', error);
+      }
+    }
+    
+    // Attach displayName to each booking
+    logger.debug('GeozoneCache before mapping:', geozoneCache);
+    bookings.items = bookings.items.map(booking => ({
+      ...booking,
+      geozoneDisplayName: geozoneCache[booking.collectionId] || booking.collectionId
+    }));
+    
+    logger.debug(`Enriched ${bookings.items.length} bookings with geozone display names`);
+    logger.debug('First enriched booking:', {
+      collectionId: bookings.items[0]?.collectionId,
+      geozoneDisplayName: bookings.items[0]?.geozoneDisplayName
+    });
+    return bookings;
+  } catch (error) {
+    logger.error('Error enriching bookings with geozone names:', error);
+    // Return original bookings if enrichment fails
+    return bookings;
+  }
+}
+
+
 module.exports = {
   allBookingsSortAndPaginate,
   buildActivityFilters,
@@ -2297,4 +2388,6 @@ module.exports = {
   validateAdminRequirements,
   validateDateRange,
   validateCollectionAccess,
+  getGeoZoneForBooking
+
 };
