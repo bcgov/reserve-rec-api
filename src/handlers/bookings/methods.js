@@ -12,7 +12,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
-const { sendConfirmationEmail, getRegionBranding } = require("../../../lib/handlers/emailDispatch/utils");
+const { sendConfirmationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
@@ -1147,9 +1147,10 @@ async function generateEmailParams(booking, updatedBookingItem) {
     // get parkName
     const parkName = PARK_NAMES_BY_COLLECTION_ID[booking.collectionId];
 
-    let emailParams = {
+    const emailParams = {
       booking: {
         bookingId: booking.bookingId,
+        displayName: booking.displayName,
         invQuantity: bookingDates?.items?.reduce((total, item) => {
           const dailyInventory = item.quantity || 0;
           return total + dailyInventory;
@@ -1175,8 +1176,6 @@ async function generateEmailParams(booking, updatedBookingItem) {
         logoUrl: 'https://bcparks.ca/assets/logos/default-logo.png',
       }
     };
-
-    console.log('emailParams', emailParams);
 
     return emailParams;
 
@@ -2182,85 +2181,39 @@ async function flagCancelledBooking(booking, queryTime) {
 
 /**
  * Send booking confirmation email to SQS queue
- * @param {object} booking - Booking data from DynamoDB
+ * @param {object} emailParams - Structured email params from generateEmailParams
+ * @param {string} userName - Cognito username, used to look up the account email
  * @returns {Promise<Object>} SQS response
  */
-async function sendBookingConfirmationEmail(booking, userName) {
+async function sendBookingConfirmationEmail(emailParams, userName) {
   try {
 
-    // get account email:
+    // get account email from Cognito
     const userInfo = await getUserInfoByUserName(userName, 'public');
-
     const accountEmail = userInfo?.UserAttributes?.find(attr => attr.Name === 'email')?.Value;
 
     if (!accountEmail) {
       logger.warn('Cannot send confirmation email - no email address found for user', {
-        bookingId: booking.bookingId,
-        userName: userName
+        bookingId: emailParams?.booking?.bookingId,
+        userName
       });
       return null;
     }
 
-    // Calculate number of guests from partyContext
-    const partyInfo = booking.partyContext || {};
-    const numberOfGuests = (partyInfo.adult || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0) + (partyInfo.senior || 0) || 1;
-
-    // Extract booking data
-    const bookingData = {
-      bookingId: booking.bookingId || booking.globalId,
-      bookingReference: booking.bookingReference || booking.bookingId || booking.globalId,
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      numberOfNights: booking.reservationContext?.totalDays || 1,
-      numberOfGuests: numberOfGuests,
-      status: booking.status || 'in-progress'
-    };
-
-    // Extract location data
-    const locationData = {
-      parkName: booking.displayName || 'BC Parks',
-      facilityName: booking.displayName || booking.facilityName,
-      siteNumber: booking.siteNumber,
-      region: booking.collectionId || 'default',
-      address: booking.address
-    };
-
-    // Extract customer data from namedOccupant
-    const namedOccupant = booking.namedOccupant || {};
-    const contactInfo = namedOccupant.contactInfo || {};
-
-
-    const customerData = {
-      firstName: namedOccupant.firstName || 'Guest',
-      lastName: namedOccupant.lastName || '',
-      email: contactInfo.email,
-      phone: contactInfo.mobilePhone,
-      address: {
-        street: contactInfo.streetAddress || '',
-        city: contactInfo.city || '',
-        province: contactInfo.province || '',
-        postalCode: contactInfo.postalCode || '',
-        country: contactInfo.country || 'CA'
-      }
-    };
-
-    // Get region-specific branding
-    const brandingData = {};
-    // const brandingData = getRegionBranding(locationData);
-
-    // Send confirmation email to SQS queue
     const result = await sendConfirmationEmail({
       email: accountEmail,
-      bookingData,
-      customerData,
-      locationData,
-      brandingData,
-      locale: booking.locale || 'en'
+      bookingData: emailParams.booking,
+      customerData: {
+        ...emailParams.customer,
+        email: accountEmail,
+      },
+      locationData: emailParams.location,
+      brandingData: emailParams.branding,
+      locale: 'en'
     });
 
     logger.info('Booking confirmation email queued successfully', {
-      bookingId: booking.bookingId,
-      recipient: customerData.email,
+      bookingId: emailParams?.booking?.bookingId,
       messageId: result.messageId
     });
 
@@ -2268,7 +2221,7 @@ async function sendBookingConfirmationEmail(booking, userName) {
 
   } catch (error) {
     logger.error('Failed to queue booking confirmation email', {
-      bookingId: booking?.bookingId,
+      bookingId: emailParams?.booking?.bookingId,
       error: error.message,
       stack: error.stack
     });
