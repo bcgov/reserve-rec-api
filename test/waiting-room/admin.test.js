@@ -40,6 +40,13 @@ jest.mock('@aws-sdk/client-cloudfront', () => ({
   PublishFunctionCommand: jest.fn(),
 }));
 
+const mockWsSend = jest.fn();
+jest.mock('@aws-sdk/client-apigatewaymanagementapi', () => ({
+  ApiGatewayManagementApiClient: jest.fn(() => ({ send: mockWsSend })),
+  PostToConnectionCommand: jest.fn((args) => ({ __cmd: 'Post', ...args })),
+  DeleteConnectionCommand: jest.fn((args) => ({ __cmd: 'Delete', ...args })),
+}));
+
 const { sendResponse } = require('/opt/base');
 const db = require('../../src/handlers/waiting-room/utils/dynamodb');
 // CloudFrontClient import not needed directly — we use mockCFSend
@@ -226,6 +233,35 @@ describe('close-queue handler', () => {
     expect(body.data.abandonedCount).toBe(2);
     expect(db.updateQueueMetaStatus).toHaveBeenCalledWith(queueId, 'closed');
     expect(db.updateQueueEntryStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('pushes queueClosed and disconnects each connected client', async () => {
+    process.env.WEBSOCKET_MANAGEMENT_ENDPOINT = 'https://ws.example.com/ws';
+    db.getQueueMeta.mockResolvedValue({ queueStatus: 'releasing' });
+    db.updateQueueMetaStatus.mockResolvedValue({});
+    db.queryQueueEntries.mockResolvedValue([
+      { pk: queueId, cognitoSub: 'user1', connectionId: 'conn-1' },
+      { pk: queueId, cognitoSub: 'user2', connectionId: 'conn-2' },
+    ]);
+    db.updateQueueEntryStatus.mockResolvedValue({});
+    mockWsSend.mockResolvedValue({});
+
+    const res = await handler({ pathParameters: { queueId: encodeURIComponent(queueId) } });
+    expect(res.statusCode).toBe(200);
+
+    const posts = mockWsSend.mock.calls
+      .map(([cmd]) => cmd)
+      .filter((cmd) => cmd.__cmd === 'Post');
+    const deletes = mockWsSend.mock.calls
+      .map(([cmd]) => cmd)
+      .filter((cmd) => cmd.__cmd === 'Delete');
+
+    expect(posts).toHaveLength(2);
+    expect(deletes).toHaveLength(2);
+    expect(JSON.parse(posts[0].Data.toString())).toEqual({ type: 'queueClosed' });
+    expect(posts.map((c) => c.ConnectionId).sort()).toEqual(['conn-1', 'conn-2']);
+
+    delete process.env.WEBSOCKET_MANAGEMENT_ENDPOINT;
   });
 
   it('returns 200 immediately if queue is already closed', async () => {
