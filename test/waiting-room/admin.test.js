@@ -144,16 +144,33 @@ describe('create-queues handler', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('records error for duplicate queue (ConditionalCheckFailedException)', async () => {
+  it('overwrites a duplicate queue when existing is pre-open with no entries', async () => {
     const err = new Error('conditional failed');
     err.name = 'ConditionalCheckFailedException';
     db.createQueueMeta.mockRejectedValueOnce(err).mockResolvedValueOnce({});
+    db.getQueueMeta.mockResolvedValueOnce({ queueStatus: 'pre-open', totalEntries: 0, createdAt: 1234 });
+    db.putQueueMeta.mockResolvedValueOnce({});
+    const res = await handler({ body: JSON.stringify(validBody) });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.created).toHaveLength(2);
+    expect(body.data.created[0].overwrote).toBe(true);
+    expect(body.data.errors).toHaveLength(0);
+    expect(db.putQueueMeta).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses to overwrite an active queue with entries', async () => {
+    const err = new Error('conditional failed');
+    err.name = 'ConditionalCheckFailedException';
+    db.createQueueMeta.mockRejectedValueOnce(err).mockResolvedValueOnce({});
+    db.getQueueMeta.mockResolvedValueOnce({ queueStatus: 'releasing', totalEntries: 42 });
     const res = await handler({ body: JSON.stringify(validBody) });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.data.created).toHaveLength(1);
     expect(body.data.errors).toHaveLength(1);
-    expect(body.data.errors[0].reason).toMatch(/already exists/);
+    expect(body.data.errors[0].reason).toMatch(/status 'releasing' and 42 entries/);
+    expect(db.putQueueMeta).not.toHaveBeenCalled();
   });
 
   it('records error for invalid openingTime', async () => {
