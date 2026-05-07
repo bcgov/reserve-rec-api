@@ -190,6 +190,34 @@ async function getBookingsByUserId(userId, props) {
   }
 }
 
+/**
+ * Finds an active (in-progress or confirmed) booking owned by a user for a given
+ * product on a given startDate. Used to enforce the one-pass-per-user-per-product-per-day
+ * rule from issue #458. Returns the first match, or null if none.
+ */
+async function findUserActiveBookingForProductOnDate(userId, productBookingPk, startDate) {
+  if (!userId || !productBookingPk || !startDate) return null;
+  const params = {
+    TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+    IndexName: USERID_INDEX_NAME,
+    KeyConditionExpression: '#userId = :userId AND begins_with(sk, :startDatePrefix)',
+    FilterExpression: 'pk = :pk AND #status IN (:inProgress, :confirmed)',
+    ExpressionAttributeNames: {
+      '#userId': USERID_PROPERTY_NAME,
+      '#status': 'status',
+    },
+    ExpressionAttributeValues: {
+      ':userId': marshall(userId),
+      ':startDatePrefix': marshall(`${startDate}::`),
+      ':pk': marshall(productBookingPk),
+      ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
+      ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
+    },
+  };
+  const result = await runQuery(params);
+  return result?.items?.[0] || null;
+}
+
 async function getBookingByBookingId(
   bookingId,
   userId = null,
@@ -512,6 +540,17 @@ async function createBooking(props) {
     // === Validate props ===
 
     await validateBookingCreateProps(props);
+
+    // === Block duplicate booking for the same user/product/startDate (issue #458) ===
+    // One pass per user per product per day. Cancelled and expired bookings don't count.
+    const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
+    const duplicate = await findUserActiveBookingForProductOnDate(props.userId, productBookingPk, props.startDate);
+    if (duplicate) {
+      throw new Exception(
+        `You already have a ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
+        { code: 409, data: { existingBookingId: duplicate.bookingId, status: duplicate.status } }
+      );
+    }
 
     // === Get the Product ===
 
@@ -2327,6 +2366,7 @@ module.exports = {
   createBooking,
   fetchAllActivities,
   fetchBookingsWithPagination,
+  findUserActiveBookingForProductOnDate,
   flagCancelledBooking,
   formatBookingResponsePublic,
   getBookingsByActivityDetails,
