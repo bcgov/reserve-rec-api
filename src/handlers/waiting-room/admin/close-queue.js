@@ -36,19 +36,34 @@ exports.handler = async (event) => {
       abandonedCount++;
     }
 
-    // Disconnect active WebSocket connections so users see immediate feedback
-    // instead of a stale waiting room UI.
+    // Notify each active client that the queue was force-closed, then disconnect.
+    // Without the message, the client's onclose just reconnects and the user keeps
+    // waiting. The 'queueClosed' message tells the client to bypass the queue and
+    // proceed to the booking flow.
     const endpoint = process.env.WEBSOCKET_MANAGEMENT_ENDPOINT;
     if (endpoint && activeEntries.length > 0) {
-      const { ApiGatewayManagementApiClient, DeleteConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi');
+      const {
+        ApiGatewayManagementApiClient,
+        PostToConnectionCommand,
+        DeleteConnectionCommand,
+      } = require('@aws-sdk/client-apigatewaymanagementapi');
       const wsClient = new ApiGatewayManagementApiClient({ endpoint });
+      const closedMsg = Buffer.from(JSON.stringify({ type: 'queueClosed' }));
+
       for (const entry of activeEntries) {
-        if (entry.connectionId) {
-          try {
-            await wsClient.send(new DeleteConnectionCommand({ ConnectionId: entry.connectionId }));
-          } catch (err) {
-            logger.debug(`Could not delete connection ${entry.connectionId}: ${err.message}`);
-          }
+        if (!entry.connectionId) continue;
+        try {
+          await wsClient.send(new PostToConnectionCommand({
+            ConnectionId: entry.connectionId,
+            Data: closedMsg,
+          }));
+        } catch (err) {
+          logger.debug(`Could not push queueClosed to ${entry.connectionId}: ${err.message}`);
+        }
+        try {
+          await wsClient.send(new DeleteConnectionCommand({ ConnectionId: entry.connectionId }));
+        } catch (err) {
+          logger.debug(`Could not delete connection ${entry.connectionId}: ${err.message}`);
         }
       }
     }
