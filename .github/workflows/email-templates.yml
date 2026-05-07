@@ -1,18 +1,13 @@
 name: Email Template Deployment
 
+run-name: Sync email templates (${{ github.ref_name }})
+
 on:
   push:
-    paths:
-      - 'lib/handlers/emailDispatch/templates/**'
-    branches:
-      - main
-      - develop
+    branches: [main]
+    tags: ['*']
   pull_request:
-    paths:
-      - 'lib/handlers/emailDispatch/templates/**'
-    branches:
-      - main
-      - develop
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -23,260 +18,120 @@ on:
         options:
           - dev
           - test
-          - staging
           - prod
 
-env:
-  AWS_REGION: ca-central-1
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
-  validate-templates:
+  validate:
     name: Validate Email Templates
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
-          
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-        
-      - name: Install Handlebars CLI for validation
-        run: npm install -g handlebars
-        
-      - name: Validate template syntax
+
+      - name: Validate Handlebars syntax
         run: |
-          echo "Validating Handlebars template syntax..."
-          find lib/handlers/emailDispatch/templates -name "*.html" -o -name "*.txt" | while read template; do
-            echo "Validating: $template"
-            # Basic syntax check using Node.js
-            node -e "
-              const fs = require('fs');
-              const Handlebars = require('handlebars');
-              try {
-                const content = fs.readFileSync('$template', 'utf8');
-                Handlebars.compile(content);
-                console.log('✓ $template syntax is valid');
-              } catch (error) {
-                console.error('✗ $template has syntax error:', error.message);
-                process.exit(1);
-              }
-            "
-          done
-          
+          find lib/handlers/emailDispatch/templates -type f \( -name '*.html' -o -name '*.txt' \) -print0 |
+          xargs -0 -I{} node -e "
+            const fs = require('fs');
+            const Handlebars = require('handlebars');
+            const f = '{}';
+            try {
+              Handlebars.compile(fs.readFileSync(f, 'utf8'));
+              console.log('OK', f);
+            } catch (e) {
+              console.error('FAIL', f, e.message);
+              process.exit(1);
+            }
+          "
+
       - name: Run email dispatch tests
         run: yarn test emailDispatch.test.js
-        
-      - name: Check template completeness
-        run: |
-          echo "Checking for required templates..."
-          required_templates=(
-            "lib/handlers/emailDispatch/templates/en/receipt_bcparks_kootenay.html"
-            "lib/handlers/emailDispatch/templates/en/receipt_bcparks_kootenay.txt"
-          )
-          
-          for template in "${required_templates[@]}"; do
-            if [ -f "$template" ]; then
-              echo "✓ Found: $template"
-            else
-              echo "✗ Missing: $template"
-              exit 1
-            fi
-          done
 
   deploy-dev:
-    name: Deploy to Development
+    name: Deploy to Dev
     runs-on: ubuntu-latest
-    needs: validate-templates
-    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
-    environment: development
-    
+    needs: validate
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    environment: reserveRecApiDev
+    concurrency:
+      group: email-templates-dev
+      cancel-in-progress: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+
+      - name: Get AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
-          aws-region: ${{ env.AWS_REGION }}
-          
-      - name: Deploy templates to S3
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Sync templates to S3
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
-          chmod +x scripts/sync-email-templates.sh
-          ./scripts/sync-email-templates.sh dev
-          
-      - name: Notify deployment
-        run: |
-          echo "✅ Email templates deployed to development environment"
-          echo "S3 Bucket: reserve-rec-email-templates-dev"
-          echo "Region: ${{ env.AWS_REGION }}"
+          chmod +x src/scripts/sync-email-templates.sh
+          src/scripts/sync-email-templates.sh dev
 
   deploy-test:
     name: Deploy to Test
     runs-on: ubuntu-latest
-    needs: validate-templates
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test'
-    environment: test
-    
+    needs: validate
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test')
+    environment: reserveRecApiTest
+    concurrency:
+      group: email-templates-test
+      cancel-in-progress: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+
+      - name: Get AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_TEST }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_TEST }}
-          aws-region: ${{ env.AWS_REGION }}
-          
-      - name: Deploy templates to S3
-        run: |
-          chmod +x scripts/sync-email-templates.sh
-          ./scripts/sync-email-templates.sh test
-          
-      - name: Run integration tests
-        run: |
-          echo "Running integration tests against test environment..."
-          # Add integration test commands here
-          
-      - name: Notify deployment
-        run: |
-          echo "✅ Email templates deployed to test environment"
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
 
-  deploy-staging:
-    name: Deploy to Staging
+      - name: Sync templates to S3
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          chmod +x src/scripts/sync-email-templates.sh
+          src/scripts/sync-email-templates.sh test
+
+  deploy-prod:
+    name: Deploy to Prod
     runs-on: ubuntu-latest
-    needs: validate-templates
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
-    environment: staging
-    
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    environment: reserveRecApiProd
+    concurrency:
+      group: email-templates-prod
+      cancel-in-progress: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+
+      - name: Get AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
-          aws-region: ${{ env.AWS_REGION }}
-          
-      - name: Deploy templates to S3
-        run: |
-          chmod +x scripts/sync-email-templates.sh
-          ./scripts/sync-email-templates.sh staging
-          
-      - name: Notify deployment
-        run: |
-          echo "✅ Email templates deployed to staging environment"
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
 
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: validate-templates
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
-    environment: production
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region: ${{ env.AWS_REGION }}
-          
-      - name: Create production backup
+      - name: Sync templates to S3
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
-          echo "Creating backup of current production templates..."
-          aws s3 cp s3://reserve-rec-email-templates-prod/ s3://reserve-rec-email-templates-prod/backups/$(date +%Y-%m-%d_%H-%M-%S)/ --recursive --region ${{ env.AWS_REGION }} || echo "No existing templates to backup"
-          
-      - name: Deploy templates to S3
-        run: |
-          chmod +x scripts/sync-email-templates.sh
-          ./scripts/sync-email-templates.sh prod
-          
-      - name: Verify production deployment
-        run: |
-          echo "Verifying production deployment..."
-          aws s3 ls s3://reserve-rec-email-templates-prod/ --recursive --region ${{ env.AWS_REGION }}
-          
-          # Verify key templates exist
-          required_templates=(
-            "en/receipt_bcparks_kootenay.html"
-            "en/receipt_bcparks_kootenay.txt"
-          )
-          
-          for template in "${required_templates[@]}"; do
-            if aws s3api head-object --bucket reserve-rec-email-templates-prod --key "$template" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-              echo "✓ Verified: $template"
-            else
-              echo "✗ Missing: $template"
-              exit 1
-            fi
-          done
-          
-      - name: Notify production deployment
-        run: |
-          echo "🚀 Email templates deployed to PRODUCTION environment"
-          echo "S3 Bucket: reserve-rec-email-templates-prod"
-          echo "Deployment time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          
-      - name: Create release tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          tag_name="email-templates-$(date +%Y%m%d-%H%M%S)"
-          git tag -a "$tag_name" -m "Email templates deployment to production"
-          echo "Created tag: $tag_name"
-
-  notification:
-    name: Deployment Notification
-    runs-on: ubuntu-latest
-    needs: [deploy-dev, deploy-test, deploy-staging, deploy-production]
-    if: always()
-    
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "📧 Email Template Deployment Summary"
-          echo "=================================="
-          echo "Repository: ${{ github.repository }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Actor: ${{ github.actor }}"
-          echo "Event: ${{ github.event_name }}"
-          
-          if [ "${{ needs.deploy-dev.result }}" == "success" ]; then
-            echo "✅ Development deployment: SUCCESS"
-          elif [ "${{ needs.deploy-dev.result }}" == "failure" ]; then
-            echo "❌ Development deployment: FAILED"
-          fi
-          
-          if [ "${{ needs.deploy-test.result }}" == "success" ]; then
-            echo "✅ Test deployment: SUCCESS"
-          elif [ "${{ needs.deploy-test.result }}" == "failure" ]; then
-            echo "❌ Test deployment: FAILED"
-          fi
-          
-          if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
-            echo "✅ Staging deployment: SUCCESS"
-          elif [ "${{ needs.deploy-staging.result }}" == "failure" ]; then
-            echo "❌ Staging deployment: FAILED"
-          fi
-          
-          if [ "${{ needs.deploy-production.result }}" == "success" ]; then
-            echo "🚀 Production deployment: SUCCESS"
-          elif [ "${{ needs.deploy-production.result }}" == "failure" ]; then
-            echo "💥 Production deployment: FAILED"
-          fi
+          chmod +x src/scripts/sync-email-templates.sh
+          src/scripts/sync-email-templates.sh prod

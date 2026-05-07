@@ -114,10 +114,11 @@ validate_templates() {
 sync_templates() {
     log_info "Syncing templates to S3..."
     
-    # Sync templates with metadata
+    # Sync templates with metadata.
+    # NOTE: no --delete; bucket may contain templates uploaded out-of-band
+    # (e.g. account-verification.html). Removals must be explicit.
     aws s3 sync "${TEMPLATE_SOURCE_DIR}" "s3://${S3_BUCKET}" \
         --region "${AWS_REGION}" \
-        --delete \
         --metadata "Environment=${ENVIRONMENT},SyncTime=$(date -u +%Y-%m-%dT%H:%M:%SZ),Version=$(git rev-parse HEAD 2>/dev/null || echo 'unknown')" \
         --exclude "*.DS_Store" \
         --exclude "*.git*" \
@@ -160,9 +161,11 @@ create_backup() {
     
     log_info "Creating backup of current templates..."
     
-    # Copy current S3 templates to backup location
+    # Copy current S3 templates to backup location.
+    # Exclude existing backups/ to prevent each run from duplicating all prior backups.
     aws s3 cp "s3://${S3_BUCKET}/" "s3://${S3_BUCKET}/${backup_prefix}/" \
         --recursive \
+        --exclude "backups/*" \
         --region "${AWS_REGION}" \
         --quiet 2>/dev/null || log_warn "No existing templates to backup"
     
