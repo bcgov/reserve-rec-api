@@ -6,7 +6,7 @@ const {
   marshall,
   incrementCounter,
 } = require("/opt/dynamodb");
-const { Exception, logger, filterByRole } = require("/opt/base");
+const { Exception, logger, filterByRole, effectiveCollectionRole } = require("/opt/base");
 const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
 const { getRelationshipsByGsipk, expandRelationships } = require("../../common/relationship-utils");
 
@@ -431,10 +431,9 @@ async function fetchFacilities(
     res = await getFacilitiesByCollectionId(collectionId, filters, queryParams);
   }
 
-  // Check user's role from authContext (if provided), otherwise provide default return
-  const role = authContext?.permissions?.[collectionId] ?? "default";
-
-  // Filter by the role of the user - for public, that's 'default' (least privilege)
+  // Filter by the user's effective role for this collection. Resolves the
+  // top-level superadmin marker so superadmins see adminNotes etc.
+  const role = effectiveCollectionRole(authContext, collectionId);
   return filterByRole(res, role, ROLE_BASED_FILTERS);
 }
 

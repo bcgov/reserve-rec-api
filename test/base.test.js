@@ -3,6 +3,7 @@ const {
   checkWarmup,
   Exception,
   getRequestClaimsFromEvent,
+  effectiveCollectionRole,
 } = require('../src/layers/base/base');
 
 describe('Base Layer Tests', () => {
@@ -135,6 +136,30 @@ describe('Base Layer Tests', () => {
       expect(claims.sub).toBe('user456');
       expect(claims.email).toBe('user@example.com');
       expect(claims.username).toBe('testuser');
+    });
+  });
+
+  describe('effectiveCollectionRole', () => {
+    it('returns superadmin when permissions has the superadmin marker', () => {
+      const ctx = { permissions: { superadmin: 'superadmin', 'bcparks_1': 'staff' } };
+      expect(effectiveCollectionRole(ctx, 'bcparks_1')).toBe('superadmin');
+    });
+
+    it('returns the per-collection role for non-superadmins', () => {
+      const ctx = { permissions: { 'bcparks_1': 'staff', 'bcparks_2': 'limited' } };
+      expect(effectiveCollectionRole(ctx, 'bcparks_1')).toBe('staff');
+      expect(effectiveCollectionRole(ctx, 'bcparks_2')).toBe('limited');
+    });
+
+    it('falls back to default when collection is not in permissions', () => {
+      const ctx = { permissions: { 'bcparks_1': 'staff' } };
+      expect(effectiveCollectionRole(ctx, 'bcparks_99')).toBe('default');
+    });
+
+    it('handles missing authContext or permissions gracefully', () => {
+      expect(effectiveCollectionRole(null, 'bcparks_1')).toBe('default');
+      expect(effectiveCollectionRole({}, 'bcparks_1')).toBe('default');
+      expect(effectiveCollectionRole({ permissions: {} }, 'bcparks_1')).toBe('default');
     });
   });
 });
