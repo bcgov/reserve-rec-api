@@ -226,6 +226,24 @@ function removeFields(obj, fields) {
  *
  * @returns {Object} Filtered response data object
  */
+/**
+ * Resolves the effective response-filtering role for a user against a specific
+ * collection. Superadmin permissions live at the top level of authContext.permissions
+ * (`{ superadmin: 'superadmin' }`) — without this helper, a per-collection lookup
+ * misses that and falls through to 'default', which strips fields like adminNotes
+ * even from superadmin responses.
+ *
+ * @param {Object} authContext - object returned by checkAuthContext
+ * @param {string} collectionId - collection being read
+ * @returns {string} role to pass to filterByRole
+ */
+function effectiveCollectionRole(authContext, collectionId) {
+  if (authContext?.permissions?.['superadmin'] === 'superadmin') {
+    return 'superadmin';
+  }
+  return authContext?.permissions?.[collectionId] ?? 'default';
+}
+
 function filterByRole(res, role = 'default', ROLE_BASED_FILTERS) {
   // Return the response as-is for superadmin
   if (role === 'superadmin') {
@@ -485,6 +503,7 @@ module.exports = {
   getNow,
   getNowEpoch,
   getNowISO,
+  effectiveCollectionRole,
   filterByRole,
   checkAuthContext,
   getRequestClaimsFromEvent,
