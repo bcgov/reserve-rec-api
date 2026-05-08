@@ -65,8 +65,12 @@ exports.handler = async (event, context) => {
       );
     }
 
-    // If the user isn't a superadmin, remove adminNotes from the response
-    if (res && authContext.permissions !== 'superadmin') {
+    // If the user isn't a superadmin, remove adminNotes from the response.
+    // permissions is an object like { superadmin: 'superadmin' } or
+    // { '<collectionId>': 'staff' }; comparing the whole object to a string
+    // is always !== 'superadmin', so this used to strip adminNotes for everyone.
+    const isSuperAdmin = authContext?.permissions?.superadmin === 'superadmin';
+    if (res && !isSuperAdmin) {
       const removedFields = ({ adminNotes, ...allowedFields }) => allowedFields;
       res = Array.isArray(res) ? res.map(removedFields) : removedFields(res);
     }
