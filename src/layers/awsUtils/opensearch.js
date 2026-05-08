@@ -1,66 +1,78 @@
+/**
+ * Opensearch layer
+ * 
+ * This layer provides a class for constructing OpenSearch queries with various
+ * parameters and filters, as well as functions for managing OpenSearch indices 
+ * and performing bulk write operations.
+ * 
+ * The OSQuery class allows for building complex search queries with support for
+ * pagination, sorting, geospatial filtering, and suggestions. The utility functions
+ * facilitate interactions with OpenSearch, such as checking index existence, creating
+ * and deleting indices, and performing bulk document operations.
+ */
 
-const { defaultProvider } = require('@aws-sdk/credential-provider-node'); // V3 SDK.
-const { Client } = require('@opensearch-project/opensearch');
-const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws');
-const { logger } = require('/opt/base');
+const { defaultProvider } = require("@aws-sdk/credential-provider-node"); // V3 SDK.
+const { Client }          = require("@opensearch-project/opensearch");
+const { AwsSigv4Signer }  = require("@opensearch-project/opensearch/aws");
+const { logger }          = require("/opt/base");
 
 // Import necessary libraries and modules
-const OPENSEARCH_DOMAIN_ENDPOINT = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
-const OPENSEARCH_REFERENCE_DATA_INDEX_NAME = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'reference-data-index';
-const OPENSEARCH_AUDIT_INDEX_NAME = process.env.OPENSEARCH_AUDIT_INDEX_NAME || 'audit-index';
+const OPENSEARCH_DOMAIN_ENDPOINT               = process.env.OPENSEARCH_DOMAIN_ENDPOINT || 'http://localhost:9200';
+const OPENSEARCH_REFERENCE_DATA_INDEX_NAME     = process.env.OPENSEARCH_REFERENCE_DATA_INDEX_NAME || 'reference-data-index';
+const OPENSEARCH_AUDIT_INDEX_NAME              = process.env.OPENSEARCH_AUDIT_INDEX_NAME || 'audit-index';
 const OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME = process.env.OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME || 'transactional-data-index';
-const OPENSEARCH_USER_INDEX_NAME = process.env.OPENSEARCH_USER_INDEX_NAME || 'user-index';
-const OPENSEARCH_DEFAULT_SORT_ORDER = 'asc'; // asc or desc
-const DEFAULT_RESULT_SIZE = 10;
-const MAX_RESULT_SIZE = 100;
-const OPENSEARCH_DOMAIN_NAME = process.env.OPENSEARCH_DOMAIN_NAME;
+const OPENSEARCH_USER_INDEX_NAME               = process.env.OPENSEARCH_USER_INDEX_NAME || 'user-index';
+const OPENSEARCH_DEFAULT_SORT_ORDER            = 'asc'; // asc or desc
+const DEFAULT_RESULT_SIZE                      = 10;
+const MAX_RESULT_SIZE                          = 100;
+const OPENSEARCH_DOMAIN_NAME                   = process.env.OPENSEARCH_DOMAIN_NAME;
 
 // Maximum number of transactions in a single batch - the real limit is roughly 6.3MB
 const TRANSACTION_MAX_SIZE = 100;
 
 // Query parameters that should not be used as keyable search terms
 const nonKeyableTerms = [
-  'bbox',
-  'distance',
-  'distanceUnits',
-  'filters',
-  'fuzzy',
-  'fuzziness',
-  'geoshape',
-  'geoEnvelopeFieldName',
-  'geoPointFieldName',
-  'spatialRelation',
-  'pipeline',
-  'size',
-  'sortField',
-  'sortOrder',
-  'startFrom',
-  'suggest',
-  'suggestField',
-  'suggestSize',
-  'suggestText',
-  'text',
+  "bbox",
+  "distance",
+  "distanceUnits",
+  "filters",
+  "fuzzy",
+  "fuzziness",
+  "geoshape",
+  "geoEnvelopeFieldName",
+  "geoPointFieldName",
+  "spatialRelation",
+  "pipeline",
+  "size",
+  "sortField",
+  "sortOrder",
+  "startFrom",
+  "suggest",
+  "suggestField",
+  "suggestSize",
+  "suggestText",
+  "text",
 ];
 
 let client = new Client({
   ...AwsSigv4Signer({
-    region: 'ca-central-1',
-    service: 'es',
+    region: "ca-central-1",
+    service: "es",
     getCredentials: () => {
       const credentialsProvider = defaultProvider();
       return credentialsProvider();
-    }
+    },
   }),
-  node: OPENSEARCH_DOMAIN_ENDPOINT // OpenSearch domain URL
+  node: OPENSEARCH_DOMAIN_ENDPOINT, // OpenSearch domain URL
 });
 
 // For offline development
-if (process.env.IS_OFFLINE === 'true') {
+if (process.env.IS_OFFLINE === "true") {
   client = new Client({
     node: OPENSEARCH_DOMAIN_ENDPOINT,
     ssl: {
-      rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+    },
   });
 }
 
@@ -133,11 +145,11 @@ class OSQuery {
      *
      */
     this.distance = options?.distance || null;
-    this.distanceUnits = options?.distanceUnits || 'km'; // default to kilometers
+    this.distanceUnits = options?.distanceUnits || "km"; // default to kilometers
     this.geoshape = options?.geoshape || null;
-    this.spatialRelation = options?.spatialRelation || 'WITHIN';
-    this.geoPointFieldName = options?.geoPointFieldName || 'location'; // default geo_point field name
-    this.geoEnvelopeFieldName = options?.geoEnvelopeFieldName || 'envelope'; //
+    this.spatialRelation = options?.spatialRelation || "WITHIN";
+    this.geoPointFieldName = options?.geoPointFieldName || "location"; // default geo_point field name
+    this.geoEnvelopeFieldName = options?.geoEnvelopeFieldName || "envelope"; //
     /**
      * The pipeline to use for the search.
      * @type {string}
@@ -161,7 +173,7 @@ class OSQuery {
   async search() {
     // Match at least 1 OR condition
     if (this.query?.bool?.should) {
-      this.query.bool['minimum_should_match'] = 1;
+      this.query.bool["minimum_should_match"] = 1;
     }
     this.request = {
       index: this.index,
@@ -171,19 +183,19 @@ class OSQuery {
     let body = {};
     // add query to body if provided
     if (Object.keys(this.query).length > 0) {
-      body['query'] = this.query;
+      body["query"] = this.query;
     }
     // Add sort to body if provided
     if (this.sort) {
-      body['sort'] = this.sort;
+      body["sort"] = this.sort;
     }
     // Add pipeline to body if provided
     if (this.pipeline) {
-      body['search_pipeline'] = this.pipeline;
+      body["search_pipeline"] = this.pipeline;
     }
     // Add suggest to body if provided
     if (this.suggest) {
-      body['suggest'] = this.suggest;
+      body["suggest"] = this.suggest;
     }
     if (Object.keys(body).length > 0) {
       this.request.body = body;
@@ -208,15 +220,11 @@ class OSQuery {
    * @param {string} string - The string to match in the query.
    */
   addMatchQueryStringRule(string) {
-    setNestedValue(
-      this.query,
-      ['bool', 'must'],
-      {
-        query_string: {
-          query: escapeOpenSearchQuery(string)
-        }
-      }
-    );
+    setNestedValue(this.query, ["bool", "must"], {
+      query_string: {
+        query: escapeOpenSearchQuery(string),
+      },
+    });
   }
 
   /**
@@ -226,7 +234,7 @@ class OSQuery {
    * @param {Boolean} exactMatch - If true, term must match exactly to return a hit. Default false.
    */
   addMustMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'must', exactMatch);
+    addTermsRule(this.query, terms, "must", exactMatch);
   }
 
   /**
@@ -235,7 +243,7 @@ class OSQuery {
    * @param {Array<string>} terms - The terms to be added as filter rules.
    */
   addFilterTermsRule(terms) {
-    addTermsRule(this.query, terms, 'filter', true);
+    addTermsRule(this.query, terms, "filter", true);
   }
 
   /**
@@ -245,17 +253,17 @@ class OSQuery {
    * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false.
    */
   addMustNotMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'must_not', exactMatch);
+    addTermsRule(this.query, terms, "must_not", exactMatch);
   }
 
   /**
- * Adds should match terms rule to the OpenSearch query (logical `OR`).
- *
- * @param {Array} terms - An array of terms to exclude from the query.
- * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false.
- */
+   * Adds should match terms rule to the OpenSearch query (logical `OR`).
+   *
+   * @param {Array} terms - An array of terms to exclude from the query.
+   * @param {Boolean} exactMatch - If true, term must match exactly to ignore a hit. Default false.
+   */
   addShouldMatchTermsRule(terms, exactMatch = false) {
-    addTermsRule(this.query, terms, 'should', exactMatch);
+    addTermsRule(this.query, terms, "should", exactMatch);
   }
 
   /**
@@ -264,13 +272,9 @@ class OSQuery {
    * @param {Array<string>} ids - An array of IDs to filter the query results.
    */
   addIDsQueryRule(ids) {
-    setNestedValue(
-      this.query,
-      ['ids'],
-      {
-        values: ids
-      }
-    );
+    setNestedValue(this.query, ["ids"], {
+      values: ids,
+    });
   }
 
   /**
@@ -280,29 +284,33 @@ class OSQuery {
    * @param {String} order - Sort order ('asc' or 'desc').
    */
   addSortRule(field, order = OPENSEARCH_DEFAULT_SORT_ORDER) {
-    this.sort = [{
-      [field]: {
-        order: order
-      }
-    }];
+    this.sort = [
+      {
+        [field]: {
+          order: order,
+        },
+      },
+    ];
   }
 
-  addRangeQueryRule(field, rangeStart, rangeEnd, includeStart = true, includeEnd = true) {
-    let rangeStartOperator = includeStart ? 'gte' : 'gt';
-    let rangeEndOperator = includeEnd ? 'lte' : 'lt';
+  addRangeQueryRule(
+    field,
+    rangeStart,
+    rangeEnd,
+    includeStart = true,
+    includeEnd = true,
+  ) {
+    let rangeStartOperator = includeStart ? "gte" : "gt";
+    let rangeEndOperator = includeEnd ? "lte" : "lt";
 
-    setNestedValue(
-      this.query,
-      ['bool', 'filter'],
-      {
-        range: {
-          [field]: {
-            [rangeStartOperator]: rangeStart,
-            [rangeEndOperator]: rangeEnd
-          }
-        }
-      }
-    );
+    setNestedValue(this.query, ["bool", "filter"], {
+      range: {
+        [field]: {
+          [rangeStartOperator]: rangeStart,
+          [rangeEndOperator]: rangeEnd,
+        },
+      },
+    });
   }
 
   /**
@@ -315,22 +323,22 @@ class OSQuery {
     if (checkBBox(bbox)) {
       setNestedValue(
         this.query,
-        ['bool', 'filter'],
+        ["bool", "filter"],
         {
           geo_bounding_box: {
             [this.geoPointFieldName]: {
               top_left: {
                 lat: bbox[0][1],
-                lon: bbox[0][0]
+                lon: bbox[0][0],
               },
               bottom_right: {
                 lat: bbox[1][1],
-                lon: bbox[1][0]
-              }
-            }
-          }
+                lon: bbox[1][0],
+              },
+            },
+          },
         },
-        false
+        false,
       );
     }
   }
@@ -352,10 +360,10 @@ class OSQuery {
    */
   addTermSuggester(text, options = {}) {
     const {
-      field = 'searchTerms',
+      field = "searchTerms",
       name = `${field}-corrections`,
       size = 5,
-      suggestMode = 'missing'
+      suggestMode = "missing",
     } = options;
 
     this.suggest = this.suggest || {};
@@ -364,8 +372,8 @@ class OSQuery {
       term: {
         field: field,
         size: size,
-        suggest_mode: suggestMode
-      }
+        suggest_mode: suggestMode,
+      },
     };
   }
 
@@ -382,25 +390,21 @@ class OSQuery {
    */
   addFuzzyMatchRule(field, value, options = {}) {
     const {
-      fuzziness = 'AUTO',
+      fuzziness = "AUTO",
       prefixLength = 0,
-      maxExpansions = 50
+      maxExpansions = 50,
     } = options;
 
-    setNestedValue(
-      this.query,
-      ['bool', 'must'],
-      {
-        match: {
-          [field]: {
-            query: value,
-            fuzziness: fuzziness,
-            prefix_length: prefixLength,
-            max_expansions: maxExpansions
-          }
-        }
-      }
-    );
+    setNestedValue(this.query, ["bool", "must"], {
+      match: {
+        [field]: {
+          query: value,
+          fuzziness: fuzziness,
+          prefix_length: prefixLength,
+          max_expansions: maxExpansions,
+        },
+      },
+    });
   }
 
   /**
@@ -415,41 +419,29 @@ class OSQuery {
    * @param {number} [options.boost=1.0] - Boost score for matches.
    */
   addPrefixQuery(field, value, options = {}) {
-    const {
-      maxExpansions = 50,
-      usePhrase = true,
-      boost = 1.0
-    } = options;
+    const { maxExpansions = 50, usePhrase = true, boost = 1.0 } = options;
 
     if (usePhrase) {
       // match_phrase_prefix: better for multi-word phrases and analyzed fields
-      setNestedValue(
-        this.query,
-        ['bool', 'must'],
-        {
-          match_phrase_prefix: {
-            [field]: {
-              query: value,
-              max_expansions: maxExpansions,
-              boost: boost
-            }
-          }
-        }
-      );
+      setNestedValue(this.query, ["bool", "must"], {
+        match_phrase_prefix: {
+          [field]: {
+            query: value,
+            max_expansions: maxExpansions,
+            boost: boost,
+          },
+        },
+      });
     } else {
       // Simple prefix: better for single terms and keyword fields
-      setNestedValue(
-        this.query,
-        ['bool', 'must'],
-        {
-          prefix: {
-            [field]: {
-              value: value.toLowerCase(),
-              boost: boost
-            }
-          }
-        }
-      );
+      setNestedValue(this.query, ["bool", "must"], {
+        prefix: {
+          [field]: {
+            value: value.toLowerCase(),
+            boost: boost,
+          },
+        },
+      });
     }
   }
 }
@@ -462,32 +454,28 @@ class OSQuery {
  * @param {boolean} [ignore=false] - If true, adds terms as "must_not" in the query; otherwise, adds as "must".
  * @param {boolean} [exactMatch=true] - If true, uses "terms" in the match; otherwise, uses "match".
  */
-function addTermsRule(query, terms, clause = 'filter', exactMatch = true) {
-  let match = exactMatch ? 'terms' : 'match';
+function addTermsRule(query, terms, clause = "filter", exactMatch = true) {
+  let match = exactMatch ? "terms" : "match";
   for (const term of Object.keys(terms)) {
     let value = terms[term];
     // determine value type
     switch (typeof terms[term]) {
-      case 'boolean':
-        match = 'terms';
+      case "boolean":
+        match = "terms";
         value = [value];
         break;
       default:
         value = value.toLowerCase();
         if (exactMatch) {
-          value = value.split(',');
+          value = value.split(",");
         }
         break;
     }
-    setNestedValue(
-      query,
-      ['bool', clause],
-      {
-        [match]: {
-          [term]: value
-        }
-      }
-    );
+    setNestedValue(query, ["bool", clause], {
+      [match]: {
+        [term]: value,
+      },
+    });
   }
 }
 
@@ -556,7 +544,7 @@ function buildIdFromPkSk(pk, sk) {
 }
 
 async function listIndices() {
-  return await client.cat.indices({ format: 'json' });
+  return await client.cat.indices({ format: "json" });
 }
 
 async function checkIndex(indexName) {
@@ -578,10 +566,9 @@ async function createIndex(indexName, mappings = {}) {
     await client.indices.create({
       index: indexName,
       body: {
-        mappings: mappings
-      }
+        mappings: mappings,
+      },
     });
-
   } catch (error) {
     logger.error(`Error creating index: ${error}`);
     throw error;
@@ -592,7 +579,11 @@ async function deleteIndex(indexName) {
   return await client.indices.delete({ index: indexName });
 }
 
-async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_INDEX_NAME, action = 'update') {
+async function bulkWriteDocuments(
+  items,
+  indexName = OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
+  action = "update",
+) {
   // actions: [create, update, delete, index]
 
   const dataChunks = chunkArray(items, TRANSACTION_MAX_SIZE);
@@ -610,52 +601,26 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_I
         bulkIndexChunk.push({
           [action]: {
             _index: indexName,
-            _id: item.id
-          }
+            _id: item.id,
+          },
         });
-        if (action === 'update') {
+        if (action === "update") {
           bulkIndexChunk.push({
             doc: item,
-            doc_as_upsert: true // Create if it doesn't exist
+            doc_as_upsert: true, // Create if it doesn't exist
           });
-        }
-        if (bulkIndexChunk.length > 0) {
-          let res = await client.bulk({
-            body: bulkIndexChunk
-          });
-          if (res.body.errors) {
-            throw JSON.stringify(res.body.items, null, 2);
-          }
         }
       }
-      await client.indices.refresh();
-
-      // await client.helpers.bulk({
-      //   datasource: chunk,
-      //   refreshOnCompletion: true, // Refresh the index after the operation
-      //   onDocument(doc) {
-      //     if (!doc.id) {
-      //       throw new Error('Document does not have an ID: ' + JSON.stringify(doc));
-      //     }
-      //     let newDoc = [
-      //       {
-      //         [action]: {
-      //           _id: doc.id,
-      //           _index: indexName
-      //         }
-      //       },
-      //     ];
-      //     // update actions must be a tuple with the document and the upsert flag
-      //     if (action === 'update') {
-      //       newDoc.push({
-      //         doc: doc,
-      //         doc_as_upsert: true // Create if it doesn't exist
-      //       });
-      //     }
-      //     return newDoc;
-      //   }
-      // });
-
+      // Execute the bulk operation for the current chunk
+      if (bulkIndexChunk.length > 0) {
+        let res = await client.bulk({
+          body: bulkIndexChunk,
+        });
+        if (res.body.errors) {
+          throw JSON.stringify(res.body.items, null, 2);
+        }
+      }
+      await client.indices.refresh({ index: indexName });
       logger.info(`BatchWriteItem response for chunk ${i}: complete`);
     }
   } catch (error) {
@@ -665,28 +630,34 @@ async function bulkWriteDocuments(items, indexName = OPENSEARCH_REFERENCE_DATA_I
 }
 
 function checkBBox(bbox) {
-  if (!Array.isArray(bbox) || bbox.length !== 2 || !Array.isArray(bbox[0]) || !Array.isArray(bbox[1]) ||
-    bbox[0].length !== 2 || bbox[1].length !== 2) {
+  if (
+    !Array.isArray(bbox) ||
+    bbox.length !== 2 ||
+    !Array.isArray(bbox[0]) ||
+    !Array.isArray(bbox[1]) ||
+    bbox[0].length !== 2 ||
+    bbox[1].length !== 2
+  ) {
     return false;
   }
   return true;
 }
 
 module.exports = {
-  OPENSEARCH_AUDIT_INDEX_NAME,
-  OPENSEARCH_DOMAIN_NAME,
-  OPENSEARCH_DOMAIN_ENDPOINT,
-  OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
-  OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME,
-  OSQuery,
   buildIdFromPkSk,
   bulkWriteDocuments,
+  checkIndex,
   checkIndexExists,
   client,
-  checkIndex,
   createIndex,
   deleteIndex,
   listIndices,
   nonKeyableTerms,
-  OPENSEARCH_USER_INDEX_NAME
+  OPENSEARCH_AUDIT_INDEX_NAME,
+  OPENSEARCH_DOMAIN_ENDPOINT,
+  OPENSEARCH_DOMAIN_NAME,
+  OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
+  OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME,
+  OPENSEARCH_USER_INDEX_NAME,
+  OSQuery,
 };

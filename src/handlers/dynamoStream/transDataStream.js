@@ -13,6 +13,13 @@ const usersTransfererrable = [
   'user'
 ]
 
+/**
+ * This Lambda function is triggered by DynamoDB Streams on the transactional data table.
+ * It processes the stream records and updates the corresponding OpenSearch indices for 
+ * transactional data and user data based on the schema of the record. Depending on whether
+ * the record is an insert, modify, or remove event, it will upsert or delete documents 
+ * in OpenSearch accordingly.
+ */ 
 exports.handler = async function (event, context) {
   logger.info('Transactional Data Stream Handler');
   logger.debug(JSON.stringify(event));
@@ -59,6 +66,7 @@ exports.handler = async function (event, context) {
             ...unmarshall(newImage),
           };
           doc['id'] = openSearchId;
+          doc['lastUpdated'] = creationTime;
 
           // Route document to correct index based on schema
           if (isUserDataSchema) {
