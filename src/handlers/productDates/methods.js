@@ -33,8 +33,12 @@ async function fetchProductDates(props) {
     };
 
     if (!bypassDiscoveryRules) {
-      query.FilterExpression = 'reservationContext.isDiscoverable = :isDiscoverable AND reservationContext.temporalWindows.discoveryWindow.#open <= :currentDateTime AND reservationContext.temporalWindows.discoveryWindow.#close >= :currentDateTime';
+      query.FilterExpression = '#reservationContext.#isDiscoverable = :isDiscoverable AND #reservationContext.#temporalWindows.#discoveryWindow.#open <= :currentDateTime AND #reservationContext.#temporalWindows.#discoveryWindow.#close >= :currentDateTime';
       query.ExpressionAttributeNames = {
+        '#reservationContext': 'reservationContext',
+        '#isDiscoverable': 'isDiscoverable',
+        '#temporalWindows': 'temporalWindows',
+        '#discoveryWindow': 'discoveryWindow',
         '#open': 'open',
         '#close': 'close'
       };
@@ -87,10 +91,18 @@ async function initializeProductDates(collectionId, activityType, activityId, pr
 
     // Get the policies associated with the Product
 
-    let reservationPolicy = await getOne(product?.reservationPolicy?.primaryKey?.pk, product?.reservationPolicy?.primaryKey?.sk);
-    let partyPolicy = await getOne(product?.partyPolicy?.primaryKey?.pk, product?.partyPolicy?.primaryKey?.sk);
-    let changePolicy = await getOne(product?.changePolicy?.primaryKey?.pk, product?.changePolicy?.primaryKey?.sk);
-    let feePolicy = await getOne(product?.feePolicy?.primaryKey?.pk, product?.feePolicy?.primaryKey?.sk);
+    let reservationPolicy = product?.reservationPolicy?.primaryKey?.pk && product?.reservationPolicy?.primaryKey?.sk 
+      ? await getOne(product?.reservationPolicy?.primaryKey?.pk, product?.reservationPolicy?.primaryKey?.sk)
+      : null;
+    let partyPolicy = product?.partyPolicy?.primaryKey?.pk && product?.partyPolicy?.primaryKey?.sk
+      ? await getOne(product?.partyPolicy?.primaryKey?.pk, product?.partyPolicy?.primaryKey?.sk)
+      : null;
+    let changePolicy = product?.changePolicy?.primaryKey?.pk && product?.changePolicy?.primaryKey?.sk
+      ? await getOne(product?.changePolicy?.primaryKey?.pk, product?.changePolicy?.primaryKey?.sk)
+      : null;
+    let feePolicy = product?.feePolicy?.primaryKey?.pk && product?.feePolicy?.primaryKey?.sk
+      ? await getOne(product?.feePolicy?.primaryKey?.pk, product?.feePolicy?.primaryKey?.sk)
+      : null;
 
     // initialize array of ProductDates
 
