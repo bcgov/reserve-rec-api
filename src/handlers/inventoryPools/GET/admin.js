@@ -3,6 +3,19 @@ const { fetchInventoryPoolsOnDate } = require("../methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET InventoryPool by Product on Date", event);
+
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,OPTIONS'
+      },
+      body: ''
+    };
+  }
+
   try {
 
     // Validate required parameters from path and queryparams

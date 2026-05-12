@@ -35,6 +35,15 @@ class InventoryPoolsConstruct extends LambdaConstruct {
     // Add /inventory-pools/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.inventoryPoolsByProductResource = this.inventoryPoolsResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
 
+    // Add /inventory-pools/{collectionId}/{activityType}/{activityId}/{productId}/{date} resource for PUT
+    this.inventoryPoolsByDateResource = this.inventoryPoolsByProductResource.addResource('{date}');
+
+    this.addCorsPreflightForResources([
+      this.inventoryPoolsResource,
+      this.inventoryPoolsByProductResource,
+      this.inventoryPoolsByDateResource,
+    ]);
+
     // inventoryPools GET by Product ID and Dates Lambda Function
 
     this.inventoryPoolsGetByProductFunction = this.generateBasicLambdaFn(
@@ -60,6 +69,18 @@ class InventoryPoolsConstruct extends LambdaConstruct {
       }
     );
 
+    // inventoryPools PUT by Product ID and Date Lambda Function
+
+    this.inventoryPoolsPutByDateFunction = this.generateBasicLambdaFn(
+      scope,
+      'inventoryPoolsPutFunction',
+      'src/handlers/inventoryPools/_collectionId/_activityType/_activityId/_productId/_date/PUT',
+      handlerName,
+      {
+        basicReadWrite: true,
+      }
+    );
+
     // inventoryPools DELETE by Product ID and Dates Lambda Function
 
     this.inventoryPoolsDeleteByProductFunction = this.generateBasicLambdaFn(
@@ -75,24 +96,31 @@ class InventoryPoolsConstruct extends LambdaConstruct {
 
     // GET /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}?date=YYYY-MM-DD will be used to fetch inventoryPools records for a given Product on a specific date.
 
-    this.inventoryPoolsByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryPoolsGetByProductFunction, {
+    this.inventoryPoolsByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryPoolsGetByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
 
     // POST /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId} will be used to create inventoryPools records for a given Product and date range. The request body should include the date range and the inventoryPools level for each date in the range. This will allow us to create inventoryPools records for each date in the range with the appropriate inventoryPools level.
 
-    this.inventoryPoolsByProductResource.addMethod('POST', new apigw.LambdaIntegration(this.inventoryPoolsPostByProductFunction, {
+    this.inventoryPoolsByProductResource.addMethod('POST', new apigw.LambdaIntegration(this.inventoryPoolsPostByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
 
     // DELETE /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId} will be used to delete inventoryPools records for a given Product and date range. The request body should include the date range.
 
-    this.inventoryPoolsByProductResource.addMethod('DELETE', new apigw.LambdaIntegration(this.inventoryPoolsDeleteByProductFunction, {
+    this.inventoryPoolsByProductResource.addMethod('DELETE', new apigw.LambdaIntegration(this.inventoryPoolsDeleteByProductFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
-    }));
+    });
+
+    // PUT /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}/{date} will be used to update inventoryPools records for a given Product and date. The request body should include the updated asset quantities.
+
+    this.inventoryPoolsByDateResource.addMethod('PUT', new apigw.LambdaIntegration(this.inventoryPoolsPutByDateFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
   }
 }
 

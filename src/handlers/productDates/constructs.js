@@ -35,9 +35,13 @@ class ProductDatesConstruct extends LambdaConstruct {
     // Add /product-dates/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.productDatesByProductResource = this.productDatesResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
 
+    // Add /product-dates/{collectionId}/{activityType}/{activityId}/{productId}/{date} resource for PUT
+    this.productDatesByDateResource = this.productDatesByProductResource.addResource('{date}');
+
     this.addCorsPreflightForResources([
       this.productDatesResource,
       this.productDatesByProductResource,
+      this.productDatesByDateResource,
     ]);
 
     // // ProductDates GET by Product ID Lambda Function
@@ -60,6 +64,17 @@ class ProductDatesConstruct extends LambdaConstruct {
       {
         basicReadWrite: true,
         timeout: Duration.minutes(1),
+      }
+    );
+
+    // ProductDates PUT by Product ID & date Lambda Function
+    this.productDatesPutByDateFunction = this.generateBasicLambdaFn(
+      scope,
+      'productDatesPutFunction',
+      'src/handlers/productDates/_productId/_date/PUT',
+      handlerName,
+      {
+        basicReadWrite: true,
       }
     );
 
@@ -89,6 +104,12 @@ class ProductDatesConstruct extends LambdaConstruct {
 
     // DELETE /product-dates/{collectionId}/{activityType}/{activityId}/{productId}
     this.productDatesByProductResource.addMethod('DELETE', new apigw.LambdaIntegration(this.productDatesDeleteByDatesFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // PUT /product-dates/{collectionId}/{activityType}/{activityId}/{productId}/{date}
+    this.productDatesByDateResource.addMethod('PUT', new apigw.LambdaIntegration(this.productDatesPutByDateFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
