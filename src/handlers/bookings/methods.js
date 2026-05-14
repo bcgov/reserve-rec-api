@@ -23,7 +23,6 @@ const {
   DEFAULT_TRANSACTION_FEE_PERCENT,
   DEFAULT_TAX_PERCENT,
   BOOKING_STATUS_ENUMS,
-  PARK_NAMES_BY_COLLECTION_ID
 } = require("../../common/data-constants");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
@@ -1177,14 +1176,36 @@ async function completeBooking(bookingId, sessionId, props) {
   }
 }
 
+async function getParkNameForCollection(collectionId) {
+  if (!collectionId) return null;
+  try {
+    const queryParams = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: {
+        ':pk': marshall(`geozone::${collectionId}`)
+      }
+    };
+    const result = await runQuery(queryParams);
+    const geozones = (result?.items || []).filter(item => item.sk !== 'counter');
+    if (geozones.length === 0) return null;
+    const primary = geozones.sort((a, b) => (a.geozoneId || 0) - (b.geozoneId || 0))[0];
+    return primary?.displayName || null;
+  } catch (error) {
+    logger.warn(`Failed to fetch park name for collectionId ${collectionId}:`, error.message || error);
+    return null;
+  }
+}
+
 async function generateEmailParams(booking, updatedBookingItem) {
   try {
 
     // get bookingDates
     const bookingDates = await getBookingDatesByBookingId(booking.bookingId);
 
-    // get parkName
-    const parkName = PARK_NAMES_BY_COLLECTION_ID[booking.collectionId];
+    // get parkName from the geozone reference data; fall back to the collectionId
+    // so the confirmation email still has something usable if lookup fails.
+    const parkName = (await getParkNameForCollection(booking.collectionId)) || booking.collectionId;
 
     const emailParams = {
       booking: {
@@ -2226,6 +2247,10 @@ async function flagCancelledBooking(booking, queryTime) {
  */
 async function sendBookingConfirmationEmail(emailParams, userName) {
   try {
+    if (!emailParams?.booking) {
+      logger.warn('Cannot send confirmation email - missing email params', { userName });
+      return null;
+    }
 
     // get account email from Cognito
     const userInfo = await getUserInfoByUserName(userName, 'public');
