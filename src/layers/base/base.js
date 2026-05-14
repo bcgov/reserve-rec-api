@@ -460,37 +460,6 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
   }
 }
 
-/**
- * Validate SuperAdmin authorization from event claims
- * @param {Object} event - Lambda event
- * @param {string} [operationContext] - Optional context string for logging (e.g., 'QR verification')
- * @returns {Object} Claims object if authorized
- * @throws {Exception} If user is not a SuperAdmin
- */
-function validateSuperAdminAuth(event, operationContext = 'operation') {
-  // Extract claims from authorizer context
-  const claims = event.requestContext?.authorizer?.claims || getRequestClaimsFromEvent(event);
-
-  if (!claims) {
-    logger.warn('No authorization claims found in request');
-    throw new Exception("Unauthorized - Authentication required", { code: 401 });
-  }
-
-  // Check if user is a SuperAdmin
-  const cognitoGroups = claims['cognito:groups'] || [];
-  const isSuperAdmin = cognitoGroups.some(group =>
-    group.includes('SuperAdminGroup')
-  );
-
-  if (!isSuperAdmin) {
-    logger.warn(`Unauthorized ${operationContext} attempt by user ${claims.sub}`);
-    throw new Exception("Forbidden - SuperAdmin access required", { code: 403 });
-  }
-
-  logger.info(`SuperAdmin ${operationContext} access granted for user ${claims.sub}`);
-  return claims;
-}
-
 module.exports = {
   DateTime,
   Exception,
@@ -513,6 +482,5 @@ module.exports = {
   sendResponse,
   httpGet,
   VALIDATION_PATTERNS,
-  validateSuperAdminAuth,
   writeAuditLog
 };

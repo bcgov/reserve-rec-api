@@ -20,9 +20,6 @@ exports.handler = async (event, context) => {
   if (corsResponse) return corsResponse;
 
   try {
-    // Validate SuperAdmin authorization
-    validateSuperAdminAuth(event, 'daily passes report');
-
     // Extract and validate query params
     const params = event?.queryStringParameters || {};
     const { collectionId, facilityId, arrivalDate } = params;
@@ -155,15 +152,11 @@ async function fetchBookingsForActivity(collectionId, activityType, activityId, 
 
 /**
  * Resolves the display name for a collection (park)
- * collectionId format: "bcparks_{orcs}"
  */
 async function resolveCollectionDisplayName(collectionId) {
   try {
-    // Extract orcs from collectionId (e.g., "bcparks_123" -> "123")
-    const orcs = collectionId.replace('bcparks_', '');
-
-    const protectedArea = await getOne('protectedArea', orcs);
-    return protectedArea?.displayName || protectedArea?.legalName || collectionId;
+    const collection = await getOne('collection', collectionId);
+    return collection?.displayName ? `${collection?.displayName (collectionId)}`  : collectionId;
   } catch (error) {
     logger.warn("Could not resolve collection display name:", error);
     return collectionId;

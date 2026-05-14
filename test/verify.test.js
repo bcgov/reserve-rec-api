@@ -76,32 +76,6 @@ jest.mock('/opt/base', () => ({
     QR_HASH: /^[a-f0-9]{16}$/i
   },
   writeAuditLog: jest.fn(),
-  validateSuperAdminAuth: jest.fn((event) => {
-    const claims = event.requestContext?.authorizer?.claims;
-    if (!claims) {
-      const Exception = jest.requireActual('/opt/base').Exception || class Exception extends Error {
-        constructor(message, options) {
-          super(message);
-          this.code = options?.code;
-          this.data = options?.data;
-        }
-      };
-      throw new Exception("Unauthorized - Authentication required", { code: 401 });
-    }
-    const cognitoGroups = claims['cognito:groups'] || [];
-    const isSuperAdmin = cognitoGroups.some(group => group.includes('SuperAdminGroup'));
-    if (!isSuperAdmin) {
-      const Exception = jest.requireActual('/opt/base').Exception || class Exception extends Error {
-        constructor(message, options) {
-          super(message);
-          this.code = options?.code;
-          this.data = options?.data;
-        }
-      };
-      throw new Exception("Forbidden - SuperAdmin access required", { code: 403 });
-    }
-    return claims;
-  }),
   Exception: class Exception extends Error {
     constructor(message, options) {
       super(message);
