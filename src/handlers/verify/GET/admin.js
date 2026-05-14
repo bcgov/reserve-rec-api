@@ -1,6 +1,6 @@
 // Verify booking QR code - GET /verify/:bookingId/:hash (Admin only)
 
-const { logger, sendResponse, getRequestClaimsFromEvent, Exception, writeAuditLog, validateSuperAdminAuth, handleCORS, calculatePartySize, VALIDATION_PATTERNS } = require("/opt/base");
+const { logger, sendResponse, getRequestClaimsFromEvent, Exception, writeAuditLog, checkAuthContext, handleCORS, calculatePartySize, VALIDATION_PATTERNS } = require("/opt/base");
 const { validateHash } = require("../../../../lib/handlers/emailDispatch/qrCodeHelper");
 const { getBookingByBookingId } = require("../../bookings/methods");
 const { batchWriteData, AUDIT_TABLE_NAME, marshall } = require("/opt/dynamodb");
@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
   try {
     // Validate admin authorization
     try {
-      claims = validateSuperAdminAuth(event, 'QR verification');
+      claims = checkAuthContext(event, 'superadmin');
     } catch (authError) {
       // Log unauthorized attempt to audit table
       const sourceIp = event.requestContext?.identity?.sourceIp || 'unknown';

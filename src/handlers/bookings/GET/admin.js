@@ -1,6 +1,6 @@
 // Search bookings by various filters - POST /bookings/admin/search
 
-const { logger, sendResponse, getRequestClaimsFromEvent, Exception, validateSuperAdminAuth, handleCORS } = require("/opt/base");
+const { logger, sendResponse, getRequestClaimsFromEvent, Exception, handleCORS, checkAuthContext} = require("/opt/base");
 const {
   getBookingByBookingId,
   validateAdminRequirements,
@@ -19,9 +19,8 @@ exports.handler = async (event, context) => {
   if (corsResponse) return corsResponse;
 
   try {
-    // Validate SuperAdmin authorization
-    const claims = validateSuperAdminAuth(event, 'bookings admin search');
-    
+    const claims = checkAuthContext(event, 'superadmin');
+
     // Extract search parameters from request query string
     const params = event?.queryStringParameters || {};
     const collectionId = params?.collectionId;
@@ -38,8 +37,8 @@ exports.handler = async (event, context) => {
     // Build user object for validation functions
     const userObject = {
       sub: claims.sub,
-      isAdmin: true, // validated by validateSuperAdminAuth
-      collection: [], // SuperAdmin has access to all collections
+      isAdmin: true,
+      collection: [],
       isAuthenticated: true,
     };
 

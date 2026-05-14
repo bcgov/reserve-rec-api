@@ -1,6 +1,6 @@
 // Import necessary libraries and modules
 const { OSQuery, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, nonKeyableTerms } = require('/opt/opensearch');
-const { sendResponse, logger, Exception, getRequestClaimsFromEvent, validateSuperAdminAuth, handleCORS } = require('/opt/base');
+const { sendResponse, logger, handleCORS } = require('/opt/base');
 // Lambda function entry point
 exports.handler = async function (event, context) {
   logger.debug('Search:', event); // Log the search event
@@ -10,9 +10,6 @@ exports.handler = async function (event, context) {
   if (corsResponse) return corsResponse;
 
   try {
-    // Validate SuperAdmin authorization
-    const claims = validateSuperAdminAuth(event, 'bookings search');
-
     // Extract query parameters from the event
     const body = JSON.parse(event?.body) || {};
     const userQuery = body?.text;

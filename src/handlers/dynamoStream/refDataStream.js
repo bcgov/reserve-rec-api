@@ -7,7 +7,7 @@ const WEBSOCKET_URL = process.env.WEBSOCKET_URL;
 // These are the schemas that we want to transfer to OpenSearch reference data index
 // NOTE: booking items no longer exist in the reference data table.
 const schemasTransferrable = [
-  'protectedArea',
+  'collection',
   'geozone',
   'facility',
   'activity',
