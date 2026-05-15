@@ -58,12 +58,20 @@ exports.handler = async (event, context) => {
     // Fetch bookings for each activity on the given date
     const allBookings = [];
     for (const activity of activities) {
-      const bookings = await fetchBookingsForActivity(
-        collectionId,
-        activity.activityType,
-        activity.activityId,
-        arrivalDate
-      );
+      // Products are part of the booking pk — must iterate per product
+      const products = await fetchProductsForActivity(collectionId, activity.activityType, activity.activityId);
+      const activityBookings = [];
+      for (const product of products) {
+        const productBookings = await fetchBookingsForActivity(
+          collectionId,
+          activity.activityType,
+          activity.activityId,
+          product.sk,
+          arrivalDate
+        );
+        activityBookings.push(...productBookings);
+      }
+      const bookings = activityBookings;
 
       // Resolve facility display name from the activity's linked facilities
       const facilityDisplayName = await resolveFacilityDisplayName(activity);
@@ -101,6 +109,29 @@ exports.handler = async (event, context) => {
 };
 
 /**
+ * Fetches all products for a given activity
+ */
+async function fetchProductsForActivity(collectionId, activityType, activityId) {
+  try {
+    const queryObj = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: {
+        ":pk": { S: `product::${collectionId}::${activityType}::${activityId}` },
+      },
+    };
+    const result = await runQuery(queryObj);
+    return result.items || [];
+  } catch (error) {
+    logger.error("Error fetching products:", error);
+    throw new Exception("Error fetching products", {
+      code: 400,
+      error: error.message || String(error),
+    });
+  }
+}
+
+/**
  * Fetches day-use activities for a collection, optionally filtered by activityId
  */
 async function fetchDayUseActivities(collectionId) {
@@ -126,15 +157,15 @@ async function fetchDayUseActivities(collectionId) {
 }
 
 /**
- * Fetches bookings for a specific activity on a given date
+ * Fetches bookings for a specific activity+product on a given date
  */
-async function fetchBookingsForActivity(collectionId, activityType, activityId, arrivalDate) {
+async function fetchBookingsForActivity(collectionId, activityType, activityId, productId, arrivalDate) {
   try {
     const queryObj = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
-        ":pk": { S: `booking::${collectionId}::${activityType}::${activityId}` },
+        ":pk": { S: `booking::${collectionId}::${activityType}::${activityId}::${productId}` },
         ":sk": { S: arrivalDate },
       },
     };
@@ -156,7 +187,7 @@ async function fetchBookingsForActivity(collectionId, activityType, activityId, 
 async function resolveCollectionDisplayName(collectionId) {
   try {
     const collection = await getOne('collection', collectionId);
-    return collection?.displayName ? `${collection?.displayName (collectionId)}`  : collectionId;
+    return collection?.displayName ? `${collection.displayName} (${collectionId})` : collectionId;
   } catch (error) {
     logger.warn("Could not resolve collection display name:", error);
     return collectionId;
@@ -221,7 +252,7 @@ function formatBookingForReport(booking, parkName) {
 
   // Map booking status to transaction status
   let transactionStatus;
-  switch (booking.bookingStatus) {
+  switch (booking.status) {
     case 'confirmed':
       transactionStatus = 'Reserved';
       break;
@@ -229,7 +260,7 @@ function formatBookingForReport(booking, parkName) {
       transactionStatus = 'Cancelled';
       break;
     default:
-      transactionStatus = booking.bookingStatus || '';
+      transactionStatus = booking.status || '';
   }
 
   return {
@@ -247,9 +278,9 @@ function formatBookingForReport(booking, parkName) {
     facility: booking._facilityDisplayName || booking.displayName || '',
     arrivalDate: booking.startDate || '',
     passType: isVehiclePass ? 'Vehicle' : isTrailPass ? 'Trail' : '',
-    vehiclePassReservedCount: isVehiclePass && booking.bookingStatus === 'confirmed' ? 1 : 0,
+    vehiclePassReservedCount: isVehiclePass && booking.status === 'confirmed' ? 1 : 0,
     vehiclePassCancelledCount: 0, // MVP: always 0
-    trailPassesReservedCount: isTrailPass && booking.bookingStatus === 'confirmed' ? trailCount : 0,
+    trailPassesReservedCount: isTrailPass && booking.status === 'confirmed' ? trailCount : 0,
     trailPassesCancelledCount: 0, // MVP: always 0
   };
 }
