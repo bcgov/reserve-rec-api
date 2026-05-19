@@ -1,4 +1,4 @@
-const { adminGetUser } = require("/opt/cognito");
+const { adminGetUser, listUsers } = require("/opt/cognito");
 const { logger } = require("/opt/base");
 const { getOne } = require("/opt/dynamodb");
 
