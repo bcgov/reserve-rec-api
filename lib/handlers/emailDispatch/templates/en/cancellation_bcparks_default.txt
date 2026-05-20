@@ -1,0 +1,61 @@
+BC PARKS
+========================================
+YOUR BOOKING HAS BEEN CANCELLED
+========================================
+
+We've cancelled your reservation.
+
+The details of the cancelled booking are below.
+
+----------------------------------------
+CANCELLED BOOKING
+----------------------------------------
+
+Park: {{#if location.parkName}}{{location.parkName}}{{else}}Your visit{{/if}}
+{{#if booking.displayName}}Pass: {{booking.displayName}}{{/if}}
+
+{{#if booking.arrivalDate}}
+Arrival:   {{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}{{#if (formatTime booking.arrivalDate)}} at {{formatTime booking.arrivalDate}}{{/if}}
+{{/if}}
+{{#if booking.departureDate}}
+Departure: {{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}{{#if (formatTime booking.departureDate)}} at {{formatTime booking.departureDate}}{{/if}}
+{{/if}}
+{{#if booking.productName}}
+Pass type: {{booking.productName}}
+{{/if}}
+{{#if booking.invQuantity}}
+Passes:    {{booking.invQuantity}}
+{{/if}}
+
+Named occupant: {{customer.firstName}} {{customer.lastName}}
+{{#if customer.licensePlate}}
+License plate:  {{customer.licensePlate}}
+{{/if}}
+
+Booking number: {{booking.bookingId}}
+
+----------------------------------------
+QUESTIONS ABOUT THIS CANCELLATION?
+----------------------------------------
+
+If you have any follow-up inquiries, please contact parkinfo@gov.bc.ca.
+
+----------------------------------------
+CUSTOMER SERVICE
+----------------------------------------
+
+For any inquiries about your booking, please contact a customer service representative.
+{{#if branding.contactEmail}}
+Email: {{branding.contactEmail}}
+{{/if}}
+
+Please do not reply to this message. It was sent from an unmonitored email address. This message is a service email related to your BC Parks account use.
+
+========================================
+BC Parks
+PO Box 9398, Victoria, BC V8W9M9, Canada
+Facebook: https://www.facebook.com/BCParks/
+Instagram: https://www.instagram.com/bcparks/
+
+We acknowledge all First Nations on whose territories BC Parks were established. We honour the connection to the land and respect the importance of their diverse teachings, traditions, and practices within these territories.
+========================================

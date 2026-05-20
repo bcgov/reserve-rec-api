@@ -9,3 +9,9 @@ node_modules
 .cdk.staging
 cdk.out
 coverage/
+
+# Lambda packaging artifacts (locally produced by some packaging scripts)
+handler.zip
+
+# Repo uses yarn; npm-generated lockfile conflicts with CDK NodejsFunction bundling
+package-lock.json
