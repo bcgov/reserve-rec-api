@@ -1063,7 +1063,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props) {
+async function completeBooking(bookingId, sessionId, props, sub) {
   try {
 
     // === get queryTime ===
@@ -1170,10 +1170,10 @@ async function completeBooking(bookingId, sessionId, props) {
 
     const emailParams = await generateEmailParams(completeBookingForEmail);
 
-    return {
-      updateRequests: bookingUpdateRequest,
-      emailParams: emailParams
-    };
+    // Send confirmation email as part of booking completion workflow
+    await sendBookingConfirmationEmail(emailParams, sub);
+
+    return bookingUpdateRequest;
 
 
   } catch (error) {
@@ -1294,7 +1294,13 @@ function validateBookingCompletion(booking, sessionId, props) {
     return true;
 
   } catch (error) {
-    logger.error(`Error validating booking completion for booking ID ${booking?.bookingId}.`);
+    logger.error(`Error validating booking completion for booking ID ${booking?.bookingId}.`, {
+      error: error.message || String(error),
+      bookingStatus: booking?.status,
+      sessionExpiry: booking?.sessionExpiry,
+      queryTime: props?.queryTime,
+      hasNamedOccupant: !!props?.namedOccupant,
+    });
     throw error;
   }
 }
