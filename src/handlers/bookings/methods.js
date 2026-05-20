@@ -1171,7 +1171,16 @@ async function completeBooking(bookingId, sessionId, props, sub) {
     const emailParams = await generateEmailParams(completeBookingForEmail);
 
     // Send confirmation email as part of booking completion workflow
-    await sendBookingConfirmationEmail(emailParams, sub);
+    // Email failures should not block booking completion
+    try {
+      await sendBookingConfirmationEmail(emailParams, sub);
+    } catch (emailError) {
+      logger.warn('Booking completed but email send failed', {
+        bookingId,
+        error: emailError.message,
+      });
+      // Continue - booking should complete even if email fails
+    }
 
     return bookingUpdateRequest;
 

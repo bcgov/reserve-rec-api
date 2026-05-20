@@ -22,8 +22,8 @@ exports.handler = async (event, context) => {
       throw new Exception("Session ID is required", { code: 400 });
     }
 
-    // Extract sub from JWT claims for secure email lookup
-    const sub = event.requestContext.authorizer?.claims?.sub;
+    // Extract sub (userId) from authorizer for secure email lookup
+    const sub = event.requestContext.authorizer?.userId;
     if (!sub) {
       throw new Exception("User authentication required", { code: 401 });
     }
