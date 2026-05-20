@@ -1,6 +1,6 @@
 // Create new transaction
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
+const { Exception, logger, sendResponse } = require("/opt/base");
+const { completeBooking } = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -21,15 +21,16 @@ exports.handler = async (event, context) => {
       throw new Exception("Session ID is required", { code: 400 });
     }
 
-    const claims = getRequestClaimsFromEvent(event);
+    // Extract sub (userId) from authorizer for secure email lookup
+    const sub = event.requestContext.authorizer?.userId;
+    if (!sub) {
+      throw new Exception("User authentication required", { code: 401 });
+    }
 
-    const { updateRequests, emailParams } = await completeBooking(bookingId, sessionId, body);
+    // Complete booking and send confirmation email (all in one operation)
+    const updateRequests = await completeBooking(bookingId, sessionId, body, sub);
 
     const res = await batchTransactData(updateRequests);
-
-    logger.info('Booking completion updates applied. Sending confirmation email.');
-
-    await sendBookingConfirmationEmail(emailParams, claims?.username);
 
     const response = {
       res: res,
