@@ -1162,7 +1162,13 @@ async function completeBooking(bookingId, sessionId, props) {
       BOOKING_UPDATE_CONFIG
     );
 
-    const emailParams = await generateEmailParams(updatedBookingItem);
+    // Merge updated fields with original booking for email params generation
+    const completeBookingForEmail = {
+      ...booking,
+      ...updatedBookingItem
+    };
+
+    const emailParams = await generateEmailParams(completeBookingForEmail);
 
     return {
       updateRequests: bookingUpdateRequest,
@@ -1224,10 +1230,11 @@ async function generateEmailParams(booking) {
         arrivalDate: booking.reservationContext?.arrivalDate?.ts,
         departureDate: booking.reservationContext?.departureDate?.ts,
         accountBookingUrl: null,
-        activityType: booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1),
+        activityType: booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Activity',
         productName: booking.displayName,
         qrCodeDataUrl: null,
         cancellationUrl: null,
+        namedOccupant: booking.namedOccupant || {},
       },
       customer: {
         firstName: booking.namedOccupant?.firstName || '',
@@ -2234,32 +2241,53 @@ async function flagCancelledBooking(booking, queryTime, reason, userId) {
 }
 
 /**
- * Send booking confirmation email to SQS queue
+ * Send booking confirmation email to SQS queue. Looks up the recipient by
+ * the user's immutable Cognito `sub` (not username or session email) so the
+ * email reaches the verified address on the account that owns the booking.
+ *
  * @param {object} emailParams - Structured email params from generateEmailParams
- * @param {string} userName - Cognito username, used to look up the account email
- * @returns {Promise<Object>} SQS response
+ * @param {string} sub - Cognito sub of the booking owner (from request claims)
+ * @returns {Promise<Object|null>} SQS response, or null if the email was skipped
  */
-async function sendBookingConfirmationEmail(emailParams, userName) {
+async function sendBookingConfirmationEmail(emailParams, sub) {
+  const bookingId = emailParams?.booking?.bookingId;
   try {
     if (!emailParams?.booking) {
-      logger.warn('Cannot send confirmation email - missing email params', { userName });
+      logger.warn('Cannot send confirmation email - missing email params', { sub });
       return null;
     }
 
-    // get account email from Cognito
-    const userInfo = await getUserInfoByUserName(userName, 'public');
-    const accountEmail = userInfo?.UserAttributes?.find(attr => attr.Name === 'email')?.Value;
+    if (!sub) {
+      logger.warn('Cannot send confirmation email - no sub provided', { bookingId });
+      return null;
+    }
+
+    const userInfo = await getUserInfoBySub(sub, 'public');
+    const attrs = userInfo?.Attributes || [];
+    const accountEmail = attrs.find(attr => attr.Name === 'email')?.Value;
+    const emailVerified = attrs.find(attr => attr.Name === 'email_verified')?.Value === 'true';
 
     if (!accountEmail) {
-      logger.warn('Cannot send confirmation email - no email address found for user', {
-        bookingId: emailParams?.booking?.bookingId,
-        userName
+      logger.warn('Cannot send confirmation email - no email address on Cognito user', {
+        bookingId,
+        sub
+      });
+      return null;
+    }
+
+    if (!emailVerified) {
+      // Don't send to unverified addresses — an attacker could set the email
+      // to a victim's address and trigger booking-related mail to them.
+      // Logged at error so CloudWatch alarms can pick it up: a successful
+      // booking owner should not normally be unverified.
+      logger.error('Skipped confirmation email - email not verified', {
+        bookingId,
+        sub
       });
       return null;
     }
 
     const result = await sendConfirmationEmail({
-      email: accountEmail,
       bookingData: emailParams.booking,
       customerData: {
         ...emailParams.customer,
@@ -2271,7 +2299,7 @@ async function sendBookingConfirmationEmail(emailParams, userName) {
     });
 
     logger.info('Booking confirmation email queued successfully', {
-      bookingId: emailParams?.booking?.bookingId,
+      bookingId,
       messageId: result.messageId
     });
 
@@ -2279,9 +2307,9 @@ async function sendBookingConfirmationEmail(emailParams, userName) {
 
   } catch (error) {
     logger.error('Failed to queue booking confirmation email', {
-      bookingId: emailParams?.booking?.bookingId,
+      bookingId,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     // Don't throw - email failure shouldn't break the booking flow
     return null;
