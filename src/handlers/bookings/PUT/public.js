@@ -22,7 +22,14 @@ exports.handler = async (event, context) => {
       throw new Exception("Session ID is required", { code: 400 });
     }
 
-    const updateRequests = await completeBooking(bookingId, sessionId);
+    // Extract sub from JWT claims for secure email lookup
+    const sub = event.requestContext.authorizer?.claims?.sub;
+    if (!sub) {
+      throw new Exception("User authentication required", { code: 401 });
+    }
+
+    // Complete booking and send confirmation email (all in one operation)
+    const updateRequests = await completeBooking(bookingId, sessionId, body, sub);
 
     const res = await batchTransactData(updateRequests);
 
