@@ -7,17 +7,11 @@ Local:
     VisibilityTimeout: 30
     ReceiveMessageWaitTimeSeconds: 0
   Queues:
-    - Name: booking-cancellation-queue
-      ReceiveMessageWaitTimeSeconds: 20
     - Name: refund-request-queue
       ReceiveMessageWaitTimeSeconds: 20
     - Name: worldline-request-queue
       ReceiveMessageWaitTimeSeconds: 20
   Topics:
-    - Name: booking-notifications
-      Subscriptions:
-        - QueueName: booking-cancellation-queue
-          Raw: false
     - Name: refund-requests
       Subscriptions:
         - QueueName: refund-request-queue

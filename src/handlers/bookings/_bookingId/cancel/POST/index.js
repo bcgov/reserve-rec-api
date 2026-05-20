@@ -11,9 +11,10 @@
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent,  } = require("/opt/base");
 const { batchTransactData } = require("/opt/dynamodb");
 const {
-  cancellationPublishCommand,
   getBookingByBookingId,
-  flagCancelledBooking
+  flagCancelledBooking,
+  generateEmailParams,
+  sendBookingCancellationEmail
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
@@ -40,7 +41,20 @@ exports.handler = async (event, context) => {
     }
 
     const body = JSON.parse(event?.body || "{}");
-    const { reason } = body;
+    // Cap + sanitize the reason. DynamoDB items max out at 400KB, an admin UI
+    // will eventually render this field, and CloudWatch operators will read it
+    // in logs — so strip ASCII control chars (except \t, \n, \r) defensively
+    // at the boundary, then cap length.
+    const REASON_MAX_LENGTH = 1000;
+    let reason = typeof body?.reason === "string" ? body.reason : undefined;
+    if (reason) {
+      // eslint-disable-next-line no-control-regex
+      reason = reason.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+      if (reason.length > REASON_MAX_LENGTH) {
+        reason = reason.slice(0, REASON_MAX_LENGTH);
+      }
+      if (reason === "") reason = undefined;
+    }
 
     const booking = await getBookingByBookingId(bookingId);
 
@@ -58,9 +72,11 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // Check if booking is in a cancellable state
-    const cancellableStatuses = ['in progress', 'confirmed'];
-    if (!cancellableStatuses.includes(booking.status)) {
+    // Only confirmed bookings are cancellable via this endpoint. Abandoned
+    // 'in progress' sessions are reaped by the expired-booking scraper, and
+    // sending a cancellation email for one would render with empty
+    // namedOccupant fields because completion hasn't populated them yet.
+    if (booking.status !== 'confirmed') {
       throw new Exception(
         `Booking has status "${booking.status}" and cannot be cancelled`,
         { code: 400 }
@@ -88,31 +104,57 @@ exports.handler = async (event, context) => {
       );
     }
 
-    // NOTE: because we are not yet issuing refunds, we can do a major shortcut here for the time being: instead of publishing a message to SNS and letting the subscriber handle the cancellation and refund, we can just update the booking `isPending` flag back to 'PENDING'. This will allow the expired Booking cleanup runner to pick up the cancelled booking alongside the other expired Bookings and return the related Inventory back to its respective pool. This is obviously not a long term solution, but it allows us to bypass the refund logic for now while still effectively cancelling the booking and freeing up inventory.
+    // No refund pipeline yet — flip the booking to cancelled + set isPending so
+    // the expired-booking scraper returns inventory on its next run. When
+    // refunds land, this is where the cancellation event will be published.
+    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId);
 
-    // const result = await cancellationPublishCommand(booking, reason);
+    // batchTransactData returns boolean true on success — we don't surface any
+    // identifier from it. Just await for the side effect.
+    await batchTransactData(updateRequest);
 
-    const updateRequest = await flagCancelledBooking(booking, queryTime);
+    logger.info(`Booking ${bookingId} cancelled.`);
 
-    const result = await batchTransactData(updateRequest);
-
-    logger.info(
-      `Cancellation message published for booking ${bookingId}. Result: ${result}`
-    );
+    // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
+    // can't roll back a successful cancellation.
+    try {
+      const emailParams = await generateEmailParams(booking);
+      await sendBookingCancellationEmail(emailParams, userId);
+    } catch (emailError) {
+      logger.error("Failed to queue cancellation email", {
+        bookingId,
+        error: emailError?.message,
+        stack: emailError?.stack,
+      });
+    }
 
     return sendResponse(
       200,
       {
-        message: "Booking cancellation initiated",
+        message: "Booking cancelled",
         bookingId,
-        messageId: result.MessageId,
-        result: result,
       },
       "Success",
       null,
       context
     );
   } catch (error) {
+    // The flagCancelledBooking ConditionExpression rejects the second of two
+    // racing cancels — surface that as a clean 400 rather than a 500.
+    if (error?.name === "TransactionCanceledException") {
+      const conditionFailed = (error.CancellationReasons || []).some(
+        (r) => r?.Code === "ConditionalCheckFailed"
+      );
+      if (conditionFailed) {
+        return sendResponse(
+          400,
+          null,
+          "Booking is already cancelled",
+          null,
+          context
+        );
+      }
+    }
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,

@@ -12,7 +12,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
-const { sendConfirmationEmail } = require("../../../lib/handlers/emailDispatch/utils");
+const { sendConfirmationEmail, sendCancellationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
   getActivitiesByCollectionId,
@@ -29,7 +29,7 @@ const { fetchProductDates } = require("../productDates/methods");
 const { DateTime } = require("luxon");
 const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
-const { getUserInfoByUserName } = require("../users/methods");
+const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 
 const DEFAULT_SESSION_LENGTH = 30; // in minutes
 
@@ -1162,7 +1162,7 @@ async function completeBooking(bookingId, sessionId, props) {
       BOOKING_UPDATE_CONFIG
     );
 
-    const emailParams = await generateEmailParams(booking, updatedBookingItem);
+    const emailParams = await generateEmailParams(updatedBookingItem);
 
     return {
       updateRequests: bookingUpdateRequest,
@@ -1197,14 +1197,20 @@ async function getParkNameForCollection(collectionId) {
   }
 }
 
-async function generateEmailParams(booking, updatedBookingItem) {
+/**
+ * Build the email template payload from a booking record. The caller passes the
+ * fully-populated booking — for confirmation that's the just-completed record
+ * with named occupant + vehicle info, for cancellation it's the booking as
+ * fetched from DynamoDB.
+ */
+async function generateEmailParams(booking) {
   try {
 
     // get bookingDates
     const bookingDates = await getBookingDatesByBookingId(booking.bookingId);
 
     // get parkName from the geozone reference data; fall back to the collectionId
-    // so the confirmation email still has something usable if lookup fails.
+    // so the email still has something usable if lookup fails.
     const parkName = (await getParkNameForCollection(booking.collectionId)) || booking.collectionId;
 
     const emailParams = {
@@ -1224,10 +1230,10 @@ async function generateEmailParams(booking, updatedBookingItem) {
         cancellationUrl: null,
       },
       customer: {
-        firstName: updatedBookingItem.namedOccupant?.firstName || '',
-        lastName: updatedBookingItem.namedOccupant?.lastName || '',
-        licensePlate: updatedBookingItem.vehicleInformation?.[0]?.licensePlate || '',
-        licensePlateRegion: updatedBookingItem.vehicleInformation?.[0]?.licensePlateRegistrationRegion || '',
+        firstName: booking.namedOccupant?.firstName || '',
+        lastName: booking.namedOccupant?.lastName || '',
+        licensePlate: booking.vehicleInformation?.[0]?.licensePlate || '',
+        licensePlateRegion: booking.vehicleInformation?.[0]?.licensePlateRegistrationRegion || '',
       },
       location: {
         parkName: parkName
@@ -1240,7 +1246,7 @@ async function generateEmailParams(booking, updatedBookingItem) {
     return emailParams;
 
   } catch (error) {
-    logger.error('Error generating email parameters for booking confirmation:', error);
+    logger.error('Error generating email parameters:', error);
     return null;
   }
 }
@@ -2060,50 +2066,6 @@ async function fetchBookingsSortedByDate(
 }
 
 /**
- * Publishes booking cancellation command to SNS
- * @param {object} booking - The ID of the booking to cancel
- * @param {string} booking.bookingId - The ID of the booking to cancel
- * @param {string} booking.userId - The userId identifier requesting the cancellation
- * @param {string} booking.clientTransactionId - The client transaction ID associated with the booking
- * @param {object} booking.feeInformation - The fee information associated with the booking
- * @param {string} reason - The reason for cancellation
- */
-async function cancellationPublishCommand(booking, reason) {
-  // Prepare cancellation message
-  const cancellationMessage = {
-    bookingId: booking.bookingId,
-    userId: booking.userId,
-    clientTransactionId: booking.clientTransactionId,
-    refundAmount: booking.feeInformation?.total || 0, // TODO: adjust based on cancellation policy
-    reason: reason || "Cancelled by user via self-serve",
-    timestamp: new Date().toISOString(),
-  };
-
-  const messageAttributes = {
-    eventType: {
-      DataType: "String",
-      StringValue: "BOOKING_CANCELLATION",
-    },
-    bookingId: {
-      DataType: "String",
-      StringValue: booking.bookingId,
-    },
-  };
-
-  // Publish to SNS topic to trigger cancellation workflow
-  const publishCommand = snsPublishCommand(
-    process.env.BOOKING_NOTIFICATION_TOPIC_ARN,
-    cancellationMessage,
-    `Booking Cancellation: ${booking.bookingId}`,
-    messageAttributes
-  );
-
-  const result = await snsPublishSend(publishCommand);
-
-  return result;
-}
-
-/**
  * Publishes transaction command to SNS
  * @param {object} booking - The ID of the booking to cancel
  *   @param {string} booking.bookingId - The ID of the booking to cancel
@@ -2203,8 +2165,39 @@ async function getBookingDatesByBookingId(bookingId) {
   }
 }
 
-async function flagCancelledBooking(booking, queryTime) {
+async function flagCancelledBooking(booking, queryTime, reason, userId) {
+  if (!userId || typeof userId !== "string") {
+    // userId is part of the ConditionExpression — without it the comparison
+    // would resolve against the literal string "undefined" and silently fail
+    // every cancellation. Fail loudly instead.
+    throw new Error("flagCancelledBooking requires a userId");
+  }
   try {
+
+    // The presence of `cancellationTime` is the single race-guard marker for
+    // a cancelled booking. Nothing else in the codebase should set this
+    // attribute — if you find yourself wanting to, route through this
+    // function or update the ConditionExpression below.
+    const expressionAttributeNames = {
+      "#status": "status",
+      "#cancellationTime": "cancellationTime",
+      "#isPending": "isPending",
+      "#userId": "userId",
+      "#pk": "pk",
+    };
+    const expressionAttributeValues = {
+      ":status": { S: BOOKING_STATUS_ENUMS[2] },
+      ":cancelledAt": { N: queryTime.toString() },
+      ":isPending": { S: 'PENDING' },
+      ":userId": { S: userId },
+    };
+    let updateExpression = "SET #status = :status, #cancellationTime = :cancelledAt, #isPending = :isPending";
+
+    if (reason) {
+      expressionAttributeNames["#cancellationReason"] = "cancellationReason";
+      expressionAttributeValues[":cancellationReason"] = { S: String(reason) };
+      updateExpression += ", #cancellationReason = :cancellationReason";
+    }
 
     const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
@@ -2212,17 +2205,18 @@ async function flagCancelledBooking(booking, queryTime) {
         pk: { S: booking.pk },
         sk: { S: booking.sk },
       },
-      UpdateExpression: "SET #status = :status, #cancellationTime = :cancelledAt, #isPending = :isPending",
-      ExpressionAttributeNames: {
-        "#status": "status",
-        "#cancellationTime": "cancellationTime",
-        "#isPending": "isPending",
-      },
-      ExpressionAttributeValues: {
-        ":status": { S: BOOKING_STATUS_ENUMS[2] },
-        ":cancelledAt": { N: queryTime.toString() },
-        ":isPending": { S: 'PENDING' },
-      }
+      UpdateExpression: updateExpression,
+      // Race guard combining three invariants:
+      //   - attribute_exists(#pk): the booking row must still exist (a
+      //     concurrent delete shouldn't upsert a phantom cancelled tombstone).
+      //   - #userId = :userId: ownership must hold atomically with the write,
+      //     not just at the earlier read-time pre-check.
+      //   - attribute_not_exists(#cancellationTime): only the first racing
+      //     cancel wins; the loser gets ConditionalCheckFailed and we return
+      //     400 "already cancelled" instead of sending a second email.
+      ConditionExpression: "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)",
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
     };
 
     // return update formatted for batchTransactData
@@ -2290,6 +2284,82 @@ async function sendBookingConfirmationEmail(emailParams, userName) {
       stack: error.stack
     });
     // Don't throw - email failure shouldn't break the booking flow
+    return null;
+  }
+}
+
+/**
+ * Send booking cancellation email to SQS queue. Looks up the recipient by
+ * the user's immutable Cognito `sub` (not username or session email) so the
+ * email reaches the verified address on the account that owns the booking.
+ *
+ * @param {object} emailParams - Structured email params from generateEmailParams
+ * @param {string} sub - Cognito sub of the booking owner (from request claims)
+ * @returns {Promise<Object|null>} SQS response, or null if the email was skipped
+ */
+async function sendBookingCancellationEmail(emailParams, sub) {
+  const bookingId = emailParams?.booking?.bookingId;
+  try {
+    if (!emailParams?.booking) {
+      logger.warn('Cannot send cancellation email - missing email params', { sub });
+      return null;
+    }
+
+    if (!sub) {
+      logger.warn('Cannot send cancellation email - no sub provided', { bookingId });
+      return null;
+    }
+
+    const userInfo = await getUserInfoBySub(sub, 'public');
+    const attrs = userInfo?.Attributes || [];
+    const accountEmail = attrs.find(attr => attr.Name === 'email')?.Value;
+    const emailVerified = attrs.find(attr => attr.Name === 'email_verified')?.Value === 'true';
+
+    if (!accountEmail) {
+      logger.warn('Cannot send cancellation email - no email address on Cognito user', {
+        bookingId,
+        sub
+      });
+      return null;
+    }
+
+    if (!emailVerified) {
+      // Don't send to unverified addresses — an attacker could set the email
+      // to a victim's address and trigger booking-related mail to them.
+      // Logged at error so CloudWatch alarms can pick it up: a successful
+      // booking owner should not normally be unverified.
+      logger.error('Skipped cancellation email - email not verified', {
+        bookingId,
+        sub
+      });
+      return null;
+    }
+
+    const result = await sendCancellationEmail({
+      bookingData: emailParams.booking,
+      customerData: {
+        ...emailParams.customer,
+        email: accountEmail,
+      },
+      locationData: emailParams.location,
+      brandingData: emailParams.branding,
+      locale: 'en'
+    });
+
+    logger.info('Booking cancellation email queued successfully', {
+      bookingId,
+      messageId: result.messageId
+    });
+
+    return result;
+
+  } catch (error) {
+    logger.error('Failed to queue booking cancellation email', {
+      bookingId,
+      error: error.message,
+      stack: error.stack,
+    });
+    // Don't throw - email failure shouldn't break the cancel flow
     return null;
   }
 }
@@ -2386,7 +2456,6 @@ module.exports = {
   calculateBookingFees,
   calculateDateRange,
   cancelBooking,
-  cancellationPublishCommand,
   completeBooking,
   createBooking,
   fetchAllActivities,
@@ -2394,6 +2463,7 @@ module.exports = {
   findUserActiveBookingForProductOnDate,
   flagCancelledBooking,
   formatBookingResponsePublic,
+  generateEmailParams,
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
@@ -2403,6 +2473,7 @@ module.exports = {
   refundPublishCommand,
   sanitizeString,
   sendBookingConfirmationEmail,
+  sendBookingCancellationEmail,
   validateAdminRequirements,
   validateDateRange,
   validateCollectionAccess,

@@ -81,19 +81,11 @@ const sqsClient = new SQSClient({
 });
 
 // Import your subscriber handlers (now that /opt/* is resolved)
-const bookingCancellationSubscriber = require('../../../../lib/handlers/bookingCancellationSubscriber');
 const refundSubscriber = require('../../../../lib/handlers/refundSubscriber');
 const worldlineProcessor = require('../../../../lib/handlers/worldlineProcessor');
 
 // Queue configurations
 const QUEUES = [
-  {
-    name: 'booking-cancellation-queue',
-    url: 'http://localhost:4100/queue/booking-cancellation-queue',
-    handler: bookingCancellationSubscriber.handler,
-    handlerName: 'BookingCancellationSubscriber',
-    type: 'sns' // SNS→SQS subscription (message wrapped in SNS format)
-  },
   {
     name: 'refund-request-queue',
     url: 'http://localhost:4100/queue/refund-request-queue',

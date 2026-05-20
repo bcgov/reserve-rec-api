@@ -183,6 +183,27 @@ describe('Email Dispatch System', () => {
       expect(validation.errors).toContain('Invalid email format for recipientEmail');
     });
 
+    it('should validate a cancellation email payload', () => {
+      const payload = createEmailPayload({
+        messageType: 'cancellation',
+        templateName: 'cancellation_bcparks_default',
+        recipientEmail: 'customer@example.com',
+        recipientName: 'Jane Doe',
+        subject: 'Booking Cancellation - Test Park',
+        locale: 'en',
+        templateData: {
+          booking: { bookingId: 'BK999', displayName: 'Day-use pass' },
+          customer: { firstName: 'Jane', lastName: 'Doe' },
+          location: { parkName: 'Test Park' },
+          branding: { contactEmail: 'info@bcparks.ca' }
+        }
+      });
+
+      const validation = validateEmailPayload(payload);
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
     it('should reject invalid template name format', () => {
       const payload = createEmailPayload({
         messageType: 'receipt',

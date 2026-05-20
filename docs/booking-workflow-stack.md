@@ -2,100 +2,101 @@
 
 ## Overview
 
-The Booking Workflow Stack manages the event-driven architecture for booking cancellations and transaction refunds. It uses AWS SNS topics and SQS queues to enable reliable, asynchronous processing of these workflows.
+The Booking Workflow Stack owns the asynchronous parts of the booking lifecycle: the refund pipeline, the inventory-return + expired-booking scraper, and SMS reminders. Cancellations themselves currently run synchronously inside the cancel POST handler — see the next section.
 
 ### Infrastructure Components
 
 **SNS Topics:**
-- `reserve-rec-booking-notifications` - Publishes booking cancellation events
 - `reserve-rec-refund-requests` - Coordinates refund processing with fan-out pattern
 
 **SQS Queues:**
 - `refund-request-queue` - Buffers refund requests for processing
 - `worldline-request-queue` - Queues Worldline API refund requests
+- `inventory-return-queue` - Buffers inventory restoration requests
+- `sms-reminder-queue` - Buffers SMS reminder dispatch
 - Dead Letter Queues (DLQs) for failed message handling with 14-day retention
 
 **Lambda Functions:**
-- `BookingCancellationSubscriber` - Processes booking cancellations
-- `RefundSubscriber` - Validates and initiates refunds
+- `RefundSubscriber` - Validates and initiates refunds (refund pipeline pending)
 - `WorldlineProcessor` - Submits refund requests to Worldline API
+- `InventoryReturnProcessor` - Returns inventory from a queued booking back to its pool
+- `SmsReminderProcessor` - Sends booking reminder SMS messages
+- `ExpiredBookingCleanupFn` (`incompleteBookingScraper`) - EventBridge-scheduled (default every 15 min). Sweeps `isPending = PENDING` bookings: returns inventory for cancelled ones, marks abandoned in-progress sessions as `TIMED_OUT`.
+
+> Refunds are not wired end-to-end yet — payment + Worldline integration are still in progress. The pieces above are scaffolding for that work.
 
 ---
 
 ## Booking Cancellation Workflow
 
-### 1. User Initiates Cancellation
+Cancellation is handled synchronously by the public API. There is no SNS hop today.
 
-A user cancels a booking from their `my-bookings` page, triggering a `POST` request to `/bookings/{bookingId}/cancel`.
+### 1. User initiates cancellation
 
-### 2. Cancel POST Handler (`bookings/cancel/POST/index.js`)
+A user cancels a booking from their `my-bookings` page → `POST /bookings/{bookingId}/cancel`.
 
-**Authentication & Authorization:**
-- Extracts user ID from JWT Bearer token (`event.headers.Authorization`)
-- Validates JWT and extracts `sub` (user ID) from token payload
+### 2. Cancel POST handler (`src/handlers/bookings/_bookingId/cancel/POST/index.js`)
 
-**Validation Checks:**
-- **Ownership verification**: Ensures `bookingId` belongs to the authenticated user
-- **Status check**: Verifies booking is not already cancelled (`bookingStatus !== 'cancelled'`)
+**Authentication:**
+- Extracts the user's `sub` from the JWT Bearer token via `getRequestClaimsFromEvent`.
 
-**Request Body:**
+**Validation:**
+- Ownership: `booking.userId === sub`.
+- Already-cancelled fast-fail: `booking.status === 'cancelled'` → 400.
+- Cancellable state: `booking.status === 'confirmed'` (in-progress sessions are reaped by the scraper, not this endpoint).
+- Pre-checkout: cancellation must occur before `booking.reservationContext.checkoutTime`.
+
+**Request body (optional):**
 ```js
-{
-  reason: "User-provided cancellation reason" // Optional
-}
+{ reason: "User-provided cancellation reason" }
 ```
 
-If validation passes, the handler publishes a cancellation event to SNS.
+### 3. Atomic cancellation write (`flagCancelledBooking`)
 
-### 3. Publishing to SNS (`cancellationPublishCommand`)
+Builds a single DynamoDB UpdateItem:
 
-The handler creates a structured cancellation message:
+```js
+SET status = "cancelled",
+    cancellationTime = <queryTime>,
+    isPending = "PENDING"
+    [, cancellationReason = <reason> if provided]
+ConditionExpression: attribute_exists(pk)
+                 AND userId = :userId
+                 AND attribute_not_exists(cancellationTime)
+```
+
+The `ConditionExpression` enforces three invariants atomically:
+- `attribute_exists(pk)` — the booking row must still exist (a concurrent delete cannot upsert a phantom cancelled tombstone).
+- `userId = :userId` — ownership held at write time, not just at the read-time pre-check.
+- `attribute_not_exists(cancellationTime)` — only the first racing cancel wins; the loser hits `ConditionalCheckFailed` and the handler returns a clean 400 "already cancelled" instead of sending a duplicate email.
+
+> **Invariant**: nothing else in the codebase should set `cancellationTime`. It is the single marker `flagCancelledBooking` uses to detect duplicate cancellations.
+
+### 4. Cancellation email
+
+After the write succeeds the handler calls `sendBookingCancellationEmail(emailParams, sub)`:
+
+- Looks the user up via Cognito `ListUsers` filter on the immutable `sub` (not username/email).
+- Verifies `email_verified = true` — skips and logs at ERROR if not, so monitoring catches the anomaly.
+- Hands a `cancellation_bcparks_*` template payload to the email-dispatch SQS queue.
+
+Email failures are caught and logged but do **not** roll back the cancellation.
+
+### 5. Inventory return (deferred to the scraper)
+
+The handler sets `isPending = "PENDING"` but does not return inventory inline. The scheduled `ExpiredBookingCleanupFn` (`incompleteBookingScraper`) picks the booking up on its next run and atomically:
+
+1. Adds the booking's inventory back to each affected `inventoryPool`.
+2. `REMOVE isPending` on the booking once inventory is settled.
+
+This is the path that closes the inventory loop today. When the refund pipeline lands, the cancel POST will additionally publish to the refund topic (or its successor) — until then, refunds are stubbed.
+
+### Response
 
 ```js
 {
-  bookingId: booking.bookingId,
-  user: booking.user,
-  clientTransactionId: booking.clientTransactionId,
-  refundAmount: booking.feeInformation?.total || 0, // TODO: Adjust based on cancellation policy
-  reason: reason || 'Cancellation by user via self-serve',
-  timestamp: new Date().toISOString(),
-}
-```
-
-This message is published to the `booking-notifications` SNS topic using the `snsPublishCommand` utility.
-
-### 4. Booking Cancellation Subscriber (`bookings/cancel/subscriber/index.js`)
-
-**Triggered by:** SNS `booking-notifications` topic
-
-**Processing Steps:**
-
-1. **Parse SNS Event**: Extracts cancellation details from SNS message
-2. **Fetch Latest Booking**: Retrieves current booking state from DynamoDB using `bookingId`
-3. **Re-validate**: 
-   - Confirms user ownership
-   - Checks `bookingStatus` is not already `cancelled`
-4. **Update Booking**: Marks booking as cancelled with metadata:
-
-```js
-const updateData = {
-  key: { pk: booking.pk, sk: booking.sk },
-  data: {
-    bookingStatus: { value: "cancelled", action: 'set' },
-    cancellationReason: { value: reason, action: 'set' },
-    cancelledAt: { value: getNow().toISO(), action: 'set' }
-  }
-};
-```
-
-5. **Trigger Refund (if applicable)**: If booking has an associated `clientTransactionId`, publishes refund request to `refund-requests` SNS topic using `refundPublishCommand`
-
-**Response:**
-```js
-{
-  bookingId: booking.bookingId,
-  status: 'cancelled',
-  transactionId: clientTransactionId || 'no transaction'
+  message: "Booking cancelled",
+  bookingId
 }
 ```
 
@@ -103,10 +104,12 @@ const updateData = {
 
 ## Transaction Refund Workflow
 
+> Status: scaffolding only. The cancel POST does **not** currently publish a refund request — payment + Worldline integration is pending. The pieces below describe the intended end state.
+
 ### 1. Refund Request Publication
 
-Refund requests can originate from:
-- Booking cancellation (cascaded from cancel subscriber)
+Refund requests will originate from:
+- Booking cancellation (published by the cancel POST handler once payments are wired up)
 - Direct refund API calls (future: admin-initiated refunds)
 
 **Refund Message Structure:**
@@ -278,18 +281,14 @@ Sent to `worldline-request-queue` with visibility timeout of 90 seconds.
 
 ### GoAWS Configuration (`goaws.yaml`)
 
-For local testing, GoAWS simulates SNS/SQS:
+For local testing of the refund pipeline (cancellations are now synchronous and do not go through SNS/SQS), GoAWS simulates SNS/SQS:
 
 ```yaml
 Queues:
-  - Name: booking-cancellation-queue
-  - Name: refund-request-queue  
+  - Name: refund-request-queue
   - Name: worldline-request-queue
 
 Topics:
-  - Name: booking-notifications
-    Subscriptions:
-      - QueueName: booking-cancellation-queue
   - Name: refund-requests
     Subscriptions:
       - QueueName: refund-request-queue
@@ -338,7 +337,7 @@ GoAWS will:
 
 ### Local Testing Workflow
 
-The local testing tool allows you to simulate the complete booking cancellation and refund workflow on your machine.
+The local testing tool simulates the refund pipeline on your machine. The cancellation step itself now runs synchronously in the cancel POST handler — exercise that by calling the API directly.
 
 **Run the poller:**
 ```bash
@@ -346,21 +345,20 @@ yarn booking-workflow:poller
 ```
 
 **What it does:**
-1. Polls the local SQS queues (`booking-cancellation-queue`, `refund-request-queue`, `worldline-request-queue`)
+1. Polls the local SQS queues (`refund-request-queue`, `worldline-request-queue`)
 2. Receives messages from GoAWS
 3. Invokes the Lambda handler functions directly (bypass AWS Lambda)
-4. Processes cancellations and refunds end-to-end
+4. Processes refunds end-to-end
 5. Logs detailed execution information to console
 
 **Typical workflow:**
 1. Start GoAWS container
 2. Run the poller in one terminal: `yarn booking-workflow:poller`
 3. Trigger a cancellation via API: `POST /bookings/{bookingId}/cancel`
+   - The cancel POST writes the cancellation directly to DynamoDB (no SNS hop).
+   - Once refunds are wired up, the cancel POST will also publish to `refund-requests`.
 4. Watch the console as the poller:
-   - Picks up the cancellation message from `booking-cancellation-queue`
-   - Processes the cancellation (updates booking in DynamoDB)
-   - Publishes refund request to `refund-requests` topic
-   - Picks up refund message from `refund-request-queue`
+   - Picks up the refund message from `refund-request-queue`
    - Creates refund record and queues Worldline request
    - Processes the Worldline request from `worldline-request-queue`
 

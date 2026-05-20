@@ -3,7 +3,7 @@
 jest.mock("/opt/base", () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
-    this.code = data.code;
+    this.code = data?.code;
     this.data = data;
   }),
   logger: {
@@ -19,350 +19,224 @@ jest.mock("/opt/base", () => ({
     error,
     context,
   })),
-  // TODO: update this properly for cognito auth
   getRequestClaimsFromEvent: jest.fn((event) => {
     const authHeader = event?.headers?.Authorization || "";
     const token = authHeader.replace("Bearer ", "");
-    // For testing, we will just decode the token as a base64 JSON string
     try {
       const payloadBase64 = token.split(".")[1];
       const payloadJson = Buffer.from(payloadBase64, "base64").toString("utf-8");
-      const payload = JSON.parse(payloadJson);
-      return { sub: payload.sub };
+      return JSON.parse(payloadJson);
     } catch (e) {
       return null;
     }
   }),
 }));
 
-jest.mock("../../src/handlers/bookings/methods", () => ({
-  getBookingByBookingId: jest.fn(),
-  cancellationPublishCommand: jest.fn(),
+jest.mock("/opt/dynamodb", () => ({
+  batchTransactData: jest.fn(),
 }));
 
-const { handler } = require("../../src/handlers/bookings/cancel/POST/index");
+jest.mock("../../src/handlers/bookings/methods", () => ({
+  getBookingByBookingId: jest.fn(),
+  flagCancelledBooking: jest.fn(),
+  generateEmailParams: jest.fn(),
+  sendBookingCancellationEmail: jest.fn(),
+}));
+
+const { handler } = require("../../src/handlers/bookings/_bookingId/cancel/POST/index");
 const {
   getBookingByBookingId,
-  cancellationPublishCommand,
+  flagCancelledBooking,
+  generateEmailParams,
+  sendBookingCancellationEmail,
 } = require("../../src/handlers/bookings/methods");
+const { batchTransactData } = require("/opt/dynamodb");
+
+function makeToken(sub) {
+  const base64Payload = Buffer.from(JSON.stringify({ sub })).toString("base64");
+  return `header.${base64Payload}.signature`;
+}
+
+function makeEvent({ bookingId = "booking-123", sub = "user-456", body = {} } = {}) {
+  return {
+    httpMethod: "POST",
+    pathParameters: { bookingId },
+    body: JSON.stringify(body),
+    headers: { Authorization: `Bearer ${makeToken(sub)}` },
+  };
+}
+
+const SUB = "user-456";
+const BOOKING_ID = "booking-123";
+const okBooking = {
+  bookingId: BOOKING_ID,
+  userId: SUB,
+  status: "confirmed",
+  pk: "booking::1",
+  sk: "1",
+};
 
 describe("Bookings Cancel POST handler", () => {
-  const context = {};
-  const mockBookingId = "booking-123";
-  const mockUser = "user-456";
-
   beforeEach(() => {
     jest.clearAllMocks();
+    flagCancelledBooking.mockResolvedValue([{ action: "Update", data: {} }]);
+    generateEmailParams.mockResolvedValue({
+      booking: { bookingId: BOOKING_ID },
+      customer: {},
+      location: {},
+      branding: {},
+    });
+    sendBookingCancellationEmail.mockResolvedValue({ messageId: "msg-1" });
+    batchTransactData.mockResolvedValue({ MessageId: "txn-1" });
   });
 
-  it("should return 200 for OPTIONS request (CORS)", async () => {
-    const event = { httpMethod: "OPTIONS" };
-    const result = await handler(event, context);
+  it("returns 200 for OPTIONS request", async () => {
+    const result = await handler({ httpMethod: "OPTIONS" }, {});
     expect(result.status).toBe(200);
-    expect(result.message).toBe("Success");
   });
 
-  it("should return 401 if user is not authenticated", async () => {
-    const event = {
+  it("returns 401 when there is no auth token", async () => {
+    const result = await handler({
       httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test reason" }),
+      pathParameters: { bookingId: BOOKING_ID },
+      body: "{}",
       headers: {},
-    };
-    const result = await handler(event, context);
+    }, {});
     expect(result.status).toBe(401);
-    expect(result.message).toBe("Unauthorized: User ID not found in request claims");
   });
 
-  // Create a JWT token with the user sub
-  const jwtPayload = { sub: mockUser };
-  const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-    "base64"
-  );
-  const fakeToken = `header.${base64Payload}.signature`;
-
-  it("should return 400 if bookingId is missing", async () => {
-    const event = {
+  it("returns 400 when bookingId is missing", async () => {
+    const result = await handler({
       httpMethod: "POST",
       pathParameters: {},
-      body: JSON.stringify({ reason: "Test reason" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-    const result = await handler(event, context);
+      body: "{}",
+      headers: { Authorization: `Bearer ${makeToken(SUB)}` },
+    }, {});
     expect(result.status).toBe(400);
     expect(result.message).toBe("Booking ID required in request");
   });
 
-  it("should extract user from JWT Bearer token", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: "user-from-jwt",
-      bookingStatus: "confirmed",
-      clientTransactionId: "BCPR-abc123",
-    };
-
-    const mockSNSResult = { MessageId: "sns-message-456" };
-
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-    cancellationPublishCommand.mockResolvedValue(mockSNSResult);
-
-    // Create a simple JWT payload
-    const jwtPayload = { sub: "user-from-jwt" };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
-
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
-    expect(result.status).toBe(200);
-  });
-
-  it("should return 403 if user does not own the booking", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: "different-user",
-      bookingStatus: "confirmed",
-    };
-
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
-
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
+  it("returns 403 when the caller does not own the booking", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...okBooking, userId: "someone-else" });
+    const result = await handler(makeEvent(), {});
     expect(result.status).toBe(403);
     expect(result.message).toContain("does not own booking");
   });
 
-  it("should successfully cancel a booking and publish to SNS", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: mockUser,
-      bookingStatus: "confirmed",
-      clientTransactionId: "BCPR-abc123",
-      feeInformation: { total: 50.0 },
-    };
+  it("rejects bookings that aren't in a cancellable state", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...okBooking, status: "completed" });
+    const result = await handler(makeEvent(), {});
+    expect(result.status).toBe(400);
+    expect(result.message).toMatch(/cannot be cancelled/);
+  });
 
-    const mockSNSResult = {
-      MessageId: "sns-message-123",
-    };
+  it("rejects 'in progress' bookings (only confirmed are cancellable here)", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...okBooking, status: "in progress" });
+    const result = await handler(makeEvent(), {});
+    expect(result.status).toBe(400);
+    expect(result.message).toMatch(/cannot be cancelled/);
+    expect(flagCancelledBooking).not.toHaveBeenCalled();
+  });
 
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-    cancellationPublishCommand.mockResolvedValue(mockSNSResult);
+  it("caps an oversized reason at 1000 chars before passing it down", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+    const longReason = "x".repeat(5000);
 
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Change of plans" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
+    await handler(makeEvent({ body: { reason: longReason } }), {});
 
-    const result = await handler(event, context);
+    const passedReason = flagCancelledBooking.mock.calls[0][2];
+    expect(passedReason.length).toBe(1000);
+  });
 
-    expect(getBookingByBookingId).toHaveBeenCalledWith(mockBookingId);
-    expect(cancellationPublishCommand).toHaveBeenCalledWith(
-      mockBooking,
-      "Change of plans"
+  it("strips ASCII control characters from the reason", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+    const dirty = "valid\x00reason\x07with\x1Fcontrols";
+
+    await handler(makeEvent({ body: { reason: dirty } }), {});
+
+    const passedReason = flagCancelledBooking.mock.calls[0][2];
+    expect(passedReason).toBe("validreasonwithcontrols");
+  });
+
+  it("treats an empty/whitespace-only reason as no reason", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+
+    await handler(makeEvent({ body: { reason: "   " } }), {});
+
+    expect(flagCancelledBooking).toHaveBeenCalledWith(
+      okBooking,
+      expect.any(Number),
+      undefined,
+      SUB
+    );
+  });
+
+  it("cancels and queues a cancellation email on success", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(flagCancelledBooking).toHaveBeenCalledWith(okBooking, expect.any(Number), undefined, SUB);
+    expect(batchTransactData).toHaveBeenCalled();
+    expect(sendBookingCancellationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ booking: { bookingId: BOOKING_ID } }),
+      SUB
     );
     expect(result.status).toBe(200);
-    expect(result.message).toBe("Success");
-    expect(result.data.message).toBe("Booking cancellation initiated");
-    expect(result.data.bookingId).toBe(mockBookingId);
-    expect(result.data.messageId).toBe("sns-message-123");
+    expect(result.data.bookingId).toBe(BOOKING_ID);
   });
 
-  it("should return 400 if booking is already cancelled", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: mockUser,
-      bookingStatus: "cancelled",
-    };
+  it("forwards the user-supplied reason to flagCancelledBooking", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
 
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
+    const result = await handler(
+      makeEvent({ body: { reason: "Trip cancelled due to weather" } }),
+      {}
     );
-    const fakeToken = `header.${base64Payload}.signature`;
 
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
-    expect(result.status).toBe(400);
-    expect(result.message).toContain("already cancelled");
-  });
-
-  it("should handle cancellation without a reason", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: mockUser,
-      bookingStatus: "confirmed",
-      clientTransactionId: "BCPR-abc123",
-    };
-
-    const mockSNSResult = { MessageId: "sns-message-789" };
-
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-    cancellationPublishCommand.mockResolvedValue(mockSNSResult);
-
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
-
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({}),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
-    expect(cancellationPublishCommand).toHaveBeenCalledWith(
-      mockBooking,
-      undefined
+    expect(flagCancelledBooking).toHaveBeenCalledWith(
+      okBooking,
+      expect.any(Number),
+      "Trip cancelled due to weather",
+      SUB
     );
     expect(result.status).toBe(200);
   });
 
-  it("should handle errors thrown by getBookingByBookingId", async () => {
-    getBookingByBookingId.mockRejectedValue(
-      new Error("Database connection error here :(")
-    );
+  it("still returns 200 if the cancellation email fails to queue", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+    sendBookingCancellationEmail.mockRejectedValue(new Error("SQS down"));
 
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
+    const result = await handler(makeEvent(), {});
 
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
-    expect(result.status).toBe(400);
-    expect(result.message).toBe("Database connection error here :(");
-  });
-
-  it("should handle errors thrown by cancellationPublishCommand", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: mockUser,
-      bookingStatus: "confirmed",
-    };
-
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-    cancellationPublishCommand.mockRejectedValue(
-      new Error("SNS publish failed")
-    );
-
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
-
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: JSON.stringify({ reason: "Test" }),
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
-    expect(result.status).toBe(400);
-    expect(result.message).toBe("SNS publish failed");
-  });
-
-  it("should handle missing body gracefully", async () => {
-    const mockBooking = {
-      bookingId: mockBookingId,
-      userId: mockUser,
-      bookingStatus: "confirmed",
-    };
-
-    const mockSNSResult = { MessageId: "sns-message-101" };
-
-    getBookingByBookingId.mockResolvedValue(mockBooking);
-    cancellationPublishCommand.mockResolvedValue(mockSNSResult);
-
-    // Create a JWT token with the mockUser
-    const jwtPayload = { sub: mockUser };
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString(
-      "base64"
-    );
-    const fakeToken = `header.${base64Payload}.signature`;
-
-    const event = {
-      httpMethod: "POST",
-      pathParameters: { bookingId: mockBookingId },
-      body: null,
-      headers: {
-        Authorization: `Bearer ${fakeToken}`,
-      },
-    };
-
-    const result = await handler(event, context);
-
+    expect(batchTransactData).toHaveBeenCalled();
     expect(result.status).toBe(200);
-    expect(cancellationPublishCommand).toHaveBeenCalledWith(
-      mockBooking,
-      undefined
-    );
+  });
+
+  it("returns 400 'already cancelled' when ConditionExpression fails (race)", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+    const txErr = new Error("Transaction cancelled");
+    txErr.name = "TransactionCanceledException";
+    txErr.CancellationReasons = [{ Code: "ConditionalCheckFailed" }];
+    batchTransactData.mockRejectedValue(txErr);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(result.status).toBe(400);
+    expect(result.message).toBe("Booking is already cancelled");
+    expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
+  });
+
+  it("propagates other TransactionCanceled reasons as generic errors", async () => {
+    getBookingByBookingId.mockResolvedValue(okBooking);
+    const txErr = new Error("Some other reason");
+    txErr.name = "TransactionCanceledException";
+    txErr.CancellationReasons = [{ Code: "ValidationError" }];
+    batchTransactData.mockRejectedValue(txErr);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(result.status).toBe(400);
+    expect(result.message).not.toBe("Booking is already cancelled");
   });
 });
