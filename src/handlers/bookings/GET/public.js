@@ -55,42 +55,32 @@ exports.handler = async (event, context) => {
     // Search by ID
     const bookingId = event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId;
     const fetchAccessPoints = event?.queryStringParameters?.fetchAccessPoints || false;
-    const email = event?.queryStringParameters?.email || null;
 
-    // Get userId from claims (may be null for anonymous users)
+    // Bookings can only be made by authenticated users (see bookings/POST/public.js),
+    // so every legitimate lookup happens on behalf of a known Cognito sub. The
+    // older `?email=` guest lookup path has been removed: it bypassed ownership
+    // verification and allowed any caller with a booking ID + a matching
+    // namedOccupant email to view someone else's booking.
     const userId = getRequestClaimsFromEvent(event)?.sub || null;
+    if (!userId) {
+      throw new Exception(
+        "Unauthorized: authentication required to view bookings",
+        { code: 401 }
+      );
+    }
 
     // If bookingId is provided, fetch that specific booking
     if (bookingId) {
       const booking = await getBookingByBookingId(bookingId, fetchAccessPoints);
 
-      // Email provided - verify email matches booking email (for guest/unauthenticated lookup)
-      if (email) {
-        if (booking?.namedOccupant?.contactInfo?.email !== email) {
-          throw new Exception(
-            `Forbidden: Email ${email} does not match booking ${bookingId}`,
-            { code: 403 }
-          );
-        }
-        // Email matches, allow access - generate QR code after authorization
-        const qrCodeData = await generateQRCodeForBooking(bookingId, booking);
-        return sendResponse(200, { ...booking, qrCode: qrCodeData }, "Success", null, context);
-      } else if (userId) {
-        if (booking?.userId !== userId) {
-          throw new Exception(
-            `Forbidden: User ${userId} does not have access to booking ${bookingId}`,
-            { code: 403 }
-          );
-        }
-        // User authorized - generate QR code after authorization
-        const qrCodeData = await generateQRCodeForBooking(bookingId, booking);
-        return sendResponse(200, { ...booking, qrCode: qrCodeData }, "Success", null, context);
-      } else {
+      if (booking?.userId !== userId) {
         throw new Exception(
-          "Unauthorized: Must provide either email or be authenticated",
-          { code: 401 }
+          `Forbidden: User ${userId} does not have access to booking ${bookingId}`,
+          { code: 403 }
         );
       }
+      const qrCodeData = await generateQRCodeForBooking(bookingId, booking);
+      return sendResponse(200, { ...booking, qrCode: qrCodeData }, "Success", null, context);
     }
 
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId;
