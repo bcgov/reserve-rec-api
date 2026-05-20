@@ -1063,7 +1063,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, sub) {
+async function completeBooking(bookingId, sessionId, props) {
   try {
 
     // === get queryTime ===
@@ -1170,19 +1170,15 @@ async function completeBooking(bookingId, sessionId, props, sub) {
 
     const emailParams = await generateEmailParams(completeBookingForEmail);
 
-    // Send confirmation email as part of booking completion workflow
-    // Email failures should not block booking completion
-    try {
-      await sendBookingConfirmationEmail(emailParams, sub);
-    } catch (emailError) {
-      logger.warn('Booking completed but email send failed', {
-        bookingId,
-        error: emailError.message,
-      });
-      // Continue - booking should complete even if email fails
-    }
-
-    return bookingUpdateRequest;
+    // Return the update + email params for the handler to commit and dispatch
+    // in that order. We intentionally do NOT send the email here: the SQS
+    // enqueue must happen *after* batchTransactData succeeds, otherwise a
+    // failed DynamoDB write would leave the user with a confirmation email
+    // for a booking that was never saved.
+    return {
+      updateRequests: bookingUpdateRequest,
+      emailParams,
+    };
 
 
   } catch (error) {
@@ -1228,6 +1224,20 @@ async function generateEmailParams(booking) {
     // so the email still has something usable if lookup fails.
     const parkName = (await getParkNameForCollection(booking.collectionId)) || booking.collectionId;
 
+    // Build user-facing URLs to the public app's account pages. The template
+    // gates the "View booking" and "Cancel booking" buttons on these being
+    // truthy; we leave them null if PUBLIC_FRONTEND_DOMAIN isn't configured
+    // so the buttons simply don't render rather than pointing to garbage.
+    const publicDomain = process.env.PUBLIC_FRONTEND_DOMAIN
+      ? `https://${process.env.PUBLIC_FRONTEND_DOMAIN}`.replace(/^https:\/\/https:\/\//, "https://")
+      : null;
+    const accountBookingUrl = publicDomain
+      ? `${publicDomain}/account/bookings/${booking.bookingId}`
+      : null;
+    const cancellationUrl = publicDomain
+      ? `${publicDomain}/account/bookings/cancel/${booking.bookingId}`
+      : null;
+
     const emailParams = {
       booking: {
         bookingId: booking.bookingId,
@@ -1238,11 +1248,11 @@ async function generateEmailParams(booking) {
         }, 0),
         arrivalDate: booking.reservationContext?.arrivalDate?.ts,
         departureDate: booking.reservationContext?.departureDate?.ts,
-        accountBookingUrl: null,
+        accountBookingUrl,
         activityType: booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Activity',
         productName: booking.displayName,
         qrCodeDataUrl: null,
-        cancellationUrl: null,
+        cancellationUrl,
         namedOccupant: booking.namedOccupant || {},
       },
       customer: {

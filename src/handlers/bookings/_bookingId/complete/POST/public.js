@@ -1,6 +1,9 @@
-// Create new transaction
+// Complete a booking: write the booking row, then dispatch the confirmation
+// email. The email must go out only after the DynamoDB write succeeds —
+// otherwise a transient DB failure would leave the user with a confirmation
+// email for a booking that was never saved.
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { completeBooking } = require("../../../methods");
+const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -8,7 +11,6 @@ exports.handler = async (event, context) => {
   logger.info("POST Complete Booking:", event);
 
   try {
-    // Get relevant data from the event
     const body = JSON.parse(event?.body);
     const bookingId = event.pathParameters?.bookingId;
     const sessionId = body.sessionId;
@@ -21,22 +23,29 @@ exports.handler = async (event, context) => {
       throw new Exception("Session ID is required", { code: 400 });
     }
 
-    // Extract sub (userId) from authorizer for secure email lookup
-    const sub = event.requestContext.authorizer?.userId;
+    // Custom authorizer exposes the Cognito sub flat under `userId`.
+    const sub = event.requestContext?.authorizer?.userId;
     if (!sub) {
       throw new Exception("User authentication required", { code: 401 });
     }
 
-    // Complete booking and send confirmation email (all in one operation)
-    const updateRequests = await completeBooking(bookingId, sessionId, body, sub);
+    const { updateRequests, emailParams } = await completeBooking(bookingId, sessionId, body);
 
     const res = await batchTransactData(updateRequests);
 
-    const response = {
-      res: res,
+    // Booking is durable — now queue the email. Failures here are logged but
+    // do not roll back the cancellation; the user has a confirmed booking.
+    try {
+      await sendBookingConfirmationEmail(emailParams, sub);
+    } catch (emailError) {
+      logger.error("Booking completed but confirmation email send failed", {
+        bookingId,
+        error: emailError?.message,
+        stack: emailError?.stack,
+      });
     }
 
-    return sendResponse(200, response, "Success", null, context);
+    return sendResponse(200, { res }, "Success", null, context);
 
   } catch (error) {
     return sendResponse(
