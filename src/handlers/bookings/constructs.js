@@ -210,10 +210,13 @@ class PublicBookingsConstruct extends LambdaConstruct {
       }
     );
 
-    // Add permissions for Lambda to read from Cognito User Pools
+    // Add permissions for Lambda to read from Cognito User Pools. ListUsers
+    // is used by getUserInfoBySub to look up the recipient's verified email
+    // by the immutable Cognito sub claim.
     this.bookingsCompleteFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: [
-        "cognito-idp:AdminGetUser"
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
       ],
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
@@ -229,6 +232,15 @@ class PublicBookingsConstruct extends LambdaConstruct {
         basicRead: true,
       }
     );
+
+    // Cancel handler also needs Cognito ListUsers — same getUserInfoBySub path.
+    this.bookingsCancelPostFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
+    }));
 
     // POST /bookings/{bookingId}/complete
     this.bookingsByBookingIdResource.addResource('complete').addMethod('POST', new apigw.LambdaIntegration(this.bookingsCompleteFunction), {
