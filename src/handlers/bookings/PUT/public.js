@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
   try {
     // Get relevant data from the event
     const body = JSON.parse(event?.body);
-    const bookingId = body.bookingId;
+    const bookingId = event.pathParameters?.bookingId || body.bookingId;
     const sessionId = body.sessionId;
 
     if (!bookingId) {
