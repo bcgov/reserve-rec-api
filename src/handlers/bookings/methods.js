@@ -34,6 +34,37 @@ const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 const DEFAULT_SESSION_LENGTH = 30; // in minutes
 
 /**
+ * Resolve the booking owner's identity (firstName, lastName, email, phone) from
+ * the verified Cognito user pool, given their immutable `sub`. The booking row
+ * must store these from Cognito — never from the request body — so that a
+ * client cannot put another user's name/email on their booking (Ref #480).
+ *
+ * Address fields are intentionally not sourced here: Cognito does not reliably
+ * carry address attributes for BCSC users, so the booking flow accepts those
+ * from the request body. Identity (name + contact) lives in Cognito.
+ *
+ * @param {string} sub - Cognito sub of the authenticated user
+ * @returns {Promise<{firstName:string,lastName:string,email:string,mobilePhone:string}|null>}
+ */
+async function resolveAuthenticatedOccupantIdentity(sub) {
+  if (!sub) return null;
+  try {
+    const userInfo = await getUserInfoBySub(sub, 'public');
+    const attrs = userInfo?.Attributes || [];
+    const get = (n) => attrs.find(a => a.Name === n)?.Value || '';
+    return {
+      firstName: get('given_name'),
+      lastName: get('family_name'),
+      email: get('email'),
+      mobilePhone: get('custom:mobilePhone') || get('phone_number'),
+    };
+  } catch (error) {
+    logger.error('Failed to resolve occupant identity from Cognito', { sub, error: error?.message });
+    throw error;
+  }
+}
+
+/**
  * Helper: Get start of day in UTC for a date string
  * @param {string} dateString - ISO date string (e.g., "2025-12-12")
  * @returns {Date} Date object set to midnight UTC
@@ -696,6 +727,13 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     const timeout = product?.holdDuration?.minutes || DEFAULT_SESSION_LENGTH;
     const sessionExpiry = addMinutes(new Date(), timeout).getTime();
 
+    // === Resolve owner identity from Cognito ===
+    // Name, email, and phone for the booking owner come from the verified
+    // Cognito profile keyed by `userId` (the authenticated sub), not from the
+    // request body — clients must not be able to put another user's identity
+    // on a booking (Ref #480). Address fields stay from props.
+    const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId);
+
     // === Build the child BookingDates first
     const bookingDateItems = productDates.items.map((productDate) => initBookingDateItem(globalId, product, productDate, assetRef, props));
 
@@ -733,39 +771,36 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       partyPolicySnapshot: deleteEmptyAttributes(product.partyPolicy),
       partyContext: deleteEmptyAttributes(props.partyInformation),
       smsOptIn: Boolean(props?.smsOptIn),
-      namedOccupant: props?.namedOccupant
+      namedOccupant: ownerIdentity
         ? {
-          firstName: sanitizeString(props.namedOccupant.firstName, 100),
-          lastName: sanitizeString(props.namedOccupant.lastName, 100),
+          firstName: ownerIdentity.firstName,
+          lastName: ownerIdentity.lastName,
           contactInfo: {
-            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
-            mobilePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.mobilePhone,
-              20
-            ),
+            email: ownerIdentity.email,
+            mobilePhone: ownerIdentity.mobilePhone,
             homePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.homePhone,
+              props?.namedOccupant?.contactInfo?.homePhone,
               20
             ),
             streetAddress: sanitizeString(
-              props.namedOccupant.contactInfo?.streetAddress,
+              props?.namedOccupant?.contactInfo?.streetAddress,
               200
             ),
             unitNumber: sanitizeString(
-              props.namedOccupant.contactInfo?.unitNumber,
+              props?.namedOccupant?.contactInfo?.unitNumber,
               20
             ),
             postalCode: sanitizeString(
-              props.namedOccupant.contactInfo?.postalCode,
+              props?.namedOccupant?.contactInfo?.postalCode,
               20
             ),
-            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
+            city: sanitizeString(props?.namedOccupant?.contactInfo?.city, 100),
             province: sanitizeString(
-              props.namedOccupant.contactInfo?.province,
+              props?.namedOccupant?.contactInfo?.province,
               50
             ),
             country: sanitizeString(
-              props.namedOccupant.contactInfo?.country,
+              props?.namedOccupant?.contactInfo?.country,
               50
             ),
           },
@@ -1063,12 +1098,14 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props) {
+async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
   try {
 
     // === get queryTime ===
     const queryTime = new Date().getTime();
-    props['queryTime'] = queryTime;
+    if (props && typeof props === 'object') {
+      props['queryTime'] = queryTime;
+    }
 
     // === Get original Booking ===
 
@@ -1093,45 +1130,52 @@ async function completeBooking(bookingId, sessionId, props) {
       status: BOOKING_STATUS_ENUMS[1],
       // Remove pending state from GSI1
       isPending: { action: 'remove' },
-      namedOccupant: props?.namedOccupant
+    };
+
+    // When the FE-driven complete handler invokes us with the authenticated
+    // sub, rewrite the named-occupant identity fields from Cognito and accept
+    // booking-context fields (address/vehicle/equipment) from the request.
+    // Server-side webhook completions (e.g. Worldline) pass no sub — in that
+    // case leave namedOccupant + booking-context alone (createBooking already
+    // wrote them when the booking was first created). Ref #480.
+    if (sub) {
+      const ownerIdentity = await resolveAuthenticatedOccupantIdentity(sub);
+      updatedBookingItem.namedOccupant = ownerIdentity
         ? {
-          firstName: sanitizeString(props.namedOccupant.firstName, 100),
-          lastName: sanitizeString(props.namedOccupant.lastName, 100),
+          firstName: ownerIdentity.firstName,
+          lastName: ownerIdentity.lastName,
           contactInfo: {
-            email: sanitizeString(props.namedOccupant.contactInfo?.email, 200),
-            mobilePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.mobilePhone,
-              20
-            ),
+            email: ownerIdentity.email,
+            mobilePhone: ownerIdentity.mobilePhone,
             homePhone: sanitizeString(
-              props.namedOccupant.contactInfo?.homePhone,
+              props?.namedOccupant?.contactInfo?.homePhone,
               20
             ),
             streetAddress: sanitizeString(
-              props.namedOccupant.contactInfo?.streetAddress,
+              props?.namedOccupant?.contactInfo?.streetAddress,
               200
             ),
             unitNumber: sanitizeString(
-              props.namedOccupant.contactInfo?.unitNumber,
+              props?.namedOccupant?.contactInfo?.unitNumber,
               20
             ),
             postalCode: sanitizeString(
-              props.namedOccupant.contactInfo?.postalCode,
+              props?.namedOccupant?.contactInfo?.postalCode,
               20
             ),
-            city: sanitizeString(props.namedOccupant.contactInfo?.city, 100),
+            city: sanitizeString(props?.namedOccupant?.contactInfo?.city, 100),
             province: sanitizeString(
-              props.namedOccupant.contactInfo?.province,
+              props?.namedOccupant?.contactInfo?.province,
               50
             ),
             country: sanitizeString(
-              props.namedOccupant.contactInfo?.country,
+              props?.namedOccupant?.contactInfo?.country,
               50
             ),
           },
         }
-        : null,
-      vehicleInformation: Array.isArray(props.vehicleInformation)
+        : null;
+      updatedBookingItem.vehicleInformation = Array.isArray(props?.vehicleInformation)
         ? props.vehicleInformation.slice(0, 5).map((v) => ({
           licensePlate: sanitizeString(v.licensePlate, 20),
           licensePlateRegistrationRegion: sanitizeString(
@@ -1142,9 +1186,9 @@ async function completeBooking(bookingId, sessionId, props) {
           vehicleModel: sanitizeString(v.vehicleModel, 50),
           vehicleColour: sanitizeString(v.vehicleColour, 30),
         }))
-        : [],
-      equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
-    };
+        : [];
+      updatedBookingItem.equipmentInformation = sanitizeString(props?.equipmentInformation, 1000);
+    }
 
     // Format the update request for the Booking item
 
@@ -2535,6 +2579,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   sanitizeString,
+  resolveAuthenticatedOccupantIdentity,
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail,
   validateAdminRequirements,
