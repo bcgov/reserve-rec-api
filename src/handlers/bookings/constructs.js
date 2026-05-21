@@ -192,6 +192,15 @@ class PublicBookingsConstruct extends LambdaConstruct {
       }
     );
 
+    // Allow BookingsPOST to make call and find user by sub
+    this.bookingsPostFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"],
+    }));
+
     // POST /bookings
     this.bookingsResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
