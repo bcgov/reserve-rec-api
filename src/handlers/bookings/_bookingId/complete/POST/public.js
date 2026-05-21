@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
       throw new Exception("User authentication required", { code: 401 });
     }
 
-    const { updateRequests, emailParams } = await completeBooking(bookingId, sessionId, body);
+    const { updateRequests, emailParams } = await completeBooking(bookingId, sessionId, body, { sub });
 
     const res = await batchTransactData(updateRequests);
 
