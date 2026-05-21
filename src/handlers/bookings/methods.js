@@ -2313,6 +2313,11 @@ async function sendBookingConfirmationEmail(emailParams, sub) {
     }
 
     const result = await sendConfirmationEmail({
+      // `sendConfirmationEmail` reads recipientEmail from the top-level
+      // `email` key (different shape than the cancellation helper, which
+      // reads from customerData.email). Without this the payload validator
+      // rejects with "Missing required field: recipientEmail".
+      email: accountEmail,
       bookingData: emailParams.booking,
       customerData: {
         ...emailParams.customer,
@@ -2334,6 +2339,10 @@ async function sendBookingConfirmationEmail(emailParams, sub) {
     logger.error('Failed to queue booking confirmation email', {
       bookingId,
       error: error.message,
+      // The schema-validation Exception attaches a `data.errors` array;
+      // log it so the per-field reason isn't swallowed by the generic
+      // "Invalid email payload" message.
+      validationErrors: error?.data?.errors || error?.errors,
       stack: error.stack,
     });
     // Don't throw - email failure shouldn't break the booking flow
@@ -2410,6 +2419,7 @@ async function sendBookingCancellationEmail(emailParams, sub) {
     logger.error('Failed to queue booking cancellation email', {
       bookingId,
       error: error.message,
+      validationErrors: error?.data?.errors || error?.errors,
       stack: error.stack,
     });
     // Don't throw - email failure shouldn't break the cancel flow
