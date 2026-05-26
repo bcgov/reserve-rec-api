@@ -8,7 +8,7 @@
  * by a subscriber Lambda functions found in /bookings/cancel/subscriber and
  * transactions/refunds/subscriber.
  */
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent,  } = require("/opt/base");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData } = require("/opt/dynamodb");
 const {
   getBookingByBookingId,
@@ -39,7 +39,6 @@ exports.handler = async (event, context) => {
         code: 400,
       });
     }
-
     const body = JSON.parse(event?.body || "{}");
     // Cap + sanitize the reason. DynamoDB items max out at 400KB, an admin UI
     // will eventually render this field, and CloudWatch operators will read it
@@ -72,16 +71,21 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // Only confirmed bookings are cancellable via this endpoint. Abandoned
-    // 'in progress' sessions are reaped by the expired-booking scraper, and
-    // sending a cancellation email for one would render with empty
-    // namedOccupant fields because completion hasn't populated them yet.
-    if (booking.status !== 'confirmed') {
+    // Only confirmed and in-progress bookings can be cancelled. 
+    // In-progress bookings can be cancelled by the user during the reservation flow.
+    // Abandoned 'in progress' sessions without user action are reaped by the expired-booking scraper.
+    if (booking.status !== 'confirmed' && booking.status !== 'in progress') {
+      logger.error("Status check failed", {
+        bookingId,
+        status: booking.status,
+        allowedStatuses: ["confirmed", "in progress"],
+      });
       throw new Exception(
         `Booking has status "${booking.status}" and cannot be cancelled`,
         { code: 400 }
       );
     }
+    logger.info("Status check passed", { status: booking.status });
 
     // TODO: Add cancellation window validation when policy infrastructure is implemented
     // Should check booking.reservationPolicySnapshot.temporalWindows.cancellationWindow
@@ -91,11 +95,8 @@ exports.handler = async (event, context) => {
 
     const queryTime = new Date().getTime();
 
-    console.log('queryTime', queryTime);
-
     const checkoutTime = booking?.reservationContext?.checkoutTime;
 
-    console.log('checkoutTime', checkoutTime);
 
     if (checkoutTime && queryTime > checkoutTime) {
       throw new Exception(
@@ -139,6 +140,15 @@ exports.handler = async (event, context) => {
       context
     );
   } catch (error) {
+    logger.error("Error during cancellation", {
+      bookingId: event?.pathParameters?.bookingId,
+      errorName: error?.name,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      stack: error?.stack,
+      cancellationReasons: error?.CancellationReasons,
+    });
+    
     // The flagCancelledBooking ConditionExpression rejects the second of two
     // racing cancels — surface that as a clean 400 rather than a 500.
     if (error?.name === "TransactionCanceledException") {
@@ -146,6 +156,7 @@ exports.handler = async (event, context) => {
         (r) => r?.Code === "ConditionalCheckFailed"
       );
       if (conditionFailed) {
+        logger.error("TransactionCancelled due to ConditionalCheckFailed (racing cancel)");
         return sendResponse(
           400,
           null,
