@@ -323,7 +323,7 @@ async function processItem(
     delete item?.version;
 
     // Increment the productId counter for this activity
-    productId = await incrementCounter(pk, ["counter"]);
+    productId = await incrementCounter(pk);
 
     // Construct SK from the new productId
     sk = `${productId}`;
