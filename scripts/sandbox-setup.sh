@@ -29,6 +29,7 @@ STACKS=(
   "adminApiStack"
   "publicApiStack"
   "waitingRoomStack"
+  "publicIdentityIntegrationStack"
 )
 
 echo "Step 1: Copying SSM config parameters..."
@@ -152,6 +153,18 @@ EOF
 # Inject overrides for both identity stacks
 inject_identity_overrides "adminIdentityStack"
 inject_identity_overrides "publicIdentityStack"
+
+# Mark the integration stack as skipCreation so it does not overwrite
+# Dev's Pre Token Generation Lambda trigger with a sandbox-specific Lambda.
+INTEGRATION_CONFIG_PATH="/${APP_NAME}/${DEPLOYMENT_NAME}/publicIdentityIntegrationStack/config"
+INTEGRATION_CONFIG=$(aws ssm get-parameter --region ${REGION} --name "${INTEGRATION_CONFIG_PATH}" --query 'Parameter.Value' --output text 2>/dev/null || echo "{}")
+UPDATED_INTEGRATION_CONFIG=$(echo "${INTEGRATION_CONFIG}" | jq '.overrides.skipCreation = true')
+aws ssm put-parameter --region ${REGION} \
+  --name "${INTEGRATION_CONFIG_PATH}" \
+  --type String \
+  --value "${UPDATED_INTEGRATION_CONFIG}" \
+  --overwrite >/dev/null
+echo "  publicIdentityIntegrationStack: ✓ skipCreation override injected"
 
 echo ""
 echo "Step 1.6: Copying frontend domain parameter..."
