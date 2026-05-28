@@ -256,12 +256,23 @@ async function getBookingByBookingId(
   logger.debug("Getting booking by bookingId:", bookingId);
   try {
     let data = await getOneByGlobalId(bookingId, TRANSACTIONAL_DATA_TABLE_NAME);
+    if (!data) {
+      logger.error("getOneByGlobalId returned null/undefined!", { bookingId });
+      throw new Exception(`Booking not found (BookingID: ${bookingId})`, { code: 404 });
+    }
+    
     if (fetchAccessPoints) {
       console.debug("Fetching access points for booking:", bookingId);
       await getAndAttachNestedProperties(data, ["entryPoint", "exitPoint"]);
     }
     return data;
   } catch (error) {
+    logger.error("Error in getBookingByBookingId:", {
+      bookingId,
+      errorMessage: error?.message,
+      errorCode: error?.code,
+      stack: error?.stack,
+    });
     throw new Exception("Error getting booking by bookingId", {
       code: 400,
       error: error.message || String(error),
@@ -678,12 +689,13 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
             pk: marshall(inventoryPK),
             sk: marshall(inventorySK)
           },
-          UpdateExpression: "SET #availability = #availability - :quantity",
+          UpdateExpression: "ADD #availability :decrement",
           ExpressionAttributeNames: {
             "#availability": "availability"
           },
           ExpressionAttributeValues: {
-            ":quantity": marshall(numericQuantity)
+            ":quantity": marshall(numericQuantity),
+            ":decrement": marshall(numericQuantity * -1)
           },
           ConditionExpression: "attribute_exists(pk) AND #availability >= :quantity"
         }
@@ -771,6 +783,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       reservationContext: buildBookingReservationContext(product, productDates, queryTime),
       partyPolicySnapshot: deleteEmptyAttributes(product.partyPolicy),
       partyContext: deleteEmptyAttributes(props.partyInformation),
+      invQuantity: props?.invQuantity,
       smsOptIn: Boolean(props?.smsOptIn),
       namedOccupant: ownerIdentity
         ? {
