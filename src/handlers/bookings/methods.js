@@ -833,6 +833,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
         }))
         : [],
       equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
+      quantity: props?.invQuantity,
       feePolicySnapshot: deleteEmptyAttributes(product.feePolicy),
       bookingDates: bookingDateItems.map((bd) => {
         return {
