@@ -142,7 +142,7 @@ exports.handler = async (event, context) => {
       logger.warn("Invalid QR code hash", { bookingId, verifiedBy: claims.sub });
       await writeAuditLog(claims.sub, bookingId, 'QR_VERIFY_FAILED', {
         reason: 'Invalid hash',
-        bookingStatus: booking.bookingStatus,
+        bookingStatus: booking.status,
         timestamp
       }, marshall, batchWriteData, AUDIT_TABLE_NAME);
       return sendInvalidQRResponse(context);
@@ -151,7 +151,7 @@ exports.handler = async (event, context) => {
     logger.info("QR code hash validated successfully", { bookingId, verifiedBy: claims.sub });
 
     // Step 3: Check booking status
-    const bookingStatus = booking.bookingStatus;
+    const bookingStatus = booking.status;
     const isExpired = booking.sessionExpiry && new Date(booking.sessionExpiry) < new Date();
     const isCancelled = bookingStatus === "cancelled";
     const isConfirmed = bookingStatus === "confirmed";
