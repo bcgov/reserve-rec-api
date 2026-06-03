@@ -439,18 +439,18 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
   try {
     const timestamp = new Date().toISOString();
 
-    const auditRecord = {
-      pk: marshallFn(user),
-      sk: marshallFn(timestamp),
-      gsipk: marshallFn(`entity::${entityId}`),
-      gsisk: marshallFn(timestamp),
-      operation: marshallFn(operation),
-      metadata: marshallFn({
+    const auditRecord = marshallFn({
+      pk: user,
+      sk: timestamp,
+      gsipk: `entity::${entityId}`,
+      gsisk: timestamp,
+      operation: operation,
+      metadata: {
         entityId,
         ...metadata,
         timestamp
-      })
-    };
+      }
+    }, { removeUndefinedValues: true });
 
     await batchWriteFn([auditRecord], 25, auditTableName);
     logger.debug('Audit log written', { user, entityId, operation });

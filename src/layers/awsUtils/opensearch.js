@@ -36,6 +36,7 @@ const nonKeyableTerms = [
   "distance",
   "distanceUnits",
   "filters",
+  "from",
   "fuzzy",
   "fuzziness",
   "geoshape",
