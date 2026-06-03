@@ -1297,20 +1297,52 @@ async function generateEmailParams(booking) {
       ? `${publicDomain}/account/bookings/cancel/${booking.bookingId}`
       : null;
 
+    // Derive arrival/departure from the booking-date items. Each item carries
+    // the resolved reservation context whose temporalAnchors (checkInTime /
+    // checkOutTime) are epoch-millis values the email's formatDate/formatTime
+    // helpers can render directly — giving both the date and the time of day.
+    // We sort by date so the first item is arrival and the last is departure.
+    // (The prior code read `reservationContext.arrivalDate.ts`, which never
+    // existed on the booking — arrivalDate is stored as a plain date string —
+    // so Arrival/Departure silently dropped out of the email.)
+    const dateItems = (bookingDates?.items || [])
+      .filter((item) => item.date)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const firstDay = dateItems[0];
+    const lastDay = dateItems[dateItems.length - 1];
+    const arrivalDate = firstDay?.reservationContext?.temporalAnchors?.checkInTime || firstDay?.date || null;
+    const departureDate = lastDay?.reservationContext?.temporalAnchors?.checkOutTime || lastDay?.date || null;
+
+    // Clean product/pass name (e.g. "Lindsay's Loop Trail - AM"), without the
+    // date suffix that `displayName` carries.
+    const productName = booking.productDisplayName || booking.displayName;
+
+    // Friendly pass-type label for the booking-card subtitle (matches the
+    // confirmation design, e.g. "Day-use pass"). Falls back to the capitalized
+    // raw activityType for any type without an explicit label.
+    const ACTIVITY_TYPE_LABELS = {
+      dayuse: 'Day-use pass',
+      frontcountryCamp: 'Frontcountry camping',
+      backcountryCamp: 'Backcountry camping',
+      groupCamp: 'Group camping',
+      boating: 'Boating',
+      cabinStay: 'Cabin stay',
+      canoe: 'Canoe',
+    };
+    const activityTypeLabel = ACTIVITY_TYPE_LABELS[booking.activityType]
+      || (booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Pass');
+
     const emailParams = {
       booking: {
         bookingId: booking.bookingId,
         displayName: booking.displayName,
-        invQuantity: bookingDates?.items?.reduce((total, item) => {
-          const dailyInventory = item.quantity || 0;
-          return total + dailyInventory;
-        }, 0),
-        arrivalDate: booking.reservationContext?.arrivalDate?.ts,
-        departureDate: booking.reservationContext?.departureDate?.ts,
+        invQuantity: dateItems.reduce((total, item) => total + (item.quantity || 0), 0),
+        arrivalDate,
+        departureDate,
         accountBookingUrl,
         activityType: booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Activity',
-        productName: booking.displayName,
-        qrCodeDataUrl: null,
+        activityTypeLabel,
+        productName,
         cancellationUrl,
         namedOccupant: booking.namedOccupant || {},
       },

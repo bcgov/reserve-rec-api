@@ -3,71 +3,53 @@ BC PARKS
 YOUR BOOKING CONFIRMATION
 ========================================
 
-Your day-use passes for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}
+Your day-use {{pluralize booking.invQuantity "pass" "passes"}} for {{#if location.parkName}}{{{location.parkName}}}{{else}}your visit{{/if}}
 
 Success! You're all set.
 
-Save this email for entering with your pass online. Please bring your printed pass or saved screenshot with you during your visit.
+You must arrive and depart according to the times on the pass you have booked, to ensure access to the park.
 
 {{#if booking.accountBookingUrl}}
-View your booking: {{booking.accountBookingUrl}}
+View your booking: {{{booking.accountBookingUrl}}}
 {{/if}}
 
 ----------------------------------------
 BOOKING DETAILS
 ----------------------------------------
 
-Park: {{#if location.parkName}}{{location.parkName}}{{else}}Your visit{{/if}}
-{{#if booking.displayName}}Pass: {{booking.displayName}}{{/if}}
+Park: {{#if location.parkName}}{{{location.parkName}}}{{else}}Your visit{{/if}}
 
 {{#if booking.arrivalDate}}
-Arrival:   {{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}{{#if (formatTime booking.arrivalDate)}} at {{formatTime booking.arrivalDate}}{{/if}}
+Arrival:   {{formatDate booking.arrivalDate 'EEEE, MMMM d, yyyy'}}{{#if (formatTime booking.arrivalDate)}} at {{formatTime booking.arrivalDate}}{{/if}}
 {{/if}}
 {{#if booking.departureDate}}
-Departure: {{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}{{#if (formatTime booking.departureDate)}} at {{formatTime booking.departureDate}}{{/if}}
+Departure: {{formatDate booking.departureDate 'EEEE, MMMM d, yyyy'}}{{#if (formatTime booking.departureDate)}} at {{formatTime booking.departureDate}}{{/if}}
 {{/if}}
 {{#if booking.productName}}
-Pass type: {{booking.productName}}
+Pass type: {{{booking.productName}}}{{#if booking.arrivalDate}} ({{formatDate booking.arrivalDate 'short'}}){{/if}}
 {{/if}}
 {{#if booking.invQuantity}}
-Passes:    {{booking.invQuantity}}
+{{pluralize booking.invQuantity "Pass" "Passes"}}:    {{booking.invQuantity}}
 {{/if}}
 
-Named occupant: {{customer.firstName}} {{customer.lastName}}
+Named occupant: {{{customer.firstName}}} {{{customer.lastName}}}
 {{#if customer.licensePlate}}
-License plate:  {{customer.licensePlate}}
+License plate:  {{{customer.licensePlate}}}{{#if customer.licensePlateRegion}}, {{{customer.licensePlateRegion}}}{{/if}}
 {{/if}}
 
-Booking number: {{booking.bookingId}}
+Confirmation number: {{booking.bookingId}}
 
-{{#if booking.cancellationUrl}}
-----------------------------------------
-CANCELLATIONS AND REFUNDS
-----------------------------------------
+Your QR code for check-in is attached to this email as an image. Show it to BC Parks staff at check-in.
 
-If you can no longer make the trip, please cancel your reservation to receive a refund and allow the passes to be re-allocated to other park visitors.
-
-Cancel your reservation: {{booking.cancellationUrl}}
-
-{{/if}}
 ----------------------------------------
 BEFORE YOU GO
 ----------------------------------------
 
 Please ensure you have your pass available to show BC Parks staff when required: print or save/screenshot a copy of this email and the QR code to your phone as proof of your booking, as Wi-Fi connectivity is not always reliable within the parks.
 
-If you have booked more than 1 trail pass on your reservation, please ensure all members of your party are in attendance when checking in.
+If you have booked more than one pass on your reservation, please ensure all members of your party are in attendance when checking in.
 
-----------------------------------------
-CUSTOMER SERVICE
-----------------------------------------
-
-For any inquiries about your receipt or payment, please contact a customer service representative.
-{{#if branding.contactEmail}}
-Email: {{branding.contactEmail}}
-{{/if}}
-
-Please do not reply to this message. It was sent from an unmonitored email address. This message is a service email related to your BC Parks account use.
+This email is provided for information related to your BC Parks account only. The inbox is not monitored. If you need assistance, please contact parkinfo@gov.bc.ca.
 
 ========================================
 BC Parks
