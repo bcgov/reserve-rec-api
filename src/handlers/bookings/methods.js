@@ -511,6 +511,12 @@ async function validateBookingRequest(product, productDates, props) {
 
     logger.debug(`Validating booking request against ProductDate data for each day of the booking...`);
 
+    // Vehicle parking day-use passes are one pass per booking (one vehicle).
+    // The public site caps the selector at 1; enforce it server-side too (#566).
+    if (product?.activitySubType === 'vehicleParking' && Number(props?.invQuantity) > 1) {
+      throw `Vehicle parking passes are limited to one pass per booking`;
+    }
+
     for (const productDate of productDates?.items) {
 
       console.log('productDate', productDate);
