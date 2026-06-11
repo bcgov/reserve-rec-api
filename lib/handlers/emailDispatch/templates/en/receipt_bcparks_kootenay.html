@@ -151,16 +151,16 @@
             </div>
             
             <!-- QR Code Section (only shown if enabled for this facility/park) -->
-            {{#if booking.qrCodeDataUrl}}
+            {{#if booking.qrCid}}
             <div class="qr-code-section" style="background-color: #f9f9f9; padding: 20px; text-align: center; margin: 25px 0; border-radius: 8px; border: 2px dashed #ccc;">
                 <h3 style="margin-top: 0; color: #333;">Digital Pass</h3>
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
                     Show this QR code at park entrance for verification
                 </p>
-                
-                <!-- QR Code Image -->
+
+                <!-- QR Code Image (inline CID attachment — data: URIs are stripped by email clients) -->
                 <div style="margin: 15px 0;">
-                    {{qrCode booking}}
+                    <img src="cid:{{booking.qrCid}}" alt="Booking QR code" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
                 </div>
                 
                 <!-- Booking Number Fallback -->

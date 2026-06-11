@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test'; // Bypass environment validation
 process.env.QR_SECRET_KEY = 'test-secret-key-for-unit-tests-only-do-not-use-in-production';
 process.env.PUBLIC_FRONTEND_DOMAIN = 'test.reserve-rec.bcparks.ca';
 
-const { generateQRURL, validateHash, generateQRCodeDataURL, validateEnvironment } = require('../lib/handlers/emailDispatch/qrCodeHelper');
+const { generateQRURL, validateHash, generateQRCodeDataURL, generateQRCodeBuffer, validateEnvironment } = require('../lib/handlers/emailDispatch/qrCodeHelper');
 
 describe('QR Code Helper', () => {
   
@@ -200,13 +200,53 @@ describe('QR Code Helper', () => {
 
     it('should generate QR code in reasonable time', async () => {
       const url = 'https://test.reserve-rec.bcparks.ca/verify/BOOK-123/abc123';
-      
+
       const startTime = Date.now();
       await generateQRCodeDataURL(url);
       const duration = Date.now() - startTime;
-      
+
       // Should complete in less than 500ms (generous threshold)
       expect(duration).toBeLessThan(500);
+    });
+  });
+
+  describe('generateQRCodeBuffer', () => {
+    // PNG files always start with this 8-byte magic-number signature.
+    const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+    it('should generate a PNG Buffer', async () => {
+      const url = 'https://test.reserve-rec.bcparks.ca/verify/BOOK-123/abc123';
+      const buffer = await generateQRCodeBuffer(url);
+
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.length).toBeGreaterThan(100);
+      // Verify it is a real PNG by its magic-number signature.
+      expect(buffer.subarray(0, 8).equals(PNG_SIGNATURE)).toBe(true);
+    });
+
+    it('should throw error if URL is missing', async () => {
+      await expect(generateQRCodeBuffer(null)).rejects.toThrow('URL is required');
+      await expect(generateQRCodeBuffer(undefined)).rejects.toThrow('URL is required');
+      await expect(generateQRCodeBuffer('')).rejects.toThrow('URL is required');
+    });
+
+    it('should generate consistent buffers for the same URL', async () => {
+      const url = 'https://test.reserve-rec.bcparks.ca/verify/BOOK-123/abc123';
+      const buffer1 = await generateQRCodeBuffer(url);
+      const buffer2 = await generateQRCodeBuffer(url);
+
+      expect(buffer1.equals(buffer2)).toBe(true);
+    });
+
+    it('should encode the same data as the data-URL variant', async () => {
+      // The Buffer and data-URL paths share render options, so the Buffer must
+      // match the base64 payload of the data URL byte-for-byte.
+      const url = 'https://test.reserve-rec.bcparks.ca/verify/BOOK-123/abc123';
+      const buffer = await generateQRCodeBuffer(url);
+      const dataUrl = await generateQRCodeDataURL(url);
+      const fromDataUrl = Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
+
+      expect(buffer.equals(fromDataUrl)).toBe(true);
     });
   });
 

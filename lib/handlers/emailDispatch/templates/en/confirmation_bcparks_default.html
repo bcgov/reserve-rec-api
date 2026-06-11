@@ -12,11 +12,6 @@
             box-sizing: border-box;
         }
 
-        svg {
-            vertical-align: middle;
-            margin-top: -2px;
-        }
-
         /* Email-specific resets */
         img {
             border: 0;
@@ -48,26 +43,20 @@
             background-color: #ffffff;
         }
 
+        /* Interim header: white BC Parks wordmark on a brand-blue band.
+           The official colour logo asset is not yet available (see #56);
+           a text wordmark renders reliably in every client, unlike the
+           reversed SVG which Gmail strips. */
         .header {
-            background-color: #ffffff;
-            padding: 24px 32px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            background-color: #003366;
+            padding: 22px 32px;
         }
 
-        .logo {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 25px;
-        }
-
-        .logo-text {
-            font-weight: 600;
-            font-size: 16px;
+        .header-wordmark {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.3px;
         }
 
         .content {
@@ -103,33 +92,19 @@
         }
 
         .btn-primary {
+            display: inline-block;
             font-size: 16px;
             font-weight: 700;
             color: #003366;
-            margin-bottom: 20px;
             line-height: 25px;
             border: 1px solid #003366;
             padding: 10px 16px;
             border-radius: 4px;
-            margin-bottom: 15px;
-            text-decoration: none;
-        }
-
-        .btn-secondary {
-            font-size: 16px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 10px;
-            line-height: 25px;
-            background: #003366;
-            padding: 10px 16px;
-            border-radius: 4px;
-            margin-top: 16px;
             text-decoration: none;
         }
 
         .booking-card {
-            border: 1px solid #d9d9d9;
+            border: 1px solid #C7C7C7;
             border-radius: 8px;
             overflow: hidden;
             margin-top: 36px;
@@ -138,8 +113,7 @@
 
         .card-header {
             padding: 20px 24px;
-            border: 1px solid #C7C7C7;
-            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid #C7C7C7;
             background: #f2f2f2;
         }
 
@@ -155,26 +129,16 @@
         }
 
         .card-body {
-            border: 1px solid #C7C7C7;
-            border-radius: 0 0 8px 8px;
             padding: 24px;
         }
 
-        .card-full {
-            border: 1px solid #C7C7C7;
-            border-radius: 8px;
-            padding: 24px;
+        .details-table {
+            width: 100%;
         }
 
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .detail-item {
-            margin-bottom: 0;
+        .details-table td {
+            vertical-align: top;
+            padding-bottom: 20px;
         }
 
         .detail-label {
@@ -186,122 +150,72 @@
 
         .detail-value {
             font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .detail-value-time {
             font-size: 13px;
-            display: flex;
-            align-items: center;
-        }
-
-        .detail-icon {
-            width: 16px;
-            height: 16px;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        .booking-number {
-            font-size: 16px;
-        }
-
-        .cardless-body {
-            padding: 24px;
-        }
-
-        .qr-code {
-            max-width: 200px;
-            width: 100%;
-            height: auto;
-            margin: 0 auto 16px;
+            color: #5c5c5c;
             display: block;
         }
 
-        .qr-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        .row-rule td {
+            border-top: 1px solid #d9d9d9;
+            padding-top: 0;
+            padding-bottom: 12px;
         }
 
-        .horizontal-rule {
-            border: 1px solid #d9d9d9;
-            grid-column: 1 / -1;
+        .card-full {
+            border: 1px solid #C7C7C7;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .qr-code {
+            width: 200px;
+            max-width: 200px;
+            height: auto;
+            margin: 0 auto 12px;
+            display: block;
+        }
+
+        .qr-caption {
+            font-size: 14px;
+            color: #5c5c5c;
         }
 
         .horizontal-rule-yellow {
             border-top: 3px solid #FCBA19;
-            margin-bottom: 24px;
-            margin-right: 85%;
+            width: 60px;
+            margin-bottom: 20px;
         }
 
-        .cancellation-instructions {
-            font-size: 16px;
-            line-height: 25px;
-            margin-bottom: 30px;
+        .cardless-body {
+            padding: 24px 0;
         }
 
         .before-you-go-instructions {
             font-size: 16px;
             line-height: 25px;
-            margin-bottom: 30px;
-        }
-
-        .customer-service {
-            background-color: #C7E3FD;
-            padding: 25px 25px;
-            margin-bottom: 30px;
-        }
-
-        .customer-service h3 {
-            font-size: 19px;
-            font-weight: 700;
-            color: #003366;
-            margin-bottom: 12px;
-            line-height: 27px;
-        }
-
-        .customer-service p {
-            font-size: 16px;
-            line-height: 25px;
-            margin-bottom: 20px;
-        }
-
-        .customer-service-text {
-            font: 16px;
-            font-weight: 700;
-            color: #003366;
-            line-height: 25px;
-            padding-right: 10px;
-        }
-
-        .customer-service-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #003366;
-            font-size: 16px;
+            margin-bottom: 16px;
         }
 
         .disclaimer {
             font-size: 14.5px;
             font-style: italic;
             line-height: 24px;
+            margin-top: 8px;
             margin-bottom: 24px;
+        }
+
+        .disclaimer a {
+            color: #003366;
         }
 
         .footer {
             background-color: #1E3A5F;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            text-align: center;
         }
 
         .acknowledgment {
@@ -314,12 +228,15 @@
         }
 
         .footer-content {
-            padding: 32px 170px 32px 22px;
+            padding: 24px 22px;
+            color: white;
+        }
+
+        .footer-logo {
             font-size: 24px;
             font-weight: 400;
             color: white;
-            margin-bottom: 5px;
-            font-family: auto;
+            margin-bottom: 8px;
         }
 
         .footer-address {
@@ -330,23 +247,20 @@
         }
 
         .social-icons {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 16px;
+            margin-top: 16px;
         }
 
         .social-icon {
+            display: inline-block;
             width: 32px;
             height: 32px;
+            line-height: 32px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             color: white;
             text-decoration: none;
-            font-size: 18px;
+            font-size: 14px;
+            margin: 0 8px;
         }
 
         @media only screen and (max-width: 600px) {
@@ -354,14 +268,13 @@
                 padding: 24px 16px;
             }
 
-            .details-grid,
-            .payment-grid {
-                grid-template-columns: 1fr;
+            .card-body {
+                padding: 16px;
             }
 
-            .card-body,
-            .payment-body {
-                padding: 16px;
+            .details-table td {
+                display: block;
+                width: 100% !important;
             }
         }
     </style>
@@ -372,111 +285,89 @@
         <div class="container">
             <!-- Header -->
             <div class="header">
-                <div class="logo">
-                    <img src="https://bcparks.ca/static/BCParks_Primary_Reversed_Vertical-9873b7442479cf33ebc73121675114fa.svg" alt="BC Parks" style="width: 128px; height: 128px;">
-                </div>
+                <span class="header-wordmark">BC Parks</span>
             </div>
 
             <!-- Content -->
             <div class="content">
-                <h1>Your day-use passes for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}</h1>
+                <h1>Your day-use {{pluralize booking.invQuantity "pass" "passes"}} for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}</h1>
 
                 <p class="success-message">Success! You're all set.</p>
 
-                <p class="instructions">Save this email for entering with your pass online. Please bring your printed
-                    pass or saved screenshot with you during your visit.</p>
+                <p class="instructions">You must arrive and depart according to the times on the pass you have
+                    booked, to ensure access to the park.</p>
                 {{#if booking.accountBookingUrl}}
                 <a href="{{booking.accountBookingUrl}}" target="_blank" class="btn-primary">View your booking</a>
                 {{/if}}
+
                 <!-- Booking Card -->
                 <div class="booking-card">
                     <div class="card-header">
                         <div class="park-name">{{#if location.parkName}}{{location.parkName}}{{else}}Your visit{{/if}}</div>
-                        <div class="park-subtitle">{{#if booking.displayName}}{{booking.displayName}}{{/if}}</div>
+                        <div class="park-subtitle">{{#if booking.activityTypeLabel}}{{booking.activityTypeLabel}}{{else}}Day-use pass{{/if}}</div>
                     </div>
 
                     <div class="card-body">
-                        <div class="details-grid">
-                            {{#if booking.arrivalDate}}
-                            <div class="detail-item">
-                                <span class="detail-label">Arrival</span>
-                                <div class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></div>
-                                <span class="detail-value-time">{{ formatTime booking.arrivalDate}}</span>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.departureDate}}
-                            <div class="detail-item">
-                                <span class="detail-label">Departure</span>
-                                <div class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></div>
-                                <span class="detail-value-time">{{ formatTime booking.departureDate}}</span>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.productName}}
-                            <div class="detail-item">
-                                <span class="detail-label">Pass type</span>
-                                <div class="detail-value">
-                                    {{booking.productName}}
-                                </div>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.invQuantity}}
-                            <div class="detail-item">
-                                <span class="detail-label">Passes</span>
-                                <div class="detail-value">
-                                    {{booking.invQuantity}}
-                                </div>
-                            </div>
-                            {{/if}}
-
-                            <div class="horizontal-rule"></div>
-
-                            <div class="detail-item">
-                                <span class="detail-label">Named occupant</span>
-                                <div class="detail-value">{{customer.firstName}} {{customer.lastName}}</div>
-                            </div>
-
-                            {{#if customer.licensePlate}}
-                            <div class="detail-item">
-                                <span class="detail-label">License plate</span>
-                                <div class="detail-value">{{customer.licensePlate}}</div>
-                            </div>
-                            {{/if}}
-
-                            <div class="horizontal-rule"></div>
-
-                            <div class="detail-item full-width">
-                                <span class="detail-label">Booking number</span>
-                                <div class="detail-value booking-number">{{booking.bookingId}}</div>
-                            </div>
-                        </div>
+                        <table class="details-table" role="presentation">
+                            <tr>
+                                {{#if booking.arrivalDate}}
+                                <td width="50%">
+                                    <span class="detail-label">Arrival</span>
+                                    <span class="detail-value">{{formatDate booking.arrivalDate 'EEEE, MMMM d, yyyy'}}</span>
+                                    <span class="detail-value-time">{{formatTime booking.arrivalDate}}</span>
+                                </td>
+                                {{/if}}
+                                {{#if booking.departureDate}}
+                                <td width="50%">
+                                    <span class="detail-label">Departure</span>
+                                    <span class="detail-value">{{formatDate booking.departureDate 'EEEE, MMMM d, yyyy'}}</span>
+                                    <span class="detail-value-time">{{formatTime booking.departureDate}}</span>
+                                </td>
+                                {{/if}}
+                            </tr>
+                            <tr>
+                                {{#if booking.productName}}
+                                <td width="50%">
+                                    <span class="detail-label">Pass type</span>
+                                    <span class="detail-value">{{booking.productName}}{{#if booking.arrivalDate}} &middot; {{formatDate booking.arrivalDate 'short'}}{{/if}}</span>
+                                </td>
+                                {{/if}}
+                                {{#if booking.invQuantity}}
+                                <td width="50%">
+                                    <span class="detail-label">{{pluralize booking.invQuantity "Pass" "Passes"}}</span>
+                                    <span class="detail-value">{{booking.invQuantity}}</span>
+                                </td>
+                                {{/if}}
+                            </tr>
+                            <tr class="row-rule">
+                                <td width="50%">
+                                    <span class="detail-label">Named occupant</span>
+                                    <span class="detail-value">{{customer.firstName}} {{customer.lastName}}</span>
+                                </td>
+                                {{#if customer.licensePlate}}
+                                <td width="50%">
+                                    <span class="detail-label">License plate</span>
+                                    <span class="detail-value">{{customer.licensePlate}}{{#if customer.licensePlateRegion}}, {{customer.licensePlateRegion}}{{/if}}</span>
+                                </td>
+                                {{else}}
+                                <td width="50%"></td>
+                                {{/if}}
+                            </tr>
+                            <tr class="row-rule">
+                                <td colspan="2">
+                                    <span class="detail-label">Confirmation number</span>
+                                    <span class="detail-value">{{booking.bookingId}}</span>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
 
                 <!-- QR Code -->
-                <div class="booking-card">
-                    <div class="card-full">
-                        <div class="qr-card">
-                            {{#if booking.qrCodeDataUrl}}
-                            <img src="{{booking.qrCodeDataUrl}}" alt="QR Code" class="qr-code" />
-                            <a href="{{booking.qrCodeDataUrl}}" target="_blank" class="btn-secondary">Download QR code</a>
-                            {{/if}}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cancellations -->
-                {{#if booking.cancellationUrl}}
-                <div class="cardless-body">
-                    <h2>Cancellations and refunds</h2>
-                    <div class="horizontal-rule-yellow"></div>
-                    <p class="cancellation-instructions">
-                        If you can no longer make the trip, please cancel your reservations to receive a refund and
-                        allow the passes to be re-allocated to other park visitors.
-                    </p>
-                    <a href="{{booking.cancellationUrl}}" target="_blank" class="btn-primary">Cancel your reservation</a>
+                {{#if booking.qrCid}}
+                <div class="card-full">
+                    <img src="cid:{{booking.qrCid}}" alt="Booking QR code" class="qr-code" />
+                    <div class="qr-caption">Show this code to BC Parks staff at check-in.</div>
                 </div>
                 {{/if}}
 
@@ -488,29 +379,17 @@
                         Please ensure you have your pass available to show BC Parks staff when required: print or
                         save/screenshot a copy of this email and the QR code to your phone as proof of your booking, as
                         Wi-Fi connectivity is not always reliable within the parks.
-                        <br>
-                        <br>
-                        If you have booked more than 1 trail pass on your reservation, please ensure all members of your
+                    </p>
+                    <p class="before-you-go-instructions">
+                        If you have booked more than one pass on your reservation, please ensure all members of your
                         party are in attendance when checking in.
                     </p>
                 </div>
 
-                <!-- Customer Service -->
-                <div class="customer-service">
-                    <h3>Customer Service</h3>
-                    <p>For any inquiries about your receipt or payment, please contact a customer service
-                        representative.</p>
-                    {{#if branding.contactEmail}}
-                    <span class="customer-service-text">Email</span>
-                    <a href="mailto:{{branding.contactEmail}}" class="customer-service-link">
-                        {{branding.contactEmail}}
-                    </a>
-                    {{/if}}
-                </div>
-
                 <p class="disclaimer">
-                    Please do not reply to this message. It was sent from an unmonitored email address. This message is
-                    a service email related to your BC Parks account use.
+                    This email is provided for information related to your BC Parks account only. The inbox is not
+                    monitored. If you need assistance, please contact
+                    <a href="mailto:parkinfo@gov.bc.ca">parkinfo@gov.bc.ca</a>.
                 </p>
             </div>
 
@@ -521,21 +400,15 @@
                     connection to the land and respect the importance of their diverse teachings, traditions, and practices
                     within these territories.
                 </div>
-                <div>
                 <div class="footer-content">
                     <div class="footer-logo">BC Parks</div>
-
                     <div class="footer-address">PO Box 9398</div>
                     <div class="footer-address">Victoria, BC V8W9M9</div>
                     <div class="footer-address">Canada</div>
-
-                </div>
-                <div class="footer-content">
                     <div class="social-icons">
                         <a href="https://www.facebook.com/BCParks/" target="_blank" class="social-icon">FB</a>
                         <a href="https://www.instagram.com/bcparks/" target="_blank" class="social-icon">IG</a>
                     </div>
-                </div>
                 </div>
             </div>
         </div>
