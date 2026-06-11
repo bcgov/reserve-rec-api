@@ -315,6 +315,22 @@ class OSQuery {
   }
 
   /**
+   * Adds an exists query rule to the OpenSearch query.
+   * Returns documents that contain any indexed value for the field.
+   *
+   * @param {string} field - The field to check for existence.
+   * @param {boolean} exists - If true (default), returns docs where field exists. If false, returns docs where field does NOT exist.
+   */
+  addExistsQueryRule(field, exists = true) {
+    const clause = exists ? "must" : "must_not";
+    setNestedValue(this.query, ["bool", clause], {
+      exists: {
+        field: field,
+      },
+    });
+  }
+
+  /**
    * BBox filter for geo_point field.
    * The bbox is an array of two arrays, each containing [longitude, latitude].
    * The orientation of the root array is [[northwest_corner],[southeast_corner]].

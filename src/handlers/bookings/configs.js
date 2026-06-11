@@ -371,6 +371,18 @@ const BOOKING_PUT_CONFIG_TEMP = {
         rf.expectAction(action, ['set']);
       }
     },
+    checkedInTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkedInByUser: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
     entryPoint: {
       isMandatory: false,
       allowEmpty: true,
