@@ -46,8 +46,10 @@ exports.handler = async (event, context) => {
       res = await getAllCollections(filters, queryParams);
     }
 
+    const isSuperAdmin = authContext.permissions?.['superadmin'] === 'superadmin';
+
     // If the user isn't a superadmin, remove adminNotes from the response
-    if (res && authContext.permissions !== 'superadmin') {
+    if (res && !isSuperAdmin) {
       const removedFields = ({ adminNotes, ...allowedFields }) => allowedFields;
       if (Array.isArray(res)) {
         res = res.map(removedFields);
@@ -59,7 +61,6 @@ exports.handler = async (event, context) => {
     }
 
     // Filter out the collections the user doesn't have (at least) the 'staff' permission for
-    const isSuperAdmin = authContext.permissions?.['superadmin'] === 'superadmin';
     if (!isSuperAdmin && res) {
       const TIER_ORDER = ['limited', 'staff', 'superadmin'];
       const minTierIndex = TIER_ORDER.indexOf('staff');
