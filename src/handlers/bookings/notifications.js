@@ -35,11 +35,14 @@ function getSmsReminderSqsClient(queueUrl) {
   return smsReminderSqsClient;
 }
 
-function buildSmsReminderPayload(body, response) {
+function buildSmsReminderPayload(body, response, fallbackMobilePhone) {
   return {
     bookingId: response?.bookingId || response?.globalId || null,
     userId: body?.userId || null,
-    mobilePhone: body?.namedOccupant?.contactInfo?.mobilePhone || null,
+    // Prefer a number supplied with the booking; fall back to the phone resolved
+    // from the authenticated Cognito profile when the request omits one (Ref #404
+    // stopped the FE sending identity fields, so this fallback keeps SMS working).
+    mobilePhone: body?.namedOccupant?.contactInfo?.mobilePhone || fallbackMobilePhone || null,
     startDate: body?.startDate || null,
     collectionId: body?.collectionId || null,
     activityType: body?.activityType || null,
@@ -49,12 +52,12 @@ function buildSmsReminderPayload(body, response) {
   };
 }
 
-async function enqueueSmsReminderIfNeeded(body, response) {
+async function enqueueSmsReminderIfNeeded(body, response, fallbackMobilePhone) {
   if (!body?.smsOptIn) {
     return;
   }
 
-  const smsReminderPayload = buildSmsReminderPayload(body, response);
+  const smsReminderPayload = buildSmsReminderPayload(body, response, fallbackMobilePhone);
   const queueUrl = process.env.SMS_REMINDER_QUEUE_URL;
 
   try {

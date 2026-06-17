@@ -1,7 +1,7 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { createBooking, formatBookingResponsePublic, } = require("../methods");
-const { batchTransactData } = require("/opt/dynamodb");
+const { batchTransactData, unmarshall } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
@@ -157,7 +157,15 @@ exports.handler = async (event, context) => {
     const res = await batchTransactData(bookingRequestItems);
 
     const response = formatBookingResponsePublic(bookingRequestItems);
-    await enqueueSmsReminderIfNeeded(body, response);
+
+    // The booking record carries the occupant phone resolved from the Cognito
+    // profile; use it as the SMS fallback when the request body omits one.
+    const bookingItem = bookingRequestItems
+      .map((item) => (item?.action === 'Put' ? unmarshall(item?.data?.Item) : null))
+      .find((item) => item?.schema === 'booking');
+    const resolvedMobilePhone = bookingItem?.namedOccupant?.contactInfo?.mobilePhone || null;
+
+    await enqueueSmsReminderIfNeeded(body, response, resolvedMobilePhone);
 
     return sendResponse(200, response, "Success", null, context);
 
