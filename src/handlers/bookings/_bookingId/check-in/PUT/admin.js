@@ -148,7 +148,7 @@ exports.handler = async (event, context) => {
       });
       const date = d.toISOString().split("T")[0];
       throw new Exception(
-        `Booking ${bookingId} cannot be checked after ${time} on ${date}`,
+        `Booking ${bookingId} cannot be checked in after ${time} on ${date}`,
         {
           code: 400,
         },
