@@ -1,11 +1,10 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { createBooking, formatBookingResponsePublic, } = require("../methods");
-const { batchTransactData, unmarshall } = require("/opt/dynamodb");
+const { batchTransactData } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
-const { enqueueSmsReminderIfNeeded } = require('../notifications');
 
 exports.handler = async (event, context) => {
   logger.info("Bookings POST Activated");
@@ -158,14 +157,10 @@ exports.handler = async (event, context) => {
 
     const response = formatBookingResponsePublic(bookingRequestItems);
 
-    // The booking record carries the occupant phone resolved from the Cognito
-    // profile; use it as the SMS fallback when the request body omits one.
-    const bookingItem = bookingRequestItems
-      .map((item) => (item?.action === 'Put' ? unmarshall(item?.data?.Item) : null))
-      .find((item) => item?.schema === 'booking');
-    const resolvedMobilePhone = bookingItem?.namedOccupant?.contactInfo?.mobilePhone || null;
-
-    await enqueueSmsReminderIfNeeded(body, response, resolvedMobilePhone);
+    // Note: the confirmation SMS is dispatched at booking completion, not here.
+    // At create time the booking is not yet confirmed and the FE has not sent
+    // the SMS opt-in (it arrives with the complete request). See the booking
+    // complete handlers and methods.completeBooking().
 
     return sendResponse(200, response, "Success", null, context);
 
