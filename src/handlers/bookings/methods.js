@@ -1235,14 +1235,29 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
 
     const emailParams = await generateEmailParams(completeBookingForEmail);
 
-    // Return the update + email params for the handler to commit and dispatch
-    // in that order. We intentionally do NOT send the email here: the SQS
-    // enqueue must happen *after* batchTransactData succeeds, otherwise a
-    // failed DynamoDB write would leave the user with a confirmation email
-    // for a booking that was never saved.
+    // SMS confirmation params, dispatched by the handler alongside the email.
+    // The opt-in flag arrives with the FE complete request — post-#404 the FE
+    // no longer sends identity/opt-in fields at create — so prefer it here and
+    // fall back to the value captured on the booking record for server-side
+    // completions. The phone is the Cognito-resolved number now stored on the
+    // finalized booking (completeBookingForEmail.namedOccupant.contactInfo).
+    const smsParams = {
+      ...completeBookingForEmail,
+      smsOptIn:
+        typeof props?.smsOptIn === 'boolean'
+          ? props.smsOptIn
+          : Boolean(completeBookingForEmail?.smsOptIn),
+    };
+
+    // Return the update + notification params for the handler to commit and
+    // dispatch in that order. We intentionally do NOT send the email/SMS here:
+    // the SQS enqueue must happen *after* batchTransactData succeeds, otherwise
+    // a failed DynamoDB write would leave the user with a confirmation for a
+    // booking that was never saved.
     return {
       updateRequests: bookingUpdateRequest,
       emailParams,
+      smsParams,
     };
 
 

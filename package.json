@@ -28,8 +28,8 @@
     "sandbox:setup": "./scripts/sandbox-setup.sh",
     "sandbox:teardown": "./scripts/sandbox-teardown.sh",
     "sandbox:edit-config": "./scripts/sandbox-edit-config.sh",
-    "sandbox:synth": "cdk synth -c @context=dev -c sandboxName=${SANDBOX_NAME} --all",
-    "sandbox:deploy": "cdk deploy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --require-approval never",
+    "sandbox:synth": "ENABLE_ORIGIN_VERIFY_WAF=false cdk synth -c @context=dev -c sandboxName=${SANDBOX_NAME} --all",
+    "sandbox:deploy": "ENABLE_ORIGIN_VERIFY_WAF=false cdk deploy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --require-approval never",
     "sandbox:destroy": "cdk destroy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --force"
   },
   "devDependencies": {
