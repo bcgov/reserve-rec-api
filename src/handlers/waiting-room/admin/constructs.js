@@ -135,6 +135,16 @@ class AdminWaitingRoomConstruct extends LambdaConstruct {
     // /waiting-room/mode2/release
     const mode2ReleaseResource = mode2Resource.addResource('release');
     mode2ReleaseResource.addMethod('POST', new apigw.LambdaIntegration(this.releaseMode2Function), authOptions);
+
+    this.addCorsPreflightForResources([
+      wrResource,
+      queuesResource,
+      queueResource,
+      closeResource,
+      metricsResource,
+      mode2Resource,
+      mode2ReleaseResource,
+    ]);
   }
 }
 
