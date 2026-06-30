@@ -4,7 +4,7 @@ const { Exception, logger, sendResponse } = require("/opt/base");
 const { getAllRefundsByTransactionId, getRefundByRefundId } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Refunds GET:", event);
+  logger.info("Refunds public GET:", event);
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {

@@ -4,22 +4,188 @@ const iam = require("aws-cdk-lib/aws-iam");
 
 const defaults = {
   resources: {
-    transactionsGetFunction: {
-      name: 'TransactionsGET',
+    transactionsAdminGetFunction: {
+      name: 'TransAdminGET',
     },
-    transactionsPostFunction: {
-      name: 'TransactionsPOST',
+    transactionsAdminPostFunction: {
+      name: 'TransAdminPOST',
     },
-    transactionsRefundsGetFunction: {
-      name: 'TransactionsRefGET',
+    transactionsAdminRefundsGetFunction: {
+      name: 'TransAdminRefGET',
     },
-    transactionsRefundsPostFunction: {
-      name: 'TransactionsRefPOST',
+    transactionsAdminRefundsPostFunction: {
+      name: 'TransAdminRefPOST',
+    },
+    transactionsPublicGetFunction: {
+      name: 'TransPubGET',
+    },
+    transactionsPublicPostFunction: {
+      name: 'TransPubPOST',
+    },
+    transactionsPublicRefundsGetFunction: {
+      name: 'TransPubRefGET',
+    },
+    transactionsPublicRefundsPostFunction: {
+      name: 'TransPubRefPOST',
     }
   }
 };
 
-class TransactionsConstruct extends LambdaConstruct {
+class AdminTransactionsConstruct extends LambdaConstruct {
+  constructor(scope, id, props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+    const handlerPrefix = props?.handlerPrefix || 'index';
+    const handlerName = `${handlerPrefix}.handler`;
+
+    // Add /transactions resource
+    this.transactionsResource = this.resolveApi().root.addResource('transactions');
+
+    // Add /transactions/admin resource
+    this.transactionsAdminResource = this.transactionsResource.addResource('admin');
+
+    // Add /transactions/admin/{clientTransactionId} resource
+    this.transactionsByTransactionIdResource = this.transactionsAdminResource.addResource('{clientTransactionId}');
+
+    // Add /transactions/admin/{clientTransactionId}/refunds resource
+    this.transactionsRefundsResource = this.transactionsByTransactionIdResource.addResource('refunds');
+
+    // Add /transactions/admin/{clientTransactionId}/refunds/{refundId} resource
+    this.transactionsRefundsByRefundIdResource = this.transactionsRefundsResource.addResource('{refundId}');
+
+    // Add CORS preflight for transactions
+    this.addCorsPreflightForResources([
+      this.transactionsResource,
+      this.transactionsAdminResource,
+      this.transactionsByTransactionIdResource,
+      this.transactionsRefundsResource,
+      this.transactionsRefundsByRefundIdResource
+    ]);
+
+    // Transactions GET Lambda Function
+    this.transactionsAdminGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'transactionsAdminGetFunction',
+      'src/handlers/transactions/GET',
+      handlerName,
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
+    // GET /transactions
+    this.transactionsAdminResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /transactions/{clientTransactionId}
+    this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Transactions POST Lambda Function
+    this.transactionsAdminPostFunction = this.generateBasicLambdaFn(
+      scope,
+      'transactionsAdminPostFunction',
+      'src/handlers/transactions/POST',
+      handlerName,
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
+    // POST /transactions
+    this.transactionsAdminResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsAdminPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Transactions Refunds GET Lambda Function
+    this.transactionsAdminRefundsGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'transactionsAdminRefundsGetFunction',
+      'src/handlers/transactions/refunds/GET',
+      handlerName,
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
+    // GET /transactions/{clientTransactionId}/refunds
+    this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminRefundsGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /transactions/{clientTransactionId}/refunds/{refundId}
+    this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminRefundsGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Transactions Refunds POST Lambda Function
+    this.transactionsAdminRefundsPostFunction = this.generateBasicLambdaFn(
+      scope,
+      'transactionsAdminRefundsPostFunction',
+      'src/handlers/transactions/refunds/POST',
+      handlerName,
+      {
+        transDataBasicReadWrite: true,
+      }
+    );
+
+    // POST /transactions/{clientTransactionId}/refunds
+    this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsAdminRefundsPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // Add SNS permissions to the refunds POST function
+    if (props.refundRequestTopicArn) {
+      const snsPolicy = new iam.PolicyStatement({
+        actions: ['sns:Publish'],
+        resources: [props.refundRequestTopicArn],
+      });
+      this.transactionsAdminRefundsPostFunction.addToRolePolicy(snsPolicy);
+
+      // Add KMS permissions if KMS key is provided
+      if (props?.kmsKey) {
+        this.transactionsAdminRefundsPostFunction.addToRolePolicy(new iam.PolicyStatement({
+          actions: [
+            'kms:Decrypt',
+            'kms:GenerateDataKey',
+          ],
+          resources: [props.kmsKey.keyArn],
+        }));
+      }
+    }
+
+    // Add permissions to all functions
+    const functions = [
+      this.transactionsAdminGetFunction,
+      this.transactionsAdminPostFunction,
+      this.transactionsAdminRefundsGetFunction,
+      this.transactionsAdminRefundsPostFunction,
+    ];
+
+    // Grant basic read and writes to Transaction table
+    for (const func of functions) {
+      this.grantBasicTransDataTableReadWrite(func);
+    }
+    
+    // Grant basic writes to Audit table (admin only)
+    for (const func of functions) {
+      this.grantAuditTableWrite(func);
+    }
+  }
+}
+
+class PublicTransactionsConstruct extends LambdaConstruct {
   constructor(scope, id, props) {
     super(scope, id, {
       ...props,
@@ -41,10 +207,18 @@ class TransactionsConstruct extends LambdaConstruct {
     // Add /transactions/{clientTransactionId}/refunds/{refundId} resource
     this.transactionsRefundsByRefundIdResource = this.transactionsRefundsResource.addResource('{refundId}');
 
+    // Add CORS preflight for transactions
+    this.addCorsPreflightForResources([
+      this.transactionsResource,
+      this.transactionsByTransactionIdResource,
+      this.transactionsRefundsResource,
+      this.transactionsRefundsByRefundIdResource
+    ]);
+
     // Transactions GET Lambda Function
-    this.transactionsGetFunction = this.generateBasicLambdaFn(
+    this.transactionsPublicGetFunction = this.generateBasicLambdaFn(
       scope,
-      'transactionsGetFunction',
+      'transactionsPublicGetFunction',
       'src/handlers/transactions/GET',
       handlerName,
       {
@@ -53,21 +227,21 @@ class TransactionsConstruct extends LambdaConstruct {
     );
 
     // GET /transactions
-    this.transactionsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsGetFunction), {
+    this.transactionsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
     // GET /transactions/{clientTransactionId}
-    this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsGetFunction), {
+    this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
     // Transactions POST Lambda Function
-    this.transactionsPostFunction = this.generateBasicLambdaFn(
+    this.transactionsPublicPostFunction = this.generateBasicLambdaFn(
       scope,
-      'transactionsPostFunction',
+      'transactionsPublicPostFunction',
       'src/handlers/transactions/POST',
       handlerName,
       {
@@ -76,15 +250,15 @@ class TransactionsConstruct extends LambdaConstruct {
     );
 
     // POST /transactions
-    this.transactionsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPostFunction), {
+    this.transactionsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
     // Transactions Refunds GET Lambda Function
-    this.transactionsRefundsGetFunction = this.generateBasicLambdaFn(
+    this.transactionsPublicRefundsGetFunction = this.generateBasicLambdaFn(
       scope,
-      'transactionsRefundsGetFunction',
+      'transactionsPublicRefundsGetFunction',
       'src/handlers/transactions/refunds/GET',
       handlerName,
       {
@@ -93,21 +267,21 @@ class TransactionsConstruct extends LambdaConstruct {
     );
 
     // GET /transactions/{clientTransactionId}/refunds
-    this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsRefundsGetFunction), {
+    this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
     // GET /transactions/{clientTransactionId}/refunds/{refundId}
-    this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsRefundsGetFunction), {
+    this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
     // Transactions Refunds POST Lambda Function
-    this.transactionsRefundsPostFunction = this.generateBasicLambdaFn(
+    this.transactionsPublicRefundsPostFunction = this.generateBasicLambdaFn(
       scope,
-      'transactionsRefundsPostFunction',
+      'transactionsPublicRefundsPostFunction',
       'src/handlers/transactions/refunds/POST',
       handlerName,
       {
@@ -116,7 +290,7 @@ class TransactionsConstruct extends LambdaConstruct {
     );
 
     // POST /transactions/{clientTransactionId}/refunds
-    this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsRefundsPostFunction), {
+    this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicRefundsPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
@@ -127,11 +301,11 @@ class TransactionsConstruct extends LambdaConstruct {
         actions: ['sns:Publish'],
         resources: [props.refundRequestTopicArn],
       });
-      this.transactionsRefundsPostFunction.addToRolePolicy(snsPolicy);
+      this.transactionsPublicRefundsPostFunction.addToRolePolicy(snsPolicy);
 
       // Add KMS permissions if KMS key is provided
       if (props?.kmsKey) {
-        this.transactionsRefundsPostFunction.addToRolePolicy(new iam.PolicyStatement({
+        this.transactionsPublicRefundsPostFunction.addToRolePolicy(new iam.PolicyStatement({
           actions: [
             'kms:Decrypt',
             'kms:GenerateDataKey',
@@ -143,10 +317,10 @@ class TransactionsConstruct extends LambdaConstruct {
 
     // Add permissions to all functions
     const functions = [
-      this.transactionsGetFunction,
-      this.transactionsPostFunction,
-      this.transactionsRefundsGetFunction,
-      this.transactionsRefundsPostFunction,
+      this.transactionsPublicGetFunction,
+      this.transactionsPublicPostFunction,
+      this.transactionsPublicRefundsGetFunction,
+      this.transactionsPublicRefundsPostFunction,
     ];
 
     for (const func of functions) {
@@ -156,5 +330,6 @@ class TransactionsConstruct extends LambdaConstruct {
 }
 
 module.exports = {
-  TransactionsConstruct,
+  AdminTransactionsConstruct,
+  PublicTransactionsConstruct,
 };
