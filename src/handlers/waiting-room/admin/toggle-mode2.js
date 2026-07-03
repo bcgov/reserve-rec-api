@@ -7,7 +7,7 @@ const {
   UpdateFunctionCommand,
   PublishFunctionCommand,
 } = require('@aws-sdk/client-cloudfront');
-const { putQueueMeta, updateQueueMetaStatus, scanQueuesByStatus, queryQueueEntries } = require('../utils/dynamodb');
+const { putQueueMeta, updateQueueMetaStatus, scanQueuesByStatus, queryQueueEntries, updateQueueEntryStatus } = require('../utils/dynamodb');
 
 const REGION = 'us-east-1'; // CloudFront is a global service, API endpoint is us-east-1
 
@@ -141,7 +141,44 @@ exports.handler = async (event) => {
       const releasingQueues = await scanQueuesByStatus('releasing');
       const mode2Queues = releasingQueues.filter(q => q.pk && q.pk.startsWith('QUEUE#MODE2'));
       await Promise.all(mode2Queues.map(q => updateQueueMetaStatus(q.pk, 'closed')));
-      logger.info(`Mode 2 deactivated: closed ${mode2Queues.length} queue(s)`);
+
+      // Release any users still waiting/admitting in these queues — the CF gate
+      // is about to become a pass-through, so clients must be told to bypass
+      // rather than sit on waitingroom.html forever waiting for a release that
+      // will never come (mirrors close-queue.js's force-close notification).
+      const endpoint = process.env.WEBSOCKET_MANAGEMENT_ENDPOINT;
+      let releasedCount = 0;
+      for (const q of mode2Queues) {
+        const activeEntries = await queryQueueEntries(q.pk, { statuses: ['waiting', 'admitting'] });
+        for (const entry of activeEntries) {
+          await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'abandoned', null, { abandonedAt: now });
+          releasedCount++;
+        }
+        if (endpoint && activeEntries.length > 0) {
+          const {
+            ApiGatewayManagementApiClient,
+            PostToConnectionCommand,
+            DeleteConnectionCommand,
+          } = require('@aws-sdk/client-apigatewaymanagementapi');
+          const wsClient = new ApiGatewayManagementApiClient({ endpoint });
+          const closedMsg = Buffer.from(JSON.stringify({ type: 'queueClosed' }));
+          for (const entry of activeEntries) {
+            if (!entry.connectionId) continue;
+            try {
+              await wsClient.send(new PostToConnectionCommand({ ConnectionId: entry.connectionId, Data: closedMsg }));
+            } catch (err) {
+              logger.debug(`Could not push queueClosed to ${entry.connectionId}: ${err.message}`);
+            }
+            try {
+              await wsClient.send(new DeleteConnectionCommand({ ConnectionId: entry.connectionId }));
+            } catch (err) {
+              logger.debug(`Could not delete connection ${entry.connectionId}: ${err.message}`);
+            }
+          }
+        }
+      }
+
+      logger.info(`Mode 2 deactivated: closed ${mode2Queues.length} queue(s), released ${releasedCount} waiting user(s)`);
     }
 
     // 3. Update the CloudFront function code. On failure, undo the DynamoDB write.
