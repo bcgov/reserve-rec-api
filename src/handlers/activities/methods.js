@@ -1,4 +1,4 @@
-const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter, excludeDeletedItems } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
 /**
@@ -81,6 +81,7 @@ async function getActivitiesByCollectionId(collectionId, filters, params = null)
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Activities: ${res?.items?.length} found.`);
@@ -134,6 +135,7 @@ async function getActivitiesByActivityType(
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Activities: ${res?.items?.length} found.`);
@@ -166,6 +168,10 @@ async function getActivityByActivityId(collectionId, activityType, activityId, f
       `activity::${collectionId}`,
       `${activityType}::${activityId}`
     );
+    // Soft-deleted activities are treated as not found
+    if (res?.isDeleted) {
+      return null;
+    }
     // if (fetchGeozones && res?.geozone?.pk && res?.geozone?.sk) {
     //   const geozone = await getOne(res.geozone.pk, res.geozone.sk);
     //   res.geozone = geozone;

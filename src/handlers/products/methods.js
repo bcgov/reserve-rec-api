@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { TABLE_NAME, REFERENCE_DATA_TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetData, marshall, incrementCounter, batchGetData } = require('/opt/dynamodb');
+const { TABLE_NAME, REFERENCE_DATA_TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetData, marshall, incrementCounter, batchGetData, excludeDeletedItems } = require('/opt/dynamodb');
 const {
   Exception,
   buildDateRange,
@@ -103,6 +103,7 @@ async function getProductsByCollectionId(collectionId, activityType, activityId,
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Products: ${res?.items?.length} found.`);
@@ -162,6 +163,7 @@ async function getProductsByActivityType(
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Products: ${res?.items?.length} found.`);
@@ -206,6 +208,11 @@ async function getProductByProductId(
       `product::${collectionId}::${activityType}::${activityId}`,
       `${productId}`
     );
+
+    // Soft-deleted products are treated as not found
+    if (res?.isDeleted) {
+      return null;
+    }
 
     logger.debug(`Product: ${JSON.stringify(res, null, 2)}`);
     return res;
