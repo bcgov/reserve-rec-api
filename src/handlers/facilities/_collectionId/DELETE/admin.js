@@ -30,8 +30,9 @@ exports.handler = async (event, context) => {
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
-    // Then delete the facility itself
-    const deleteItem = createDeleteCommand(collectionId, facilityType, facilityId);
+    // Then soft-delete the facility itself (keep the row, mark it deleted so it's hidden)
+    const user = event?.requestContext?.authorizer?.principalId || "system";
+    const deleteItem = createSoftDeleteCommand(collectionId, facilityType, facilityId, user);
 
     const res = await batchTransactData([deleteItem]);
     
@@ -51,17 +52,23 @@ exports.handler = async (event, context) => {
   }
 };
 
-function createDeleteCommand(collectionId, facilityType, facilityId, sk = undefined) {
+function createSoftDeleteCommand(collectionId, facilityType, facilityId, user, sk = undefined) {
   // Use sk if provided in a batch request, otherwise there won't be an sk
   // so use the pathParams to create sk
   const sortKey = sk || `${facilityType}::${facilityId}`;
   return {
-    action: "Delete",
+    action: "Update",
     data: {
       TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
         pk: `facility::${collectionId}`,
         sk: sortKey,
+      }),
+      UpdateExpression: "SET isDeleted = :true, deletedAt = :deletedAt, deletedBy = :deletedBy",
+      ExpressionAttributeValues: marshall({
+        ":true": true,
+        ":deletedAt": new Date().toISOString(),
+        ":deletedBy": user,
       }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },

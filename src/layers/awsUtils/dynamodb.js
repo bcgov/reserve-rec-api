@@ -349,6 +349,30 @@ async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_
 }
 
 
+/**
+ * Adds a filter to a query so soft-deleted items are excluded from the results.
+ * A soft-deleted item has `isDeleted = true`. Items that were never deleted either
+ * have no `isDeleted` attribute or have it set to false, so both are kept.
+ *
+ * @param {Object} queryObj - The DynamoDB query object to mutate.
+ * @returns {Object} The same query object with the not-deleted filter applied.
+ */
+function excludeDeletedItems(queryObj) {
+  const notDeletedClause = "(attribute_not_exists(#isDeleted) OR #isDeleted = :notDeleted)";
+  queryObj.FilterExpression = queryObj.FilterExpression
+    ? `(${queryObj.FilterExpression}) AND ${notDeletedClause}`
+    : notDeletedClause;
+  queryObj.ExpressionAttributeNames = {
+    ...queryObj.ExpressionAttributeNames,
+    "#isDeleted": "isDeleted",
+  };
+  queryObj.ExpressionAttributeValues = {
+    ...queryObj.ExpressionAttributeValues,
+    ":notDeleted": { BOOL: false },
+  };
+  return queryObj;
+}
+
 async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated = true) {
   let data = [];
   let pageData = {};
@@ -660,6 +684,7 @@ module.exports = {
   deleteItem,
   dynamodb,
   dynamodbClient,
+  excludeDeletedItems,
   getOne,
   incrementCounter,
   getOneByGlobalId,
