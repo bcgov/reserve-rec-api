@@ -204,8 +204,8 @@ SECRET_MAPPINGS["adminIdentityStack/bcscClientSecret|adminIdentityStack/bcscClie
 SECRET_MAPPINGS["publicIdentityStack/bcscClientSecret|publicIdentityStack/bcscClientSecret"]="BCSC client secret (public)"
 
 # QR code secrets
-SECRET_MAPPINGS["adminApiStack/qr-secret-key|adminApiStack/qrSecretKey"]="QR code secret (admin API)"
-SECRET_MAPPINGS["publicApiStack/qr-secret-key|publicApiStack/qr-secret-key"]="QR code secret (public API)"
+SECRET_MAPPINGS["adminApiStack/qrSecretKey|adminApiStack/qrSecretKey"]="QR code secret (admin API)"
+SECRET_MAPPINGS["publicApiStack/qrSecretKey|publicApiStack/qrSecretKey"]="QR code secret (public API)"
 
 # Worldline payment secrets
 SECRET_MAPPINGS["publicApiStack/merchantId|publicApiStack/MerchantId"]="Worldline merchant ID (public)"

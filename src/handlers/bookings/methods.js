@@ -771,6 +771,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
       activityType: activityType,
+      activitySubType: product.activitySubType,
       activityId: activityId,
       productId: productId,
       startDate: startDate,

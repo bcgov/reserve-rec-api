@@ -45,8 +45,14 @@ const { handler } = require("../index");
 const { checkAuthContext, effectiveCollectionRole, handleCORS } = require("/opt/base");
 
 describe("Bookings Admin Search POST handler", () => {
+  const fixedDate = new Date("2026-07-15T12:22:57.000Z");
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Lock the date context so dynamic ISO strings produced by Date().toISOString() are 100% predictable
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedDate);
     
     mockSearch.mockResolvedValue({
       body: {
@@ -88,6 +94,10 @@ describe("Bookings Admin Search POST handler", () => {
     checkAuthContext.mockReturnValue({ permissions: { superadmin: "superadmin" } });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("handles CORS preflight requests correctly", async () => {
     handleCORS.mockReturnValue({ status: 200 }); // Simulate an OPTIONS request intercept
     const result = await handler({ httpMethod: "OPTIONS" }, {});
@@ -116,25 +126,55 @@ describe("Bookings Admin Search POST handler", () => {
     );
   });
 
-  it("adds an exists query and confirmed filter for 'reserved' status", async () => {
+  it("adds range queries checking for future check-in times and confirmed filter for 'reserved' status", async () => {
     const event = {
       body: JSON.stringify({ checkinStatus: "reserved" })
     };
     
     await handler(event, {});
-    expect(mockAddExistsQueryRule).toHaveBeenCalledWith('checkedInTime', false);
+
+    const expectedNow = fixedDate.toISOString();
+    const expectedFuture = '2099-12-31T23:59:59.999Z';
+
+    expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
+      'reservationContext.checkInTime',
+      expectedNow,
+      expectedFuture,
+      false,
+      true
+    );
     expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
       expect.objectContaining({ status: "confirmed" })
     );
   });
 
-  it("adds an exists query and confirmed filter for 'active' status", async () => {
+  it("adds overlapping timeline checks and confirmed filter for 'active' status", async () => {
     const event = {
       body: JSON.stringify({ checkinStatus: "active" })
     };
     
     await handler(event, {});
-    expect(mockAddExistsQueryRule).toHaveBeenCalledWith('checkedInTime', true);
+
+    const expectedNow = fixedDate.toISOString();
+    const expectedPast = '1970-01-01T00:00:00.000Z';
+    const expectedFuture = '2099-12-31T23:59:59.999Z';
+
+    // Verify check-in happened in past (or now)
+    expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
+      'reservationContext.checkInTime',
+      expectedPast,
+      expectedNow,
+      true,
+      true
+    );
+    // Verify check-out resides in future (or now)
+    expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
+      'reservationContext.checkOutTime',
+      expectedNow,
+      expectedFuture,
+      true,
+      true
+    );
     expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
       expect.objectContaining({ status: "confirmed" })
     );
