@@ -2,7 +2,8 @@ const {
   REFERENCE_DATA_TABLE_NAME,
   runQuery,
   marshall,
-  incrementCounter
+  incrementCounter,
+  excludeDeletedItems
 } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
@@ -86,6 +87,7 @@ async function getGeozonesByCollectionId(
     };
 
     queryObj = addFilters(queryObj, filters);
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
 
@@ -144,6 +146,7 @@ async function getGeozonesByGeozoneId(
     };
 
     queryObj = addFilters(queryObj, filters);
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Geozones: ${res?.items?.length} found.`);

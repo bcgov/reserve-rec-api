@@ -106,9 +106,19 @@ describe("Geozones", () => {
     it("returns 200 for the deleted geozone", async () => {
       if (!createdGeozoneId) return;
       const res = await client.delete(`/geozones/${TEST_COLLECTION_ID}/${createdGeozoneId}`);
-      
+
       expect(res.data.msg).toEqual('Success');
       expect(res.status).toBe(200);
+    });
+
+    // Soft delete: the geozone row stays in DynamoDB but must no longer be
+    // returned by the read endpoints.
+    it("no longer returns the geozone after a soft delete", async () => {
+      if (!createdGeozoneId) return;
+      const res = await client.get(
+        `/geozones/${TEST_COLLECTION_ID}/${createdGeozoneId}`,
+      );
+      expect(res.data.data.items).toEqual([]);
     });
   });
 });

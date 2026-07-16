@@ -81,12 +81,20 @@ exports.handler = async function (event, context) {
       switch (record.eventName) {
         case 'MODIFY':
         case 'INSERT': {
-          // Upsert document (update if exists, create if not).
           const doc = {
             ...unmarshall(newImage),
           };
           doc['id'] = openSearchId;
 
+          // Soft-deleted items stay in DynamoDB but must not appear in search.
+          // Remove them from the index instead of upserting.
+          if (doc.isDeleted) {
+            refDataIndexDeleteDocs.push({ id: openSearchId });
+            logger.debug(`Removing soft-deleted item from index: ${openSearchId}`);
+            break;
+          }
+
+          // Upsert document (update if exists, create if not).
           // put doc by index, based on schema
           refDataIndexUpsertDocs.push(doc);
           logger.debug(JSON.stringify(doc));

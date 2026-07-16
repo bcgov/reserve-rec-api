@@ -22,6 +22,9 @@ const defaults = {
     bookingsCheckInPUTFunction: {
       name: 'bookingsCheckInPUT',
     },
+    bookingsCheckOutPUTFunction: {
+      name: 'bookingsCheckOutPUT',
+    },
     bookingsPUTFunction: {
       name: 'BookingsPUT',
     },
@@ -53,6 +56,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
     // /bookings/{bookingId} and /bookings/{bookingId}/checkin resources
     this.bookingsByBookingIdResource = this.bookingsResource.addResource('{bookingId}');
     this.bookingsByBookingIdCheckinResource = this.bookingsByBookingIdResource.addResource('checkin');
+    this.bookingsByBookingIdCheckoutResource = this.bookingsByBookingIdResource.addResource('checkout');
     
     this.addCorsPreflightForResources([
       this.bookingsResource,
@@ -60,6 +64,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
       this.bookingsSearchResource,
       this.bookingsByBookingIdResource,
       this.bookingsByBookingIdCheckinResource,
+      this.bookingsByBookingIdCheckoutResource,
     ]);
 
     // GET /bookings/admin Lambda function
@@ -121,6 +126,32 @@ class AdminBookingsConstruct extends LambdaConstruct {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
+    
+    // PUT /bookings/{bookingId}/checkout Lambda function
+    this.bookingsCheckOutPutFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsCheckOutPUTFunction',
+      'src/handlers/bookings/_bookingId/check-out/PUT',
+      'admin.handler',
+      {
+        transDataBasicReadWrite: true,
+        basicRead: true,
+      }
+    );
+
+    this.bookingsCheckOutPutFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
+    }));
+
+    // PUT /bookings/{bookingId}/checkout
+    this.bookingsByBookingIdCheckoutResource.addMethod('PUT', new apigw.LambdaIntegration(this.bookingsCheckOutPutFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
 
     // Add permissions to read functions
     const readFunctions = [
@@ -135,6 +166,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
     // Add permissions to write functions
     const writeFunctions = [
       this.bookingsCheckInPutFunction,
+      this.bookingsCheckOutPutFunction,
     ];
 
     for (const func of writeFunctions) {
@@ -297,35 +329,13 @@ class PublicBookingsConstruct extends LambdaConstruct {
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
 
-    // PUT /bookings/{bookingId}/checkin Lambda function
-    this.bookingsCheckInPutFunction = this.generateBasicLambdaFn(
-      scope,
-      'bookingsCheckInPUTFunction',
-      'src/handlers/bookings/_bookingId/check-in/PUT',
-      'admin.handler',
-      {
-        transDataBasicReadWrite: true,
-        basicRead: true,
-      }
-    );
-
-    this.bookingsCheckInPutFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: [
-        "cognito-idp:AdminGetUser",
-        "cognito-idp:ListUsers",
-      ],
-      resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
-    }));
-
     // Child action resources under /bookings/{bookingId}
     this.bookingsByBookingIdCompleteResource = this.bookingsByBookingIdResource.addResource('complete');
     this.bookingsByBookingIdCancelResource = this.bookingsByBookingIdResource.addResource('cancel');
-    this.bookingsByBookingIdCheckinResource = this.bookingsByBookingIdResource.addResource('checkin');
 
     this.addCorsPreflightForResources([
       this.bookingsByBookingIdCompleteResource,
-      this.bookingsByBookingIdCancelResource,
-      this.bookingsByBookingIdCheckinResource,
+      this.bookingsByBookingIdCancelResource
     ]);
 
     // POST /bookings/{bookingId}/complete
@@ -340,12 +350,6 @@ class PublicBookingsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
     
-    // PUT /bookings/{bookingId}/checkin
-    this.bookingsByBookingIdCheckinResource.addMethod('PUT', new apigw.LambdaIntegration(this.bookingsCheckInPutFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
-
     // POST /activities/{collectionId}/{activityType}/{activityId}/{startDate}/bookings
     this.bookingsByActivityResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
@@ -365,8 +369,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
     // Add permissions to write functions
     const writeFunctions = [
       this.bookingsPostFunction,
-      this.bookingsCancelPostFunction,
-      this.bookingsCheckInPutFunction
+      this.bookingsCancelPostFunction
     ];
 
     for (const func of writeFunctions) {

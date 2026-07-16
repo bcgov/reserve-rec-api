@@ -5,6 +5,7 @@ const {
   getOne,
   marshall,
   incrementCounter,
+  excludeDeletedItems,
 } = require("/opt/dynamodb");
 const { Exception, logger, filterByRole, effectiveCollectionRole } = require("/opt/base");
 const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
@@ -91,6 +92,7 @@ async function getFacilitiesByCollectionId(
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Facilities: ${res?.items?.length} found.`);
@@ -144,6 +146,7 @@ async function getFacilitiesByFacilityType(
     if (Object.keys(filters).length > 0) {
       queryObj = addFilters(queryObj, filters);
     }
+    queryObj = excludeDeletedItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Facilities: ${res?.items?.length} found.`);
@@ -182,6 +185,10 @@ async function getFacilityByFacilityId(
       `facility::${collectionId}`,
       `${facilityType}::${facilityId}`,
     );
+    // Soft-deleted facilities are treated as not found
+    if (res?.isDeleted) {
+      return null;
+    }
     if (fetchActivities && res) {
       const activityRelationships = await runQuery({
         TableName: REFERENCE_DATA_TABLE_NAME,
