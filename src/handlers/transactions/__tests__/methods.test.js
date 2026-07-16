@@ -2,8 +2,10 @@
 
 const OLD_ENV = process.env;
 process.env.IS_OFFLINE = "false";
-process.env.PAYMENTS_API_PASSCODE = "test-passcode";
-process.env.MERCHANT_ID = "mock-merchant-id";
+
+process.env.PAYMENTS_API_SECRET = "/reserveRecApi/claveau/adminApiStack/paymentsApiPasscode";
+process.env.MERCHANT_ID_SECRET = "/reserveRecApi/claveau/adminApiStack/merchantId";
+process.env.HASH_KEY_SECRET = "/reserveRecApi/claveau/adminApiStack/hashKey";
 
 jest.mock("axios");
 const axios = require("axios");
@@ -11,6 +13,32 @@ const axios = require("axios");
 jest.mock("crypto", () => ({
   randomUUID: jest.fn(() => "mock-uuid-1234"),
 }));
+
+// Mock the Secrets Manager client to return fake secret strings
+jest.mock("@aws-sdk/client-secrets-manager", () => {
+  return {
+    SecretsManagerClient: jest.fn().mockImplementation(() => ({
+      send: jest.fn().mockImplementation((command) => {
+        const secretId = command.input?.SecretId;
+        let secretValue = "mock-secret-value";
+        
+        // Return different mock values based on the requested secret path
+        if (secretId?.includes("merchantId")) {
+          secretValue = "mock-merchant-id";
+        } else if (secretId?.includes("hashKey")) {
+          secretValue = "mock-hash-key";
+        } else if (secretId?.includes("paymentsApiPasscode")) {
+          secretValue = "test-passcode";
+        }
+        
+        return Promise.resolve({ SecretString: secretValue });
+      }),
+    })),
+    GetSecretValueCommand: jest.fn().mockImplementation((input) => ({
+      input,
+    })),
+  };
+});
 
 jest.mock("../../bookings/methods", () => ({
   snsPublishCommand: jest.fn(),
@@ -87,7 +115,6 @@ describe("Method: processTokenTransaction", () => {
   const MOCK_USER_ID = "user-123";
   const MOCK_BOOKING_ID = "booking-123";
   const TRANSACTION_ID = "transaction-123"
-  const DATE = new Date("2026-06-11T12:00:00Z").toISOString().split('T')[0]
 
   const baseBody = {
     bookingId: MOCK_BOOKING_ID,
@@ -100,9 +127,15 @@ describe("Method: processTokenTransaction", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env = { ...OLD_ENV };
+    process.env = { 
+      ...OLD_ENV,
+      IS_OFFLINE: "false",
+      PAYMENTS_API_SECRET: "/reserveRecApi/claveau/adminApiStack/paymentsApiPasscode",
+      MERCHANT_ID_SECRET: "/reserveRecApi/claveau/adminApiStack/merchantId",
+      HASH_KEY_SECRET: "/reserveRecApi/claveau/adminApiStack/hashKey",
+    };
 
-    // Axios Worldline Mock matching internal executeWorldlinePayment structure
+    // Axios Worldline Mock
     axios.post.mockResolvedValue({
       data: {
         id: "worldline-trn-123",
@@ -157,6 +190,7 @@ describe("Method: processTokenTransaction", () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
+      status: "pending",
       bookingStatus: "pending",
       feeValues: { bookingTotal: 100 },
     });
@@ -208,7 +242,9 @@ describe("Method: processTokenTransaction", () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: "not-user-123",
+      status: "pending",
       bookingStatus: "pending",
+      feeValues: { bookingTotal: 100 },
     });
 
     await expect(
@@ -223,7 +259,9 @@ describe("Method: processTokenTransaction", () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
+      status: "confirmed",
       bookingStatus: "confirmed",
+      feeValues: { bookingTotal: 100 },
     });
 
     await expect(
@@ -238,7 +276,9 @@ describe("Method: processTokenTransaction", () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
+      status: "cancelled",
       bookingStatus: "cancelled",
+      feeValues: { bookingTotal: 100 },
     });
 
     await expect(
@@ -274,7 +314,6 @@ describe("Method: processTokenTransaction", () => {
 });
 
 describe("Methods: getTransactions", () => {
-  const MOCK_ADMIN_ID = "admin-123";
   const MOCK_USER_ID = "user-123";
   const MOCK_BOOKING_ID = "booking-123";
   const TRANSACTION_ID = "transaction-123"
@@ -297,6 +336,7 @@ describe("Methods: getTransactions", () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
+      status: "pending",
       bookingStatus: "pending",
       feeValues: { bookingTotal: 100 },
     });

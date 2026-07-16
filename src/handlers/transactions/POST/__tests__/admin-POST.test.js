@@ -1,39 +1,63 @@
 "use strict";
 
-jest.mock("/opt/base", () => ({
-  Exception: jest.fn(function (message, options) {
+jest.mock("/opt/base", () => {
+  const mockException = jest.fn(function (message, options) {
     this.message = message;
     this.code = options?.code;
-    this.data = options?.data || null; 
+    this.data = options?.data || null;
     this.error = options?.error || null;
-  }),
-  logger: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-  sendResponse: jest.fn((status, data, message, error, context) => ({
-    status,
-    data,
-    message,
-    error,
-    context,
-  })),
-  getRequestClaimsFromEvent: jest.fn((event) => {
+  });
+
+  const getClaims = (event) => {
     const authHeader = event?.headers?.Authorization || "";
     const token = authHeader.replace("Bearer ", "");
     try {
       const payloadBase64 = token.split(".")[1];
-      const payloadJson = Buffer.from(payloadBase64, "base64").toString("utf-8");
+      const payloadJson = Buffer.from(payloadBase64, "base64").toString(
+        "utf-8",
+      );
       return JSON.parse(payloadJson);
     } catch (e) {
       return null;
     }
-  }),
-  checkAuthContext: jest.fn().mockReturnValue({ role: "superadmin" }), 
-  writeAuditLog: jest.fn().mockResolvedValue(undefined),
-}));
+  };
+
+  return {
+    Exception: mockException,
+    logger: {
+      info: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    sendResponse: jest.fn((status, data, message, error, context) => ({
+      status,
+      data,
+      message,
+      error,
+      context,
+    })),
+    getRequestClaimsFromEvent: jest.fn((event) => getClaims(event)),
+    checkAuthContext: jest.fn((event, requiredRole) => {
+      const claims = getClaims(event);
+      if (claims) {
+        // Infer the user is superadmin if the ID is our mock admin, otherwise it's the customer
+        const role =
+          claims.role ||
+          (claims.sub === "admin-123" ? "superadmin" : "customer");
+
+        if (requiredRole && role !== requiredRole) {
+          throw new mockException("Forbidden: Access Denied", { code: 403 });
+        }
+        return { ...claims, role };
+      }
+      // If credentials are completely missing, return a "guest" context
+      // so the handler's manual !adminId check handles it and throws its unique error message
+      return { role: "guest" };
+    }),
+    writeAuditLog: jest.fn().mockResolvedValue(undefined),
+  };
+});
 
 jest.mock("/opt/dynamodb", () => ({
   batchTransactData: jest.fn(),
@@ -249,5 +273,60 @@ describe("Admin Transaction POST handler", () => {
       expect.any(Function),
       "AuditTable",
     );
+  });
+
+  it("fails if a non-admin tries to access the admin payment endpoint", async () => {
+    const event = makeEvent({
+      sub: MOCK_USER_ID,
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        trnAmount: 10,
+        userId: MOCK_USER_ID,
+        token: "mock-payment-token",
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(403);
+    expect(result.error.message).toContain("Forbidden");
+  });
+
+  it("fails if a standard user tries to pay on behalf of a different userId", async () => {
+    const event = makeEvent({
+      sub: MOCK_USER_ID, 
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        trnAmount: 10,
+        userId: "fake-user-999", 
+        token: "mock-payment-token",
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(403);
+    expect(result.error.message).toContain("Forbidden");
+  });
+
+  it("fails if checkAuthContext returns no valid credentials or role", async () => {
+    optBase.checkAuthContext.mockImplementationOnce(() => {
+      throw new optBase.Exception("Unauthorized: Invalid session", {
+        code: 401,
+      });
+    });
+
+    const event = makeEvent({
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        trnAmount: 10,
+        userId: MOCK_USER_ID,
+        token: "mock-payment-token",
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect([401, 403]).toContain(result.status);
   });
 });

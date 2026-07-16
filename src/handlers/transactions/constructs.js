@@ -1,6 +1,7 @@
 const { LambdaConstruct } = require("../../../lib/helpers/base-lambda");
 const apigw = require("aws-cdk-lib/aws-apigateway");
 const iam = require("aws-cdk-lib/aws-iam");
+const { Stack } = require("aws-cdk-lib");
 
 const defaults = {
   resources: {
@@ -182,6 +183,31 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     for (const func of functions) {
       this.grantAuditTableWrite(func);
     }
+
+    const paymentApiSecret = props.environment?.PAYMENTS_API_SECRET
+    const merchantIdSecret = props.environment?.MERCHANT_ID_SECRET
+    const hashKeySecret = props.environment?.HASH_KEY_SECRET
+
+    // Grant read permissions for all transaction secrets to the POST/Refund functions
+    if (props.environment && paymentApiSecret && merchantIdSecret && hashKeySecret) {
+      const stack = Stack.of(this);
+
+      const paymentsApiArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${paymentApiSecret}*`;
+      const merchantIdArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${merchantIdSecret}*`;
+      const hashKeyArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${hashKeySecret}*`;
+
+      const functionsThatNeedSecret = [
+        this.transactionsAdminPostFunction,
+        this.transactionsAdminRefundsPostFunction,
+      ];
+
+      for (const func of functionsThatNeedSecret) {
+        func.addToRolePolicy(new iam.PolicyStatement({
+          actions: ['secretsmanager:GetSecretValue'],
+          resources: [paymentsApiArnPattern, merchantIdArnPattern, hashKeyArnPattern],
+        }));
+      }
+    }
   }
 }
 
@@ -325,6 +351,31 @@ class PublicTransactionsConstruct extends LambdaConstruct {
 
     for (const func of functions) {
       this.grantBasicTransDataTableReadWrite(func);
+    }
+
+    const paymentApiSecret = props.environment?.PAYMENTS_API_SECRET
+    const merchantIdSecret = props.environment?.MERCHANT_ID_SECRET
+    const hashKeySecret = props.environment?.HASH_KEY_SECRET
+
+    // Grant read permissions for all transaction secrets to the POST/Refund functions
+    if (props.environment && paymentApiSecret && merchantIdSecret && hashKeySecret) {
+      const stack = Stack.of(this);
+
+      const paymentsApiArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${paymentApiSecret}*`;
+      const merchantIdArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${merchantIdSecret}*`;
+      const hashKeyArnPattern = `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${hashKeySecret}*`;
+
+      const functionsThatNeedSecret = [
+        this.transactionsPublicPostFunction,
+        this.transactionsPublicRefundsPostFunction,
+      ];
+
+      for (const func of functionsThatNeedSecret) {
+        func.addToRolePolicy(new iam.PolicyStatement({
+          actions: ['secretsmanager:GetSecretValue'],
+          resources: [paymentsApiArnPattern, merchantIdArnPattern, hashKeyArnPattern],
+        }));
+      }
     }
   }
 }

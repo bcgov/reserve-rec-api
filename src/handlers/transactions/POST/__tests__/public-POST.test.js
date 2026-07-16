@@ -21,15 +21,24 @@ jest.mock("/opt/base", () => ({
     context,
   })),
   getRequestClaimsFromEvent: jest.fn((event) => {
-    const authHeader = event?.headers?.Authorization || "";
-    const token = authHeader.replace("Bearer ", "");
-    try {
-      const payloadBase64 = token.split(".")[1];
-      const payloadJson = Buffer.from(payloadBase64, "base64").toString("utf-8");
-      return JSON.parse(payloadJson);
-    } catch (e) {
-      return null;
+    const authContext = event?.requestContext?.authorizer;
+    if (authContext) {
+      const isAuthenticated = authContext.isAuthenticated === "true" || authContext.isAuthenticated === true;
+      if (!isAuthenticated) return null;
+
+      if (authContext.claims) return authContext.claims;
+
+      if (authContext.userId && authContext.userId !== "guest") {
+        return {
+          sub: authContext.userId,
+          email: authContext.email || "",
+          username: authContext.username || "",
+          "cognito:username": authContext.username || "",
+          userType: authContext.userType || "authenticated",
+        };
+      }
     }
+    return null;
   }),
 }));
 
@@ -55,12 +64,27 @@ function makeToken(sub) {
 }
 
 function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_USER_ID, body = {} } = {}) {
-  const headers = sub ? { Authorization: `Bearer ${makeToken(sub)}` } : {};
+  const authorizer = sub 
+    ? {
+        isAuthenticated: true,
+        userId: sub,
+        username: "test-user",
+        email: "test@example.com",
+        userType: "authenticated"
+      }
+    : {
+        isAuthenticated: false,
+        userId: "guest"
+      };
+
   return {
     httpMethod: "POST",
     pathParameters: { bookingId },
     body: JSON.stringify(body),
-    headers,
+    requestContext: {
+      authorizer,
+    },
+    headers: {},
   };
 }
 
@@ -213,5 +237,42 @@ describe("Public Transaction POST handler", () => {
     expect(result.error.message).toBe(
       "Unauthorized: Authentication required to create transaction",
     );
+  });
+
+  it("fails if an authenticated user attempts to pay for a booking belonging to another userId", async () => {
+    const event = makeEvent({
+      sub: MOCK_USER_ID, 
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        sessionId: MOCK_SESSION_ID,
+        token: MOCK_TOKEN,
+        trnAmount: 10,
+        userId: "fake-user-456", 
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(403);
+    expect(result.error.message).toContain("Forbidden");
+  });
+
+  it("fails if an unauthenticated guest attempts to execute a payment", async () => {
+    // Simulating a guest request context with no valid claims or authentication
+    const event = makeEvent({
+      sub: null, 
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        sessionId: MOCK_SESSION_ID,
+        token: MOCK_TOKEN,
+        trnAmount: 10,
+        userId: MOCK_USER_ID,
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(401);
+    expect(result.error.message).toContain("Unauthorized");
   });
 });

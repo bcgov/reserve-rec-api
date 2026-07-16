@@ -15,12 +15,15 @@ exports.handler = async (event, context) => {
     const body = JSON.parse(event?.body);
     logger.debug("transaction body: ", body);
 
-    // Get the user sub from the authorizer context (admin user)
-    let userId = getRequestClaimsFromEvent(event)?.sub || null;
+    const claims = getRequestClaimsFromEvent(event);
+    let userId = claims?.sub || null;
 
-    if (!userId) {
-      const message =
-        "Unauthorized: Authentication required to create transaction";
+    // Ensure the request is fully authenticated (not a guest)
+    const isAuthenticated = event.requestContext?.authorizer?.isAuthenticated === 'true' || 
+                            event.requestContext?.authorizer?.isAuthenticated === true;
+
+    if (!userId || !isAuthenticated) {
+      const message = "Unauthorized: Authentication required to create transaction";
       throw new Exception(message, { code: 401, message: message });
     }
 
@@ -34,8 +37,14 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Prevent user from using other user IDs
+    if (body.userId !== userId) {
+      const message = "Forbidden: You cannot submit transactions on behalf of another user";
+      throw new Exception(message, { code: 403, message: message });
+    }
+
     let response;
-    response = await processTokenTransaction(body, body.userId);
+    response = await processTokenTransaction(body, userId);
 
     logger.info(`Transaction processed successfully`, response);
 

@@ -1,6 +1,10 @@
 const { DateTime } = require("luxon");
 const axios = require("axios");
 const crypto = require("crypto");
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+
+const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || "ca-central-1" });
+let cachedSecrets = {};
 
 const { Exception, getNow, logger } = require("/opt/base");
 const {
@@ -29,6 +33,35 @@ const MERCHANT_ID = process.env.MERCHANT_ID;
 function createHashExpiry() {
   const date = DateTime.now().plus({ minutes: 30 });
   return date.toFormat("yyyyLLddHHmm");
+}
+
+/**
+ * Dynamically retrieves a secret from AWS Secrets Manager by its path/name.
+ * Cache is stored locally to avoid hitting AWS Secrets Manager API limits on repeat requests.
+ * 
+ * @param {string} secretPath - The exact path name of the secret (e.g. process.env.MERCHANT_ID_SECRET)
+ * @returns {Promise<string>} The plaintext secret value.
+ */
+async function getSecret(secretPath) {
+  if (!secretPath) {
+    throw new Error("Cannot retrieve secret: secretPath is undefined or empty.");
+  }
+
+  if (cachedSecrets[secretPath]) {
+    return cachedSecrets[secretPath];
+  }
+
+  try {
+    const response = await secretsClient.send(
+      new GetSecretValueCommand({ SecretId: secretPath })
+    );
+
+    cachedSecrets[secretPath] = response.SecretString;
+    return cachedSecrets[secretPath];
+  } catch (error) {
+    console.error(`Error retrieving secret [${secretPath}] from Secrets Manager:`, error);
+    throw error;
+  }
 }
 
 // Creates a transaction ID from the an input string, adds prefix
@@ -587,11 +620,11 @@ async function fetchAndValidateBooking(bookingId, userId) {
     });
   }
 
-  if (bookingRecord.bookingStatus === "confirmed") {
+  if (bookingRecord.status === "confirmed") {
     throw new Exception("Booking has already been paid", { code: 400 });
   }
 
-  if (bookingRecord.bookingStatus === "cancelled") {
+  if (bookingRecord.status === "cancelled") {
     throw new Exception("Booking has been cancelled", { code: 400 });
   }
 
@@ -627,8 +660,9 @@ async function executeWorldlinePayment(
   body,
   bookingRecord,
 ) {
-  const paymentsApiPasscode = process.env.PAYMENTS_API_PASSCODE;
-  const merchantId = process.env.MERCHANT_ID;
+  const paymentsApiPasscode = await getSecret(process.env.PAYMENTS_API_SECRET);
+  const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
+  const hashKey = await getSecret(process.env.HASH_KEY_SECRET);
 
   logger.info(
     `Submitting token checkout payment to Worldline for transaction: ${clientTransactionId}`,
@@ -723,31 +757,23 @@ async function processTokenTransaction(body, userId, adminId) {
   try {
     let bookingRecord = null;
     let transactionAmount = body.trnAmount || 0;
-
-    const isStandaloneTest = body.bookingId === "standalone-test" || body.bookingId?.startsWith("test-");
-
-    // Try to validate booking - if it fails, catch and re-throw error for more fulsome
-    // error data item.
-    if (!isStandaloneTest) {
-      try {
-        bookingRecord = await fetchAndValidateBooking(body.bookingId, userId);
-        transactionAmount = bookingRecord.feeValues?.bookingTotal;
-      } catch (err) {
-        // Re-throw the exception, but add some items for admin audit
-        throw new Exception(err?.message || "Error fetching and validating booking",
-          {
-            code: err?.code || 400,
-            message: err?.msg || "Error fetching and validating booking",
-            data: {
-              adminId: adminId,
-              bookingId: body?.bookingId,
-              body: body
-            }
-          },
-        );
-      }
-    } else {
-      logger.info(`Bypassing booking checks: Standalone direct payment test request from user ${adminId}`);
+    
+    try {
+      bookingRecord = await fetchAndValidateBooking(body.bookingId, userId);
+      transactionAmount = bookingRecord.feeValues?.bookingTotal;
+    } catch (err) {
+      // Re-throw the exception, but add some items for admin audit
+      throw new Exception(err?.message || "Error fetching and validating booking",
+        {
+          code: err?.code || 400,
+          message: err?.msg || "Error fetching and validating booking",
+          data: {
+            adminId: adminId,
+            bookingId: body?.bookingId,
+            body: body
+          }
+        },
+      );
     }
 
     // Create the Worldline transaction prefix
@@ -852,20 +878,6 @@ async function processTokenTransaction(body, userId, adminId) {
           }
         },
       );
-    }
-
-    if (isStandaloneTest) {
-      await batchTransactData(putItemsTransaction);
-      logger.info(
-        `Successfully stored paid standalone test transaction ${clientTransactionId}`,
-      );
-      return {
-        success: true,
-        transactionStatus: "paid",
-        clientTransactionId: clientTransactionId,
-        message: paymentResult?.data?.message,
-        transaction: transactionObj,
-      };
     }
 
     // Handle standard successful write and complete booking

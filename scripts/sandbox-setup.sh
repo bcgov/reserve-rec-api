@@ -214,7 +214,7 @@ SECRET_MAPPINGS["publicApiStack/paymentsApiPasscode|publicApiStack/paymentsApiPa
 SECRET_MAPPINGS["publicApiStack/worldlineWebhookSecret|publicApiStack/worldlineWebhookSecret"]="Worldline webhook secret"
 
 SECRET_MAPPINGS["adminApiStack/merchantId|adminApiStack/merchantId"]="Worldline merchant ID (admin)"
-SECRET_MAPPINGS["adminApiStack/hashKey|adminApiStack/HashKey"]="Worldline hash key (admin)"
+SECRET_MAPPINGS["adminApiStack/hashKey|adminApiStack/hashKey"]="Worldline hash key (admin)"
 SECRET_MAPPINGS["adminApiStack/paymentsApiPasscode|adminApiStack/paymentsApiPasscode"]="Worldline payments api passcode (admin)"
 
 SECRET_MAPPINGS["bookingWorkflowStack/merchantId|bookingWorkflowStack/merchantId"]="Worldline merchant ID (workflow)"

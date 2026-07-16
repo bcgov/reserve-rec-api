@@ -6,7 +6,7 @@ When retrieving a confirmed booking via `GET /bookings/{bookingId}`, the respons
 ```json
 {
   "bookingId": "abc123-...",
-  "bookingStatus": "confirmed",
+  "status": "confirmed",
   ...
   "qrCode": {
     "dataUrl": "data:image/png;base64,iVBORw0KG...",
@@ -17,7 +17,7 @@ When retrieving a confirmed booking via `GET /bookings/{bookingId}`, the respons
 **Fields:**
 - `dataUrl`: Base64-encoded PNG image (300x300px) for display/printing
 - `verificationUrl`: Admin-facing URL containing booking ID and HMAC signature
-**Note:** QR codes are only generated for bookings with `bookingStatus: "confirmed"`. Cancelled, pending, or expired bookings return `qrCode: null`.
+**Note:** QR codes are only generated for bookings with `status: "confirmed"`. Cancelled, pending, or expired bookings return `qrCode: null`.
 #### Verification URL Format
 ```
 https://{domain}/verify/{bookingId}/{hash}
