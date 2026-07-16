@@ -60,7 +60,7 @@ exports.handler = async (event) => {
       body = Buffer.from(body, 'base64').toString('utf-8');
     }
     
-    console.log('Making token exchange request to BCSC...');
+    console.log('Making token exchange request to BCSC...'); 
     console.log('Target URL:', tokenUrl);
     console.log('Request body:', body);
     
