@@ -20,7 +20,7 @@ const {
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Check-In PUT:", event);
+  logger.info("Bookings Check-Out PUT:", event);
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {
@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
       await writeAuditLog(
         adminUserId,
         bookingId,
-        "BOOKING-CHECK-IN-FAILED",
+        "BOOKING-CHECK-OUT-FAILED",
         {
           reason,
           sourceIp,
@@ -55,7 +55,7 @@ exports.handler = async (event, context) => {
       await writeAuditLog(
         "UNAUTHORIZED",
         bookingId || "unknown",
-        "BOOKING-CHECK-IN-UNAUTHORIZED",
+        "BOOKING-CHECK-OUT-UNAUTHORIZED",
         {
           reason: "Missing request claims",
           sourceIp,
@@ -74,82 +74,36 @@ exports.handler = async (event, context) => {
 
     const booking = await getBookingByBookingId(bookingId);
 
-    // Check if booking status is confirmed (only status allowed)
-    if (booking.status !== "confirmed") {
-      await writeFailureAudit("Booking status is not confirmed", {
-        status: booking.status,
-        allowedStatuses: ["confirmed"],
-      });
+    // Check if booking status was checked in
+    if (!booking.checkedInTime) {
+      await writeFailureAudit("Booking status is not checked in yet");
 
-      logger.error("Status check failed", {
-        bookingId,
-        status: booking.status,
-        allowedStatuses: ["confirmed"],
+      logger.error("Status check-out failed, user not checked-in", {
+        bookingId
       });
       throw new Exception(
-        `Booking has status "${booking.status}" and cannot be checked in`,
+        "Booking has not been checked in yet",
         { code: 400 },
       );
     }
 
-    // Check if booking is already checked in, attribute shouldn't exist yet
-    if (booking.checkedInTime) {
-      await writeFailureAudit("Booking is already checked in", {
-        checkedInTime: booking.checkedInTime,
-      });
-
-      throw new Exception(`Booking ${bookingId} is already checked in`, {
-        code: 400,
-      });
-    }
-
     const queryTime = new Date().getTime();
     const scheduledCheckInTime = booking.reservationContext?.checkInTime;
-    const scheduledCheckOutTime = booking.reservationContext?.checkOutTime;
     const partySize = calculatePartySize(booking.partyInformation);
 
     // Get the calendar day (in Pacific Time)
     const currentDay = new Date(queryTime).toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
     const scheduledDay = new Date(scheduledCheckInTime).toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
 
-    // Confirm we're within check-in window (allowing leeway for same-day early check-ins)
-    if (currentDay !== scheduledDay && scheduledCheckInTime > queryTime) {
-      await writeFailureAudit("Booking cannot be checked in before the scheduled time", {
+    // Confirm it is the same calendar day (allows late undos but prevents undos on entirely different days)
+    if (currentDay !== scheduledDay) {
+      await writeFailureAudit("Booking cannot be checked out on a different day", {
         scheduledCheckInTime: scheduledCheckInTime,
         queryTime,
       });
 
-      const d = new Date(scheduledCheckInTime);
-      const time = d.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      const date = d.toISOString().split("T")[0];
       throw new Exception(
-        `Booking ${bookingId} cannot be checked in until ${time} on ${date}`,
-        {
-          code: 400,
-        },
-      );
-    }
-
-    // Confirm we're not past the check-out time (Park closed / Booking expired)
-    if (scheduledCheckOutTime && scheduledCheckOutTime < queryTime) {
-      await writeFailureAudit("Booking cannot be checked in after the scheduled check-out time", {
-        scheduledCheckOutTime,
-        queryTime,
-      });
-
-      const d = new Date(scheduledCheckOutTime);
-      const time = d.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      const date = d.toISOString().split("T")[0];
-      throw new Exception(
-        `Booking ${bookingId} cannot be checked in after ${time} on ${date}`,
+        `Booking ${bookingId} can only be checked out (undone) on the same day as its reservation.`,
         {
           code: 400,
         },
@@ -162,13 +116,8 @@ exports.handler = async (event, context) => {
       "#checkedInByUser": "checkedInByUser",
       "#pk": "pk",
     };
-    const expressionAttributeValues = {
-      ":checkedInTime": { N: queryTime.toString() },
-      ":checkedInByUser": { S: adminUserId },
-    };
 
-    let updateExpression =
-      "SET #checkedInTime = :checkedInTime, #checkedInByUser = :checkedInByUser";
+    let updateExpression = "REMOVE #checkedInTime, #checkedInByUser";
     const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       Key: {
@@ -177,12 +126,11 @@ exports.handler = async (event, context) => {
       },
       UpdateExpression: updateExpression,
       ConditionExpression: "attribute_exists(#pk)",
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames
     };
 
-    // Write successful check-in to audit log
-    await writeAuditLog(adminUserId, bookingId, 'BOOKING-CHECK-IN-SUCCESS', {
+    // Write successful check-out to audit log
+    await writeAuditLog(adminUserId, bookingId, 'BOOKING-CHECK-OUT-SUCCESS', {
       status: booking.status,
       partySize,
       collectionId: booking.collectionId,
@@ -198,12 +146,12 @@ exports.handler = async (event, context) => {
       },
     ]);
 
-    logger.info(`Booking ${bookingId} checked in.`);
+    logger.info(`Booking ${bookingId} checked out.`);
 
     return sendResponse(
       200,
       {
-        message: "Booking checked in",
+        message: "Booking checked out",
         bookingId,
       },
       "Success",
@@ -215,7 +163,7 @@ exports.handler = async (event, context) => {
       await writeAuditLog(
         getRequestClaimsFromEvent(event)?.sub || "unknown",
         event?.pathParameters?.bookingId || "unknown",
-        "BOOKING-CHECK-IN-ERROR",
+        "BOOKING-CHECK-OUT-ERROR",
         {
           errorName: error?.name,
           errorMessage: error?.message,
@@ -227,7 +175,7 @@ exports.handler = async (event, context) => {
       );
     }
 
-    logger.error("Error during check-in", {
+    logger.error("Error during check-out", {
       bookingId: event?.pathParameters?.bookingId,
       errorName: error?.name,
       errorCode: error?.code,
@@ -238,7 +186,7 @@ exports.handler = async (event, context) => {
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error checking in booking",
+      error?.message || "Error checking out booking",
       error?.error || error,
       context,
     );

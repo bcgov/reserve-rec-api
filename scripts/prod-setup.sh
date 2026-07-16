@@ -151,9 +151,9 @@ create_or_skip_secret \
   "${QR_KEY_ADMIN}" \
   "QR code signing secret (admin API) — prod"
 
-echo "  publicApiStack/qr-secret-key"
+echo "  publicApiStack/qrSecretKey"
 create_or_skip_secret \
-  "/${APP_NAME}/${DEPLOYMENT_NAME}/publicApiStack/qr-secret-key" \
+  "/${APP_NAME}/${DEPLOYMENT_NAME}/publicApiStack/qrSecretKey" \
   "${QR_KEY_PUBLIC}" \
   "QR code signing secret (public API) — prod"
 

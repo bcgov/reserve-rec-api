@@ -77,10 +77,12 @@ const baseBooking = {
   reservationContext: {
     checkInTime: new Date("2026-06-11T08:00:00Z").getTime(), // Window starts
     checkOutTime: new Date("2026-06-11T20:00:00Z").getTime(),  // Window ends
-  }
+  },
+  "checkedInTime": 1783036635064,
+  "checkedInByUser": "mock-admin-user-uuid"
 };
 
-describe("Bookings Check-In PUT handler", () => {
+describe("Bookings Check-Out PUT handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Default mock implementation
@@ -129,53 +131,26 @@ describe("Bookings Check-In PUT handler", () => {
     expect(result.message).toContain("Unauthorized");
   });
 
-  it("returns 400 when booking status is not confirmed", async () => {
-    getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: "pending" });
+  it("returns 400 when booking is not already checked in", async () => {
+    // Remove the check-in time and by which user
+    getBookingByBookingId.mockResolvedValue({ ...baseBooking, checkedInTime: "", checkedInByUser: "" });
     const event = makeEvent({});
     const result = await handler(event, {});
     expect(result.status).toBe(400);
-    expect(result.message).toContain('Booking has status "pending" and cannot be checked in');
+    expect(result.message).toContain("Booking has not been checked in yet");
   });
 
-  it("returns 400 when booking is already checked in", async () => {
-    getBookingByBookingId.mockResolvedValue({ ...baseBooking, checkedInTime: 123456789 });
-    const event = makeEvent({});
-    const result = await handler(event, {});
-    expect(result.status).toBe(400);
-    expect(result.message).toContain("is already checked in");
-  });
-
-  it("returns 400 when checking in before scheduled check-in time (different day)", async () => {
-    // System time is June 10th, but check-in time is June 11th
-    jest.setSystemTime(new Date("2026-06-10T12:00:00Z"));
-    getBookingByBookingId.mockResolvedValue({
-      ...baseBooking,
-      reservationContext: {
-        checkInTime: new Date("2026-06-11T08:00:00Z").getTime(),
-        checkOutTime: new Date("2026-06-11T20:00:00Z").getTime(),
-      }
-    });
+  it("returns 400 when attempting to check out on a different calendar day", async () => {
+    // Booking is scheduled for June 11th
+    getBookingByBookingId.mockResolvedValue({ ...baseBooking });
+    
+    // Attempt to check out on June 12th
+    jest.setSystemTime(new Date("2026-06-12T12:00:00Z"));
     
     const event = makeEvent({});
     const result = await handler(event, {});
     expect(result.status).toBe(400);
-    expect(result.message).toContain("cannot be checked in until");
-  });
-
-  it("returns 400 when checking in after scheduled checkout time", async () => {
-    // System time is 12pm, but window ended at 10am
-    jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
-    getBookingByBookingId.mockResolvedValue({
-      ...baseBooking,
-      reservationContext: {
-        checkOutTime: new Date("2026-06-11T10:00:00Z").getTime(),
-      }
-    });
-    
-    const event = makeEvent({});
-    const result = await handler(event, {});
-    expect(result.status).toBe(400);
-    expect(result.message).toContain("cannot be checked in after");
+    expect(result.message).toContain("can only be checked out (undone) on the same day");
   });
 
   it("returns 400 and default message for unhandled errors", async () => {
@@ -190,33 +165,12 @@ describe("Bookings Check-In PUT handler", () => {
     expect(result.error).toEqual(rawError);
   });
 
-  it("writes a failure audit when booking status is invalid", async () => {
-    getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: "pending" });
-
-    const event = makeEvent({});
-    const result = await handler(event, {});
-
-    expect(result.status).toBe(400);
-    expect(writeAuditLog).toHaveBeenCalledWith(
-      ADMIN_ID,
-      BOOKING_ID,
-      "BOOKING-CHECK-IN-FAILED",
-      expect.objectContaining({
-        reason: "Booking status is not confirmed",
-        status: "pending",
-      }),
-      expect.any(Function),
-      expect.any(Function),
-      "AuditTable",
-    );
-  });
-
-  it("successfully checks in a booking", async () => {
+  it("successfully checks a booking back out", async () => {
     const event = makeEvent({});
     const result = await handler(event, {});
 
     expect(result.status).toBe(200);
-    expect(result.data.message).toBe("Booking checked in");
+    expect(result.data.message).toBe("Booking checked out");
     expect(batchTransactData).toHaveBeenCalledWith([
       {
         action: "Update",
@@ -226,18 +180,16 @@ describe("Bookings Check-In PUT handler", () => {
             pk: { S: baseBooking.pk },
             sk: { S: baseBooking.sk },
           },
-          UpdateExpression: expect.stringContaining("SET #checkedInTime = :checkedInTime"),
-          ExpressionAttributeValues: expect.objectContaining({
-            ":checkedInTime": { N: expect.any(String) },
-            ":checkedInByUser": { S: ADMIN_ID },
-          }),
+          UpdateExpression: expect.stringContaining(
+            "REMOVE #checkedInTime, #checkedInByUser",
+          ),
         }),
       },
     ]);
     expect(writeAuditLog).toHaveBeenCalledWith(
       ADMIN_ID,
       BOOKING_ID,
-      "BOOKING-CHECK-IN-SUCCESS",
+      "BOOKING-CHECK-OUT-SUCCESS",
       expect.objectContaining({
         status: "confirmed",
         partySize: 4,

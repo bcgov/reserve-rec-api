@@ -100,7 +100,7 @@ exports.handler = async function (event, context) {
     }
     if (transDataIndexUpsertDocs.length > 0) {
       logger.debug(`Writing ${transDataIndexUpsertDocs.length} documents to ${OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME}`);
-      await bulkWriteDocuments(transDataIndexUpsertDocs, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME);
+      await bulkWriteDocuments(transDataIndexUpsertDocs, OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, 'index');
     }
 
     // Process user index documents
@@ -110,7 +110,7 @@ exports.handler = async function (event, context) {
     }
     if (userIndexUpsertDocs.length > 0) {
       logger.debug(`Writing ${userIndexUpsertDocs.length} documents to ${OPENSEARCH_USER_INDEX_NAME}`);
-      await bulkWriteDocuments(userIndexUpsertDocs, OPENSEARCH_USER_INDEX_NAME);
+      await bulkWriteDocuments(userIndexUpsertDocs, OPENSEARCH_USER_INDEX_NAME, 'index');
     }
 
     // await sendToAllConnections();

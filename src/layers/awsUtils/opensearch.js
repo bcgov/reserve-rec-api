@@ -621,11 +621,14 @@ async function bulkWriteDocuments(
             _id: item.id,
           },
         });
+        
         if (action === "update") {
           bulkIndexChunk.push({
             doc: item,
-            doc_as_upsert: true, // Create if it doesn't exist
+            doc_as_upsert: true, // Merges data, ignores missing fields
           });
+        } else if (action === "index" || action === "create") {
+          bulkIndexChunk.push(item); // Full replacement of the document
         }
       }
       // Execute the bulk operation for the current chunk

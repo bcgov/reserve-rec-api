@@ -47,31 +47,36 @@ exports.handler = async function (event, context) {
     const filters = {};
 
     if (body.email) {
-      // Use the .keyword sub-field for exact matching on the email.
       filters['namedOccupant.contactInfo.email.keyword'] = body.email;
     }
 
-    if (body.checkinStatus?.toLowerCase() === 'reserved') {
-      // For 'reserved', we want confirmed items that have NOT been checked in yet
-      query.addExistsQueryRule('checkedInTime', false);
-    }
-
-    if (body.checkinStatus?.toLowerCase() === 'active') {
-      // For 'active', we specifically want items where checkInTime exists
-      query.addExistsQueryRule('checkedInTime', true);
-    }
+    // Calculate current time dynamically on the server
+    const now = new Date().toISOString(); 
+    // Fallback bounds for open-ended queries
+    const past = '1970-01-01T00:00:00.000Z';
+    const future = '2099-12-31T23:59:59.999Z';
 
     if (body.checkinStatus) {
-      // Map frontend status labels back to the backend 'status' values
-      const statusMap = {
-        'reserved': 'confirmed',
-        'active': 'confirmed',
-        'cancelled': 'cancelled',
-        'expired': 'confirmed'
-      };
-      const statusValue = statusMap[body.checkinStatus.toLowerCase()] || body.checkinStatus;
-      if (statusValue) {
-        filters['status'] = statusValue;
+      const status = body.checkinStatus.toLowerCase();
+
+      if (status === 'reserved') {
+        // checkInTime > now
+        query.addRangeQueryRule('reservationContext.checkInTime', now, future, false, true);
+        filters['status'] = 'confirmed';
+      } 
+      else if (status === 'active') {
+        // checkInTime <= now AND checkOutTime >= now
+        query.addRangeQueryRule('reservationContext.checkInTime', past, now, true, true);
+        query.addRangeQueryRule('reservationContext.checkOutTime', now, future, true, true);
+        filters['status'] = 'confirmed';
+      } 
+      else if (status === 'expired') {
+        // checkOutTime < now
+        query.addRangeQueryRule('reservationContext.checkOutTime', past, now, true, false);
+        filters['status'] = 'confirmed';
+      } 
+      else if (status === 'cancelled') {
+        filters['status'] = 'cancelled';
       }
     }
 
@@ -79,9 +84,8 @@ exports.handler = async function (event, context) {
       query.addFilterTermsRule(filters);
     }
 
-    // Date range filtering
+    // Date range filtering (User's manual date filters)
     if (body.startDate || body.endDate) {
-      // Ensure range covering the requested period
       query.addRangeQueryRule(
         'startDate', 
         body.startDate || '1970-01-01', 
