@@ -13,7 +13,7 @@ const ACTIVE_STATUSES = ['waiting', 'admitting', 'admitted'];
  * WebSocket $connect handler.
  *
  * Called after the Lambda authorizer approves the connection.
- * The authorizer context provides cognitoSub and queueId.
+ * The authorizer context provides userId and queueId.
  *
  * Responsibilities:
  * 1. Verify user has an active entry in the queue
@@ -25,23 +25,23 @@ exports.handler = async (event) => {
   logger.debug('WebSocket $connect:', JSON.stringify(event));
 
   const connectionId = event.requestContext?.connectionId;
-  const cognitoSub = event.requestContext?.authorizer?.cognitoSub;
+  const userId = event.requestContext?.authorizer?.userId;
   const queueId = event.requestContext?.authorizer?.queueId;
 
-  if (!connectionId || !cognitoSub || !queueId) {
-    logger.error('Connect: missing connectionId, cognitoSub, or queueId', { connectionId, cognitoSub, queueId });
+  if (!connectionId || !userId || !queueId) {
+    logger.error('Connect: missing connectionId, userId, or queueId', { connectionId, userId, queueId });
     return { statusCode: 400 };
   }
 
   try {
     // Verify active queue entry exists
-    const entry = await getQueueEntry(queueId, cognitoSub);
+    const entry = await getQueueEntry(queueId, userId);
     if (!entry) {
-      logger.info(`Connect: no entry for ${cognitoSub} in queue ${queueId}`);
+      logger.info(`Connect: no entry for ${userId} in queue ${queueId}`);
       return { statusCode: 403 };
     }
     if (!ACTIVE_STATUSES.includes(entry.status)) {
-      logger.info(`Connect: entry status '${entry.status}' is not active for ${cognitoSub}`);
+      logger.info(`Connect: entry status '${entry.status}' is not active for ${userId}`);
       return { statusCode: 403 };
     }
 
@@ -53,7 +53,7 @@ exports.handler = async (event) => {
           const { ApiGatewayManagementApiClient, DeleteConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi');
           const wsClient = new ApiGatewayManagementApiClient({ endpoint });
           await wsClient.send(new DeleteConnectionCommand({ ConnectionId: entry.connectionId }));
-          logger.info(`Disconnected previous connection ${entry.connectionId} for ${cognitoSub}`);
+          logger.info(`Disconnected previous connection ${entry.connectionId} for ${userId}`);
         } catch (err) {
           // Ignore GoneException — old connection is already gone
           logger.debug(`Could not delete previous connection ${entry.connectionId}:`, err.message);
@@ -63,10 +63,10 @@ exports.handler = async (event) => {
 
     // Write connection record first (idempotent by connectionId PK; an orphan from a crash
     // here is cleaned up by TTL in 1h — benign). Then update the queue entry.
-    await putConnectionRecord(connectionId, queueId, cognitoSub);
+    await putConnectionRecord(connectionId, queueId, userId);
 
     // Store new connectionId on the entry (clears disconnectedAt if present)
-    await setConnectionId(queueId, cognitoSub, connectionId);
+    await setConnectionId(queueId, userId, connectionId);
 
     // If user is already admitted, re-push the admitted notification so they
     // can call /claim even if they missed the original push (e.g. reconnect after disconnect)
@@ -87,11 +87,11 @@ exports.handler = async (event) => {
       }
     }
 
-    logger.info(`WebSocket connected: ${connectionId} → ${cognitoSub} in ${queueId}`);
+    logger.info(`WebSocket connected: ${connectionId} → ${userId} in ${queueId}`);
     return { statusCode: 200 };
 
   } catch (err) {
-    logger.error('WebSocket $connect error:', { connectionId, cognitoSub, queueId, error: err.message });
+    logger.error('WebSocket $connect error:', { connectionId, userId, queueId, error: err.message });
     return { statusCode: 500 };
   }
 };

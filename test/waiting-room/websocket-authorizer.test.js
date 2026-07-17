@@ -38,7 +38,7 @@ const makeEvent = (overrides = {}) => ({
 });
 
 describe('WebSocket Lambda authorizer', () => {
-  it('returns ALLOW policy with cognitoSub and queueId when token is valid', async () => {
+  it('returns ALLOW policy with userId and queueId when token is valid', async () => {
     mockVerify.mockResolvedValue({ sub: 'user-sub-123' });
 
     const result = await handler(makeEvent());
@@ -46,7 +46,7 @@ describe('WebSocket Lambda authorizer', () => {
     expect(result.principalId).toBe('user-sub-123');
     expect(result.policyDocument.Statement[0].Effect).toBe('Allow');
     expect(result.policyDocument.Statement[0].Action).toBe('execute-api:Invoke');
-    expect(result.context.cognitoSub).toBe('user-sub-123');
+    expect(result.context.userId).toBe('user-sub-123');
     expect(result.context.queueId).toBe('QUEUE#golden-ears#camping#standard#2025-06-15');
   });
 

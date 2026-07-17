@@ -32,7 +32,7 @@ exports.handler = async (event) => {
     let abandonedCount = 0;
 
     for (const entry of activeEntries) {
-      await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'abandoned', null, { abandonedAt: now });
+      await updateQueueEntryStatus(entry.pk, entry.userId, 'abandoned', null, { abandonedAt: now });
       abandonedCount++;
     }
 

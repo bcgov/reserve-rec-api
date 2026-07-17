@@ -16,8 +16,8 @@ const db = require('../../src/handlers/waiting-room/utils/dynamodb');
 
 const queueId = 'QUEUE#golden-ears#camping#standard-sites#2025-06-15';
 
-function makeEntry(cognitoSub, status) {
-  return { pk: queueId, sk: `ENTRY#${cognitoSub}`, cognitoSub, status };
+function makeEntry(userId, status) {
+  return { pk: queueId, sk: `ENTRY#${userId}`, userId, status };
 }
 
 describe('WaitingRoom CLEANUP handler', () => {

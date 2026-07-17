@@ -154,7 +154,7 @@ exports.handler = async (event) => {
       for (const q of mode2Queues) {
         const activeEntries = await queryQueueEntries(q.pk, { statuses: ['waiting', 'admitting'] });
         for (const entry of activeEntries) {
-          await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'abandoned', null, { abandonedAt: now });
+          await updateQueueEntryStatus(entry.pk, entry.userId, 'abandoned', null, { abandonedAt: now });
           releasedCount++;
         }
         if (endpoint && activeEntries.length > 0) {
