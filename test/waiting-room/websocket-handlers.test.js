@@ -44,7 +44,7 @@ describe('WebSocket $connect handler', () => {
     requestContext: {
       connectionId: 'conn-abc123',
       authorizer: {
-        cognitoSub: 'user-sub-456',
+        userId: 'user-sub-456',
         queueId: 'QUEUE#golden-ears#camping#standard#2025-06-15',
       },
       ...overrides.requestContext,
@@ -54,7 +54,7 @@ describe('WebSocket $connect handler', () => {
   const waitingEntry = {
     pk: 'QUEUE#golden-ears#camping#standard#2025-06-15',
     sk: 'ENTRY#user-sub-456',
-    cognitoSub: 'user-sub-456',
+    userId: 'user-sub-456',
     status: 'waiting',
     connectionId: null,
   };
@@ -79,12 +79,12 @@ describe('WebSocket $connect handler', () => {
   });
 
   it('returns 400 if connectionId is missing', async () => {
-    const event = { requestContext: { authorizer: { cognitoSub: 'sub', queueId: 'QUEUE#x' } } };
+    const event = { requestContext: { authorizer: { userId: 'sub', queueId: 'QUEUE#x' } } };
     const result = await connectHandler.handler(event);
     expect(result.statusCode).toBe(400);
   });
 
-  it('returns 400 if cognitoSub is missing from authorizer context', async () => {
+  it('returns 400 if userId is missing from authorizer context', async () => {
     const event = { requestContext: { connectionId: 'conn-1', authorizer: { queueId: 'QUEUE#x' } } };
     const result = await connectHandler.handler(event);
     expect(result.statusCode).toBe(400);
@@ -173,7 +173,7 @@ describe('WebSocket $disconnect handler', () => {
   it('sets disconnectedAt and deletes connection record on disconnect', async () => {
     db.getConnectionRecord.mockResolvedValue({
       queueId: 'QUEUE#golden-ears#camping#standard#2025-06-15',
-      cognitoSub: 'user-sub-456',
+      userId: 'user-sub-456',
     });
     db.setDisconnectedAt.mockResolvedValue();
     db.deleteConnectionRecord.mockResolvedValue();

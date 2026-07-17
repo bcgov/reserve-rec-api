@@ -1,6 +1,6 @@
 // Search bookings by various filters - POST /bookings/admin/search
 
-const { logger, sendResponse, getRequestClaimsFromEvent, Exception, handleCORS, checkAuthContext} = require("/opt/base");
+const { logger, sendResponse, Exception, handleCORS, checkAuthContext} = require("/opt/base");
 const {
   getBookingByBookingId,
   validateAdminRequirements,

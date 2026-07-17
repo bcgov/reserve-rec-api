@@ -9,7 +9,7 @@ const { CognitoJwtVerifier } = require('aws-jwt-verify');
  * Validates the Cognito JWT passed as a query parameter:
  *   wss://<endpoint>?token=<jwt>&queueId=<queueId>
  *
- * Returns ALLOW policy with { cognitoSub, queueId } in the authorizer context,
+ * Returns ALLOW policy with { userId, queueId } in the authorizer context,
  * which is available to the $connect handler via event.requestContext.authorizer.
  */
 exports.handler = async (event) => {
@@ -51,11 +51,11 @@ exports.handler = async (event) => {
     throw new Error('Unauthorized');
   }
 
-  const cognitoSub = payload.sub;
-  logger.info(`WebSocket auth: authorized ${cognitoSub} for queue ${queueId}`);
+  const userId = payload.sub;
+  logger.info(`WebSocket auth: authorized ${userId} for queue ${queueId}`);
 
   return {
-    principalId: cognitoSub,
+    principalId: userId,
     policyDocument: {
       Version: '2012-10-17',
       Statement: [
@@ -67,7 +67,7 @@ exports.handler = async (event) => {
       ],
     },
     context: {
-      cognitoSub,
+      userId,
       queueId,
     },
   };

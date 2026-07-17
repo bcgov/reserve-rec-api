@@ -15,7 +15,7 @@ exports.handler = async (event, context) => {
     if (!claims || !claims.sub) {
       throw new Exception('Authentication required', { code: 401 });
     }
-    const cognitoSub = claims.sub;
+    const userId = claims.sub;
 
     const body = JSON.parse(event?.body || '{}');
     const { queueId } = body;
@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
     }
 
     // Get queue entry for this user
-    const entry = await getQueueEntry(queueId, cognitoSub);
+    const entry = await getQueueEntry(queueId, userId);
     if (!entry) {
       throw new Exception('Queue entry not found', { code: 404 });
     }
@@ -52,7 +52,7 @@ exports.handler = async (event, context) => {
     // Generate a fresh HMAC token
     const hmacKey = await getHmacSigningKey();
     const token = generateToken(
-      cognitoSub,
+      userId,
       entry.facilityKey,
       entry.dateKey,
       hmacKey,
@@ -61,7 +61,7 @@ exports.handler = async (event, context) => {
 
     const tokenExpiry = now + ADMISSION_TTL_MINUTES * 60;
 
-    logger.info(`User ${cognitoSub} claimed admission for queue ${queueId}`);
+    logger.info(`User ${userId} claimed admission for queue ${queueId}`);
 
     // Return Set-Cookie header with HttpOnly admission cookie
     return {

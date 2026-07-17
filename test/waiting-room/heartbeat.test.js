@@ -81,7 +81,7 @@ const validPayload = {
 const admittedEntry = {
   pk: 'QUEUE#golden-ears#camping#standard#2025-06-15',
   sk: 'ENTRY#user-sub-123',
-  cognitoSub: 'user-sub-123',
+  userId: 'user-sub-123',
   status: 'admitted',
   admittedAt: NOW - 300,
   admissionExpiry: NOW + 600,

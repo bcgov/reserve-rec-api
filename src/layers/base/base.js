@@ -356,9 +356,9 @@ function getRequestClaimsFromEvent(event) {
       }
 
       // New context format - construct claims object from individual fields
-      if (authContext.cognitoSub && authContext.cognitoSub !== 'guest') {
+      if (authContext.userId && authContext.userId !== 'guest') {
         return {
-          sub: authContext.cognitoSub,
+          sub: authContext.userId,
           email: authContext.email || '',
           username: authContext.username || '',
           'cognito:username': authContext.username || '',

@@ -51,7 +51,7 @@ exports.handler = async (event, context) => {
     // 1. Expire admitted entries past admissionExpiry
     const expiredAdmitted = await scanExpiredEntries('admitted', 'admissionExpiry', now);
     for (const entry of expiredAdmitted) {
-      const updated = await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'expired', 'admitted');
+      const updated = await updateQueueEntryStatus(entry.pk, entry.userId, 'expired', 'admitted');
       if (updated) {
         expiredCount++;
         freedQueues.add(entry.pk);
@@ -64,7 +64,7 @@ exports.handler = async (event, context) => {
     const disconnectedEntries = await scanExpiredEntries('waiting', 'disconnectedAt', graceThreshold);
     const abandonedByQueue = {};
     for (const entry of disconnectedEntries) {
-      const updated = await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'abandoned', 'waiting', {
+      const updated = await updateQueueEntryStatus(entry.pk, entry.userId, 'abandoned', 'waiting', {
         abandonedAt: now,
       });
       if (updated) {
@@ -85,7 +85,7 @@ exports.handler = async (event, context) => {
     const stuckEntries = await scanExpiredEntries('admitting', 'admittedAt', stuckThreshold);
     const recoveredByQueue = {};
     for (const entry of stuckEntries) {
-      const updated = await updateQueueEntryStatus(entry.pk, entry.cognitoSub, 'waiting', 'admitting');
+      const updated = await updateQueueEntryStatus(entry.pk, entry.userId, 'waiting', 'admitting');
       if (updated) {
         recoveredCount++;
         recoveredByQueue[entry.pk] = (recoveredByQueue[entry.pk] || 0) + 1;

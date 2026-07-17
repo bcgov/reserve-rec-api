@@ -18,7 +18,7 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
   getQueueEntry: jest.fn(),
   putQueueEntry: jest.fn(),
   incrementQueueTotalEntries: jest.fn(),
-  queryEntriesByCognitoSub: jest.fn(),
+  queryEntriesByUserId: jest.fn(),
   queryEntriesByClientIp: jest.fn(),
   abandonQueueEntry: jest.fn(),
   incrementAbandonedCount: jest.fn(),
@@ -55,7 +55,7 @@ describe('WaitingRoom JOIN handler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     db.getQueueMeta.mockResolvedValue(validMeta);
-    db.queryEntriesByCognitoSub.mockResolvedValue([]);
+    db.queryEntriesByUserId.mockResolvedValue([]);
     db.queryEntriesByClientIp.mockResolvedValue([]);
     db.putQueueEntry.mockResolvedValue();
     db.incrementQueueTotalEntries.mockResolvedValue(1);
@@ -89,11 +89,11 @@ describe('WaitingRoom JOIN handler', () => {
   it('returns 200 and existing entry data on idempotent re-join', async () => {
     const existingEntry = {
       pk: 'QUEUE#golden-ears#camping#standard-sites#2025-06-15',
-      cognitoSub: 'test-user-123',
+      userId: 'test-user-123',
       status: 'waiting',
       joinedAt: 1000000,
     };
-    db.queryEntriesByCognitoSub.mockResolvedValue([existingEntry]);
+    db.queryEntriesByUserId.mockResolvedValue([existingEntry]);
 
     const result = await handler(makeEvent(), {});
     expect(result.status).toBe(200);
@@ -105,11 +105,11 @@ describe('WaitingRoom JOIN handler', () => {
   it('abandons previous queue entry when joining a new queue', async () => {
     const otherQueueEntry = {
       pk: 'QUEUE#other#camping#sites#2025-06-16',
-      cognitoSub: 'test-user-123',
+      userId: 'test-user-123',
       status: 'waiting',
       joinedAt: 1000000,
     };
-    db.queryEntriesByCognitoSub.mockResolvedValue([otherQueueEntry]);
+    db.queryEntriesByUserId.mockResolvedValue([otherQueueEntry]);
 
     await handler(makeEvent(), {});
     expect(db.abandonQueueEntry).toHaveBeenCalledWith(otherQueueEntry.pk, 'test-user-123');
@@ -118,7 +118,7 @@ describe('WaitingRoom JOIN handler', () => {
   });
 
   it('returns 429 when IP limit is exceeded', async () => {
-    const ipEntries = Array(4).fill({ pk: 'QUEUE#...', cognitoSub: 'other-user', status: 'waiting' });
+    const ipEntries = Array(4).fill({ pk: 'QUEUE#...', userId: 'other-user', status: 'waiting' });
     db.queryEntriesByClientIp.mockResolvedValue(ipEntries);
 
     const result = await handler(makeEvent(), {});
@@ -130,7 +130,7 @@ describe('WaitingRoom JOIN handler', () => {
     expect(result.status).toBe(200);
     expect(db.putQueueEntry).toHaveBeenCalledWith(
       expect.objectContaining({
-        cognitoSub: 'test-user-123',
+        userId: 'test-user-123',
         status: 'waiting',
         facilityKey: 'golden-ears#camping#standard-sites',
         dateKey: '2025-06-15',
