@@ -142,7 +142,7 @@ exports.handler = async (event, context) => {
       logger.warn("Invalid QR code hash", { bookingId, verifiedBy: claims.sub });
       await writeAuditLog(claims.sub, bookingId, 'QR_VERIFY_FAILED', {
         reason: 'Invalid hash',
-        bookingStatus: booking.status,
+        status: booking.status,
         timestamp
       }, marshall, batchWriteData, AUDIT_TABLE_NAME);
       return sendInvalidQRResponse(context);

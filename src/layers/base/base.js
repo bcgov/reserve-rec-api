@@ -336,26 +336,8 @@ function checkAuthContext(event, requiredTier = null, collectionId = null) {
 
 function getRequestClaimsFromEvent(event) {
   try {
-    // Check Authorization header for JWT token
-    const authHeader = event.headers?.Authorization || event.headers?.authorization;
-    if (authHeader) {
-      // Try to decode as JWT (Bearer token for authenticated users)
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        // JWT format: header.payload.signature
-        const payloadBase64 = token.split('.')[1];
-        if (payloadBase64) {
-          const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
-          const payload = JSON.parse(payloadJson);
-          logger.info('Decoded JWT claims from Authorization header:', payload.sub);
-          return payload;
-        }
-      } catch (jwtError) {
-        logger.error('Failed to decode JWT from Authorization header:', jwtError);
-      }
-    }
-
-    // First check if this is an authenticated request via authorizer context
+    // No longer decoding raw headers
+    // Trusting only the authorizer context
     const authContext = event.requestContext?.authorizer;
 
     if (authContext) {
@@ -374,9 +356,9 @@ function getRequestClaimsFromEvent(event) {
       }
 
       // New context format - construct claims object from individual fields
-      if (authContext.userId && authContext.userId !== 'guest') {
+      if (authContext.cognitoSub && authContext.cognitoSub !== 'guest') {
         return {
-          sub: authContext.userId,
+          sub: authContext.cognitoSub,
           email: authContext.email || '',
           username: authContext.username || '',
           'cognito:username': authContext.username || '',
@@ -385,8 +367,7 @@ function getRequestClaimsFromEvent(event) {
       }
     }
 
-    // No authentication found
-    logger.info('No authentication found - no claims available');
+    logger.info('No authenticated context found');
     return null;
   } catch (error) {
     logger.error(`Error retrieving request claims: ${error.message}`);

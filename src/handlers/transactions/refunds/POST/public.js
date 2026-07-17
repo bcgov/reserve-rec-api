@@ -9,7 +9,7 @@ const {
 const { REFUND_PUT_CONFIG } = require("../../configs");
 
 exports.handler = async (event, context) => {
-  logger.info("Refund POST:", event);
+  logger.info("Refund public POST:", event);
 
   try {
     // Get transactionId from path parameters - this is the new pattern /transactions/{transactionId}/refunds

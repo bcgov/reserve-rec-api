@@ -16,7 +16,7 @@ async function generateQRCodeForBooking(bookingId, booking) {
   }
 
   // Only generate QR codes for confirmed bookings
-  const bookingIsConfirmed = booking?.bookingStatus === 'confirmed' || booking?.status === 'confirmed';
+  const bookingIsConfirmed = booking?.status === 'confirmed' || booking?.status === 'confirmed';
   if (!bookingIsConfirmed) {
     return null;
   }

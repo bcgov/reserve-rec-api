@@ -16,13 +16,13 @@ Similar to how ProductDates are the date-specific execution of Products, Booking
 |`gsipk`|String|Global secondary index partition key|`userSub`|Querying for all Bookings made by a specific customer|
 |`gsisk`|String|Global secondary index sort key|`arrivalDate`|Sorting a customer's Bookings by arrival date|
 | `schema`|String|Data type/Schema| "booking" |Identifying that this item is a "booking"|
-| `globalId`| String|Globally unique UUID|Automatically generating on Booking POST| Searching for this specific item using the `globalId` GSI
+| `globalId`| String|Globally unique UUID|Automatically generating on Booking POST| Searching for this specific item using the `globalId` GSI (same as `bookingId`)
 |`collectionId`|String|The identifier of the collection this Booking belongs to|Parent Product's `collectionId`|Determining which collection this Booking belongs to|
 | `activityType`|String|The type of activity this Booking is for|Parent Product's `activityType`|Determining what type of Activity this Booking is for|
 |`activitySubType?`|String|A further categorization of the type of Activity this Booking is for, if available | Parent Product's `activitySubType`|Determining what type of `activitySubType` this Booking is for|
 | `activityId`|Number|The unique identifier of the parent Activity|Parent Product's `activityId`|Determining which specific Activity of `activityType` within the `collectionId` that this Booking refers to|
 | `productId`|Number|The unique identifier of the parent Product|Parent Product's `productId`|Determining which specific Product this Booking refers to|
-| `bookingId`|String|Unique identifier for this Booking (distinct from `globalId` for traceability purposes)|Automatically generating on Booking POST|Distinguishing this Booking from other Bookings related to the same Product|
+| `bookingId`|String|Unique identifier for this Booking|Automatically generating on Booking POST|Distinguishing this Booking from other Bookings related to the same Product (same as `globalId`)|
 |`userSub`|String|The unique identifier of the customer who made the booking|Provided by client on Booking POST|Associating this Booking with the customer who made it|
 |`status`|String|The current status of the booking (e.g., "held". "pending", "completed", "cancelled")|Automatically setting on Booking POST and updating on status changes|Tracking the lifecycle state of the booking|
 |`timezone`|String|IANA timezone identifier for the location where this Booking is reserved|Inherited from parent Product|Ensuring that all date and time calculations related to this Booking are performed in the correct timezone context|

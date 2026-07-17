@@ -1428,7 +1428,7 @@ function validateBookingCompletion(booking, sessionId, props) {
   } catch (error) {
     logger.error(`Error validating booking completion for booking ID ${booking?.bookingId}.`, {
       error: error.message || String(error),
-      bookingStatus: booking?.status,
+      status: booking?.status,
       sessionExpiry: booking?.sessionExpiry,
       queryTime: props?.queryTime,
       hasNamedOccupant: !!props?.namedOccupant,
@@ -1449,7 +1449,7 @@ async function cancelBooking(bookingId, userId, reason = null) {
     }
 
     // Check if already cancelled
-    if (booking.bookingStatus === "cancelled") {
+    if (booking.status === "cancelled") {
       throw new Exception(`Booking ${bookingId} is already cancelled`, {
         code: 400,
       });
@@ -1459,7 +1459,7 @@ async function cancelBooking(bookingId, userId, reason = null) {
     return {
       key: { pk: booking.pk, sk: booking.sk },
       data: {
-        bookingStatus: "cancelled",
+        status: "cancelled",
         cancellationReason: reason || "Customer requested cancellation",
         cancelledAt: new Date().toISOString(),
       },

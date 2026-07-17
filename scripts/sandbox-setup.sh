@@ -208,14 +208,20 @@ SECRET_MAPPINGS["adminApiStack/qrSecretKey|adminApiStack/qrSecretKey"]="QR code 
 SECRET_MAPPINGS["publicApiStack/qrSecretKey|publicApiStack/qrSecretKey"]="QR code secret (public API)"
 
 # Worldline payment secrets
-SECRET_MAPPINGS["publicApiStack/merchantId|publicApiStack/MerchantId"]="Worldline merchant ID (public)"
-SECRET_MAPPINGS["publicApiStack/hashKey|publicApiStack/HashKey"]="Worldline hash key (public)"
-SECRET_MAPPINGS["publicApiStack/worldlineWebhookSecret|publicApiStack/WorldlineWebhookSecret"]="Worldline webhook secret"
-SECRET_MAPPINGS["bookingWorkflowStack/merchantId|bookingWorkflowStack/MerchantId"]="Worldline merchant ID (workflow)"
+SECRET_MAPPINGS["publicApiStack/merchantId|publicApiStack/merchantId"]="Worldline merchant ID (public)"
+SECRET_MAPPINGS["publicApiStack/hashKey|publicApiStack/hashKey"]="Worldline hash key (public)"
+SECRET_MAPPINGS["publicApiStack/paymentsApiPasscode|publicApiStack/paymentsApiPasscode"]="Worldline payments api passcode (public)"
+SECRET_MAPPINGS["publicApiStack/worldlineWebhookSecret|publicApiStack/worldlineWebhookSecret"]="Worldline webhook secret"
+
+SECRET_MAPPINGS["adminApiStack/merchantId|adminApiStack/merchantId"]="Worldline merchant ID (admin)"
+SECRET_MAPPINGS["adminApiStack/hashKey|adminApiStack/hashKey"]="Worldline hash key (admin)"
+SECRET_MAPPINGS["adminApiStack/paymentsApiPasscode|adminApiStack/paymentsApiPasscode"]="Worldline payments api passcode (admin)"
+
+SECRET_MAPPINGS["bookingWorkflowStack/merchantId|bookingWorkflowStack/merchantId"]="Worldline merchant ID (workflow)"
 SECRET_MAPPINGS["bookingWorkflowStack/hashKey|bookingWorkflowStack/HashKey"]="Worldline hash key (workflow)"
 
 # Note: OpenSearch password not needed - sandboxes reuse dev domain via SSM config overrides
-# Note: emailDispatchStack/qr-secret-key removed - doesn't exist in dev environment
+# Note: emailDispatchStack/qrSecretKey removed - doesn't exist in dev environment
 
 for MAPPING in "${!SECRET_MAPPINGS[@]}"; do
   DESC="${SECRET_MAPPINGS[$MAPPING]}"
