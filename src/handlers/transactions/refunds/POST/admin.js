@@ -1,91 +1,132 @@
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
-const { quickApiPutHandler } = require("../../../../common/data-utils");
+const { 
+  checkAuthContext, 
+  Exception, 
+  logger, 
+  sendResponse, 
+  getRequestClaimsFromEvent, 
+  writeAuditLog 
+} = require("/opt/base");
+const { 
+  batchTransactData, 
+  TRANSACTIONAL_DATA_TABLE_NAME, 
+  AUDIT_TABLE_NAME, 
+  marshall, 
+  batchWriteData 
+} = require("/opt/dynamodb");
+const { quickApiPutHandler, quickApiUpdateHandler } = require("../../../../common/data-utils");
 const {
   createRefund,
   createAndCheckRefundHash,
   findAndVerifyTransactionOwnership
 } = require("../../methods");
-const { REFUND_PUT_CONFIG } = require("../../configs");
+const { REFUND_PUT_CONFIG, TRANSACTION_UPDATE_CONFIG } = require("../../configs");
 
 exports.handler = async (event, context) => {
-  logger.info("Refund admin POST:", event);
+  logger.info("Admin Refund POST:", event);
 
   try {
-    // Get transactionId from path parameters - this is the new pattern /transactions/{transactionId}/refunds
-    const transactionId = event?.pathParameters?.transactionId;
-    const userId = getRequestClaimsFromEvent(event)?.sub || null;
+    checkAuthContext(event, "superadmin");
+    const adminId = getRequestClaimsFromEvent(event)?.sub || null;
 
-    const body = JSON.parse(event?.body);
-    const trnAmount = body?.trnAmount;
+    const clientTransactionId = event?.pathParameters?.clientTransactionId;
+    const body = JSON.parse(event?.body || "{}");
+    const refundAmount = body?.refundAmount;
+    const userId = body?.userId;
 
-    // Validate required parameters
-    const missingParams = [];
-    if (!userId) missingParams.push("userId");
-    if (!transactionId) missingParams.push("transactionId");
-    if (!body) missingParams.push("body");
-    if (!trnAmount) missingParams.push("trnAmount");
-
-    // 401 if userId is missing, 400 for others
-    if (missingParams.length > 0) {
-      const code = !userId ? 401 : 400;
-      throw new Exception(
-        `Cannot issue refund - missing required parameter(s): ${missingParams.join(", ")}`,
-        { code }
-      );
+    if (!clientTransactionId || !userId || !refundAmount) {
+      throw new Exception("Cannot issue refund - missing clientTransactionId, userId, or refundAmount", {
+        code: 400,
+        data: { adminId, clientTransactionId }
+      });
     }
 
-    // Verify ownership before proceeding
-    const transaction = await findAndVerifyTransactionOwnership(
-      transactionId,
-      userId
-    );
+    // Fetch the transaction
+    const transaction = await findAndVerifyTransactionOwnership(clientTransactionId, userId);
 
-    // Additional refund validations
-    if (transaction.transactionStatus === "refunded") {
+    // Check status
+    if (transaction.status === "refunded") {
       throw new Exception("Transaction already fully refunded", { code: 409 });
     }
 
-    // Only allow refunds for paid or partially refunded transactions
-    if (
-      transaction.transactionStatus !== "paid" &&
-      transaction.transactionStatus !== "partial refund"
-    ) {
-      throw new Exception("Transaction not eligible for refund", { code: 409 });
+    // Only allow fully paid or partially refunds to continue
+    if (!["paid", "partial refund"].includes(transaction.status)) {
+      throw new Exception(`Transaction status '${transaction.status}' is not eligible for refund`, { code: 409 });
     }
 
-    // Creates a hash of the userId, clientTransactionId, and trnAmount to check for idempotency
-    // Should collide with any previous refund attempts with the same parameters
-    logger.info("Checking refund idempotency");
-    const refundHash = await createAndCheckRefundHash(
-      userId,
-      transaction.clientTransactionId,
-      trnAmount
+    // Idempotency to ensure only one refund
+    // Returns a refundHashObj with refundHash, refundSequence, totalRefunded, and totalAfterRefund
+    const refundHashObj = await createAndCheckRefundHash(
+      userId, 
+      transaction.clientTransactionId, 
+      refundAmount, 
+      transaction.bookingId
     );
 
-    // Initiate the refund process
-    logger.info(
-      `Initiating refund of amount ${trnAmount} for transaction ${transaction}`
-    );
-    const postRequests = await createRefund(transaction, trnAmount, refundHash, body);
+    // Process refund
+    const refundPutRequest = await createRefund(transaction, refundAmount, refundHashObj, body);
 
-    const putItems = await quickApiPutHandler(
+    // Build refund record
+    const putRefundItems = await quickApiPutHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,
-      [postRequests],
+      [refundPutRequest],
       REFUND_PUT_CONFIG
     );
 
-    const res = await batchTransactData(putItems);
+    // Update the original transaction and status
+    const isFullRefund = refundHashObj.totalAfterRefund >= (transaction.trnAmount || transaction.amount);
+    const newStatus = isFullRefund ? "refunded" : "partial refund";
 
-    const response = {
-      res: res,
-      transaction: postRequests,
-    };
+    const updateOriginalTxItem = await quickApiUpdateHandler(
+      TRANSACTIONAL_DATA_TABLE_NAME,
+      [
+        {
+          key: { pk: transaction.pk, sk: transaction.sk },
+          data: {
+            status: newStatus,
+            status: newStatus,
+            refundAmounts: {
+              value: [
+                ...(transaction.refundAmounts || []),
+                { [refundPutRequest.data.refundTransactionId]: Number(refundAmount) }
+              ],
+              action: "set"
+            }
+          }
+        }
+      ],
+      TRANSACTION_UPDATE_CONFIG
+    );
 
-    logger.info(`Refund created successfully`, response);
+    // Update to database
+    const res = await batchTransactData([...putRefundItems, ...updateOriginalTxItem]);
 
-    return sendResponse(200, { response }, "Success", null, context);
+    // Audit Log
+    await writeAuditLog(
+      adminId,
+      clientTransactionId,
+      "ADMIN_REFUND_SUCCESS",
+      { result: true, amount: refundAmount, refund: refundPutRequest.data },
+      marshall,
+      batchWriteData,
+      AUDIT_TABLE_NAME
+    );
+
+    return sendResponse(200, { response: { res, refund: refundPutRequest.data } }, "Refund Success", null, context);
+
   } catch (error) {
+    const adminId = getRequestClaimsFromEvent(event)?.sub || "unknown";
+    const clientTransactionId = event?.pathParameters?.clientTransactionId || "unknown";
+
+    await writeAuditLog(
+      adminId,
+      clientTransactionId,
+      "ADMIN_REFUND_FAILURE",
+      { success: false, message: error.msg || error.message },
+      marshall,
+      batchWriteData,
+      AUDIT_TABLE_NAME
+    );
+
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,

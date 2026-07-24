@@ -6,7 +6,7 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || "ca-central-1" });
 let cachedSecrets = {};
 
-const { Exception, getNow, logger } = require("/opt/base");
+const { Exception, getNow, getNowISO, logger } = require("/opt/base");
 const {
   getOne,
   getOneByGlobalId,
@@ -30,17 +30,13 @@ const {
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
 
-function createHashExpiry() {
-  const date = DateTime.now().plus({ minutes: 30 });
-  return date.toFormat("yyyyLLddHHmm");
-}
-
 /**
  * Dynamically retrieves a secret from AWS Secrets Manager by its path/name.
  * Cache is stored locally to avoid hitting AWS Secrets Manager API limits on repeat requests.
  * 
  * @param {string} secretPath - The exact path name of the secret (e.g. process.env.MERCHANT_ID_SECRET)
  * @returns {Promise<string>} The plaintext secret value.
+ * @throws {Error} If secretPath is missing or Secrets Manager API call fails.
  */
 async function getSecret(secretPath) {
   if (!secretPath) {
@@ -64,15 +60,27 @@ async function getSecret(secretPath) {
   }
 }
 
-// Creates a transaction ID from the an input string, adds prefix
-// needs to be less that 30 characters for Worldline to accept
+/**
+ * Creates a unique Worldline transaction identifier trimmed to meet length limits.
+ * Worldline limits transaction IDs to 30 characters.
+ * 
+ * @param {string} string - The base string or UUID slice to trim.
+ * @param {string} prefix - The prefix to prepend (e.g., 'RFND-', 'BCPR-').
+ * @returns {string} The formatted transaction string (<= 30 chars).
+ */
 function createWorldlineUuidWithPrefix(string, prefix) {
   const sliceLength = 30 - prefix.length;
   const uuidSlice = string.slice(0, sliceLength);
   return `${prefix}${uuidSlice}`;
 }
 
-// Creates the full Worldline URL with hash value appended
+/**
+ * Appends an MD5 hash signature to a URL query parameter string for Worldline authentication.
+ * 
+ * @param {URLSearchParams} query - The query parameters object.
+ * @param {string} url - The base destination URL.
+ * @returns {string} Complete URL with query string and MD5 hashValue parameter.
+ */
 function createUrlWithHash(query, url) {
   // All values with the hash key appended to the end
   const allValues = `${query.toString()}${HASH_KEY}`;
@@ -84,6 +92,17 @@ function createUrlWithHash(query, url) {
   return `${url}?${query.toString()}&hashValue=${hashValue}`;
 }
 
+/**
+ * Validates transaction eligibility and constructs payment status update object.
+ * 
+ * @param {string} clientTransactionId - The global transaction identifier.
+ * @param {string} bookingId - The expected booking ID associated with the transaction.
+ * @param {string} sessionId - The expected session ID associated with the transaction.
+ * @param {Object} body - The webhook/callback body containing transaction approval status.
+ * @param {number|string} body.trnApproved - Approval status flag (1 = approved).
+ * @returns {Promise<Object>} An object containing key and data properties for DynamoDB update.
+ * @throws {Exception} If transaction status is not 'in progress' or ID mismatches occur.
+ */
 async function updateTransactionForPayment(
   clientTransactionId,
   bookingId,
@@ -97,7 +116,7 @@ async function updateTransactionForPayment(
     logger.info("transactionRecord: ", transactionRecord);
 
     // If the transaction isn't 'in progress', we cannot alter it.
-    if (transactionRecord.transactionStatus !== "in progress") {
+    if (transactionRecord.status !== "in progress") {
       throw new Exception(`Transaction cannot be altered at this state.`, {
         code: 400,
       });
@@ -118,9 +137,9 @@ async function updateTransactionForPayment(
     }
 
     if (body?.trnApproved == 1) {
-      body.transactionStatus = "paid";
+      body.status = "paid";
     } else {
-      body.transactionStatus = "cancelled";
+      body.status = "cancelled";
     }
 
     return {
@@ -135,6 +154,13 @@ async function updateTransactionForPayment(
   }
 }
 
+/**
+ * Retrieves all transaction records associated with a given booking ID.
+ * 
+ * @param {string} bookingId - The unique booking identifier.
+ * @returns {Promise<Object>} Object containing query results from DynamoDB.
+ * @throws {Exception} If the DynamoDB query operation fails.
+ */
 async function getTransactionsByBookingId(bookingId) {
   logger.info(
     "Getting transaction by getTransactionsByBookingId:",
@@ -161,6 +187,14 @@ async function getTransactionsByBookingId(bookingId) {
   }
 }
 
+/**
+ * Retrieves transaction records for a specific booking ID filtered by date prefix.
+ * 
+ * @param {string} bookingId - The unique booking identifier.
+ * @param {string} date - Date string formatted as 'yyyy-MM-dd' to filter the sort key.
+ * @returns {Promise<Object>} Object containing query results from DynamoDB.
+ * @throws {Exception} If the DynamoDB query operation fails.
+ */
 async function getTransactionsByBookingIdDate(bookingId, date) {
   logger.info(
     "Getting transaction by getTransactionsByBookingIdDate:",
@@ -191,6 +225,13 @@ async function getTransactionsByBookingIdDate(bookingId, date) {
   }
 }
 
+/**
+ * Retrieves a single transaction record using its global transaction ID using GSI lookup.
+ * 
+ * @param {string} clientTransactionId - The unique global transaction identifier.
+ * @returns {Promise<Object|null>} The transaction object if found, or null.
+ * @throws {Exception} If the DynamoDB query fails.
+ */
 async function getTransactionByTransactionId(clientTransactionId) {
   logger.info(
     "Getting transaction by clientTransactionId:",
@@ -213,14 +254,17 @@ async function getTransactionByTransactionId(clientTransactionId) {
 
 // ====== REFUNDS ======
 
-// Finds, verifies, and returns the transaction if exists and belongs to the user
+/**
+ * Verifies that a transaction exists and belongs to the requesting user.
+ * 
+ * @param {string} clientTransactionId - The global transaction identifier.
+ * @param {string} userId - The user ID to verify against the transaction owner.
+ * @returns {Promise<Object>} The verified transaction record.
+ * @throws {Exception} 404 if transaction is not found, 401 if user is unauthorized, 400 on error.
+ */
 async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
-  logger.info(
-    "Getting transaction by clientTransactionId:",
-    clientTransactionId,
-  );
+  logger.info("Getting transaction by clientTransactionId:", clientTransactionId);
   try {
-    // Pull the transaction
     const transaction = await getOneByGlobalId(
       clientTransactionId,
       TRANSACTIONAL_DATA_TABLE_NAME,
@@ -232,32 +276,13 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
       throw new Exception("Transaction not found", { code: 404 });
     }
 
-    // Verify that the transaction belongs to the userId or they are an admin
-    // If the user is anonymous, we may need to handle differently
-    const isOwner = transaction.userId === userId;
-    const isAdmin = false; // TODO: Implement admin role check from JWT claims/context
-    const transactionIsAnonymous = transaction.userId === "anonymous";
-
-    // If user doesn't own it and isn't an admin, deny access
-    if (!isOwner && !isAdmin) {
-      // Special case: if the transaction is anonymous, we might want to allow
-      // access via a different verification method, such as a one-time token or link?
-      if (transactionIsAnonymous) {
-        throw new Exception("Anonymous transaction requires verification", {
-          code: 403,
-        });
-      }
+    if (transaction.userId !== userId) {
       throw new Exception("Unauthorized access to transaction", { code: 401 });
     }
 
-    // Return the transaction to be used for further processing
     return transaction;
   } catch (error) {
-    // If it's already an Exception with a code, re-throw it as-is
-    if (error instanceof Exception || error.code) {
-      throw error;
-    }
-    // Otherwise wrap it as a generic error
+    if (error instanceof Exception || error.code) throw error;
     throw new Exception("Error getting transaction by clientTransactionId", {
       code: 400,
       error: error.message || String(error),
@@ -265,28 +290,33 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
   }
 }
 
-// Creates the refund hash and checks for duplicates
-// Uses time window + refund sequence to prevent duplicates (while allowing multiple refunds)
+/**
+ * Prevents rapid duplicate refund submissions and calculates sequence metadata.
+ * Stores a hash audit record in DynamoDB.
+ * 
+ * @param {string} userId - The ID of the user requesting the refund.
+ * @param {string} clientTransactionId - The original transaction identifier.
+ * @param {number} refundAmount - The amount being requested for refund.
+ * @param {string} bookingId - The booking ID associated with the transaction.
+ * @param {number} [windowMinutes=3] - Lookback window to detect rapid duplicate attempts.
+ * @returns {Promise<Object>} Object containing refundHash, refundSequence, totalRefunded, and totalAfterRefund.
+ * @throws {Exception} 409 if duplicate attempt is detected within the time window, 400 on failure.
+ */
 async function createAndCheckRefundHash(
   userId,
   clientTransactionId,
-  trnAmount,
+  refundAmount,
+  bookingId,
   windowMinutes = 3,
 ) {
   const now = getNow();
-  const nowISO = now.toISO();
+  const nowISO = getNowISO();
   const dateKey = now.toFormat("yyyy-LL-dd");
   const windowStart = now.minus({ minutes: windowMinutes });
 
-  logger.info(
-    `Checking for duplicate refunds within ${windowMinutes} minute window`,
-  );
-
-  // Query all existing refunds for this transaction to check for:
-  // 1. Recent duplicates (same amount within time window)
-  // 2. Calculate refund sequence number
-  const pk = `transaction::${clientTransactionId}`;
-  const skPrefix = `refund::`;
+  // Query existing refunds for sequence and totals
+  const pk = `transaction::${bookingId}`;
+  const skPrefix = `refund::`; // Match all historical refunds for this booking
 
   let existingRefunds = [];
   try {
@@ -300,188 +330,197 @@ async function createAndCheckRefundHash(
     };
 
     const queryResult = await runQuery(refundQuery);
-    existingRefunds = queryResult.Items || [];
-    logger.info(
-      `Found ${existingRefunds.length} existing refund(s) for transaction ${clientTransactionId}`,
-    );
+    existingRefunds = queryResult.items || [];
+    logger.info(`Found ${existingRefunds.length} existing refund(s) for booking ${bookingId}`);
   } catch (error) {
     logger.error("Error querying existing refunds:", error);
   }
 
-  // Check for duplicate: same amount within time window
+  // Check for recent active duplicates
   const recentDuplicate = existingRefunds.find((refund) => {
-    if (refund.amount !== trnAmount) {
-      return false;
-    }
+    if (Number(refund.amount) !== Number(refundAmount)) return false;
 
-    // Check time and status
     const refundTime = DateTime.fromISO(refund.createdAt || refund.date);
     const isRecent = refundTime >= windowStart;
     const isActiveStatus =
-      refund.transactionStatus === "refund in progress" ||
-      refund.transactionStatus === "refunded";
+      refund.status === "refund in progress" ||
+      refund.status === "refunded";
 
-    if (isRecent && isActiveStatus) {
-      logger.info(
-        `Found recent refund: amount=${refund.amount}, time=${refundTime.toISO()}, status=${refund.transactionStatus}`,
-      );
-      return true;
-    }
-    return false;
+    return isRecent && isActiveStatus;
   });
 
   if (recentDuplicate) {
-    logger.warn(
-      `Duplicate refund of $${trnAmount} detected within ${windowMinutes} minutes`,
-    );
     throw new Exception("Duplicate refund attempt detected", { code: 409 });
   }
 
-  // Calculate refund sequence and total refunded
+  // Calculate sequence and total refunded so far
+  // TODO: this should be expanded to compare the total refund amount and
+  // check the Booking's Policy's maximum allowed refund amount, refund window, etc.
   const refundCount = existingRefunds.length;
   const totalRefunded = existingRefunds.reduce((sum, refund) => {
-    if (
-      refund.transactionStatus === "refunded" ||
-      refund.transactionStatus === "refund in progress"
-    ) {
-      return sum + (refund.amount || 0);
+    if (["refunded", "refund in progress"].includes(refund.status)) {
+      return sum + Number(refund.amount || 0);
     }
     return sum;
   }, 0);
 
-  logger.info(
-    `Refund sequence: ${refundCount + 1}, Total refunded so far: $${totalRefunded}`,
-  );
+  // Generate hash based on a time-window bucket
+  // All requests within the same N-minute window get the same bucket integer
+  const windowBucket = Math.floor(now.toMillis() / (windowMinutes * 60 * 1000));
+  const hashString = `${userId}::${clientTransactionId}::${refundAmount}::${windowBucket}`;
+  const refundHash = crypto.createHash("sha256").update(hashString).digest("hex");
 
-  // Generate unique hash with sequence number and timestamp to avoid collisions
-  const hashString = `${userId}::${clientTransactionId}::${trnAmount}::${refundCount}::${now.toMillis()}`;
-  const refundHash = crypto
-    .createHash("sha256")
-    .update(hashString)
-    .digest("hex");
-
-  // Store refund hash record with some metadata
   const refundHashRecord = {
     pk: `refundHash::${dateKey}`,
     sk: refundHash,
     userId: userId,
     clientTransactionId: clientTransactionId,
-    trnAmount: trnAmount,
+    bookingId: bookingId,
+    refundAmount: refundAmount,
     refundSequence: refundCount + 1,
     totalRefundedBefore: totalRefunded,
     createdAt: nowISO,
+    refundHash: refundHash,
+    globalId: refundHash
   };
 
-  logger.info(
-    "Inserting refund hash record for idempotency:",
-    refundHashRecord,
-  );
-
-  // Insert the refund hash record into DynamoDB
+  // Attempt to write - DynamoDB will block duplicate requests
   try {
-    await putItem(refundHashRecord, TRANSACTIONAL_DATA_TABLE_NAME);
+    await putItem(
+      refundHashRecord,
+      TRANSACTIONAL_DATA_TABLE_NAME,
+      "attribute_not_exists(pk) AND attribute_not_exists(sk)"
+    );
   } catch (error) {
-    logger.error("Error inserting refund hash record:", error.message || error);
+    if (
+      error.name === "ConditionalCheckFailedException" ||
+      error.code === "ConditionalCheckFailedException" ||
+      error.message?.includes("conditional")
+    ) {
+      throw new Exception("Duplicate refund attempt detected", { code: 409 });
+    }
+
+    if (error instanceof Exception) throw error;
+
     throw new Exception("Error inserting refund hash record", {
       code: 400,
       error: error.message || String(error),
     });
   }
 
-  // Return enhanced metadata for the refund
   return {
     refundHash,
     refundSequence: refundCount + 1,
     totalRefunded,
-    totalAfterRefund: totalRefunded + trnAmount,
+    totalAfterRefund: totalRefunded + Number(refundAmount),
   };
 }
 
 /**
- * Creates the Worldline URL for a single-payment, and inserts the refund
- * transaction details into dynamo
- * @param {object} transaction - Original transaction object
- * @param {number} refundAmount - Refund amount
- * @param {string} refundHash - Refund hash for idempotency
- * @param {object} body - Request body with optional refund reason
- * @param {string} body.reason - Reason for the refund
- * @param {number} body.refundSequence - Refund sequence number
- * @returns
+ * Issues a refund request to Worldline's process_transaction.asp legacy endpoint.
+ * 
+ * @param {Object} transaction - Original transaction record.
+ * @param {number} refundAmount - Amount to be refunded.
+ * @param {Object|string} refundHashObj - Hash result object or hash string from createAndCheckRefundHash.
+ * @param {Object} [bodyObj] - Request body containing optional refund metadata (e.g., reason).
+ * @param {string} [bodyObj.reason] - Human-readable reason for issuing the refund.
+ * @returns {Promise<Object>} Formatted object containing DynamoDB key and created refund record.
+ * @throws {Exception} 400 if original transaction ID is missing, or if Worldline declines the request.
  */
-async function createRefund(transaction, refundAmount, refundHash, obj) {
+async function createRefund(transaction, refundAmount, refundHashObj, bodyObj) {
   try {
-    // Generate a new refund transaction ID using part of the hash
-    const refundTransactionId = createWorldlineUuidWithPrefix(
-      refundHash,
-      "RFND-",
-    );
+    const hashString = typeof refundHashObj === "object"
+      ? refundHashObj.refundHash
+      : refundHashObj;
 
-    // Constructing the POST params for Worldline
+    const refundTransactionId = createWorldlineUuidWithPrefix(hashString, "RFND-");
+
+    const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
+    const hashKey = await getSecret(process.env.HASH_KEY_SECRET);
+
+    const originalWorldlineId = transaction.trnId || transaction.processorTransactionId;
+    if (!originalWorldlineId) {
+      throw new Exception("Original transaction missing Worldline ID (trnId)", { code: 400 });
+    }
+
+    // Worldline Legacy Process API
     const url = `https://web.na.bambora.com/scripts/process_transaction.asp`;
     const params = new URLSearchParams({
       requestType: "BACKEND",
-      merchant_id: MERCHANT_ID,
+      merchant_id: merchantId,
       trnType: "R",
-      adjId: transaction.trnId, // Worldline original transaction ID
-      trnAmount: `${refundAmount}`,
-      trnOrderNumber: refundTransactionId, // New refund transaction ID
+      adjId: originalWorldlineId,
+      trnAmount: `${Number(refundAmount).toFixed(2)}`,
+      trnOrderNumber: refundTransactionId,
     });
 
-    // Add hash value to params
     const paramsString = params.toString();
-    const allValues = `${paramsString}${HASH_KEY}`;
+    const allValues = `${paramsString}${hashKey}`;
     const hashValue = crypto.createHash("md5").update(allValues).digest("hex");
     params.append("hashValue", hashValue);
 
-    // Store the prepared request URL for reference (will be used by Worldline processor)
-    const refundTransactionUrl = `${url}?${params.toString()}`;
-    logger.info("Refund request prepared for:", refundTransactionId);
-    logger.info("Original transaction:", transaction.trnId);
+    logger.info(`Sending refund request to Worldline for transaction ${originalWorldlineId}`);
 
-    // Status starts as "refund in progress" - will be updated by Worldline processor
-    let transactionStatus = "refund in progress";
+    const response = await axios.post(url, params.toString(), {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
 
-    // Set part of the pk as today
+    const responseParams = new URLSearchParams(response.data);
+    const trnApproved = responseParams.get("trnApproved");
+    const trnMessageText = responseParams.get("messageText") || "Refund processed";
+    const worldlineRefundId = responseParams.get("trnId");
+
+    const isSuccess = trnApproved === "1";
+    const status = isSuccess ? "refunded" : "refund failed";
     const today = getNow().toFormat("yyyy-LL-dd");
 
-    // Items that will be inserted into dynamo for refund transaction
+    // Align PK and SK with main transaction
     const refundTransactionObj = {
-      pk: `transaction::${transaction.clientTransactionId}`,
-      sk: `refund::${refundTransactionId}`,
-      amount: refundAmount,
+      pk: `transaction::${transaction.bookingId}`,
+      sk: `refund::${today}::${refundTransactionId}`,
+      amount: Number(refundAmount),
       bookingId: transaction.bookingId,
       date: today,
       globalId: refundTransactionId,
       originalTransactionId: transaction.clientTransactionId,
-      refundReason: obj?.reason || "No reason provided",
-      refundSequence: obj?.refundSequence || 1,
+      processorRefundId: worldlineRefundId,
+      refundReason: bodyObj?.reason || "Admin initiated refund",
+      refundSequence: refundHashObj?.refundSequence || 1,
+      refundHash: refundHashObj.refundHash,
       refundTransactionId: refundTransactionId,
       schema: "refund",
-      transactionStatus: transactionStatus,
-      transactionUrl: refundTransactionUrl,
+      status: status,
+      trnMessage: trnMessageText,
       userId: transaction.userId,
     };
-    logger.info("refundTransactionObj: ", refundTransactionObj);
+
+    if (!isSuccess) {
+      throw new Exception(`Worldline refund declined: ${trnMessageText}`, {
+        code: 400,
+        data: { refundTransactionObj },
+      });
+    }
 
     return {
       key: { pk: refundTransactionObj.pk, sk: refundTransactionObj.sk },
       data: refundTransactionObj,
     };
   } catch (err) {
-    throw new Exception(`Error with building transaction: ${err}`, {
+    if (err instanceof Exception) throw err;
+    throw new Exception(`Error processing refund with Worldline: ${err.message || err}`, {
       code: 400,
     });
   }
 }
 
-// Update original transaction status after refund
 /**
- *
- * @param {obj} transaction - Original transaction object
- * @param {number} refundAmount - Amount refunded in this transaction
- * @param {string} refundTransactionId - Refund transaction ID
- * @param {number} totalAfterRefund - Total amount refunded after this refund
- * @returns - Object for updating the original transaction
+ * Builds the update payload for marking the original transaction as 'refund in progress'.
+ * 
+ * @param {Object} transaction - Original transaction object from DynamoDB.
+ * @param {number} refundAmount - Amount refunded in this transaction.
+ * @param {string} refundTransactionId - Unique refund transaction ID (RFND-xxx).
+ * @param {number} totalAfterRefund - Cumulative total refunded including this request.
+ * @returns {Promise<Object>} Update command payload structured for DynamoDB.
  */
 async function updateTransactionForRefund(
   transaction,
@@ -505,7 +544,7 @@ async function updateTransactionForRefund(
       sk: transaction.sk,
     },
     data: {
-      transactionStatus: "refund in progress", // update after Worldline processes
+      status: "refund in progress", // update after Worldline processes
       refundAmounts: { value: updatedRefundAmounts, action: "set" },
     },
   };
@@ -517,74 +556,84 @@ async function updateTransactionForRefund(
   return updateOriginalTransaction;
 }
 
-async function getAllRefundsByTransactionId(clientTransactionId) {
+/**
+ * Fetches all refund records associated with a given transaction identifier.
+ * 
+ * @param {string} bookingId - Booking ID to query.
+ * @returns {Promise<Array<Object>>} List of refund items found.
+ * @throws {Exception} 400 if the database query fails.
+ */
+async function getAllRefundsByTransactionId(bookingId) {
   logger.info(
-    "Getting all refunds by clientTransactionId:",
-    clientTransactionId,
+    "Getting all refunds by bookingId:",
+    bookingId,
   );
 
   try {
-    const pk = `transaction::${clientTransactionId}`;
+    const pk = `transaction::${bookingId}`;
     const skPrefix = `refund::`;
 
-    let refunds = [];
-    try {
-      // Query to get all refunds for the transaction
-      const refundQuery = {
-        TableName: TRANSACTIONAL_DATA_TABLE_NAME,
-        KeyConditionExpression: skPrefix
-          ? "pk = :pk AND begins_with (sk, :sk)"
-          : "pk = :pk",
-        ExpressionAttributeValues: skPrefix
-          ? {
-              ":pk": { S: pk },
-              ":sk": { S: skPrefix },
-            }
-          : {
-              ":pk": { S: pk },
-            },
-      };
-      logger.debug(`refundQuery: ${refundQuery}`);
-      const queryResult = await runQuery(refundQuery);
+    const refundQuery = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": { S: pk },
+        ":sk": { S: skPrefix },
+      },
+    };
 
-      refunds = [...queryResult.Items];
-    } catch (error) {
-      throw new Exception("Error running refund query for all items", {
-        code: 400,
-        error: error,
-      });
-    }
+    logger.debug(`refundQuery:`, refundQuery);
+    const queryResult = await runQuery(refundQuery);
 
-    return refunds;
+    return queryResult.items || [];
   } catch (error) {
+    if (error instanceof Exception) throw error;
+
     throw new Exception("Error getting all refunds by transactionId", {
       code: 400,
-      error: error,
+      error: error.message || String(error),
     });
   }
 }
 
-async function getRefundByRefundId(clientTransactionId, refundId) {
+/**
+ * Retrieves a single refund item by its unique global refund ID.
+ * 
+ * @param {string} bookingId - Booking id of the transaction.
+ * @param {string} refundId - Unique refund global ID (e.g., RFND-xxx).
+ * @returns {Promise<Object>} The refund item.
+ * @throws {Exception} 404 if refund does not exist, 400 on query error, 401 on unauthorized.
+ */
+async function getRefundByRefundId(bookingId, refundId) {
   logger.info(
-    "Getting refund by clientTransactionId and refundId:",
-    clientTransactionId,
+    "Getting refund by bookingId and refundId:",
+    bookingId,
     refundId,
   );
+
   try {
-    const pk = `transaction::${clientTransactionId}`;
-    const sk = `refund::${refundId}`;
+    const refund = await getOneByGlobalId(
+      refundId,
+      TRANSACTIONAL_DATA_TABLE_NAME,
+      "globalId",
+      "globalId-index",
+    );
 
-    const refund = await getOne(pk, sk, TRANSACTIONAL_DATA_TABLE_NAME);
-
-    if (!refund || refund.length === 0) {
+    if (!refund) {
       throw new Exception("Refund not found", { code: 404 });
+    }
+
+    if (refund.bookingId !== bookingId) {
+      throw new Exception("The bookingId provided does not match refund's bookingId", { code: 401 });
     }
 
     return refund;
   } catch (error) {
+    if (error instanceof Exception) throw error;
+
     throw new Exception("Error getting refund by refundId", {
       code: 400,
-      error: error,
+      error: error.message || String(error),
     });
   }
 }
@@ -757,7 +806,7 @@ async function processTokenTransaction(body, userId, adminId) {
   try {
     let bookingRecord = null;
     let transactionAmount = body.trnAmount || 0;
-    
+
     try {
       bookingRecord = await fetchAndValidateBooking(body.bookingId, userId);
       transactionAmount = bookingRecord.feeValues?.bookingTotal;
@@ -845,10 +894,6 @@ async function processTokenTransaction(body, userId, adminId) {
       }
     });
 
-    if (transactionObj.rawGatewayResponse) {
-      delete transactionObj.rawGatewayResponse.authorizing_merchant_id;
-    }
-
     const putItemsTransaction = await quickApiPutHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,
       [
@@ -911,7 +956,7 @@ async function processTokenTransaction(body, userId, adminId) {
 
     return {
       success: true,
-      transactionStatus: "paid",
+      status: "paid",
       clientTransactionId: clientTransactionId,
       message: paymentResult?.data?.message,
       transaction: transactionObj,
@@ -935,6 +980,7 @@ async function processTokenTransaction(body, userId, adminId) {
 }
 
 module.exports = {
+  createWorldlineUuidWithPrefix,
   createAndCheckRefundHash,
   createRefund,
   processTokenTransaction,

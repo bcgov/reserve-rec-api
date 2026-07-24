@@ -70,7 +70,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminGetFunction',
-      'src/handlers/transactions/GET',
+      'src/handlers/transactions/GET/_clientTransactionId',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -245,7 +245,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicGetFunction',
-      'src/handlers/transactions/GET',
+      'src/handlers/transactions/GET/_clientTransactionId',
       handlerName,
       {
         transDataBasicReadWrite: true,

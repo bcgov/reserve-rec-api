@@ -97,7 +97,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: "user-123",
@@ -123,7 +123,7 @@ describe("Refund Subscriber", () => {
     const mockUpdateData = {
       key: { pk: "transaction::BCPR-abc123", sk: "details" },
       data: {
-        transactionStatus: "refund in progress",
+        status: "refund in progress",
         refundAmounts: { value: [{ "RFND-xyz": 50.0 }], action: "set" },
       },
     };
@@ -185,14 +185,14 @@ describe("Refund Subscriber", () => {
     expect(result.statusCode).toBe(200);
     expect(body.message).toBe("Refunds processed");
     expect(body.results).toHaveLength(1);
-    expect(body.results[0].transactionStatus).toBe("queued_for_processing");
+    expect(body.results[0].status).toBe("queued_for_processing");
     expect(body.results[0].refundId).toBe("RFND-xyz");
   });
 
   it("should skip already fully refunded transactions", async () => {
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "refunded",
+      status: "refunded",
       userId: "user-123",
     };
 
@@ -216,14 +216,14 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("already_refunded");
+    expect(body.results[0].status).toBe("already_refunded");
     expect(createRefund).not.toHaveBeenCalled();
   });
 
   it("should skip transactions not eligible for refund", async () => {
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "in progress",
+      status: "in progress",
       userId: "user-123",
     };
 
@@ -247,7 +247,7 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("not_eligible");
+    expect(body.results[0].status).toBe("not_eligible");
     expect(body.results[0].currentStatus).toBe("in progress");
   });
 
@@ -256,7 +256,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "partial refund",
+      status: "partial refund",
       amount: 100.0,
       userId: "user-123",
     };
@@ -298,7 +298,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: "user-123",
@@ -323,7 +323,7 @@ describe("Refund Subscriber", () => {
 
     const mockUpdateData = {
       key: { pk: "transaction::BCPR-abc123", sk: "details" },
-      data: { transactionStatus: "refund in progress" },
+      data: { status: "refund in progress" },
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -371,7 +371,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: "user-123",
@@ -396,7 +396,7 @@ describe("Refund Subscriber", () => {
 
     const mockUpdateData = {
       key: { pk: "transaction::BCPR-abc123", sk: "details" },
-      data: { transactionStatus: "refund in progress" },
+      data: { status: "refund in progress" },
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -439,7 +439,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: "user-123",
@@ -449,7 +449,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-def456",
       sk: "details",
       clientTransactionId: "BCPR-def456",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 200.0,
       trnId: "worldline-456",
       userId: "user-456",
@@ -544,7 +544,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: "user-123",
@@ -569,7 +569,7 @@ describe("Refund Subscriber", () => {
 
     const mockUpdateData = {
       key: { pk: "transaction::BCPR-abc123", sk: "details" },
-      data: { transactionStatus: "refund in progress" },
+      data: { status: "refund in progress" },
     };
 
     findAndVerifyTransactionOwnership.mockResolvedValue(mockTransaction);
@@ -607,7 +607,7 @@ describe("Refund Subscriber", () => {
   it("should handle duplicate refund attempts", async () => {
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       userId: "user-123",
     };
@@ -636,7 +636,7 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("already_processed");
+    expect(body.results[0].status).toBe("already_processed");
   });
 
   it("should allow duplicate amount refunds outside the 3-minute window", async () => {
@@ -648,7 +648,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "partial refund",
+      status: "partial refund",
       amount: 100.0,
       userId: "user-123",
       refundAmounts: [{ "RFND-old123": 30.0 }],
@@ -657,7 +657,7 @@ describe("Refund Subscriber", () => {
         {
           amount: 30.0,
           createdAt: oldRefundTime.toISO(),
-          transactionStatus: "refunded",
+          status: "refunded",
         },
       ],
     };
@@ -678,12 +678,12 @@ describe("Refund Subscriber", () => {
       data: {
         amount: 30.0,
         refundTransactionId: "RFND-new456",
-        transactionStatus: "refund in progress",
+        status: "refund in progress",
       },
     });
     updateTransactionForRefund.mockResolvedValue({
       key: { pk: mockTransaction.pk, sk: "details" },
-      data: { transactionStatus: "partial refund" },
+      data: { status: "partial refund" },
     });
     quickApiPutHandler.mockResolvedValue([{ put: "item" }]);
     quickApiUpdateHandler.mockResolvedValue([{ update: "item" }]);
@@ -707,7 +707,7 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("queued_for_processing");
+    expect(body.results[0].status).toBe("queued_for_processing");
     expect(createAndCheckRefundHash).toHaveBeenCalled();
     expect(createRefund).toHaveBeenCalled();
   });
@@ -719,7 +719,7 @@ describe("Refund Subscriber", () => {
 
     const mockTransaction = {
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "partial refund",
+      status: "partial refund",
       amount: 100.0,
       userId: "user-123",
       refundAmounts: [{ "RFND-recent123": 30.0 }],
@@ -728,7 +728,7 @@ describe("Refund Subscriber", () => {
         {
           amount: 30.0,
           createdAt: recentRefundTime.toISO(), // Only 1 minute ago
-          transactionStatus: "refund in progress",
+          status: "refund in progress",
         },
       ],
     };
@@ -758,7 +758,7 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("already_processed");
+    expect(body.results[0].status).toBe("already_processed");
     expect(createAndCheckRefundHash).toHaveBeenCalled();
     expect(createRefund).not.toHaveBeenCalled();
   });
@@ -772,7 +772,7 @@ describe("Refund Subscriber", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: "BCPR-abc123",
-      transactionStatus: "partial refund",
+      status: "partial refund",
       amount: 100.0,
       userId: "user-123",
       refundAmounts: [{ "RFND-first123": 20.0 }],
@@ -781,7 +781,7 @@ describe("Refund Subscriber", () => {
         {
           amount: 20.0,
           createdAt: recentRefundTime.toISO(), // Only 1 minute ago
-          transactionStatus: "refund in progress",
+          status: "refund in progress",
         },
       ],
     };
@@ -801,12 +801,12 @@ describe("Refund Subscriber", () => {
       data: {
         amount: 50.0, // Different amount from the recent $20 refund
         refundTransactionId: "RFND-second456",
-        transactionStatus: "refund in progress",
+        status: "refund in progress",
       },
     });
     updateTransactionForRefund.mockResolvedValue({
       key: { pk: mockTransaction.pk, sk: "details" },
-      data: { transactionStatus: "partial refund" },
+      data: { status: "partial refund" },
     });
     quickApiPutHandler.mockResolvedValue([{ put: "item" }]);
     quickApiUpdateHandler.mockResolvedValue([{ update: "item" }]);
@@ -830,7 +830,7 @@ describe("Refund Subscriber", () => {
     const result = await handler(event, context);
 
     const body = JSON.parse(result.body);
-    expect(body.results[0].transactionStatus).toBe("queued_for_processing");
+    expect(body.results[0].status).toBe("queued_for_processing");
     expect(createAndCheckRefundHash).toHaveBeenCalled();
     expect(createRefund).toHaveBeenCalledWith(
       mockTransaction,

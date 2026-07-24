@@ -81,7 +81,7 @@ function makeEvent({ sub, queryStringParameters = {} }) {
 // Example transaction
 const baseTransaction = {
   success: true,
-  transactionStatus: "paid",
+  status: "paid",
   trnId: "transaction_123",
   message: "a message",
   transaction: {

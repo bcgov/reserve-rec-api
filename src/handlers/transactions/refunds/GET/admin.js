@@ -13,15 +13,15 @@ exports.handler = async (event, context) => {
   try {
     // Get relevant data from the event
     // Search by ID
-    const clientTransactionId =
-      event?.pathParameters?.clientTransactionId ||
-      event?.queryStringParameters?.clientTransactionId;
+    const bookingId =
+      event?.pathParameters?.bookingId ||
+      event?.queryStringParameters?.bookingId;
     
     const refundId =
       event?.pathParameters?.refundId ||
       event?.queryStringParameters?.refundId;
 
-    if (!clientTransactionId) {
+    if (!bookingId) {
       throw new Exception("Required items are missing", { code: 400 });
     }
 
@@ -31,12 +31,12 @@ exports.handler = async (event, context) => {
     // otherwise, get the specific refund
     if (!refundId) {
       refunds = await getAllRefundsByTransactionId(
-        clientTransactionId,
+        bookingId,
         refundId
       );
     } else {
       refunds = await getRefundByRefundId(
-        clientTransactionId,
+        bookingId,
         refundId
       );
     }

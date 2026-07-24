@@ -51,9 +51,9 @@ jest.mock("/opt/base", () => {
         }
         return { ...claims, role };
       }
-      // If credentials are completely missing, return a "guest" context
-      // so the handler's manual !adminId check handles it and throws its unique error message
-      return { role: "guest" };
+      throw new mockException("Unauthorized: Authentication required", {
+        code: 401,
+      });
     }),
     writeAuditLog: jest.fn().mockResolvedValue(undefined),
   };
@@ -87,7 +87,11 @@ function makeToken(sub) {
   return `header.${base64Payload}.signature`;
 }
 
-function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_ADMIN_ID, body = {} } = {}) {
+function makeEvent({
+  bookingId = MOCK_BOOKING_ID,
+  sub = MOCK_ADMIN_ID,
+  body = {},
+} = {}) {
   const headers = sub ? { Authorization: `Bearer ${makeToken(sub)}` } : {};
   return {
     httpMethod: "POST",
@@ -99,7 +103,7 @@ function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_ADMIN_ID, body = {}
 
 const baseTransaction = {
   success: true,
-  transactionStatus: "paid",
+  status: "paid",
   trnId: "transaction_123",
   message: "a message",
   transaction: {
@@ -111,7 +115,7 @@ const baseTransaction = {
     date: DATE,
     globalId: TRANSACTION_ID,
     schema: "transaction",
-    transactionStatus: "paid",
+    status: "paid",
     transactionUrl: "token-payment",
     userId: MOCK_USER_ID,
     trnId: "trn_123",
@@ -149,7 +153,7 @@ describe("Admin Transaction POST handler", () => {
 
     const resultRes = result.data.response
     expect(resultRes.success).toBe(true);
-    expect(resultRes.transactionStatus).toBe('paid');
+    expect(resultRes.status).toBe('paid');
   });
 
   // Malformed or missing transaction items tests

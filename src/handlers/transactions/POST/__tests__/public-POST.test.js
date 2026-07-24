@@ -90,7 +90,7 @@ function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_USER_ID, body = {} 
 
 const baseTransaction = {
   success: true,
-  transactionStatus: "paid",
+  status: "paid",
   trnId: "transaction_123",
   message: "a message",
   transaction: {
@@ -102,7 +102,7 @@ const baseTransaction = {
     date: DATE,
     globalId: TRANSACTION_ID,
     schema: "transaction",
-    transactionStatus: "paid",
+    status: "paid",
     transactionUrl: "token-payment",
     userId: MOCK_USER_ID,
     trnId: "trn_123",
@@ -141,7 +141,7 @@ describe("Public Transaction POST handler", () => {
 
     const resultRes = result.data.response
     expect(resultRes.success).toBe(true);
-    expect(resultRes.transactionStatus).toBe('paid');
+    expect(resultRes.status).toBe('paid');
   });
 
   // Malformed or missing transaction items tests
