@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
       flags: body.flags,
       metadata: {
         lastUpdated: timestamp,
-        updatedBy: authContext.cognitoSub || 'unknown',
+        updatedBy: authContext.userId || 'unknown',
         updatedByUsername: authContext.username || 'unknown'
       },
       version: (currentConfig?.version || 0) + 1
@@ -55,13 +55,13 @@ exports.handler = async (event, context) => {
 
     // Write audit log
     await writeAuditLog(
-      authContext.cognitoSub,
+      authContext.userId,
       'featureFlags',
       'FEATURE_FLAGS_UPDATE',
       {
         previousFlags,
         newFlags: body.flags,
-        changedBy: authContext.username || authContext.cognitoSub,
+        changedBy: authContext.username || authContext.userId,
         timestamp
       },
       marshall,
@@ -69,7 +69,7 @@ exports.handler = async (event, context) => {
       AUDIT_TABLE_NAME
     );
 
-    logger.info('Feature flags updated successfully', { updatedBy: authContext.cognitoSub, newFlags: body.flags });
+    logger.info('Feature flags updated successfully', { updatedBy: authContext.userId, newFlags: body.flags });
 
     return sendResponse(200, {
       flags: updatedConfig.flags,

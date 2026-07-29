@@ -17,7 +17,7 @@ const bookingIndexMappingOptions = {
         keyword: { type: 'keyword' }
       }
     },
-    bookingStatus: { type: 'keyword' },
+    status: { type: 'keyword' },
     bookedAt: { type: 'date' },
     userId: { type: 'keyword' },
     activityType: { type: 'keyword' },

@@ -36,7 +36,7 @@ const now = Math.floor(Date.now() / 1000);
 const validEntry = {
   pk: queueId,
   sk: 'ENTRY#test-user-123',
-  cognitoSub: 'test-user-123',
+  userId: 'test-user-123',
   status: 'admitted',
   facilityKey: 'golden-ears#camping#standard-sites',
   dateKey: '2025-06-15',

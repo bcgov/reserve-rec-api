@@ -83,6 +83,12 @@ const COLLECTION_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    timezone: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, TIMEZONE_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
   }
 };
 
@@ -130,6 +136,12 @@ const COLLECTION_API_UPDATE_CONFIG = {
     searchTerms: {
       rulesFn: ({ value, action }) => {
         rf.expectArray(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    timezone: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, TIMEZONE_ENUMS);
         rf.expectAction(action, ['set']);
       }
     },

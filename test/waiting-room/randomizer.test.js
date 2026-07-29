@@ -22,7 +22,7 @@ function makeEntries(count) {
   return Array.from({ length: count }, (_, i) => ({
     pk: queueId,
     sk: `ENTRY#user-${i}`,
-    cognitoSub: `user-${i}`,
+    userId: `user-${i}`,
     clientIp: `10.0.0.${i % 10}`,
     status: 'waiting',
     facilityKey: 'golden-ears#camping#standard-sites',

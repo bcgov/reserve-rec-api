@@ -23,7 +23,7 @@ exports.handler = async (event, context) => {
     if (!claims || !claims.sub) {
       throw new Exception('Authentication required', { code: 401 });
     }
-    const cognitoSub = claims.sub;
+    const userId = claims.sub;
 
     // Parse and validate the admission cookie
     const cookieHeader = event.headers?.cookie || event.headers?.Cookie || '';
@@ -51,7 +51,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    if (payload.sid !== cognitoSub) {
+    if (payload.sid !== userId) {
       return {
         statusCode: 403,
         headers: {
@@ -70,7 +70,7 @@ exports.handler = async (event, context) => {
     }
 
     // Verify the queue entry is still admitted
-    const entry = await getQueueEntry(queueId, cognitoSub);
+    const entry = await getQueueEntry(queueId, userId);
     if (!entry || entry.status !== 'admitted') {
       return {
         statusCode: 403,
@@ -88,7 +88,7 @@ exports.handler = async (event, context) => {
 
     // Check absolute max admission time
     if (now >= maxExpiryTime) {
-      await updateQueueEntryStatus(queueId, cognitoSub, 'expired', 'admitted');
+      await updateQueueEntryStatus(queueId, userId, 'expired', 'admitted');
       return {
         statusCode: 403,
         headers: {
@@ -104,10 +104,10 @@ exports.handler = async (event, context) => {
     const newTtlMinutes = Math.ceil((newExpiry - now) / 60);
 
     // Generate refreshed token
-    const newToken = generateToken(cognitoSub, payload.fk, payload.dk, hmacKey, newTtlMinutes);
+    const newToken = generateToken(userId, payload.fk, payload.dk, hmacKey, newTtlMinutes);
 
     // Update DynamoDB — conditional on entry still being 'admitted'
-    const updated = await updateQueueEntryStatus(queueId, cognitoSub, 'admitted', 'admitted', {
+    const updated = await updateQueueEntryStatus(queueId, userId, 'admitted', 'admitted', {
       admissionToken: newToken,
       admissionExpiry: newExpiry,
     });
@@ -124,7 +124,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    logger.info(`Heartbeat extended admission for ${cognitoSub}, new expiry: ${newExpiry}`);
+    logger.info(`Heartbeat extended admission for ${userId}, new expiry: ${newExpiry}`);
 
     return {
       statusCode: 200,

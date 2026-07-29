@@ -222,8 +222,8 @@ describe('close-queue handler', () => {
     db.getQueueMeta.mockResolvedValue({ queueStatus: 'releasing' });
     db.updateQueueMetaStatus.mockResolvedValue({});
     db.queryQueueEntries.mockResolvedValue([
-      { pk: queueId, cognitoSub: 'user1' },
-      { pk: queueId, cognitoSub: 'user2' },
+      { pk: queueId, userId: 'user1' },
+      { pk: queueId, userId: 'user2' },
     ]);
     db.updateQueueEntryStatus.mockResolvedValue({});
 
@@ -240,8 +240,8 @@ describe('close-queue handler', () => {
     db.getQueueMeta.mockResolvedValue({ queueStatus: 'releasing' });
     db.updateQueueMetaStatus.mockResolvedValue({});
     db.queryQueueEntries.mockResolvedValue([
-      { pk: queueId, cognitoSub: 'user1', connectionId: 'conn-1' },
-      { pk: queueId, cognitoSub: 'user2', connectionId: 'conn-2' },
+      { pk: queueId, userId: 'user1', connectionId: 'conn-1' },
+      { pk: queueId, userId: 'user2', connectionId: 'conn-2' },
     ]);
     db.updateQueueEntryStatus.mockResolvedValue({});
     mockWsSend.mockResolvedValue({});

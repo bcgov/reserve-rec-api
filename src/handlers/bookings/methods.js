@@ -511,6 +511,12 @@ async function validateBookingRequest(product, productDates, props) {
 
     logger.debug(`Validating booking request against ProductDate data for each day of the booking...`);
 
+    // Vehicle parking day-use passes are one pass per booking (one vehicle).
+    // The public site caps the selector at 1; enforce it server-side too (#566).
+    if (product?.activitySubType === 'vehicleParking' && Number(props?.invQuantity) > 1) {
+      throw `Vehicle parking passes are limited to one pass per booking`;
+    }
+
     for (const productDate of productDates?.items) {
 
       console.log('productDate', productDate);
@@ -765,6 +771,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
       activityType: activityType,
+      activitySubType: product.activitySubType,
       activityId: activityId,
       productId: productId,
       startDate: startDate,
@@ -833,6 +840,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
         }))
         : [],
       equipmentInformation: sanitizeString(props.equipmentInformation, 1000),
+      quantity: props?.invQuantity,
       feePolicySnapshot: deleteEmptyAttributes(product.feePolicy),
       bookingDates: bookingDateItems.map((bd) => {
         return {
@@ -1228,14 +1236,29 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
 
     const emailParams = await generateEmailParams(completeBookingForEmail);
 
-    // Return the update + email params for the handler to commit and dispatch
-    // in that order. We intentionally do NOT send the email here: the SQS
-    // enqueue must happen *after* batchTransactData succeeds, otherwise a
-    // failed DynamoDB write would leave the user with a confirmation email
-    // for a booking that was never saved.
+    // SMS confirmation params, dispatched by the handler alongside the email.
+    // The opt-in flag arrives with the FE complete request — post-#404 the FE
+    // no longer sends identity/opt-in fields at create — so prefer it here and
+    // fall back to the value captured on the booking record for server-side
+    // completions. The phone is the Cognito-resolved number now stored on the
+    // finalized booking (completeBookingForEmail.namedOccupant.contactInfo).
+    const smsParams = {
+      ...completeBookingForEmail,
+      smsOptIn:
+        typeof props?.smsOptIn === 'boolean'
+          ? props.smsOptIn
+          : Boolean(completeBookingForEmail?.smsOptIn),
+    };
+
+    // Return the update + notification params for the handler to commit and
+    // dispatch in that order. We intentionally do NOT send the email/SMS here:
+    // the SQS enqueue must happen *after* batchTransactData succeeds, otherwise
+    // a failed DynamoDB write would leave the user with a confirmation for a
+    // booking that was never saved.
     return {
       updateRequests: bookingUpdateRequest,
       emailParams,
+      smsParams,
     };
 
 
@@ -1296,20 +1319,52 @@ async function generateEmailParams(booking) {
       ? `${publicDomain}/account/bookings/cancel/${booking.bookingId}`
       : null;
 
+    // Derive arrival/departure from the booking-date items. Each item carries
+    // the resolved reservation context whose temporalAnchors (checkInTime /
+    // checkOutTime) are epoch-millis values the email's formatDate/formatTime
+    // helpers can render directly — giving both the date and the time of day.
+    // We sort by date so the first item is arrival and the last is departure.
+    // (The prior code read `reservationContext.arrivalDate.ts`, which never
+    // existed on the booking — arrivalDate is stored as a plain date string —
+    // so Arrival/Departure silently dropped out of the email.)
+    const dateItems = (bookingDates?.items || [])
+      .filter((item) => item.date)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const firstDay = dateItems[0];
+    const lastDay = dateItems[dateItems.length - 1];
+    const arrivalDate = firstDay?.reservationContext?.temporalAnchors?.checkInTime || firstDay?.date || null;
+    const departureDate = lastDay?.reservationContext?.temporalAnchors?.checkOutTime || lastDay?.date || null;
+
+    // Clean product/pass name (e.g. "Lindsay's Loop Trail - AM"), without the
+    // date suffix that `displayName` carries.
+    const productName = booking.productDisplayName || booking.displayName;
+
+    // Friendly pass-type label for the booking-card subtitle (matches the
+    // confirmation design, e.g. "Day-use pass"). Falls back to the capitalized
+    // raw activityType for any type without an explicit label.
+    const ACTIVITY_TYPE_LABELS = {
+      dayuse: 'Day-use pass',
+      frontcountryCamp: 'Frontcountry camping',
+      backcountryCamp: 'Backcountry camping',
+      groupCamp: 'Group camping',
+      boating: 'Boating',
+      cabinStay: 'Cabin stay',
+      canoe: 'Canoe',
+    };
+    const activityTypeLabel = ACTIVITY_TYPE_LABELS[booking.activityType]
+      || (booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Pass');
+
     const emailParams = {
       booking: {
         bookingId: booking.bookingId,
         displayName: booking.displayName,
-        invQuantity: bookingDates?.items?.reduce((total, item) => {
-          const dailyInventory = item.quantity || 0;
-          return total + dailyInventory;
-        }, 0),
-        arrivalDate: booking.reservationContext?.arrivalDate?.ts,
-        departureDate: booking.reservationContext?.departureDate?.ts,
+        invQuantity: dateItems.reduce((total, item) => total + (item.quantity || 0), 0),
+        arrivalDate,
+        departureDate,
         accountBookingUrl,
         activityType: booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Activity',
-        productName: booking.displayName,
-        qrCodeDataUrl: null,
+        activityTypeLabel,
+        productName,
         cancellationUrl,
         namedOccupant: booking.namedOccupant || {},
       },
@@ -1373,7 +1428,7 @@ function validateBookingCompletion(booking, sessionId, props) {
   } catch (error) {
     logger.error(`Error validating booking completion for booking ID ${booking?.bookingId}.`, {
       error: error.message || String(error),
-      bookingStatus: booking?.status,
+      status: booking?.status,
       sessionExpiry: booking?.sessionExpiry,
       queryTime: props?.queryTime,
       hasNamedOccupant: !!props?.namedOccupant,
@@ -1394,7 +1449,7 @@ async function cancelBooking(bookingId, userId, reason = null) {
     }
 
     // Check if already cancelled
-    if (booking.bookingStatus === "cancelled") {
+    if (booking.status === "cancelled") {
       throw new Exception(`Booking ${bookingId} is already cancelled`, {
         code: 400,
       });
@@ -1404,7 +1459,7 @@ async function cancelBooking(bookingId, userId, reason = null) {
     return {
       key: { pk: booking.pk, sk: booking.sk },
       data: {
-        bookingStatus: "cancelled",
+        status: "cancelled",
         cancellationReason: reason || "Customer requested cancellation",
         cancelledAt: new Date().toISOString(),
       },

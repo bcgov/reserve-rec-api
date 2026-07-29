@@ -336,26 +336,8 @@ function checkAuthContext(event, requiredTier = null, collectionId = null) {
 
 function getRequestClaimsFromEvent(event) {
   try {
-    // Check Authorization header for JWT token
-    const authHeader = event.headers?.Authorization || event.headers?.authorization;
-    if (authHeader) {
-      // Try to decode as JWT (Bearer token for authenticated users)
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        // JWT format: header.payload.signature
-        const payloadBase64 = token.split('.')[1];
-        if (payloadBase64) {
-          const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
-          const payload = JSON.parse(payloadJson);
-          logger.info('Decoded JWT claims from Authorization header:', payload.sub);
-          return payload;
-        }
-      } catch (jwtError) {
-        logger.error('Failed to decode JWT from Authorization header:', jwtError);
-      }
-    }
-
-    // First check if this is an authenticated request via authorizer context
+    // No longer decoding raw headers
+    // Trusting only the authorizer context
     const authContext = event.requestContext?.authorizer;
 
     if (authContext) {
@@ -385,8 +367,7 @@ function getRequestClaimsFromEvent(event) {
       }
     }
 
-    // No authentication found
-    logger.info('No authentication found - no claims available');
+    logger.info('No authenticated context found');
     return null;
   } catch (error) {
     logger.error(`Error retrieving request claims: ${error.message}`);
@@ -439,18 +420,18 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
   try {
     const timestamp = new Date().toISOString();
 
-    const auditRecord = {
-      pk: marshallFn(user),
-      sk: marshallFn(timestamp),
-      gsipk: marshallFn(`entity::${entityId}`),
-      gsisk: marshallFn(timestamp),
-      operation: marshallFn(operation),
-      metadata: marshallFn({
+    const auditRecord = marshallFn({
+      pk: user,
+      sk: timestamp,
+      gsipk: `entity::${entityId}`,
+      gsisk: timestamp,
+      operation: operation,
+      metadata: {
         entityId,
         ...metadata,
         timestamp
-      })
-    };
+      }
+    }, { removeUndefinedValues: true });
 
     await batchWriteFn([auditRecord], 25, auditTableName);
     logger.debug('Audit log written', { user, entityId, operation });

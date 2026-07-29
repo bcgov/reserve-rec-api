@@ -39,6 +39,7 @@ class VerifyConstruct extends LambdaConstruct {
       'admin.handler',
       {
         transDataBasicRead: true,
+        memorySize: 256,
       }
     );
 
@@ -53,6 +54,9 @@ class VerifyConstruct extends LambdaConstruct {
     
     // Add permissions to read from reference data table (for access points)
     this.grantBasicRefDataTableRead(this.verifyGetFunction);
+
+    // Add permissions to write audit logs
+    this.grantAuditTableWrite(this.verifyGetFunction);
   }
 }
 

@@ -84,14 +84,14 @@ async function handleMode2Release(queueId, queueMeta, force = false) {
   let failCount = 0;
 
   for (const entry of batch) {
-    const cognitoSub = entry.cognitoSub;
+    const userId = entry.userId;
     const admissionExpiry = now + ADMISSION_TTL_MINUTES * 60;
 
-    const token = generateToken(cognitoSub, facilityKey, '', hmacKey, ADMISSION_TTL_MINUTES);
+    const token = generateToken(userId, facilityKey, '', hmacKey, ADMISSION_TTL_MINUTES);
 
-    const set = await setEntryAdmitting(queueId, cognitoSub, token, admissionExpiry);
+    const set = await setEntryAdmitting(queueId, userId, token, admissionExpiry);
     if (!set) {
-      logger.warn(`Mode2: could not set admitting for ${cognitoSub} (status changed)`);
+      logger.warn(`Mode2: could not set admitting for ${userId} (status changed)`);
       failCount++;
       continue;
     }
@@ -100,10 +100,10 @@ async function handleMode2Release(queueId, queueMeta, force = false) {
     // Always mark admitted — if WS push failed the user has no active connection,
     // but they will be admitted on their next page load: the join handler returns
     // status='admitted' which triggers handleAdmission() → claim → redirect.
-    await setEntryAdmitted(queueId, cognitoSub);
+    await setEntryAdmitted(queueId, userId);
     successCount++;
     if (!pushed) {
-      logger.info(`Mode2: admitted ${cognitoSub} without WS push (will claim on next page load)`);
+      logger.info(`Mode2: admitted ${userId} without WS push (will claim on next page load)`);
     }
   }
 
@@ -193,16 +193,16 @@ exports.handler = async (event, context) => {
     let failCount = 0;
 
     for (const entry of batch) {
-      const cognitoSub = entry.cognitoSub;
+      const userId = entry.userId;
       const admissionExpiry = now + ADMISSION_TTL_MINUTES * 60;
 
       // Generate admission token
-      const token = generateToken(cognitoSub, entry.facilityKey, entry.dateKey, hmacKey, ADMISSION_TTL_MINUTES);
+      const token = generateToken(userId, entry.facilityKey, entry.dateKey, hmacKey, ADMISSION_TTL_MINUTES);
 
       // Phase 1: transition to 'admitting' with token
-      const set = await setEntryAdmitting(queueId, cognitoSub, token, admissionExpiry);
+      const set = await setEntryAdmitting(queueId, userId, token, admissionExpiry);
       if (!set) {
-        logger.warn(`Could not set admitting for ${cognitoSub} (status changed)`);
+        logger.warn(`Could not set admitting for ${userId} (status changed)`);
         failCount++;
         continue;
       }
@@ -212,14 +212,14 @@ exports.handler = async (event, context) => {
 
       if (pushed) {
         // Success — transition to 'admitted'
-        await setEntryAdmitted(queueId, cognitoSub);
+        await setEntryAdmitted(queueId, userId);
         successCount++;
       } else {
         // Stale connection — revert to 'waiting' and free the reserved slot
-        await updateQueueEntryStatus(queueId, cognitoSub, 'waiting', 'admitting');
+        await updateQueueEntryStatus(queueId, userId, 'waiting', 'admitting');
         await decrementAdmittedCount(queueId, 1);
         failCount++;
-        logger.info(`Reverted ${cognitoSub} to waiting (no WebSocket connection)`);
+        logger.info(`Reverted ${userId} to waiting (no WebSocket connection)`);
       }
     }
 

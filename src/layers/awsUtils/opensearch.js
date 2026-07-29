@@ -36,6 +36,7 @@ const nonKeyableTerms = [
   "distance",
   "distanceUnits",
   "filters",
+  "from",
   "fuzzy",
   "fuzziness",
   "geoshape",
@@ -309,6 +310,22 @@ class OSQuery {
           [rangeStartOperator]: rangeStart,
           [rangeEndOperator]: rangeEnd,
         },
+      },
+    });
+  }
+
+  /**
+   * Adds an exists query rule to the OpenSearch query.
+   * Returns documents that contain any indexed value for the field.
+   *
+   * @param {string} field - The field to check for existence.
+   * @param {boolean} exists - If true (default), returns docs where field exists. If false, returns docs where field does NOT exist.
+   */
+  addExistsQueryRule(field, exists = true) {
+    const clause = exists ? "must" : "must_not";
+    setNestedValue(this.query, ["bool", clause], {
+      exists: {
+        field: field,
       },
     });
   }
@@ -604,11 +621,14 @@ async function bulkWriteDocuments(
             _id: item.id,
           },
         });
+        
         if (action === "update") {
           bulkIndexChunk.push({
             doc: item,
-            doc_as_upsert: true, // Create if it doesn't exist
+            doc_as_upsert: true, // Merges data, ignores missing fields
           });
+        } else if (action === "index" || action === "create") {
+          bulkIndexChunk.push(item); // Full replacement of the document
         }
       }
       // Execute the bulk operation for the current chunk

@@ -7,7 +7,7 @@ const {
   getQueueEntry,
   putQueueEntry,
   incrementQueueTotalEntries,
-  queryEntriesByCognitoSub,
+  queryEntriesByUserId,
   queryEntriesByClientIp,
   abandonQueueEntry,
   incrementAbandonedCount,
@@ -25,7 +25,7 @@ exports.handler = async (event, context) => {
     if (!claims || !claims.sub) {
       throw new Exception('Authentication required', { code: 401 });
     }
-    const cognitoSub = claims.sub;
+    const userId = claims.sub;
 
     const body = JSON.parse(event?.body || '{}');
     const { collectionId, activityType, activityId, startDate } = body;
@@ -44,7 +44,7 @@ exports.handler = async (event, context) => {
 
     // Check for existing entry BEFORE checking queue status — an admitted user who
     // reloads the page after queue closes should get their admission status back.
-    const existingEntries = await queryEntriesByCognitoSub(cognitoSub);
+    const existingEntries = await queryEntriesByUserId(userId);
     for (const entry of existingEntries) {
       if (entry.pk === queueId) {
         // Already in this queue — idempotent return (works even if queue is closed)
@@ -57,9 +57,9 @@ exports.handler = async (event, context) => {
         }, 'Already joined this queue');
       }
       // In a different queue — abandon it
-      await abandonQueueEntry(entry.pk, cognitoSub);
+      await abandonQueueEntry(entry.pk, userId);
       await incrementAbandonedCount(entry.pk, 1);
-      logger.info(`Abandoned previous queue entry: ${entry.pk} for user ${cognitoSub}`);
+      logger.info(`Abandoned previous queue entry: ${entry.pk} for user ${userId}`);
     }
 
     // No existing entry — reject if queue is closed
@@ -82,13 +82,13 @@ exports.handler = async (event, context) => {
           const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION || 'ca-central-1' });
           const userResult = await cognitoClient.send(new AdminGetUserCommand({
             UserPoolId: process.env.COGNITO_USER_POOL_ID,
-            Username: cognitoSub,
+            Username: userId,
           }));
           if (userResult.UserCreateDate) {
             accountCreatedAt = Math.floor(new Date(userResult.UserCreateDate).getTime() / 1000);
           }
         } catch (err) {
-          logger.warn(`Could not fetch account creation time for ${cognitoSub}: ${err.message}. Skipping age check.`);
+          logger.warn(`Could not fetch account creation time for ${userId}: ${err.message}. Skipping age check.`);
         }
       } else {
         logger.warn('MIN_ACCOUNT_AGE_HOURS set but cognito:user_creation_date claim unavailable and COGNITO_USER_POOL_ID not configured — age check skipped');
@@ -129,8 +129,8 @@ exports.handler = async (event, context) => {
 
     const entry = {
       pk: queueId,
-      sk: `ENTRY#${cognitoSub}`,
-      cognitoSub,
+      sk: `ENTRY#${userId}`,
+      userId,
       clientIp,
       facilityKey,
       dateKey: startDate,
@@ -143,7 +143,7 @@ exports.handler = async (event, context) => {
     // Strongly-consistent read before write — the GSI check above is eventually
     // consistent and may miss an active entry created milliseconds earlier.
     // This prevents unconditional PutItem from overwriting an admitted/admitting entry.
-    const existingEntry = await getQueueEntry(queueId, cognitoSub);
+    const existingEntry = await getQueueEntry(queueId, userId);
     if (existingEntry && ['waiting', 'admitting', 'admitted'].includes(existingEntry.status)) {
       return sendResponse(200, {
         queueId,
@@ -159,7 +159,7 @@ exports.handler = async (event, context) => {
     // Increment queue's totalEntries count
     await incrementQueueTotalEntries(queueId);
 
-    logger.info(`User ${cognitoSub} joined queue ${queueId}`);
+    logger.info(`User ${userId} joined queue ${queueId}`);
 
     return sendResponse(200, {
       queueId,

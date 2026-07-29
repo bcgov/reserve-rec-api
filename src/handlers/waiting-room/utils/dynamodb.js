@@ -35,8 +35,8 @@ function buildMetaSk() {
   return 'META';
 }
 
-function buildEntrySk(cognitoSub) {
-  return `ENTRY#${cognitoSub}`;
+function buildEntrySk(userId) {
+  return `ENTRY#${userId}`;
 }
 
 // ─── Queue Meta operations ────────────────────────────────────────────────────
@@ -213,10 +213,10 @@ async function decrementAdmittedCount(queueId, count) {
 /**
  * Reads a Queue Entry record.
  */
-async function getQueueEntry(queueId, cognitoSub) {
+async function getQueueEntry(queueId, userId) {
   const result = await getClient().send(new GetItemCommand({
     TableName: TABLE_NAME,
-    Key: marshall({ pk: queueId, sk: buildEntrySk(cognitoSub) }),
+    Key: marshall({ pk: queueId, sk: buildEntrySk(userId) }),
   }));
   return result.Item ? unmarshall(result.Item) : null;
 }
@@ -235,13 +235,13 @@ async function putQueueEntry(item) {
  * Updates a Queue Entry's status with optional condition.
  *
  * @param {string} queueId
- * @param {string} cognitoSub
+ * @param {string} userId
  * @param {string} newStatus
  * @param {string|null} expectedStatus - If provided, only updates if current status matches
  * @param {object} extraUpdates - Additional SET expressions (attribute: value pairs)
  * @returns {boolean} true if updated, false if condition failed
  */
-async function updateQueueEntryStatus(queueId, cognitoSub, newStatus, expectedStatus = null, extraUpdates = {}) {
+async function updateQueueEntryStatus(queueId, userId, newStatus, expectedStatus = null, extraUpdates = {}) {
   const setExpressions = ['#status = :newStatus', 'updatedAt = :now'];
   const attrNames = { '#status': 'status' };
   const attrValues = {
@@ -257,7 +257,7 @@ async function updateQueueEntryStatus(queueId, cognitoSub, newStatus, expectedSt
 
   const params = {
     TableName: TABLE_NAME,
-    Key: marshall({ pk: queueId, sk: buildEntrySk(cognitoSub) }),
+    Key: marshall({ pk: queueId, sk: buildEntrySk(userId) }),
     UpdateExpression: `SET ${setExpressions.join(', ')}`,
     ExpressionAttributeNames: attrNames,
     ExpressionAttributeValues: marshall(attrValues),
@@ -283,8 +283,8 @@ async function updateQueueEntryStatus(queueId, cognitoSub, newStatus, expectedSt
 /**
  * Sets an entry to 'abandoned' status (used when user joins a new queue).
  */
-async function abandonQueueEntry(queueId, cognitoSub) {
-  return updateQueueEntryStatus(queueId, cognitoSub, 'abandoned', null, {
+async function abandonQueueEntry(queueId, userId) {
+  return updateQueueEntryStatus(queueId, userId, 'abandoned', null, {
     abandonedAt: Math.floor(Date.now() / 1000),
   });
 }
@@ -292,10 +292,10 @@ async function abandonQueueEntry(queueId, cognitoSub) {
 /**
  * Sets disconnectedAt on a Queue Entry (called by WebSocket disconnect handler).
  */
-async function setDisconnectedAt(queueId, cognitoSub) {
+async function setDisconnectedAt(queueId, userId) {
   await getClient().send(new UpdateItemCommand({
     TableName: TABLE_NAME,
-    Key: marshall({ pk: queueId, sk: buildEntrySk(cognitoSub) }),
+    Key: marshall({ pk: queueId, sk: buildEntrySk(userId) }),
     UpdateExpression: 'SET disconnectedAt = :now',
     ExpressionAttributeValues: marshall({ ':now': Math.floor(Date.now() / 1000) }),
   }));
@@ -304,10 +304,10 @@ async function setDisconnectedAt(queueId, cognitoSub) {
 /**
  * Sets a connectionId on a Queue Entry (called by WebSocket connect handler).
  */
-async function setConnectionId(queueId, cognitoSub, connectionId) {
+async function setConnectionId(queueId, userId, connectionId) {
   await getClient().send(new UpdateItemCommand({
     TableName: TABLE_NAME,
-    Key: marshall({ pk: queueId, sk: buildEntrySk(cognitoSub) }),
+    Key: marshall({ pk: queueId, sk: buildEntrySk(userId) }),
     UpdateExpression: 'SET connectionId = :cid REMOVE disconnectedAt',
     ExpressionAttributeValues: marshall({ ':cid': connectionId }),
   }));
@@ -317,8 +317,8 @@ async function setConnectionId(queueId, cognitoSub, connectionId) {
  * Sets an entry to 'admitting' with the admission token.
  * Used by Release Lambda (phase 1 of two-phase admission).
  */
-async function setEntryAdmitting(queueId, cognitoSub, admissionToken, admissionExpiry) {
-  return updateQueueEntryStatus(queueId, cognitoSub, 'admitting', 'waiting', {
+async function setEntryAdmitting(queueId, userId, admissionToken, admissionExpiry) {
+  return updateQueueEntryStatus(queueId, userId, 'admitting', 'waiting', {
     admissionToken,
     admissionExpiry,
     admittedAt: Math.floor(Date.now() / 1000),
@@ -329,8 +329,8 @@ async function setEntryAdmitting(queueId, cognitoSub, admissionToken, admissionE
  * Sets an entry from 'admitting' to 'admitted'.
  * Used by Release Lambda after successful WebSocket push.
  */
-async function setEntryAdmitted(queueId, cognitoSub) {
-  return updateQueueEntryStatus(queueId, cognitoSub, 'admitted', 'admitting');
+async function setEntryAdmitted(queueId, userId) {
+  return updateQueueEntryStatus(queueId, userId, 'admitted', 'admitting');
 }
 
 // ─── Query operations ─────────────────────────────────────────────────────────
@@ -378,23 +378,23 @@ async function queryQueueEntries(queueId, options = {}) {
 }
 
 /**
- * Queries entries for a user across all queues via the cognitoSub GSI.
+ * Queries entries for a user across all queues via the userId GSI.
  * Used for one-queue-at-a-time enforcement.
  *
- * @param {string} cognitoSub
+ * @param {string} userId
  * @param {string[]} activeStatuses - Only return entries with these statuses
  * @returns {Promise<object[]>}
  */
-async function queryEntriesByCognitoSub(cognitoSub, activeStatuses = ['waiting', 'admitting', 'admitted']) {
+async function queryEntriesByUserId(userId, activeStatuses = ['waiting', 'admitting', 'admitted']) {
   const statusPlaceholders = activeStatuses.map((_, i) => `:s${i}`);
 
   const params = {
     TableName: TABLE_NAME,
-    IndexName: 'cognitoSub-index',
-    KeyConditionExpression: 'cognitoSub = :sub',
+    IndexName: 'userId-index',
+    KeyConditionExpression: 'userId = :sub',
     FilterExpression: `#status IN (${statusPlaceholders.join(', ')})`,
     ExpressionAttributeNames: { '#status': 'status' },
-    ExpressionAttributeValues: marshall({ ':sub': cognitoSub }),
+    ExpressionAttributeValues: marshall({ ':sub': userId }),
   };
   for (let i = 0; i < activeStatuses.length; i++) {
     params.ExpressionAttributeValues[`:s${i}`] = { S: activeStatuses[i] };
@@ -521,20 +521,20 @@ async function scanExpiredEntries(status, expiredAttr = null, expiryThreshold = 
 
 // ─── Connection record operations ─────────────────────────────────────────────
 // Stored as pk=CONN#{connectionId}, sk=META
-// Used to look up (queueId, cognitoSub) in the $disconnect handler.
+// Used to look up (queueId, userId) in the $disconnect handler.
 
 /**
- * Writes a connection record mapping connectionId → (queueId, cognitoSub).
+ * Writes a connection record mapping connectionId → (queueId, userId).
  * Called by the WebSocket $connect handler. TTL defaults to 1 hour.
  */
-async function putConnectionRecord(connectionId, queueId, cognitoSub, ttlSeconds = 3600) {
+async function putConnectionRecord(connectionId, queueId, userId, ttlSeconds = 3600) {
   await getClient().send(new PutItemCommand({
     TableName: TABLE_NAME,
     Item: marshall({
       pk: `CONN#${connectionId}`,
       sk: 'META',
       queueId,
-      cognitoSub,
+      userId,
       ttl: Math.floor(Date.now() / 1000) + ttlSeconds,
     }),
   }));
@@ -542,7 +542,7 @@ async function putConnectionRecord(connectionId, queueId, cognitoSub, ttlSeconds
 
 /**
  * Reads a connection record by connectionId.
- * Returns { queueId, cognitoSub } or null.
+ * Returns { queueId, userId } or null.
  */
 async function getConnectionRecord(connectionId) {
   const result = await getClient().send(new GetItemCommand({
@@ -684,7 +684,7 @@ module.exports = {
   setEntryAdmitted,
   // Queries
   queryQueueEntries,
-  queryEntriesByCognitoSub,
+  queryEntriesByUserId,
   queryEntriesByClientIp,
   // Scans
   scanQueuesByStatus,

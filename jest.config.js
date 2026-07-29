@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/test'],
+  roots: ['<rootDir>/test', '<rootDir>/src'],
   testMatch: ['**/*.test.js'],
   transformIgnorePatterns: ['node_modules/'],
   collectCoverage: true,
@@ -25,6 +25,7 @@ module.exports = {
     '^/opt/dynamodb$': '<rootDir>/src/layers/awsUtils/dynamodb.js',
     '^/opt/locations/configs$': '<rootDir>/src/layers/dataUtils/locations/configs.js',
     '^/opt/locations/methods$': '<rootDir>/src/layers/dataUtils/locations/methods.js',
+    '^/opt/opensearch$': '<rootDir>/src/layers/awsUtils/opensearch.js',
     '^/opt/resources/configs$': '<rootDir>/src/layers/dataUtils/resources/configs.js',
     '^/opt/resources/methods$': '<rootDir>/src/layers/dataUtils/resources/methods.js',
     '^/opt/users/configs$': '<rootDir>/src/layers/dataUtils/users/configs.js',

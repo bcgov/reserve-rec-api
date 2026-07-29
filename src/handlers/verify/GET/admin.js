@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
   try {
     // Validate admin authorization
     try {
-      claims = checkAuthContext(event, 'superadmin');
+      claims = checkAuthContext(event, 'limited');
     } catch (authError) {
       // Log unauthorized attempt to audit table
       const sourceIp = event.requestContext?.identity?.sourceIp || 'unknown';
@@ -108,7 +108,7 @@ exports.handler = async (event, context) => {
 
     logger.info("Verifying QR code", { bookingId, userId: claims.sub });
 
-    // Step 1: Fetch the booking from database FIRST (before hash validation)
+    // Fetch the booking from database FIRST (before hash validation)
     // This prevents timing attacks that could reveal if a bookingId exists
     let booking;
     try {
@@ -133,7 +133,7 @@ exports.handler = async (event, context) => {
       return sendInvalidQRResponse(context);
     }
 
-    // Step 2: Validate the hash (after confirming booking exists)
+    // Validate the hash (after confirming booking exists)
     logger.info("About to validate hash", { bookingId, hash, secretKeyLength: process.env.QR_SECRET_KEY?.length });
     const isValidHash = validateHash(bookingId, hash);
     logger.info("Hash validation complete", { bookingId, hash, isValidHash });
@@ -142,7 +142,7 @@ exports.handler = async (event, context) => {
       logger.warn("Invalid QR code hash", { bookingId, verifiedBy: claims.sub });
       await writeAuditLog(claims.sub, bookingId, 'QR_VERIFY_FAILED', {
         reason: 'Invalid hash',
-        bookingStatus: booking.bookingStatus,
+        status: booking.status,
         timestamp
       }, marshall, batchWriteData, AUDIT_TABLE_NAME);
       return sendInvalidQRResponse(context);
@@ -150,21 +150,12 @@ exports.handler = async (event, context) => {
 
     logger.info("QR code hash validated successfully", { bookingId, verifiedBy: claims.sub });
 
-    // Step 3: Check booking status
-    const bookingStatus = booking.bookingStatus;
-    const isExpired = booking.sessionExpiry && new Date(booking.sessionExpiry) < new Date();
-    const isCancelled = bookingStatus === "cancelled";
-    const isConfirmed = bookingStatus === "confirmed";
-
     // Calculate party size using utility function
     const partySize = calculatePartySize(booking.partyInformation);
 
     // Write successful verification to audit log
     await writeAuditLog(claims.sub, bookingId, 'QR_VERIFY_SUCCESS', {
-      bookingStatus,
-      isExpired,
-      isCancelled,
-      isConfirmed,
+      status: booking.status,
       partySize,
       collectionId: booking.collectionId,
       activityType: booking.activityType,
@@ -175,70 +166,68 @@ exports.handler = async (event, context) => {
 
     logger.info("QR code verification completed", {
       bookingId,
-      status: bookingStatus,
-      isExpired,
-      isCancelled,
-      isConfirmed,
+      status: booking.status,
       verifiedBy: claims.sub,
       verifiedAt: timestamp
     });
 
-    // Step 4: Return MINIMAL booking details (prevent excessive PII disclosure)
+    // Return MINIMAL booking details (prevent excessive PII disclosure)
     // Only include information necessary for park staff to verify the reservation
     const response = {
-      valid: true,
-      bookingId: booking.bookingId,
-      status: bookingStatus,
-      statusDetails: {
-        isConfirmed,
-        isCancelled,
-        isExpired,
-        isPending: bookingStatus === "in progress"
+      // Core verification info only
+      bookingId: booking?.bookingId,
+      displayName: booking?.displayName,
+      status: booking.status,
+      bookingCompletionTime: booking?.bookingCompletionTime || booking?.bookedAt,
+      
+      // Dates (needed to verify reservation period)
+      startDate: booking?.startDate,
+      endDate: booking?.endDate,
+      
+      // Guest contact info
+      firstName: booking?.firstName || booking?.namedOccupant?.firstName,
+      lastName: booking?.lastName || booking?.namedOccupant?.lastName,
+      email: booking?.email || booking?.namedOccupant?.contactInfo?.email,
+
+      // Checked-in time (if it exists)
+      checkedInTime: booking?.checkedInTime,
+
+      // checkOutTime needed to calculate statuses (Active, Expired, etc.)
+      reservationContext: {
+        checkOutTime: booking?.reservationContext?.checkOutTime
       },
-      booking: {
-        // Core verification info only
-        bookingId: booking.bookingId,
-        displayName: booking.displayName,
-        
-        // Dates (needed to verify reservation period)
-        startDate: booking.startDate,
-        endDate: booking.endDate,
-        
-        // Guest name only (no email, phone, or address)
-        guestName: booking.namedOccupant 
-          ? `${booking.namedOccupant.firstName} ${booking.namedOccupant.lastName}`
-          : null,
-        
-        // Party size only (not detailed age breakdown)
-        partySize: partySize,
-        
-        // Location info (needed to verify correct park/activity)
-        collectionId: booking.collectionId,
-        activityType: booking.activityType,
-        displayName: booking.displayName,
-        
-        // Access points (if available, for trail/backcountry permits)
-        entryPoint: booking.entryPoint,
-        exitPoint: booking.exitPoint,
-        location: booking.location,
-        
-        // Vehicle info (if available, for parking passes)
-        vehicleInformation: booking.vehicleInformation,
-        
-        // DO NOT include: 
-        // - namedOccupant (contains email, phone, address)
-        // - partyInformation (age breakdown not needed)
-        // - feeInformation (payment details not needed for verification)
-        // - sessionId, sessionExpiry (internal session state)
-        // - globalId, activityId (internal IDs)
-        // - equipmentInformation (not needed for basic verification)
-        // - bookedAt (not needed for verification)
-      },
-      verificationMetadata: {
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: claims.sub
-        // DO NOT include verifierEmail (not needed in response)
-      }
+
+      // Party size only (not detailed age breakdown)
+      partySize: partySize,
+      partyInformation: booking?.partyInformation,
+      
+      // Location info (needed to verify correct park/activity)
+      collectionId: booking?.collectionId,
+      activityType: booking?.activityType,
+      facilityDisplayName: booking?.facilityDisplayName,
+      geozoneDisplayName: booking?.geozoneDisplayName,
+      
+      // Access points (if available, for trail/backcountry permits)
+      entryPoint: booking?.entryPoint ? {
+        text: booking.entryPoint.text,
+        category: booking.entryPoint.category
+      } : undefined,
+      exitPoint: booking?.exitPoint ? {
+        text: booking.exitPoint.text,
+        category: booking.exitPoint.category
+      } : undefined,
+      location: booking?.location,
+      
+      // Vehicle info (if available, for parking passes)
+      vehicleInformation: booking?.vehicleInformation,
+      
+      // DO NOT include: 
+      // - namedOccupant (contains phone, address)
+      // - feeInformation (payment details not needed for verification)
+      // - sessionId, sessionExpiry (internal session state)
+      // - globalId, activityId (internal IDs)
+      // - equipmentInformation (not needed for basic verification)
+      // - bookedAt (not needed for verification)
     };
 
     return sendResponse(200, response, "Success", null, context);

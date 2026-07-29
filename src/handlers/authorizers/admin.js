@@ -170,7 +170,7 @@ exports.handler = async function (event, context, callback) {
             isAuthenticated: 'true',
             isAdmin: 'true',
             permissions: JSON.stringify({ superadmin: 'superadmin' }),
-            cognitoSub: sub,
+            userId: sub,
             username: payload.username || '',
           }
         };
@@ -224,7 +224,7 @@ exports.handler = async function (event, context, callback) {
         context: {
           isAuthenticated: 'true',
           permissions: JSON.stringify(permissions),
-          cognitoSub: sub,
+          userId: sub,
           username: payload.username || '',
         }
       };

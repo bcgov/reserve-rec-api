@@ -33,8 +33,9 @@ exports.handler = async (event, context) => {
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
-    // Then delete the product itself
-    const deleteItem = createDeleteCommand(collectionId, activityType, activityId, productId);
+    // Then soft-delete the product itself (keep the row, mark it deleted so it's hidden)
+    const user = authContext?.sub || "system";
+    const deleteItem = createSoftDeleteCommand(collectionId, activityType, activityId, productId, user);
 
     const res = await batchTransactData([deleteItem]);
 
@@ -54,14 +55,20 @@ exports.handler = async (event, context) => {
   }
 };
 
-function createDeleteCommand(collectionId, activityType, activityId, productId) {
+function createSoftDeleteCommand(collectionId, activityType, activityId, productId, user) {
   return {
-    action: "Delete",
+    action: "Update",
     data: {
       TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({
         pk: `product::${collectionId}::${activityType}::${activityId}`,
         sk: `${productId}`,
+      }),
+      UpdateExpression: "SET isDeleted = :true, deletedAt = :deletedAt, deletedBy = :deletedBy",
+      ExpressionAttributeValues: marshall({
+        ":true": true,
+        ":deletedAt": new Date().toISOString(),
+        ":deletedBy": user,
       }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },

@@ -5,7 +5,6 @@ const { batchTransactData } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
-const { enqueueSmsReminderIfNeeded } = require('../notifications');
 
 exports.handler = async (event, context) => {
   logger.info("Bookings POST Activated");
@@ -157,7 +156,11 @@ exports.handler = async (event, context) => {
     const res = await batchTransactData(bookingRequestItems);
 
     const response = formatBookingResponsePublic(bookingRequestItems);
-    await enqueueSmsReminderIfNeeded(body, response);
+
+    // Note: the confirmation SMS is dispatched at booking completion, not here.
+    // At create time the booking is not yet confirmed and the FE has not sent
+    // the SMS opt-in (it arrives with the complete request). See the booking
+    // complete handlers and methods.completeBooking().
 
     return sendResponse(200, response, "Success", null, context);
 

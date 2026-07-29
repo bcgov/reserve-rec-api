@@ -4,6 +4,7 @@
 // email for a booking that was never saved.
 const { Exception, logger, sendResponse } = require("/opt/base");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
+const { enqueueSmsReminderIfNeeded } = require("../../../notifications");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -29,12 +30,12 @@ exports.handler = async (event, context) => {
       throw new Exception("User authentication required", { code: 401 });
     }
 
-    const { updateRequests, emailParams } = await completeBooking(bookingId, sessionId, body, { sub });
+    const { updateRequests, emailParams, smsParams } = await completeBooking(bookingId, sessionId, body, { sub });
 
     const res = await batchTransactData(updateRequests);
 
-    // Booking is durable — now queue the email. Failures here are logged but
-    // do not roll back the cancellation; the user has a confirmed booking.
+    // Booking is durable — now queue the notifications. Failures here are
+    // logged but do not roll back the booking; the user has a confirmed booking.
     try {
       await sendBookingConfirmationEmail(emailParams, sub);
     } catch (emailError) {
@@ -42,6 +43,22 @@ exports.handler = async (event, context) => {
         bookingId,
         error: emailError?.message,
         stack: emailError?.stack,
+      });
+    }
+
+    // Confirmation SMS — the opt-in and Cognito-resolved phone are only present
+    // once the booking is completed, so this is the correct dispatch point.
+    try {
+      await enqueueSmsReminderIfNeeded(
+        smsParams,
+        { bookingId },
+        smsParams?.namedOccupant?.contactInfo?.mobilePhone
+      );
+    } catch (smsError) {
+      logger.error("Booking completed but confirmation SMS enqueue failed", {
+        bookingId,
+        error: smsError?.message,
+        stack: smsError?.stack,
       });
     }
 

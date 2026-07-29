@@ -49,7 +49,7 @@ function makeWaitingEntry(i) {
   return {
     pk: queueId,
     sk: `ENTRY#user-${i}`,
-    cognitoSub: `user-${i}`,
+    userId: `user-${i}`,
     status: 'waiting',
     randomOrder: i,
     facilityKey: 'golden-ears#camping#standard-sites',
@@ -191,7 +191,7 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     return {
       pk: mode2QueueId,
       sk: `ENTRY#user-${i}`,
-      cognitoSub: `user-${i}`,
+      userId: `user-${i}`,
       status: 'waiting',
       joinedAt: 1700000000 + i,
       connectionId: `conn-${i}`,

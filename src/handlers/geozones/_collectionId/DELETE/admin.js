@@ -38,8 +38,9 @@ exports.handler = async (event, context) => {
     
     logger.info(`Deleted ${relCount.deletedCount} relationship(s) for geozone ${pk}::${sk}`);
 
-    // Now delete the geozone itself
-    const deleteItem = createDeleteCommand(pk, sk);
+    // Now soft-delete the geozone itself (keep the row, mark it deleted so it's hidden)
+    const user = event?.requestContext?.authorizer?.principalId || "system";
+    const deleteItem = createSoftDeleteCommand(pk, sk, user);
     const res = await batchTransactData([deleteItem]);
     
     return sendResponse(200, { ...res, relationshipsDeleted: relCount.deletedCount }, "Success", null, context);
@@ -54,12 +55,18 @@ exports.handler = async (event, context) => {
   }
 };
 
-function createDeleteCommand(pk, sk) {
+function createSoftDeleteCommand(pk, sk, user) {
   return {
-    action: "Delete",
+    action: "Update",
     data: {
       TableName: REFERENCE_DATA_TABLE_NAME,
       Key: marshall({ pk, sk }),
+      UpdateExpression: "SET isDeleted = :true, deletedAt = :deletedAt, deletedBy = :deletedBy",
+      ExpressionAttributeValues: marshall({
+        ":true": true,
+        ":deletedAt": new Date().toISOString(),
+        ":deletedBy": user,
+      }),
       ConditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
     },
   };

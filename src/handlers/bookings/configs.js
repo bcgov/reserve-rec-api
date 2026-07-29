@@ -3,6 +3,7 @@ const { ACTIVITY_TYPE_ENUMS, BOOKING_STATUS_ENUMS, SUB_ACTIVITY_TYPE_ENUMS, TIME
 
 const rf = new rulesFns();
 
+// TODO: turn this off eventually and enforce validation
 const BOOKING_PUT_CONFIG = {
   developerMode: true,
   failOnError: true,
@@ -364,10 +365,22 @@ const BOOKING_PUT_CONFIG_TEMP = {
         },
       }
     },
-    bookingStatus: {
+    status: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectValueInList(value, BOOKING_STATUS_ENUMS);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkedInTime: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    checkedInByUser: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },

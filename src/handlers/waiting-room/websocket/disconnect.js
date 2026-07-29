@@ -14,7 +14,7 @@ const {
  * Does NOT immediately mark the entry as abandoned — the Cleanup Lambda
  * applies the grace period check (disconnectedAt + disconnectGracePeriodSeconds < now).
  *
- * Uses the connection record (written by $connect) to map connectionId → (queueId, cognitoSub).
+ * Uses the connection record (written by $connect) to map connectionId → (queueId, userId).
  */
 exports.handler = async (event) => {
   logger.debug('WebSocket $disconnect:', JSON.stringify(event));
@@ -32,15 +32,15 @@ exports.handler = async (event) => {
       return { statusCode: 200 };
     }
 
-    const { queueId, cognitoSub } = conn;
+    const { queueId, userId } = conn;
 
     // Record disconnect time — Cleanup Lambda will handle grace period
-    await setDisconnectedAt(queueId, cognitoSub);
+    await setDisconnectedAt(queueId, userId);
 
     // Remove the connection record
     await deleteConnectionRecord(connectionId);
 
-    logger.info(`WebSocket disconnected: ${connectionId} (${cognitoSub} in ${queueId})`);
+    logger.info(`WebSocket disconnected: ${connectionId} (${userId} in ${queueId})`);
     return { statusCode: 200 };
 
   } catch (err) {
