@@ -204,6 +204,7 @@ exports.handler = async (event, context) => {
       // Location info (needed to verify correct park/activity)
       collectionId: booking?.collectionId,
       activityType: booking?.activityType,
+      activitySubType: booking?.activitySubType,
       facilityDisplayName: booking?.facilityDisplayName,
       geozoneDisplayName: booking?.geozoneDisplayName,
       

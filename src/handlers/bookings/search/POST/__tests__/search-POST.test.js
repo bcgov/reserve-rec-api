@@ -62,6 +62,8 @@ describe("Bookings Admin Search POST handler", () => {
               _source: {
                 bookingId: "booking_123",
                 collectionId: "collection_123",
+                activityType: "dayuse",
+                activitySubType: "vehicleParking",
                 status: "confirmed",
                 bookingCompletionTime: 1781106147626,
                 displayName: "Camping Day-use Pass - AM",
@@ -230,6 +232,26 @@ describe("Bookings Admin Search POST handler", () => {
     // But core verification fields should survive
     expect(hits[0]).toHaveProperty("email", "test@example.com");
     expect(hits[0]).toHaveProperty("bookingId", "booking_123");
+  });
+
+  it("keeps the activity sub type on the pruned response so pass cards can label it", async () => {
+    checkAuthContext.mockReturnValue({
+      permissions: { superadmin: "not-superadmin" }
+    });
+    effectiveCollectionRole.mockReturnValue("staff");
+
+    const event = {
+      body: JSON.stringify({ text: "test" })
+    };
+
+    const result = await handler(event, {});
+    const hits = result.data.hits;
+
+    // Park operators are not superadmins, so they only ever see the pruned
+    // shape. Dropping activitySubType here left the Sales pass card with an
+    // empty sub type badge (Ref #336).
+    expect(hits[0]).toHaveProperty("activityType", "dayuse");
+    expect(hits[0]).toHaveProperty("activitySubType", "vehicleParking");
   });
 
   it("filters out hits completely if the user has no recognized role for that collection", async () => {
