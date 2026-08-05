@@ -50,11 +50,11 @@ exports.handler = async function (event, context) {
       filters['namedOccupant.contactInfo.email.keyword'] = body.email;
     }
 
-    // Calculate current time dynamically on the server
-    const now = new Date().toISOString(); 
+    // Calculate epoch timestamps in milliseconds
+    const now = Date.now();
     // Fallback bounds for open-ended queries
-    const past = '1970-01-01T00:00:00.000Z';
-    const future = '2099-12-31T23:59:59.999Z';
+    const past = 0; // 1970-01-01
+    const future = 4102444799000; // Way into the future (2099-12-31)
 
     if (body.checkinStatus) {
       const status = body.checkinStatus.toLowerCase();

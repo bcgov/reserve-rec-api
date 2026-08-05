@@ -45,7 +45,7 @@ const { handler } = require("../index");
 const { checkAuthContext, effectiveCollectionRole, handleCORS } = require("/opt/base");
 
 describe("Bookings Admin Search POST handler", () => {
-  const fixedDate = new Date("2026-07-15T12:22:57.000Z");
+  const fixedDate = Date.now(1784118177000)
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -135,8 +135,8 @@ describe("Bookings Admin Search POST handler", () => {
     
     await handler(event, {});
 
-    const expectedNow = fixedDate.toISOString();
-    const expectedFuture = '2099-12-31T23:59:59.999Z';
+    const expectedNow = fixedDate;
+    const expectedFuture = 4102444799000;
 
     expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
       'reservationContext.checkInTime',
@@ -157,9 +157,9 @@ describe("Bookings Admin Search POST handler", () => {
     
     await handler(event, {});
 
-    const expectedNow = fixedDate.toISOString();
-    const expectedPast = '1970-01-01T00:00:00.000Z';
-    const expectedFuture = '2099-12-31T23:59:59.999Z';
+    const expectedNow = fixedDate;
+    const expectedPast = 0; // 1970-01-01
+    const expectedFuture = 4102444799000; // 2099-12-31
 
     // Verify check-in happened in past (or now)
     expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
