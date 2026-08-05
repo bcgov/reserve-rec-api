@@ -12,7 +12,7 @@
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 process.env.QR_SECRET_KEY = 'test-secret-key-for-unit-tests-only-do-not-use-in-production';
-process.env.PUBLIC_FRONTEND_DOMAIN = 'test.reserve-rec.bcparks.ca';
+process.env.ADMIN_FRONTEND_DOMAIN = 'test.admin.reserve-rec.bcparks.ca';
 process.env.AWS_SAM_LOCAL = 'true'; // Use mock claims
 
 // Test helpers
