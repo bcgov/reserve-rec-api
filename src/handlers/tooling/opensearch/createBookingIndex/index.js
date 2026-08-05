@@ -21,6 +21,7 @@ const bookingIndexMappingOptions = {
     bookedAt: { type: 'date' },
     userId: { type: 'keyword' },
     activityType: { type: 'keyword' },
+    activitySubType: { type: 'keyword' },
     activityId: { type: 'keyword' },
     collectionId: { type: 'keyword' },
     sessionId: { type: 'keyword' },
