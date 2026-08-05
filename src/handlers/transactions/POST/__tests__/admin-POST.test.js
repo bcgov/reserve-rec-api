@@ -172,7 +172,7 @@ describe("Admin Transaction POST handler", () => {
 
     expect(result.status).toBe(401);
     expect(result.error.message).toBe(
-      "Unauthorized: Authentication required to create transaction",
+      "Unauthorized: Authentication required",
     );
   });
 

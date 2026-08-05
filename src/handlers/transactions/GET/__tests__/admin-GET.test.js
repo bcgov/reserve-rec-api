@@ -50,7 +50,7 @@ jest.mock("../../methods", () => ({
 }));
 
 const optBase = require("/opt/base");
-const { handler } = require("../admin");
+const { handler } = require("../_bookingId/admin");
 const { 
   getTransactionByTransactionId,
   getTransactionsByBookingId,
@@ -69,10 +69,11 @@ function makeToken(sub) {
   return `header.${base64Payload}.signature`;
 }
 
-function makeEvent({ sub, queryStringParameters = {} }) {
+function makeEvent({ sub, pathParameters = {}, queryStringParameters = {} }) {
   const headers = { Authorization: `Bearer ${makeToken(sub)}` };
   return {
     httpMethod: "GET",
+    pathParameters: { ...pathParameters },
     queryStringParameters: { ...queryStringParameters },
     headers
   };
@@ -177,7 +178,7 @@ describe("Admin Transaction GET handler", () => {
   it("gets all transactions from a bookingId", async () => {
     const event = makeEvent({
       sub: MOCK_ADMIN_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID }
+      pathParameters: { bookingId: MOCK_BOOKING_ID }
     });
 
     const result = await handler(event);
@@ -190,7 +191,8 @@ describe("Admin Transaction GET handler", () => {
 
     const event = makeEvent({
       sub: MOCK_ADMIN_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID, date: date }
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
+      queryStringParameters: { date: date }
     });
 
     const result = await handler(event);
@@ -201,7 +203,8 @@ describe("Admin Transaction GET handler", () => {
   it("gets a transaction using a clientTransactionId", async () => {
     const event = makeEvent({
       sub: MOCK_ADMIN_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID, date: "2025-06-11", clientTransactionId: TRANSACTION_ID }
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
+      queryStringParameters: { date: "2025-06-11", clientTransactionId: TRANSACTION_ID }
     });
 
     const result = await handler(event);
