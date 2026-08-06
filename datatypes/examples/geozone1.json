@@ -1,0 +1,37 @@
+{
+  "pk": "geozone::bcparks_1",
+  "sk": "1",
+  "schema": "geozone",
+  "globalId": "8f3c2d1e-4b7a-4c9f-9f22-1a4e8c9d77aa",
+  "collectionId": "bcparks_1",
+  "geozoneId": 1,
+  "identifier": 1,
+  "displayName": "Strathcona Provincial Park",
+  "description": " BC's oldest park on Vancouver Island, offering camping, hiking, and other wilderness experiences.",
+  "envelope": {
+    "type": "envelope",
+    "coordinates": [
+      [-125.000, 49.000],
+      [-125.000, 49.000]
+    ]
+  },
+  "boundary": {},
+  "boundaryUrl": "s3://...",
+  "location": {
+    "type": "point",
+    "coordinates": [-125.000, 49.000]
+  },
+  "minMapZoom": 6,
+  "maxMapZoom": 16,
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "timezone": "America/Vancouver",
+  "isVisible": true,
+  "creationDate": "2026-01-05T22:30:00.000Z",
+  "lastUpdated": "2026-01-05T22:30:00.000Z",
+  "version": 1,
+  "searchTerms": "buttle lake, strathcona, forbidden plateau, bedwell lake, elk river...",
+  "adminNotes": "..."
+}
