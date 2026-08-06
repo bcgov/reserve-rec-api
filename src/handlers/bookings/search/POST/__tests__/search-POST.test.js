@@ -45,7 +45,7 @@ const { handler } = require("../index");
 const { checkAuthContext, effectiveCollectionRole, handleCORS } = require("/opt/base");
 
 describe("Bookings Admin Search POST handler", () => {
-  const fixedDate = Date.now(1784118177000)
+  const fixedDate = 1784118177000;
 
   beforeEach(() => {
     jest.clearAllMocks();
