@@ -13,13 +13,13 @@ const {
   marshall, 
   batchWriteData 
 } = require("/opt/dynamodb");
-const { quickApiPutHandler, quickApiUpdateHandler } = require("../../../../common/data-utils");
+const { quickApiPutHandler, quickApiUpdateHandler } = require("../../../../../common/data-utils");
 const {
   createRefund,
   createAndCheckRefundHash,
   findAndVerifyTransactionOwnership
-} = require("../../methods");
-const { REFUND_PUT_CONFIG, TRANSACTION_UPDATE_CONFIG } = require("../../configs");
+} = require("../../../methods");
+const { REFUND_PUT_CONFIG, TRANSACTION_UPDATE_CONFIG } = require("../../../configs");
 
 exports.handler = async (event, context) => {
   logger.info("Admin Refund POST:", event);
@@ -28,13 +28,14 @@ exports.handler = async (event, context) => {
     checkAuthContext(event, "superadmin");
     const adminId = getRequestClaimsFromEvent(event)?.sub || null;
 
-    const clientTransactionId = event?.pathParameters?.clientTransactionId;
     const body = JSON.parse(event?.body || "{}");
+    const bookingId = event?.pathParameters?.bookingId
+    const clientTransactionId = body?.clientTransactionId;
     const refundAmount = body?.refundAmount;
     const userId = body?.userId;
 
-    if (!clientTransactionId || !userId || !refundAmount) {
-      throw new Exception("Cannot issue refund - missing clientTransactionId, userId, or refundAmount", {
+    if (!bookingId || !clientTransactionId || !userId || !refundAmount) {
+      throw new Exception("Cannot issue refund - missing bookingId, clientTransactionId, userId, or refundAmount", {
         code: 400,
         data: { adminId, clientTransactionId }
       });
@@ -59,7 +60,7 @@ exports.handler = async (event, context) => {
       userId, 
       transaction.clientTransactionId, 
       refundAmount, 
-      transaction.bookingId
+      bookingId
     );
 
     // Process refund

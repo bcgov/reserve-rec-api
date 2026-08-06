@@ -70,7 +70,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminGetFunction',
-      'src/handlers/transactions/GET/_bookingId',
+      'src/handlers/transactions/_bookingId/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -93,7 +93,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminPostFunction',
-      'src/handlers/transactions/POST',
+      'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -110,7 +110,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminRefundsGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminRefundsGetFunction',
-      'src/handlers/transactions/refunds/GET',
+      'src/handlers/transactions/_bookingId/refunds/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -133,7 +133,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminRefundsPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminRefundsPostFunction',
-      'src/handlers/transactions/refunds/POST',
+      'src/handlers/transactions/_bookingId/refunds/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -245,7 +245,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicGetFunction',
-      'src/handlers/transactions/GET/_bookingId',
+      'src/handlers/transactions/_bookingId/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -268,7 +268,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicPostFunction',
-      'src/handlers/transactions/POST',
+      'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -285,7 +285,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicRefundsGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicRefundsGetFunction',
-      'src/handlers/transactions/refunds/GET',
+      'src/handlers/transactions/_bookingId/refunds/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -308,7 +308,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicRefundsPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicRefundsPostFunction',
-      'src/handlers/transactions/refunds/POST',
+      'src/handlers/transactions/_bookingId/refunds/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,

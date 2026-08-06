@@ -1,9 +1,14 @@
 const { DateTime } = require("luxon");
 const axios = require("axios");
 const crypto = require("crypto");
-const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} = require("@aws-sdk/client-secrets-manager");
 
-const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || "ca-central-1" });
+const secretsClient = new SecretsManagerClient({
+  region: process.env.AWS_REGION || "ca-central-1",
+});
 let cachedSecrets = {};
 
 const { Exception, getNow, getNowISO, logger } = require("/opt/base");
@@ -33,14 +38,16 @@ const MERCHANT_ID = process.env.MERCHANT_ID;
 /**
  * Dynamically retrieves a secret from AWS Secrets Manager by its path/name.
  * Cache is stored locally to avoid hitting AWS Secrets Manager API limits on repeat requests.
- * 
+ *
  * @param {string} secretPath - The exact path name of the secret (e.g. process.env.MERCHANT_ID_SECRET)
  * @returns {Promise<string>} The plaintext secret value.
  * @throws {Error} If secretPath is missing or Secrets Manager API call fails.
  */
 async function getSecret(secretPath) {
   if (!secretPath) {
-    throw new Error("Cannot retrieve secret: secretPath is undefined or empty.");
+    throw new Error(
+      "Cannot retrieve secret: secretPath is undefined or empty.",
+    );
   }
 
   if (cachedSecrets[secretPath]) {
@@ -49,13 +56,16 @@ async function getSecret(secretPath) {
 
   try {
     const response = await secretsClient.send(
-      new GetSecretValueCommand({ SecretId: secretPath })
+      new GetSecretValueCommand({ SecretId: secretPath }),
     );
 
     cachedSecrets[secretPath] = response.SecretString;
     return cachedSecrets[secretPath];
   } catch (error) {
-    console.error(`Error retrieving secret [${secretPath}] from Secrets Manager:`, error);
+    console.error(
+      `Error retrieving secret [${secretPath}] from Secrets Manager:`,
+      error,
+    );
     throw error;
   }
 }
@@ -63,7 +73,7 @@ async function getSecret(secretPath) {
 /**
  * Creates a unique Worldline transaction identifier trimmed to meet length limits.
  * Worldline limits transaction IDs to 30 characters.
- * 
+ *
  * @param {string} string - The base string or UUID slice to trim.
  * @param {string} prefix - The prefix to prepend (e.g., 'RFND-', 'BCPR-').
  * @returns {string} The formatted transaction string (<= 30 chars).
@@ -76,7 +86,7 @@ function createWorldlineUuidWithPrefix(string, prefix) {
 
 /**
  * Appends an MD5 hash signature to a URL query parameter string for Worldline authentication.
- * 
+ *
  * @param {URLSearchParams} query - The query parameters object.
  * @param {string} url - The base destination URL.
  * @returns {string} Complete URL with query string and MD5 hashValue parameter.
@@ -94,7 +104,7 @@ function createUrlWithHash(query, url) {
 
 /**
  * Validates transaction eligibility and constructs payment status update object.
- * 
+ *
  * @param {string} clientTransactionId - The global transaction identifier.
  * @param {string} bookingId - The expected booking ID associated with the transaction.
  * @param {string} sessionId - The expected session ID associated with the transaction.
@@ -156,24 +166,21 @@ async function updateTransactionForPayment(
 
 /**
  * Retrieves all transaction records associated with a given booking ID.
- * 
+ *
  * @param {string} bookingId - The unique booking identifier.
  * @returns {Promise<Object>} Object containing query results from DynamoDB.
  * @throws {Exception} If the DynamoDB query operation fails.
  */
 async function getTransactionsByBookingId(bookingId) {
-  logger.info(
-    "Getting transaction by getTransactionsByBookingId:",
-    bookingId,
-  );
+  logger.info("Getting transaction by getTransactionsByBookingId:", bookingId);
   try {
     let query = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk',
+      KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
-        ':pk': { S: `transaction::${bookingId}` }
-      }
-    }
+        ":pk": { S: `transaction::${bookingId}` },
+      },
+    };
 
     // Get a transactions for a specific bookingId (multiple attempts)
     const result = await runQuery(query);
@@ -189,7 +196,7 @@ async function getTransactionsByBookingId(bookingId) {
 
 /**
  * Retrieves transaction records for a specific booking ID filtered by date prefix.
- * 
+ *
  * @param {string} bookingId - The unique booking identifier.
  * @param {string} date - Date string formatted as 'yyyy-MM-dd' to filter the sort key.
  * @returns {Promise<Object>} Object containing query results from DynamoDB.
@@ -203,19 +210,19 @@ async function getTransactionsByBookingIdDate(bookingId, date) {
   try {
     let query = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk',
+      KeyConditionExpression: "pk = :pk",
       ExpressionAttributeValues: {
-        ':pk': { S: `transaction::${bookingId}` }
-      }
-    }
+        ":pk": { S: `transaction::${bookingId}` },
+      },
+    };
 
     // All transactions will have the date as the start of the sk
     // So fetch all transaction for a bookingId for a specific date
-    query.KeyConditionExpression += ' AND begins_with(sk, :skPrefix)';
-    query.ExpressionAttributeValues[':skPrefix'] = { S: date };
+    query.KeyConditionExpression += " AND begins_with(sk, :skPrefix)";
+    query.ExpressionAttributeValues[":skPrefix"] = { S: date };
 
     const result = await runQuery(query);
-    
+
     return result;
   } catch (error) {
     throw new Exception("Error getting transactions by bookingId and date", {
@@ -227,7 +234,7 @@ async function getTransactionsByBookingIdDate(bookingId, date) {
 
 /**
  * Retrieves a single transaction record using its global transaction ID using GSI lookup.
- * 
+ *
  * @param {string} clientTransactionId - The unique global transaction identifier.
  * @returns {Promise<Object|null>} The transaction object if found, or null.
  * @throws {Exception} If the DynamoDB query fails.
@@ -256,14 +263,17 @@ async function getTransactionByTransactionId(clientTransactionId) {
 
 /**
  * Verifies that a transaction exists and belongs to the requesting user.
- * 
+ *
  * @param {string} clientTransactionId - The global transaction identifier.
  * @param {string} userId - The user ID to verify against the transaction owner.
  * @returns {Promise<Object>} The verified transaction record.
  * @throws {Exception} 404 if transaction is not found, 401 if user is unauthorized, 400 on error.
  */
 async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
-  logger.info("Getting transaction by clientTransactionId:", clientTransactionId);
+  logger.info(
+    "Getting transaction by clientTransactionId:",
+    clientTransactionId,
+  );
   try {
     const transaction = await getOneByGlobalId(
       clientTransactionId,
@@ -293,7 +303,7 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
 /**
  * Prevents rapid duplicate refund submissions and calculates sequence metadata.
  * Stores a hash audit record in DynamoDB.
- * 
+ *
  * @param {string} userId - The ID of the user requesting the refund.
  * @param {string} clientTransactionId - The original transaction identifier.
  * @param {number} refundAmount - The amount being requested for refund.
@@ -331,7 +341,9 @@ async function createAndCheckRefundHash(
 
     const queryResult = await runQuery(refundQuery);
     existingRefunds = queryResult.items || [];
-    logger.info(`Found ${existingRefunds.length} existing refund(s) for booking ${bookingId}`);
+    logger.info(
+      `Found ${existingRefunds.length} existing refund(s) for booking ${bookingId}`,
+    );
   } catch (error) {
     logger.error("Error querying existing refunds:", error);
   }
@@ -343,8 +355,7 @@ async function createAndCheckRefundHash(
     const refundTime = DateTime.fromISO(refund.createdAt || refund.date);
     const isRecent = refundTime >= windowStart;
     const isActiveStatus =
-      refund.status === "refund in progress" ||
-      refund.status === "refunded";
+      refund.status === "refund in progress" || refund.status === "refunded";
 
     return isRecent && isActiveStatus;
   });
@@ -368,7 +379,10 @@ async function createAndCheckRefundHash(
   // All requests within the same N-minute window get the same bucket integer
   const windowBucket = Math.floor(now.toMillis() / (windowMinutes * 60 * 1000));
   const hashString = `${userId}::${clientTransactionId}::${refundAmount}::${windowBucket}`;
-  const refundHash = crypto.createHash("sha256").update(hashString).digest("hex");
+  const refundHash = crypto
+    .createHash("sha256")
+    .update(hashString)
+    .digest("hex");
 
   const refundHashRecord = {
     pk: `refundHash::${dateKey}`,
@@ -381,7 +395,7 @@ async function createAndCheckRefundHash(
     totalRefundedBefore: totalRefunded,
     createdAt: nowISO,
     refundHash: refundHash,
-    globalId: refundHash
+    globalId: refundHash,
   };
 
   // Attempt to write - DynamoDB will block duplicate requests
@@ -389,7 +403,7 @@ async function createAndCheckRefundHash(
     await putItem(
       refundHashRecord,
       TRANSACTIONAL_DATA_TABLE_NAME,
-      "attribute_not_exists(pk) AND attribute_not_exists(sk)"
+      "attribute_not_exists(pk) AND attribute_not_exists(sk)",
     );
   } catch (error) {
     if (
@@ -418,7 +432,7 @@ async function createAndCheckRefundHash(
 
 /**
  * Issues a refund request to Worldline's process_transaction.asp legacy endpoint.
- * 
+ *
  * @param {Object} transaction - Original transaction record.
  * @param {number} refundAmount - Amount to be refunded.
  * @param {Object|string} refundHashObj - Hash result object or hash string from createAndCheckRefundHash.
@@ -429,18 +443,25 @@ async function createAndCheckRefundHash(
  */
 async function createRefund(transaction, refundAmount, refundHashObj, bodyObj) {
   try {
-    const hashString = typeof refundHashObj === "object"
-      ? refundHashObj.refundHash
-      : refundHashObj;
+    const hashString =
+      typeof refundHashObj === "object"
+        ? refundHashObj.refundHash
+        : refundHashObj;
 
-    const refundTransactionId = createWorldlineUuidWithPrefix(hashString, "RFND-");
+    const refundTransactionId = createWorldlineUuidWithPrefix(
+      hashString,
+      "RFND-",
+    );
 
     const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
     const hashKey = await getSecret(process.env.HASH_KEY_SECRET);
 
-    const originalWorldlineId = transaction.trnId || transaction.processorTransactionId;
+    const originalWorldlineId =
+      transaction.trnId || transaction.processorTransactionId;
     if (!originalWorldlineId) {
-      throw new Exception("Original transaction missing Worldline ID (trnId)", { code: 400 });
+      throw new Exception("Original transaction missing Worldline ID (trnId)", {
+        code: 400,
+      });
     }
 
     // Worldline Legacy Process API
@@ -459,7 +480,9 @@ async function createRefund(transaction, refundAmount, refundHashObj, bodyObj) {
     const hashValue = crypto.createHash("md5").update(allValues).digest("hex");
     params.append("hashValue", hashValue);
 
-    logger.info(`Sending refund request to Worldline for transaction ${originalWorldlineId}`);
+    logger.info(
+      `Sending refund request to Worldline for transaction ${originalWorldlineId}`,
+    );
 
     const response = await axios.post(url, params.toString(), {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -467,7 +490,8 @@ async function createRefund(transaction, refundAmount, refundHashObj, bodyObj) {
 
     const responseParams = new URLSearchParams(response.data);
     const trnApproved = responseParams.get("trnApproved");
-    const trnMessageText = responseParams.get("messageText") || "Refund processed";
+    const trnMessageText =
+      responseParams.get("messageText") || "Refund processed";
     const worldlineRefundId = responseParams.get("trnId");
 
     const isSuccess = trnApproved === "1";
@@ -507,15 +531,18 @@ async function createRefund(transaction, refundAmount, refundHashObj, bodyObj) {
     };
   } catch (err) {
     if (err instanceof Exception) throw err;
-    throw new Exception(`Error processing refund with Worldline: ${err.message || err}`, {
-      code: 400,
-    });
+    throw new Exception(
+      `Error processing refund with Worldline: ${err.message || err}`,
+      {
+        code: 400,
+      },
+    );
   }
 }
 
 /**
  * Builds the update payload for marking the original transaction as 'refund in progress'.
- * 
+ *
  * @param {Object} transaction - Original transaction object from DynamoDB.
  * @param {number} refundAmount - Amount refunded in this transaction.
  * @param {string} refundTransactionId - Unique refund transaction ID (RFND-xxx).
@@ -557,39 +584,31 @@ async function updateTransactionForRefund(
 }
 
 /**
- * Fetches all refund records associated with a given transaction identifier.
- * 
+ * Fetches all refund records associated with a given bookingId.
+ *
  * @param {string} bookingId - Booking ID to query.
  * @returns {Promise<Array<Object>>} List of refund items found.
  * @throws {Exception} 400 if the database query fails.
  */
-async function getAllRefundsByTransactionId(bookingId) {
-  logger.info(
-    "Getting all refunds by bookingId:",
-    bookingId,
-  );
+async function getAllRefundsByBookingId(bookingId) {
+  logger.info("Getting all refunds by bookingId:", bookingId);
 
   try {
-    const pk = `transaction::${bookingId}`;
-    const skPrefix = `refund::`;
-
-    const refundQuery = {
+    let query = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
       ExpressionAttributeValues: {
-        ":pk": { S: pk },
-        ":sk": { S: skPrefix },
+        ":pk": { S: `transaction::${bookingId}` },
+        ":sk": { S: "refund::" },
       },
     };
 
-    logger.debug(`refundQuery:`, refundQuery);
-    const queryResult = await runQuery(refundQuery);
+    // Get a transactions for a specific bookingId (multiple attempts)
+    const result = await runQuery(query);
 
-    return queryResult.items || [];
+    return result.items || [];
   } catch (error) {
-    if (error instanceof Exception) throw error;
-
-    throw new Exception("Error getting all refunds by transactionId", {
+    throw new Exception("Error getting refunds by bookingId", {
       code: 400,
       error: error.message || String(error),
     });
@@ -598,18 +617,14 @@ async function getAllRefundsByTransactionId(bookingId) {
 
 /**
  * Retrieves a single refund item by its unique global refund ID.
- * 
+ *
  * @param {string} bookingId - Booking id of the transaction.
  * @param {string} refundId - Unique refund global ID (e.g., RFND-xxx).
  * @returns {Promise<Object>} The refund item.
  * @throws {Exception} 404 if refund does not exist, 400 on query error, 401 on unauthorized.
  */
 async function getRefundByRefundId(bookingId, refundId) {
-  logger.info(
-    "Getting refund by bookingId and refundId:",
-    bookingId,
-    refundId,
-  );
+  logger.info("Getting refund by bookingId and refundId:", bookingId, refundId);
 
   try {
     const refund = await getOneByGlobalId(
@@ -624,7 +639,10 @@ async function getRefundByRefundId(bookingId, refundId) {
     }
 
     if (refund.bookingId !== bookingId) {
-      throw new Exception("The bookingId provided does not match refund's bookingId", { code: 401 });
+      throw new Exception(
+        "The bookingId provided does not match refund's bookingId",
+        { code: 401 },
+      );
     }
 
     return refund;
@@ -718,8 +736,11 @@ async function executeWorldlinePayment(
   );
 
   const paymentApiUrl =
-    process.env.WORLDLINE_PAYMENT_API_URL || "https://api.na.bambora.com/v1/payments";
-  const basicAuthToken = Buffer.from(`${merchantId}:${paymentsApiPasscode}`,).toString("base64");
+    process.env.WORLDLINE_PAYMENT_API_URL ||
+    "https://api.na.bambora.com/v1/payments";
+  const basicAuthToken = Buffer.from(
+    `${merchantId}:${paymentsApiPasscode}`,
+  ).toString("base64");
 
   // Note: this should have everything the user has passed into the payment form AND
   // should have the user's details from their Cognito account (address, postal code).
@@ -812,15 +833,16 @@ async function processTokenTransaction(body, userId, adminId) {
       transactionAmount = bookingRecord.feeValues?.bookingTotal;
     } catch (err) {
       // Re-throw the exception, but add some items for admin audit
-      throw new Exception(err?.message || "Error fetching and validating booking",
+      throw new Exception(
+        err?.message || "Error fetching and validating booking",
         {
           code: err?.code || 400,
           message: err?.msg || "Error fetching and validating booking",
           data: {
             adminId: adminId,
             bookingId: body?.bookingId,
-            body: body
-          }
+            body: body,
+          },
         },
       );
     }
@@ -845,10 +867,10 @@ async function processTokenTransaction(body, userId, adminId) {
     const transactionObj = {
       pk: `transaction::${body.bookingId}`,
       sk: `${today}::${clientTransactionId}`,
-      amount : transactionAmount,
+      amount: transactionAmount,
       bookingId: body.bookingId,
       clientTransactionId: clientTransactionId,
-      date: today, 
+      date: today,
       globalId: clientTransactionId,
       schema: "transaction",
       sessionId: body.sessionId,
@@ -865,7 +887,7 @@ async function processTokenTransaction(body, userId, adminId) {
       cardLastFour: paymentResult?.data?.card?.last_four,
       cardType: paymentResult?.data?.card?.card_type,
       customRef1: paymentResult?.data?.custom?.ref1,
-      customRef2: paymentResult?.data?.custom?.ref2, 
+      customRef2: paymentResult?.data?.custom?.ref2,
       customRef3: paymentResult?.data?.custom?.ref3,
       customRef4: paymentResult?.data?.custom?.ref4,
       customRef5: paymentResult?.data?.custom?.ref5,
@@ -878,7 +900,7 @@ async function processTokenTransaction(body, userId, adminId) {
       trnId: paymentResult?.data?.id,
       trnMessage: paymentResult?.data?.message,
       trnOrderNumber: paymentResult?.data?.order_number,
-      trnPaymentMethod: paymentResult?.data?.payment_method,  
+      trnPaymentMethod: paymentResult?.data?.payment_method,
       // trnPhoneNumber: body?.,
       trnRiskScore: paymentResult?.data?.risk_score,
       trnType: paymentResult?.data?.type,
@@ -888,7 +910,7 @@ async function processTokenTransaction(body, userId, adminId) {
     };
 
     // Remove anything that's undefined
-    Object.keys(transactionObj).forEach(key => {
+    Object.keys(transactionObj).forEach((key) => {
       if (transactionObj[key] === undefined) {
         delete transactionObj[key];
       }
@@ -906,7 +928,10 @@ async function processTokenTransaction(body, userId, adminId) {
     );
 
     // Handle failed payment write
-    if (paymentResult.status !== "paid" || paymentResult.data?.approved != "1") {
+    if (
+      paymentResult.status !== "paid" ||
+      paymentResult.data?.approved != "1"
+    ) {
       await batchTransactData(putItemsTransaction);
 
       // Throw an error that captures the adminId, for admin payments
@@ -920,7 +945,7 @@ async function processTokenTransaction(body, userId, adminId) {
             bookingId: body?.bookingId,
             body: body,
             transaction: transactionObj,
-          }
+          },
         },
       );
     }
@@ -964,18 +989,15 @@ async function processTokenTransaction(body, userId, adminId) {
   } catch (err) {
     if (err instanceof Exception) throw err;
     const message = `Error processing token transaction: ${err.message || err}`;
-    throw new Exception(
-      message,
-      { 
-        code: 400,
-        message: message,
-        data: {
-          adminId: adminId,
-          bookingId: body?.bookingId,
-          body: body,
-        }
+    throw new Exception(message, {
+      code: 400,
+      message: message,
+      data: {
+        adminId: adminId,
+        bookingId: body?.bookingId,
+        body: body,
       },
-    );
+    });
   }
 }
 
@@ -988,7 +1010,7 @@ module.exports = {
   getTransactionsByBookingId,
   getTransactionsByBookingIdDate,
   getTransactionByTransactionId,
-  getAllRefundsByTransactionId,
+  getAllRefundsByBookingId,
   getRefundByRefundId,
   updateTransactionForPayment,
   updateTransactionForRefund,

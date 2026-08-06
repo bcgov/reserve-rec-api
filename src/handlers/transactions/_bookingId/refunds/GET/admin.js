@@ -1,7 +1,7 @@
 // Get refund by refund ID
 
 const { Exception, logger, sendResponse, handleCORS } = require("/opt/base");
-const { getAllRefundsByTransactionId, getRefundByRefundId } = require("../../methods");
+const { getAllRefundsByBookingId, getRefundByRefundId } = require("../../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Refunds admin GET:", event);
@@ -30,9 +30,8 @@ exports.handler = async (event, context) => {
     // If no refundId is provided, get all refunds for the transaction
     // otherwise, get the specific refund
     if (!refundId) {
-      refunds = await getAllRefundsByTransactionId(
-        bookingId,
-        refundId
+      refunds = await getAllRefundsByBookingId(
+        bookingId
       );
     } else {
       refunds = await getRefundByRefundId(

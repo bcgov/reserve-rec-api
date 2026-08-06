@@ -67,18 +67,18 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../../methods", () => ({
+jest.mock("../../../../methods", () => ({
   findAndVerifyTransactionOwnership: jest.fn(),
   createAndCheckRefundHash: jest.fn(),
   createRefund: jest.fn(),
 }));
 
-jest.mock("../../../../../common/data-utils", () => ({
+jest.mock("../../../../../../common/data-utils", () => ({
   quickApiPutHandler: jest.fn().mockResolvedValue([{ PutRequest: {} }]),
   quickApiUpdateHandler: jest.fn().mockResolvedValue([{ UpdateItem: {} }]),
 }));
 
-jest.mock("../../../configs", () => ({
+jest.mock("../../../../configs", () => ({
   REFUND_PUT_CONFIG: {},
   TRANSACTION_UPDATE_CONFIG: {},
 }));
@@ -89,7 +89,7 @@ const {
   findAndVerifyTransactionOwnership,
   createAndCheckRefundHash,
   createRefund,
-} = require("../../../methods");
+} = require("../../../../methods");
 
 const { handler } = require("../admin");
 
@@ -104,14 +104,14 @@ function makeToken(sub) {
 }
 
 function makeEvent({
-  clientTransactionId = TRANSACTION_ID,
-  sub = MOCK_ADMIN_ID,
   body = {},
+  pathParameters = {},
+  sub = MOCK_ADMIN_ID,
 } = {}) {
   const headers = sub ? { Authorization: `Bearer ${makeToken(sub)}` } : {};
   return {
     httpMethod: "POST",
-    pathParameters: clientTransactionId !== null ? { clientTransactionId } : {},
+    pathParameters,
     body: JSON.stringify(body),
     headers,
   };
@@ -162,8 +162,9 @@ describe("Admin Refund POST handler", () => {
   // Happy paths
   it("succeeds with a partial refund and logs audit", async () => {
     const event = makeEvent({
-      clientTransactionId: TRANSACTION_ID,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
+        clientTransactionId: TRANSACTION_ID,
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
@@ -199,8 +200,9 @@ describe("Admin Refund POST handler", () => {
     });
 
     const event = makeEvent({
-      clientTransactionId: TRANSACTION_ID,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
+        clientTransactionId: TRANSACTION_ID,
         userId: MOCK_USER_ID,
         refundAmount: 10,
       },
@@ -213,10 +215,11 @@ describe("Admin Refund POST handler", () => {
   });
 
   // Malformed or missing transaction items tests
-  it("fails if clientTransactionId is missing from pathParameters", async () => {
+  it("fails if clientTransactionId is missing from body", async () => {
     const event = makeEvent({
-      clientTransactionId: null,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
+        clientTransactionId: null,
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
@@ -226,7 +229,7 @@ describe("Admin Refund POST handler", () => {
 
     expect(result.status).toBe(400);
     expect(result.message).toContain(
-      "missing clientTransactionId, userId, or refundAmount",
+      "missing bookingId, clientTransactionId, userId, or refundAmount",
     );
     expect(optBase.writeAuditLog).toHaveBeenCalledWith(
       MOCK_ADMIN_ID,
@@ -241,6 +244,7 @@ describe("Admin Refund POST handler", () => {
 
   it("fails if refundAmount is missing from request body", async () => {
     const event = makeEvent({
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
         userId: MOCK_USER_ID,
       },
@@ -250,12 +254,13 @@ describe("Admin Refund POST handler", () => {
 
     expect(result.status).toBe(400);
     expect(result.message).toContain(
-      "missing clientTransactionId, userId, or refundAmount",
+      "missing bookingId, clientTransactionId, userId, or refundAmount",
     );
   });
 
-  it("fails if userId is missing from request body", async () => {
+  it("fails if bookingId is missing from pathParameters", async () => {
     const event = makeEvent({
+      pathParameters: null,
       body: {
         refundAmount: 5,
       },
@@ -265,7 +270,23 @@ describe("Admin Refund POST handler", () => {
 
     expect(result.status).toBe(400);
     expect(result.message).toContain(
-      "missing clientTransactionId, userId, or refundAmount",
+      "missing bookingId, clientTransactionId, userId, or refundAmount",
+    );
+  });
+
+  it("fails if userId is missing from request body", async () => {
+    const event = makeEvent({
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
+      body: {
+        refundAmount: 5,
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(400);
+    expect(result.message).toContain(
+      "missing bookingId, clientTransactionId, userId, or refundAmount",
     );
   });
 
@@ -276,7 +297,9 @@ describe("Admin Refund POST handler", () => {
     });
 
     const event = makeEvent({
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
+        clientTransactionId: TRANSACTION_ID,
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
@@ -295,7 +318,9 @@ describe("Admin Refund POST handler", () => {
     });
 
     const event = makeEvent({
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
+        clientTransactionId: TRANSACTION_ID,
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
@@ -312,11 +337,12 @@ describe("Admin Refund POST handler", () => {
   // Auth checks
   it("fails if a non-admin (customer) tries to process a refund", async () => {
     const event = makeEvent({
-      sub: MOCK_USER_ID, // Non-admin user ID
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
+      sub: MOCK_USER_ID, // Non-admin user ID
     });
 
     const result = await handler(event, {});
@@ -327,11 +353,12 @@ describe("Admin Refund POST handler", () => {
 
   it("fails if token is unauthenticated", async () => {
     const event = makeEvent({
-      sub: null,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
       body: {
         userId: MOCK_USER_ID,
         refundAmount: 5,
       },
+      sub: null,
     });
 
     const result = await handler(event, {});

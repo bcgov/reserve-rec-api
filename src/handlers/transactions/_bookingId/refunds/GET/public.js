@@ -1,7 +1,6 @@
 // Get refund by refund ID
 
 const { Exception, logger, sendResponse } = require("/opt/base");
-const { getAllRefundsByTransactionId, getRefundByRefundId } = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Refunds public GET:", event);

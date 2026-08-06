@@ -42,13 +42,13 @@ jest.mock("/opt/base", () => ({
   }),
 }));
 
-jest.mock("../../methods", () => ({
+jest.mock("../../../methods", () => ({
   processTokenTransaction: jest.fn(),
 }));
 
 const optBase = require("/opt/base");
 const { handler } = require("../public");
-const { processTokenTransaction } = require("../../methods");
+const { processTokenTransaction } = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 const DATE = new Date("2026-06-11T12:00:00Z").toISOString().split('T')[0]

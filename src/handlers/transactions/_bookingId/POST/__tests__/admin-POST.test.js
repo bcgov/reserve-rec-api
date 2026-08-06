@@ -67,13 +67,13 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../methods", () => ({
+jest.mock("../../../methods", () => ({
   processTokenTransaction: jest.fn(),
 }));
 
 const optBase = require("/opt/base");
 const { handler } = require("../admin");
-const { processTokenTransaction } = require("../../methods");
+const { processTokenTransaction } = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 const MOCK_BOOKING_ID = "booking-123";

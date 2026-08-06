@@ -7,7 +7,7 @@ const {
   sendResponse,
   writeAuditLog,
 } = require("/opt/base");
-const { processTokenTransaction } = require("../methods");
+const { processTokenTransaction } = require("../../methods");
 const {
   AUDIT_TABLE_NAME,
   batchWriteData,

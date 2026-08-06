@@ -33,16 +33,16 @@ jest.mock("/opt/base", () => {
   };
 });
 
-jest.mock("../../../methods", () => ({
-  getAllRefundsByTransactionId: jest.fn(),
+jest.mock("../../../../methods", () => ({
+  getAllRefundsByBookingId: jest.fn(),
   getRefundByRefundId: jest.fn(),
 }));
 
 const optBase = require("/opt/base");
 const {
-  getAllRefundsByTransactionId,
+  getAllRefundsByBookingId,
   getRefundByRefundId,
-} = require("../../../methods");
+} = require("../../../../methods");
 
 const { handler } = require("../admin");
 
@@ -96,7 +96,7 @@ describe("Admin Refunds GET handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    getAllRefundsByTransactionId.mockResolvedValue(baseRefundList);
+    getAllRefundsByBookingId.mockResolvedValue(baseRefundList);
     getRefundByRefundId.mockResolvedValue(baseSingleRefund);
 
     jest.useFakeTimers();
@@ -127,7 +127,7 @@ describe("Admin Refunds GET handler", () => {
     expect(result.status).toBe(200);
     expect(result.data).toEqual(baseRefundList);
     expect(result.message).toBe("Success");
-    expect(getAllRefundsByTransactionId).toHaveBeenCalledWith(
+    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(
       MOCK_BOOKING_ID,
       undefined
     );
@@ -142,7 +142,7 @@ describe("Admin Refunds GET handler", () => {
 
     expect(result.status).toBe(200);
     expect(result.data).toEqual(baseRefundList);
-    expect(getAllRefundsByTransactionId).toHaveBeenCalledWith(
+    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(
       MOCK_BOOKING_ID,
       undefined
     );
@@ -197,7 +197,7 @@ describe("Admin Refunds GET handler", () => {
   });
 
   it("handles errors thrown by database/method layer gracefully", async () => {
-    getAllRefundsByTransactionId.mockRejectedValueOnce(
+    getAllRefundsByBookingId.mockRejectedValueOnce(
       new optBase.Exception("Failed to query database", { code: 500 })
     );
 

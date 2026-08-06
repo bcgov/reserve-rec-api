@@ -117,7 +117,7 @@ const {
   getTransactionsByBookingIdDate,
   getTransactionByTransactionId,
   processTokenTransaction,
-  getAllRefundsByTransactionId,
+  getAllRefundsByBookingId,
   getRefundByRefundId,
 } = require("../methods");
 const {
@@ -791,7 +791,7 @@ describe("Methods: createAndCheckRefundHash", () => {
   });
 });
 
-describe("Methods: getAllRefundsByTransactionId", () => {
+describe("Methods: getAllRefundsByBookingId", () => {
   const MOCK_USER_ID = "user-123";
   const MOCK_BOOKING_ID = "booking-123";
   const TRANSACTION_ID = "transaction-123";
@@ -872,8 +872,8 @@ describe("Methods: getAllRefundsByTransactionId", () => {
     jest.useRealTimers();
   });
 
-  it("Get a refund by transactionId", async () => {
-    const result = await getAllRefundsByTransactionId(MOCK_BOOKING_ID);
+  it("Get a refund by bookingId", async () => {
+    const result = await getAllRefundsByBookingId(MOCK_BOOKING_ID);
 
     expect(result).toHaveLength(2);
   });
@@ -883,7 +883,7 @@ describe("Methods: getAllRefundsByTransactionId", () => {
       items: [],
     });
 
-    const result = await getAllRefundsByTransactionId(
+    const result = await getAllRefundsByBookingId(
       "fake-booking-id",
     );
 
@@ -894,10 +894,10 @@ describe("Methods: getAllRefundsByTransactionId", () => {
     runQuery.mockResolvedValue(undefined); // cannot read properties
 
     await expect(
-      getAllRefundsByTransactionId(MOCK_BOOKING_ID),
+      getAllRefundsByBookingId(MOCK_BOOKING_ID),
     ).rejects.toMatchObject({
       code: 400,
-      message: "Error getting all refunds by transactionId",
+      message: "Error getting refunds by bookingId",
     });
   });
 });
