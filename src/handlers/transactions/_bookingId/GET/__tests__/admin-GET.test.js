@@ -43,22 +43,23 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../methods", () => ({
+jest.mock("../../../methods", () => ({
   getTransactionsByBookingId: jest.fn(),
   getTransactionsByBookingIdDate: jest.fn(),
   getTransactionByTransactionId: jest.fn(),
 }));
 
 const optBase = require("/opt/base");
-const { handler } = require("../public");
+const { handler } = require("../admin");
 const { 
   getTransactionByTransactionId,
   getTransactionsByBookingId,
   getTransactionsByBookingIdDate
-} = require("../../methods");
+} = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 const MOCK_BOOKING_ID = "booking-123";
+const MOCK_ADMIN_ID = "admin-123";
 const MOCK_USER_ID = "user-123";
 const TRANSACTION_ID = `BCPR-${MOCK_BOOKING_ID}`
 const DATE = new Date("2026-06-11T12:00:00Z").toISOString().split('T')[0]
@@ -68,10 +69,11 @@ function makeToken(sub) {
   return `header.${base64Payload}.signature`;
 }
 
-function makeEvent({ sub, queryStringParameters = {} }) {
+function makeEvent({ sub, pathParameters = {}, queryStringParameters = {} }) {
   const headers = { Authorization: `Bearer ${makeToken(sub)}` };
   return {
     httpMethod: "GET",
+    pathParameters: { ...pathParameters },
     queryStringParameters: { ...queryStringParameters },
     headers
   };
@@ -80,7 +82,7 @@ function makeEvent({ sub, queryStringParameters = {} }) {
 // Example transaction
 const baseTransaction = {
   success: true,
-  transactionStatus: "paid",
+  status: "paid",
   trnId: "transaction_123",
   message: "a message",
   transaction: {
@@ -142,34 +144,6 @@ const baseTransactionsBooking = [
     transaction: {
       userId: MOCK_USER_ID,
     },
-  }
-]; 
-
-const baseTransactionsBookingOtherUser = [
-  baseTransaction,
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  },
-  {
-    transaction: {
-      userId: "not-the-right-user",
-    },
-  },
-]; 
-
-const baseTransactionsBookingDateOtherUser = [
-  baseTransaction,
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  },
-  {
-    transaction: {
-      userId: "not-the-right-user",
-    },
   },
 ]; 
 
@@ -181,44 +155,30 @@ const baseTransactionsBookingDate = [
   },
   {
     transaction: {
-      transactionUrl: "token-payment",
       userId: MOCK_USER_ID,
     },
   },
 ]
 
-describe("Public Transaction GET handler", () => {
+describe("Admin Transaction GET handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getTransactionsByBookingId.mockResolvedValue(baseTransactionsBooking);
     getTransactionsByBookingIdDate.mockResolvedValue(baseTransactionsBookingDate);
     getTransactionByTransactionId.mockResolvedValue(baseTransaction);
-    
+
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
   });
-  
+
   afterEach(() => {
     jest.useRealTimers();
   });
-  
-  it("gets all the correct transactions from a bookingId", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBookingOtherUser);
-    const event = makeEvent({
-      sub: MOCK_USER_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID }
-    });
 
-    const result = await handler(event);
-
-    expect(result).toEqual(baseTransactionsBooking);
-  });
-  
-  it("filters all transactions from a bookingId where userId doesn't match", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBooking);
+  it("gets all transactions from a bookingId", async () => {
     const event = makeEvent({
-      sub: MOCK_USER_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID }
+      sub: MOCK_ADMIN_ID,
+      pathParameters: { bookingId: MOCK_BOOKING_ID }
     });
 
     const result = await handler(event);
@@ -230,22 +190,9 @@ describe("Public Transaction GET handler", () => {
     const date = new Date("2026-06-25T12:00:00Z").toISOString().split('T')[0]
 
     const event = makeEvent({
-      sub: MOCK_USER_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID, date: date }
-    });
-
-    const result = await handler(event);
-
-    expect(result).toEqual(baseTransactionsBookingDate);
-  });
-  
-  it("gets all transactions from a bookingId and date", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBookingDateOtherUser);
-    const date = new Date("2026-06-25T12:00:00Z").toISOString().split('T')[0]
-
-    const event = makeEvent({
-      sub: MOCK_USER_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID, date: date }
+      sub: MOCK_ADMIN_ID,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
+      queryStringParameters: { date: date }
     });
 
     const result = await handler(event);
@@ -255,8 +202,9 @@ describe("Public Transaction GET handler", () => {
   
   it("gets a transaction using a clientTransactionId", async () => {
     const event = makeEvent({
-      sub: MOCK_USER_ID,
-      queryStringParameters: { bookingId: MOCK_BOOKING_ID, date: "2025-06-11", clientTransactionId: TRANSACTION_ID }
+      sub: MOCK_ADMIN_ID,
+      pathParameters: { bookingId: MOCK_BOOKING_ID },
+      queryStringParameters: { date: "2025-06-11", clientTransactionId: TRANSACTION_ID }
     });
 
     const result = await handler(event);
@@ -266,7 +214,7 @@ describe("Public Transaction GET handler", () => {
 
   it("fails if the no query string parameters are given", async () => {
     const event = makeEvent({
-      sub: MOCK_USER_ID,
+      sub: MOCK_ADMIN_ID,
     });
 
     const result = await handler(event, {});
@@ -277,7 +225,7 @@ describe("Public Transaction GET handler", () => {
     );
   });
 
-  it("fails if no user is provided", async () => {
+  it("fails if no admin user is provided", async () => {
     const event = makeEvent({
       sub: undefined
     });
@@ -286,7 +234,7 @@ describe("Public Transaction GET handler", () => {
 
     expect(result.status).toBe(401);
     expect(result.error.message).toBe(
-      "Unauthorized: a valid userId is required",
+      "Unauthorized: Authentication required to GET a transaction",
     );
   });
 });

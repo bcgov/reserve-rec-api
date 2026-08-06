@@ -48,13 +48,13 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     // Add /transactions/admin resource
     this.transactionsAdminResource = this.transactionsResource.addResource('admin');
 
-    // Add /transactions/admin/{clientTransactionId} resource
-    this.transactionsByTransactionIdResource = this.transactionsAdminResource.addResource('{clientTransactionId}');
+    // Add /transactions/admin/{bookingId} resource
+    this.transactionsByTransactionIdResource = this.transactionsAdminResource.addResource('{bookingId}');
 
-    // Add /transactions/admin/{clientTransactionId}/refunds resource
+    // Add /transactions/admin/{bookingId}/refunds resource
     this.transactionsRefundsResource = this.transactionsByTransactionIdResource.addResource('refunds');
 
-    // Add /transactions/admin/{clientTransactionId}/refunds/{refundId} resource
+    // Add /transactions/admin/{bookingId}/refunds/{refundId} resource
     this.transactionsRefundsByRefundIdResource = this.transactionsRefundsResource.addResource('{refundId}');
 
     // Add CORS preflight for transactions
@@ -70,7 +70,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminGetFunction',
-      'src/handlers/transactions/GET',
+      'src/handlers/transactions/_bookingId/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -83,7 +83,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // GET /transactions/{clientTransactionId}
+    // GET /transactions/{bookingId}
     this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
@@ -93,7 +93,7 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminPostFunction',
-      'src/handlers/transactions/POST',
+      'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -110,20 +110,20 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminRefundsGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminRefundsGetFunction',
-      'src/handlers/transactions/refunds/GET',
+      'src/handlers/transactions/_bookingId/refunds/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
       }
     );
 
-    // GET /transactions/{clientTransactionId}/refunds
+    // GET /transactions/{bookingId}/refunds
     this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
-    // GET /transactions/{clientTransactionId}/refunds/{refundId}
+    // GET /transactions/{bookingId}/refunds/{refundId}
     this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsAdminRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
@@ -133,14 +133,14 @@ class AdminTransactionsConstruct extends LambdaConstruct {
     this.transactionsAdminRefundsPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsAdminRefundsPostFunction',
-      'src/handlers/transactions/refunds/POST',
+      'src/handlers/transactions/_bookingId/refunds/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
       }
     );
 
-    // POST /transactions/{clientTransactionId}/refunds
+    // POST /transactions/{bookingId}/refunds
     this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsAdminRefundsPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
@@ -224,13 +224,13 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     // Add /transactions resource
     this.transactionsResource = this.resolveApi().root.addResource('transactions');
 
-    // Add /transactions/{clientTransactionId} resource
-    this.transactionsByTransactionIdResource = this.transactionsResource.addResource('{clientTransactionId}');
+    // Add /transactions/{bookingId} resource
+    this.transactionsByTransactionIdResource = this.transactionsResource.addResource('{bookingId}');
 
-    // Add /transactions/{clientTransactionId}/refunds resource
+    // Add /transactions/{bookingId}/refunds resource
     this.transactionsRefundsResource = this.transactionsByTransactionIdResource.addResource('refunds');
 
-    // Add /transactions/{clientTransactionId}/refunds/{refundId} resource
+    // Add /transactions/{bookingId}/refunds/{refundId} resource
     this.transactionsRefundsByRefundIdResource = this.transactionsRefundsResource.addResource('{refundId}');
 
     // Add CORS preflight for transactions
@@ -245,7 +245,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicGetFunction',
-      'src/handlers/transactions/GET',
+      'src/handlers/transactions/_bookingId/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -258,7 +258,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // GET /transactions/{clientTransactionId}
+    // GET /transactions/{bookingId}
     this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
@@ -268,7 +268,7 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicPostFunction',
-      'src/handlers/transactions/POST',
+      'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
@@ -285,20 +285,20 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicRefundsGetFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicRefundsGetFunction',
-      'src/handlers/transactions/refunds/GET',
+      'src/handlers/transactions/_bookingId/refunds/GET',
       handlerName,
       {
         transDataBasicReadWrite: true,
       }
     );
 
-    // GET /transactions/{clientTransactionId}/refunds
+    // GET /transactions/{bookingId}/refunds
     this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
 
-    // GET /transactions/{clientTransactionId}/refunds/{refundId}
+    // GET /transactions/{bookingId}/refunds/{refundId}
     this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
@@ -308,14 +308,14 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     this.transactionsPublicRefundsPostFunction = this.generateBasicLambdaFn(
       scope,
       'transactionsPublicRefundsPostFunction',
-      'src/handlers/transactions/refunds/POST',
+      'src/handlers/transactions/_bookingId/refunds/POST',
       handlerName,
       {
         transDataBasicReadWrite: true,
       }
     );
 
-    // POST /transactions/{clientTransactionId}/refunds
+    // POST /transactions/{bookingId}/refunds
     this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicRefundsPostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),

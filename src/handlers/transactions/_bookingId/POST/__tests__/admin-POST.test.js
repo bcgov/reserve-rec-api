@@ -51,9 +51,9 @@ jest.mock("/opt/base", () => {
         }
         return { ...claims, role };
       }
-      // If credentials are completely missing, return a "guest" context
-      // so the handler's manual !adminId check handles it and throws its unique error message
-      return { role: "guest" };
+      throw new mockException("Unauthorized: Authentication required", {
+        code: 401,
+      });
     }),
     writeAuditLog: jest.fn().mockResolvedValue(undefined),
   };
@@ -67,13 +67,13 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../methods", () => ({
+jest.mock("../../../methods", () => ({
   processTokenTransaction: jest.fn(),
 }));
 
 const optBase = require("/opt/base");
 const { handler } = require("../admin");
-const { processTokenTransaction } = require("../../methods");
+const { processTokenTransaction } = require("../../../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 const MOCK_BOOKING_ID = "booking-123";
@@ -87,7 +87,11 @@ function makeToken(sub) {
   return `header.${base64Payload}.signature`;
 }
 
-function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_ADMIN_ID, body = {} } = {}) {
+function makeEvent({
+  bookingId = MOCK_BOOKING_ID,
+  sub = MOCK_ADMIN_ID,
+  body = {},
+} = {}) {
   const headers = sub ? { Authorization: `Bearer ${makeToken(sub)}` } : {};
   return {
     httpMethod: "POST",
@@ -99,7 +103,7 @@ function makeEvent({ bookingId = MOCK_BOOKING_ID, sub = MOCK_ADMIN_ID, body = {}
 
 const baseTransaction = {
   success: true,
-  transactionStatus: "paid",
+  status: "paid",
   trnId: "transaction_123",
   message: "a message",
   transaction: {
@@ -111,7 +115,7 @@ const baseTransaction = {
     date: DATE,
     globalId: TRANSACTION_ID,
     schema: "transaction",
-    transactionStatus: "paid",
+    status: "paid",
     transactionUrl: "token-payment",
     userId: MOCK_USER_ID,
     trnId: "trn_123",
@@ -149,7 +153,7 @@ describe("Admin Transaction POST handler", () => {
 
     const resultRes = result.data.response
     expect(resultRes.success).toBe(true);
-    expect(resultRes.transactionStatus).toBe('paid');
+    expect(resultRes.status).toBe('paid');
   });
 
   // Malformed or missing transaction items tests
@@ -168,7 +172,7 @@ describe("Admin Transaction POST handler", () => {
 
     expect(result.status).toBe(401);
     expect(result.error.message).toBe(
-      "Unauthorized: Authentication required to create transaction",
+      "Unauthorized: Authentication required",
     );
   });
 
