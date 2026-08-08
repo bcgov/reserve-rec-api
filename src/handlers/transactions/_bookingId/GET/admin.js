@@ -11,7 +11,7 @@ const {
   getTransactionsByBookingId,
   getTransactionsByBookingIdDate,
   getTransactionByTransactionId,
-} = require("../methods");
+} = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Transactions admin GET:", event);
@@ -31,10 +31,9 @@ exports.handler = async (event, context) => {
     }
 
     const params = event?.queryStringParameters || {};
-    const bookingId = params.bookingId;
+    const bookingId = params.bookingId || event?.pathParameters?.bookingId;
     const date = params.date;
-    const clientTransactionId =
-      params.clientTransactionId || event?.pathParameters?.clientTransactionId;
+    const clientTransactionId = params.clientTransactionId
 
     if (clientTransactionId) {
       // Get a specific transaction using transactionId

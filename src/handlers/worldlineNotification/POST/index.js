@@ -68,7 +68,7 @@ exports.handler = async (event, context) => {
 
     // Send receipt email after successful payment
     try {
-      if (updateRequestsTransaction?.data?.transactionStatus === 'paid') {
+      if (updateRequestsTransaction?.data?.status === 'paid') {
         // Get the full booking object for the email (completeBooking only returns update fields)
         const { getBookingByBookingId } = require("../../bookings/methods");
         const fullBooking = await getBookingByBookingId(bookingId);

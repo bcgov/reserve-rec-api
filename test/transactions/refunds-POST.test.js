@@ -142,7 +142,7 @@ describe("Transaction Refund POST handler", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: mockTransactionId,
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       trnId: "worldline-123",
       userId: mockUser,
@@ -204,7 +204,7 @@ describe("Transaction Refund POST handler", () => {
   it("should return 409 if transaction is already fully refunded", async () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
-      transactionStatus: "refunded",
+      status: "refunded",
       userId: mockUser,
     };
 
@@ -249,7 +249,7 @@ describe("Transaction Refund POST handler", () => {
   it ("should throw an error if the user is anonymous (guest checkout not allowed)", async () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
-      transactionStatus: "paid",
+      status: "paid",
       userId: "anonymous",
     };
 
@@ -276,7 +276,7 @@ describe("Transaction Refund POST handler", () => {
   it("should handle duplicate refund attempts (idempotency test)", async () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
-      transactionStatus: "paid",
+      status: "paid",
       userId: mockUser,
     };
 
@@ -307,7 +307,7 @@ describe("Transaction Refund POST handler", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: mockTransactionId,
-      transactionStatus: "partial refund",
+      status: "partial refund",
       amount: 100.0,
       userId: mockUser,
     };
@@ -355,7 +355,7 @@ describe("Transaction Refund POST handler", () => {
   it("should handle errors during database operations", async () => {
     const mockTransaction = {
       clientTransactionId: mockTransactionId,
-      transactionStatus: "paid",
+      status: "paid",
       userId: mockUser,
     };
 
@@ -399,7 +399,7 @@ describe("Transaction Refund POST handler", () => {
       pk: "transaction::BCPR-abc123",
       sk: "details",
       clientTransactionId: mockTransactionId,
-      transactionStatus: "paid",
+      status: "paid",
       amount: 100.0,
       userId: mockUser,
     };

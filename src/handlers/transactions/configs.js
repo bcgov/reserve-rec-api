@@ -355,6 +355,13 @@ const REFUND_PUT_CONFIG = {
         rf.expectAction(action, ["set"]);
       },
     },
+    processorRefundId: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ["string"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
     refundReason: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ["string"]);
@@ -377,7 +384,7 @@ const REFUND_PUT_CONFIG = {
     schema: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
-        rf.expectValueInList(value, ["transaction"]);
+        rf.expectValueInList(value, ["refund"]);
         rf.expectAction(action, ["set"]);
       },
     },

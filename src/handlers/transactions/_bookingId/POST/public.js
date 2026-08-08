@@ -5,7 +5,7 @@ const {
   logger,
   sendResponse,
 } = require("/opt/base");
-const { processTokenTransaction } = require("../methods");
+const { processTokenTransaction } = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("Transactions public POST:", event);
