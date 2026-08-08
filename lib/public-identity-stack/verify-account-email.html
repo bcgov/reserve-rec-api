@@ -1,0 +1,232 @@
+<!--
+  Verify-account email body, sent by Cognito on SignUp / ResendConfirmationCode.
+  Matches Figma: "Verify account email template - APRIL (#332)"
+  https://www.figma.com/design/1QHd1cWiRqeC0Ua0E9nfhr/PRDT---Public?node-id=6232-206126
+
+  Table-based / inline-styled for email client compatibility. {####} is
+  Cognito's confirmation-code placeholder and is substituted at send time —
+  do NOT rename it. (CDK rejects the template if it is missing.)
+
+  ---------------------------------------------------------------------------
+  BEFORE DEPLOYING — two steps
+  ---------------------------------------------------------------------------
+  1. Upload these five PNGs to a public bucket/CDN. Source vectors live in
+     ./assets/. Export at 2x for retina, but keep the width/height attributes
+     in this file at the 1x display size shown below.
+
+       filename                      display   export at
+       ---------------------------   -------   ---------
+       bcparks-logo.png              133x40    266x80     (header, colour)
+       bcparks-wordmark-white.png    120x27    240x54     (footer, white)
+       icon-email.png                 20x20     40x40     (#003366 envelope)
+       icon-facebook.png              34x34     68x68     (white)
+       icon-instagram.png             34x34     68x68     (white)
+
+     All must be PNG with transparency. Not SVG — Gmail, Outlook and most
+     clients strip inline <svg> and do not load .svg in <img>.
+
+  2. Find-replace the placeholder host with the real one:
+       https://ASSET_BASE.invalid/email/   ->   https://<your-cdn>/<path>/
+     .invalid is a reserved TLD (RFC 2606) so it can never silently resolve.
+
+  ---------------------------------------------------------------------------
+  Known deviation from Figma: the First Nations acknowledgement box straddles
+  the white/navy boundary in the design (negative offset). Outlook desktop
+  (Word rendering engine) ignores negative margins, so there it will render
+  fully inside the navy section instead of overlapping. All other clients
+  (Gmail, Apple Mail, Outlook.com, mobile) render the overlap as designed.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify your e-mail with BC Parks</title>
+</head>
+<body style="margin:0; padding:0; background:#FFFFFF; font-family:'BC Sans', Arial, Helvetica, sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background:#FFFFFF;">
+
+        <!-- Top padding -->
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Header: BC Parks logo (exact PNG export from BCP Logo / Horizontal, Primary-Colour) -->
+        <tr>
+          <td style="padding:0 24px;">
+            <img
+              src="https://ASSET_BASE.invalid/email/bcparks-logo.png"
+              width="133"
+              height="40"
+              alt="BC Parks"
+              style="display:block; border:0; outline:none;">
+          </td>
+        </tr>
+
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- H1 -->
+        <tr>
+          <td style="padding:0 24px;">
+            <h1 style="margin:0; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:23px; line-height:33px; font-weight:700; color:#003366;">
+              Verify your e-mail with BC Parks
+            </h1>
+          </td>
+        </tr>
+
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Intro copy + Note -->
+        <tr>
+          <td style="padding:0 24px; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:16px; line-height:25.6px; color:#1A1A1A;">
+            <p style="margin:0 0 16px 0;">Thank you for creating an account with BC Parks!</p>
+            <p style="margin:0 0 16px 0;">Please input the code below when prompted to verify this email address belongs to you and activate your account with BC Parks.</p>
+            <p style="margin:0;"><strong>Note:</strong> You will be unable to reserve day-use passes until you have verified your email.</p>
+          </td>
+        </tr>
+
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Confirmation code box -->
+        <tr>
+          <td style="padding:0 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background:#F2F2F2; border:1px solid #C7C7C7; border-radius:4px;">
+              <tr>
+                <td align="center" style="padding:16px; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:23px; line-height:33px; font-weight:700; color:#1A1A1A;">
+                  {####}
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0 0; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:13px; line-height:21px; color:#1A1A1A;">
+              This code is valid for 24 hours. If you didn&rsquo;t request this verification, no further action is needed.
+            </p>
+          </td>
+        </tr>
+
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Customer Service box -->
+        <tr>
+          <td style="padding:0 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background:#C7E3FD; border-radius:4px;">
+              <tr>
+                <td style="padding:24px 24px 32px 24px;">
+                  <p style="margin:0 0 2px 0; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:19px; line-height:28px; font-weight:700; color:#003366;">
+                    Customer Service
+                  </p>
+                  <p style="margin:0 0 24px 0; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:16px; line-height:25.6px; color:#1A1A1A;">
+                    If you are having problems verifying your email address, please contact us for support.
+                  </p>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="padding-right:8px; vertical-align:middle;" width="20">
+                        <!-- email icon: exact export, "inline / email" component -->
+                        <img src="https://ASSET_BASE.invalid/email/icon-email.png" width="20" height="20" alt="" style="display:block; border:0;">
+                      </td>
+                      <td style="font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:16px; line-height:25.6px; vertical-align:middle;">
+                        <strong style="color:#1A1A1A;">Email</strong>
+                        &nbsp;<a href="mailto:parkinfo@gov.bc.ca" style="color:#003366; text-decoration:underline;">parkinfo@gov.bc.ca</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr><td style="height:40px; line-height:40px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Disclaimer -->
+        <tr>
+          <td style="padding:0 24px; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:16px; line-height:25.6px; font-style:italic; color:#1A1A1A;">
+            This email is provided for information related to your BC Parks account only. The inbox is not monitored. If you need assistance, please contact
+            <a href="mailto:parkinfo@gov.bc.ca" style="color:#003366;">parkinfo@gov.bc.ca</a>.
+          </td>
+        </tr>
+
+        <!-- 147px = the 80px Figma gap between the content block and the footer,
+             plus the 67px the acknowledgement box is pulled back up out of the
+             navy below (so the visible white gap above that box is 80px). -->
+        <tr><td style="height:147px; line-height:147px; font-size:0;">&nbsp;</td></tr>
+
+        <!-- Footer (navy, Figma "Frame 782": padding 107px 24px 80px, gap 24px).
+             The First Nations acknowledgement box straddles the white/navy
+             boundary. It lives INSIDE the navy cell so it paints on top of the
+             navy, and is pulled up 67px by a <div> negative margin — a negative
+             margin on a <table> is ignored by browsers and most mail clients,
+             on a <div> it is honoured. 67px pulled up + 40px gap below it
+             reproduces the 107px top padding Figma puts on the navy block. -->
+        <tr>
+          <td style="background:#003366; padding:0 24px 80px 24px;">
+
+            <div style="margin-top:-67px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="458" align="center" style="width:458px; max-width:100%; margin:0 auto; background:#2464A4;">
+                <tr>
+                  <td align="center" style="padding:24px; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:13px; line-height:21px; color:#FFFFFF;">
+                    We acknowledge all First Nations on whose territories BC Parks were established. We honour their connection to the land and respect the importance of their diverse teachings, traditions, and practices within these territories.
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="height:40px; line-height:40px; font-size:0;">&nbsp;</div>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:0;">
+                  <!-- footer wordmark: exact export, Logo/BC Parks/Wordmark-Colour (white) -->
+                  <img src="https://ASSET_BASE.invalid/email/bcparks-wordmark-white.png" width="120" height="27" alt="BC Parks" style="display:block; border:0;">
+                </td>
+              </tr>
+              <tr><td style="height:24px; line-height:24px; font-size:0;">&nbsp;</td></tr>
+              <!-- Figma "Frame 799": address column 268px, 16px gap, then the
+                   socials column (268px, flex:1, icons left-aligned inside it —
+                   they are NOT flush to the right edge of the email). -->
+              <tr>
+                <td style="padding:0;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="268" style="width:268px; font-family:'BC Sans', Arial, Helvetica, sans-serif; font-size:13px; line-height:21px; color:#FFFFFF; vertical-align:top;">
+                        PO Box 9351<br>
+                        STN PROV GOVT<br>
+                        Victoria, BC, V8W9M9<br>
+                        Canada
+                      </td>
+                      <td width="16" style="width:16px; font-size:0; line-height:0;">&nbsp;</td>
+                      <td align="left" style="vertical-align:top;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <!-- Facebook: exact export, "Primary" 34x34 -->
+                            <td style="padding-right:16px;">
+                              <a href="https://www.facebook.com/YourBCParks/" style="display:inline-block; width:34px; height:34px; line-height:0;">
+                                <img src="https://ASSET_BASE.invalid/email/icon-facebook.png" width="34" height="34" alt="Facebook" style="display:block; border:0;">
+                              </a>
+                            </td>
+                            <!-- Instagram: exact export, "Primary" 34x34 -->
+                            <td>
+                              <a href="https://www.instagram.com/yourbcparks/" style="display:inline-block; width:34px; height:34px; line-height:0;">
+                                <img src="https://ASSET_BASE.invalid/email/icon-instagram.png" width="34" height="34" alt="Instagram" style="display:block; border:0;">
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
