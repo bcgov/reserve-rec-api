@@ -5,7 +5,7 @@ const { NodejsFunction, LogLevel } = require('aws-cdk-lib/aws-lambda-nodejs');
 const lambda = require('aws-cdk-lib/aws-lambda');
 const iam = require('aws-cdk-lib/aws-iam');
 const apigw = require('aws-cdk-lib/aws-apigateway');
-const { Duration } = require('aws-cdk-lib');
+const { Duration, Stack } = require('aws-cdk-lib');
 const path = require('path');
 
 const DEFAULT_NODE_RUNTIME = lambda.Runtime.NODEJS_20_X;
@@ -28,7 +28,7 @@ class AdminWaitingRoomConstruct extends LambdaConstruct {
 
     const {
       waitingRoomTableName, waitingRoomTableArn, viewerFunctionName, releaseLambdaArn,
-      wsManagementEndpoint,
+      wsManagementEndpoint, webSocketApiId,
     } = props;
 
     const handlerDir = path.join(__dirname);
@@ -68,13 +68,29 @@ class AdminWaitingRoomConstruct extends LambdaConstruct {
     this.listQueuesFunction = makeAdminFn('listQueuesFunction', 'list-queues.js');
     this.createQueuesFunction = makeAdminFn('createQueuesFunction', 'create-queues.js');
 
+    // close-queue and toggle-mode2 push queueClosed / abandon notifications over
+    // the waiting-room websocket (see waiting-room-stack.js's identical grant for
+    // the connect/release Lambdas). Without this, PostToConnection/DeleteConnection
+    // throw AccessDenied — silently, since callers only log it at debug.
+    const grantWsManageConnections = (fn) => {
+      if (!webSocketApiId) return;
+      const wsApiStack = Stack.of(scope);
+      fn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['execute-api:ManageConnections'],
+        resources: [`arn:aws:execute-api:${wsApiStack.region}:${wsApiStack.account}:${webSocketApiId}/*`],
+      }));
+    };
+
     this.closeQueueFunction = makeAdminFn('closeQueueFunction', 'close-queue.js');
+    grantWsManageConnections(this.closeQueueFunction);
+
     this.deleteQueueFunction = makeAdminFn('deleteQueueFunction', 'delete-queue.js');
     this.queueMetricsFunction = makeAdminFn('queueMetricsFunction', 'queue-metrics.js');
 
     this.toggleMode2Function = makeAdminFn('toggleMode2Function', 'toggle-mode2.js', {
       VIEWER_FUNCTION_NAME: viewerFunctionName || '',
     });
+    grantWsManageConnections(this.toggleMode2Function);
 
     // toggle-mode2 needs cloudfront:GetFunction/UpdateFunction/PublishFunction
     if (viewerFunctionName) {
