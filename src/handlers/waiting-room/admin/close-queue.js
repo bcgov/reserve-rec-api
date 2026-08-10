@@ -58,12 +58,12 @@ exports.handler = async (event) => {
             Data: closedMsg,
           }));
         } catch (err) {
-          logger.debug(`Could not push queueClosed to ${entry.connectionId}: ${err.message}`);
+          logger.warn(`Could not push queueClosed to ${entry.connectionId}: ${err.message}`);
         }
         try {
           await wsClient.send(new DeleteConnectionCommand({ ConnectionId: entry.connectionId }));
         } catch (err) {
-          logger.debug(`Could not delete connection ${entry.connectionId}: ${err.message}`);
+          logger.warn(`Could not delete connection ${entry.connectionId}: ${err.message}`);
         }
       }
     }

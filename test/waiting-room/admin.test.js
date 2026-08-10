@@ -476,6 +476,32 @@ describe('toggle-mode2 handler', () => {
     expect(db.updateQueueMetaStatus).toHaveBeenCalledWith('QUEUE#MODE2#global#1#2026-03-06', 'closed');
   });
 
+  it('deactivates Mode 2 and abandons + notifies waiting entries', async () => {
+    process.env.WEBSOCKET_MANAGEMENT_ENDPOINT = 'https://ws.example.com/ws';
+    db.scanQueuesByStatus.mockResolvedValue([
+      { pk: 'QUEUE#MODE2#global#1#2026-03-05', queueStatus: 'releasing' },
+    ]);
+    db.queryQueueEntries.mockResolvedValue([
+      { pk: 'QUEUE#MODE2#global#1#2026-03-05', userId: 'user-1', connectionId: 'conn-1', status: 'waiting' },
+      { pk: 'QUEUE#MODE2#global#1#2026-03-05', userId: 'user-2', connectionId: 'conn-2', status: 'admitting' },
+    ]);
+    db.updateQueueEntryStatus.mockResolvedValue({});
+    mockWsSend.mockResolvedValue({});
+
+    const res = await handler({ body: JSON.stringify({ active: false }) });
+    delete process.env.WEBSOCKET_MANAGEMENT_ENDPOINT;
+    expect(res.statusCode).toBe(200);
+
+    expect(db.updateQueueEntryStatus).toHaveBeenCalledWith(
+      'QUEUE#MODE2#global#1#2026-03-05', 'user-1', 'abandoned', null, { abandonedAt: NOW_UNIX },
+    );
+    expect(db.updateQueueEntryStatus).toHaveBeenCalledWith(
+      'QUEUE#MODE2#global#1#2026-03-05', 'user-2', 'abandoned', null, { abandonedAt: NOW_UNIX },
+    );
+    // one PostToConnection + one DeleteConnection per entry
+    expect(mockWsSend).toHaveBeenCalledTimes(4);
+  });
+
   it('returns 400 when active field missing', async () => {
     const res = await handler({ body: JSON.stringify({}) });
     expect(res.statusCode).toBe(400);
