@@ -1,5 +1,5 @@
 const { logger, sendResponse, Exception } = require("/opt/base");
-const { fetchProductDates } = require("../../methods");
+const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET Product Dates", event);
@@ -20,8 +20,11 @@ exports.handler = async (event, context) => {
       throw new Exception("collectionId, activityType, activityId, and productId are required in the path", { code: 400 });
     }
 
-    let startDate = event?.queryStringParameters?.startDate || null;
-    let endDate = event?.queryStringParameters?.endDate || null;
+    // Support both single date and date range queries
+    // If 'date' is provided, use it for both startDate and endDate (single day query)
+    // Otherwise use startDate and endDate for range queries
+    let startDate = event?.queryStringParameters?.date || event?.queryStringParameters?.startDate || null;
+    let endDate = event?.queryStringParameters?.date || event?.queryStringParameters?.endDate || null;
 
     let bypassDiscoveryRules = event?.queryStringParameters?.bypassDiscoveryRules && event.queryStringParameters.bypassDiscoveryRules === 'true' ? true : false;
 
@@ -49,7 +52,24 @@ exports.handler = async (event, context) => {
       bypassDiscoveryRules: bypassDiscoveryRules,
     }
 
-    const productDates = await fetchProductDates(props);
+    // Check if this is a single date query
+    const date = startDate === endDate ? startDate : null;
+    
+    let productDates;
+    if (date) {
+      logger.debug(`Single date query detected - using fetchProductDateByDate for ${date}`);
+      productDates = await fetchProductDateByDate({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        date,
+        bypassDiscoveryRules
+      });
+    } else {
+      logger.debug(`Range query - using fetchProductDates from ${startDate} to ${endDate}`);
+      productDates = await fetchProductDates(props);
+    }
 
     return sendResponse(200, productDates, "Success", null, context);
 
