@@ -27,8 +27,8 @@ class AdminWaitingRoomConstruct extends LambdaConstruct {
     super(scope, id, { ...props, defaults });
 
     const {
-      waitingRoomTableName, waitingRoomTableArn, viewerFunctionName, releaseLambdaArn,
-      wsManagementEndpoint, webSocketApiId,
+      waitingRoomTableName, waitingRoomTableArn, viewerFunctionName, frontDoorViewerFunctionName,
+      releaseLambdaArn, wsManagementEndpoint, webSocketApiId,
     } = props;
 
     const handlerDir = path.join(__dirname);
@@ -89,11 +89,15 @@ class AdminWaitingRoomConstruct extends LambdaConstruct {
 
     this.toggleMode2Function = makeAdminFn('toggleMode2Function', 'toggle-mode2.js', {
       VIEWER_FUNCTION_NAME: viewerFunctionName || '',
+      // Front door /dayuse* fn — carries the SPA fallback, so the toggle publishes
+      // gate+fallback / fallback-only code to it (empty = no front door in this env).
+      FRONT_DOOR_VIEWER_FUNCTION_NAME: frontDoorViewerFunctionName || '',
+      FRONT_DOOR_TENANT_PREFIX: '/dayuse',
     });
     grantWsManageConnections(this.toggleMode2Function);
 
     // toggle-mode2 needs cloudfront:GetFunction/UpdateFunction/PublishFunction
-    if (viewerFunctionName) {
+    if (viewerFunctionName || frontDoorViewerFunctionName) {
       this.toggleMode2Function.addToRolePolicy(new iam.PolicyStatement({
         actions: [
           'cloudfront:GetFunction',

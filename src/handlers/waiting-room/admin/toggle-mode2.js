@@ -19,41 +19,70 @@ function getCFClient() {
   return _cfClient;
 }
 
-// Mode 2 OFF — pure pass-through (default deployed state)
-const CODE_PASS_THROUGH = [
-  'async function handler(event) {',
-  '  return event.request;',
-  '}',
-].join('\n');
+// Viewer-request code builder. Two kinds of targets share one gate:
+//
+// prefix ''        — the standalone public distribution (root-mounted SPA). Deep-link
+//                    fallback is handled by distribution-wide errorResponses, so
+//                    inactive code is a pure pass-through, exactly as before.
+// prefix '/dayuse' — the front door tenant behavior. CloudFront allows ONE
+//                    viewer-request function per behavior and the front door has no
+//                    distribution-wide fallback, so this function must ALWAYS carry
+//                    the SPA deep-link fallback; the gate is layered in front of it.
+//
+// Gate semantics are unchanged: only booking/checkout paths are gated; admitted
+// users carry a bcparks-admission cookie; the intended destination is preserved
+// as ?returnUrl= so the waiting room can redirect back after admission.
+function buildViewerFnCode(active, prefix) {
+  const p = prefix || '';
+  const lines = [
+    'async function handler(event) {',
+    '  var request = event.request;',
+    '  var uri = request.uri;',
+  ];
+  if (active) {
+    lines.push(
+      `  var gated = uri === '${p}/checkout' || uri.startsWith('${p}/checkout/')`,
+      `           || uri === '${p}/reservation-flow' || uri.startsWith('${p}/reservation-flow/')`,
+      `           || uri === '${p}/cart' || uri.startsWith('${p}/cart/')`,
+      `           || uri === '${p}/facility' || uri.startsWith('${p}/facility/')`,
+      `           || uri === '${p}/booking-confirmation' || uri.startsWith('${p}/booking-confirmation/')`,
+      `           || uri === '${p}/payment-retry';`,
+      '  var cookies = request.cookies;',
+      "  if (gated && !(cookies['bcparks-admission'] && cookies['bcparks-admission'].value)) {",
+      `    request.uri = '${p}/waitingroom.html';`,
+      "    request.querystring = 'returnUrl=' + encodeURIComponent(uri);",
+      '    return request;',
+      '  }',
+    );
+  }
+  if (p) {
+    lines.push(
+      '  // SPA deep-link fallback: extension-less URIs resolve client-side.',
+      "  if (uri.lastIndexOf('.') < uri.lastIndexOf('/')) {",
+      `    request.uri = '${p}/index.html';`,
+      '  }',
+    );
+  }
+  lines.push('  return request;', '}');
+  return lines.join('\n');
+}
 
-// Mode 2 ON — gate only the booking/checkout paths. Anonymous browsing, login,
-// and all other navigation pass through unmodified so that guest users can still
-// browse the site and authenticate normally.
-// Admitted users carry a bcparks-admission cookie that lets them through.
-// The intended destination is preserved as ?returnUrl= so the waiting room can
-// redirect back to it after admission.
-const CODE_GATE = [
-  'async function handler(event) {',
-  '  var request = event.request;',
-  '  var uri = request.uri;',
-  '  var gated = uri === \'/checkout\' || uri.startsWith(\'/checkout/\')',
-  '           || uri === \'/reservation-flow\' || uri.startsWith(\'/reservation-flow/\')',
-  '           || uri === \'/cart\' || uri.startsWith(\'/cart/\')',
-  '           || uri === \'/facility\' || uri.startsWith(\'/facility/\')',
-  '           || uri === \'/booking-confirmation\' || uri.startsWith(\'/booking-confirmation/\')',
-  '           || uri === \'/payment-retry\';',
-  '  if (!gated) {',
-  '    return request;',
-  '  }',
-  '  var cookies = request.cookies;',
-  "  if (cookies['bcparks-admission'] && cookies['bcparks-admission'].value) {",
-  '    return request;',
-  '  }',
-  "  request.uri = '/waitingroom.html';",
-  "  request.querystring = 'returnUrl=' + encodeURIComponent(uri);",
-  '  return request;',
-  '}',
-].join('\n');
+// The functions this toggle manages. The standalone distribution's fn is the
+// primary; the front door's tenant fn is present only in environments where the
+// front door is deployed.
+function getTargets() {
+  const targets = [];
+  if (process.env.VIEWER_FUNCTION_NAME) {
+    targets.push({ name: process.env.VIEWER_FUNCTION_NAME, prefix: '' });
+  }
+  if (process.env.FRONT_DOOR_VIEWER_FUNCTION_NAME) {
+    targets.push({
+      name: process.env.FRONT_DOOR_VIEWER_FUNCTION_NAME,
+      prefix: process.env.FRONT_DOOR_TENANT_PREFIX || '/dayuse',
+    });
+  }
+  return targets;
+}
 
 // Fixed queue identifiers for Mode 2 (site-wide gating, no specific facility)
 const MODE2_COLLECTION_ID = 'MODE2';
@@ -86,20 +115,19 @@ exports.handler = async (event) => {
       throw new Exception('releaseIntervalSeconds must be between 30 and 86400', { code: 400 });
     }
 
-    const functionName = process.env.VIEWER_FUNCTION_NAME;
-    if (!functionName) {
+    const targets = getTargets();
+    if (targets.length === 0) {
       throw new Exception('VIEWER_FUNCTION_NAME not configured — Mode 2 CF Function not deployed', { code: 503 });
     }
 
     const client = getCFClient();
 
-    // 1. Get current ETag and read the stored active queueId from the function comment
+    // 1. Read the stored active queueId from the primary function's comment
     //    (so deactivation uses the same queueId even if called past midnight UTC).
     const getResult = await client.send(new GetFunctionCommand({
-      Name: functionName,
+      Name: targets[0].name,
       Stage: 'LIVE',
     }));
-    const etag = getResult.ETag;
 
     // Parse stored queueId from comment (format: "ACTIVE:<queueId>" when active)
     const existingComment = getResult.FunctionSummary?.FunctionConfig?.Comment || '';
@@ -184,27 +212,39 @@ exports.handler = async (event) => {
       logger.info(`Mode 2 deactivated: closed ${mode2Queues.length} queue(s), released ${releasedCount} waiting user(s)`);
     }
 
-    // 3. Update the CloudFront function code. On failure, undo the DynamoDB write.
-    let newEtag;
+    // 3./4. Update + publish each target's CloudFront function code.
+    // On failure, undo the DynamoDB write. Targets are updated sequentially; if a
+    // later target fails after an earlier one published, the error names which
+    // functions succeeded so the operator can retry the toggle (idempotent).
+    // Embed the active queueId in the comment so deactivation can retrieve it
+    // even if called past midnight UTC when getMode2QueueId() would return a different date.
+    const comment = body.active
+      ? `ACTIVE:${queueId}`
+      : `WR Mode 2 viewer-request gate — PASS-THROUGH`;
+    const published = [];
     try {
-      // Embed the active queueId in the comment so deactivation can retrieve it
-      // even if called past midnight UTC when getMode2QueueId() would return a different date.
-      const comment = body.active
-        ? `ACTIVE:${queueId}`
-        : `WR Mode 2 viewer-request gate — PASS-THROUGH`;
-
-      const newCode = body.active ? CODE_GATE : CODE_PASS_THROUGH;
-      const updateResult = await client.send(new UpdateFunctionCommand({
-        Name: functionName,
-        IfMatch: etag,
-        FunctionConfig: {
-          Comment: comment,
-          Runtime: 'cloudfront-js-2.0',
-        },
-        FunctionCode: Buffer.from(newCode),
-      }));
-      newEtag = updateResult.ETag;
+      for (const target of targets) {
+        const targetGet = await client.send(new GetFunctionCommand({
+          Name: target.name,
+          Stage: 'LIVE',
+        }));
+        const updateResult = await client.send(new UpdateFunctionCommand({
+          Name: target.name,
+          IfMatch: targetGet.ETag,
+          FunctionConfig: {
+            Comment: comment,
+            Runtime: 'cloudfront-js-2.0',
+          },
+          FunctionCode: Buffer.from(buildViewerFnCode(body.active, target.prefix)),
+        }));
+        await client.send(new PublishFunctionCommand({
+          Name: target.name,
+          IfMatch: updateResult.ETag,
+        }));
+        published.push(target.name);
+      }
     } catch (cfErr) {
+      logger.error(`toggle-mode2: CF update failed after publishing [${published.join(', ')}]:`, cfErr.message);
       // Undo the DynamoDB write to keep state consistent
       if (body.active) {
         await updateQueueMetaStatus(queueId, 'closed').catch(e =>
@@ -214,18 +254,13 @@ exports.handler = async (event) => {
       throw cfErr;
     }
 
-    // 4. Publish (DEVELOPMENT → LIVE)
-    await client.send(new PublishFunctionCommand({
-      Name: functionName,
-      IfMatch: newEtag,
-    }));
-
     const publishedAt = now;
-    logger.info(`Mode 2 toggled: active=${body.active}, function=${functionName}`);
+    logger.info(`Mode 2 toggled: active=${body.active}, functions=${published.join(', ')}`);
 
     return sendResponse(200, {
       active: body.active,
-      functionName,
+      functionName: targets[0].name,
+      functionNames: published,
       queueId,
       batchSize: body.active ? batchSize : undefined,
       releaseIntervalSeconds: body.active ? releaseIntervalSeconds : undefined,
