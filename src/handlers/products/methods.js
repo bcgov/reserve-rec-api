@@ -19,6 +19,7 @@ const {
   ROLE_BASED_FILTERS
 } = require("./configs");
 const { quickApiPutHandler } = require('../../common/data-utils');
+const { getActivityByActivityId } = require('../activities/methods');
 
 /**
  * Adds any filter expressions if any filters were added to query.
@@ -349,9 +350,14 @@ async function processItem(
     item.activityId = Number(activityId);
     item.productId = Number(productId);
     item.identifier = Number(productId);
-    // Remove activitySubType if null or undefined
+    // Inherit activitySubType from the linked Activity unless explicitly provided
     if (item?.activitySubType === null || item?.activitySubType === undefined) {
-      delete item.activitySubType;
+      const activity = await getActivityByActivityId(collectionId, activityType, activityId);
+      if (activity?.activitySubType) {
+        item.activitySubType = activity.activitySubType;
+      } else {
+        delete item.activitySubType;
+      }
     }
 
     // Resolve policy references by fetching full policies and extracting Product-level fields
