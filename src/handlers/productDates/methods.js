@@ -24,11 +24,8 @@ async function fetchProductDates(props) {
     // create query to fetch ProductDates within the specified date range
     let query = {
       TableName: REFERENCE_DATA_TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk AND sk BETWEEN :startDate AND :endDate',
       ExpressionAttributeValues: {
-        ':pk': { S: productDatePK },
-        ':startDate': { S: startDate },
-        ':endDate': { S: endDate }
+        ':pk': { S: productDatePK }
       }
     };
 
@@ -48,18 +45,70 @@ async function fetchProductDates(props) {
 
     if (projectionFields) {
       const projectionsMap = formatProjectionsForQuery(projectionFields);
+      if (!query.ExpressionAttributeNames) {
+        query.ExpressionAttributeNames = {};
+      }
       query.ExpressionAttributeNames = { ...query.ExpressionAttributeNames, ...projectionsMap };
       query.ProjectionExpression = Object.keys(projectionsMap).join(', ');
     }
 
-    logger.debug(`Querying ProductDates for Product ${productId} with activity '${activityType} ${activityId}' between dates ${startDate} and ${endDate}. Bypass discovery rules: ${bypassDiscoveryRules}`, { query });
-
     const result = await runQuery(query);
-
-    return result;
+    
+    // Ensure we always return an array, not the raw DynamoDB response object
+    return Array.isArray(result) ? result : (result?.items || []);
 
   } catch (error) {
     logger.error("Error in fetchProductDates", error);
+    throw error;
+  }
+}
+
+// New function for single date queries - uses direct pk/sk equality instead of BETWEEN
+async function fetchProductDateByDate(props) {
+  try {
+    const {
+      queryTime = new Date().getTime(),
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      date,
+      bypassDiscoveryRules = false
+    } = props;
+
+    const productDatePK = `productDate::${collectionId}::${activityType}::${activityId}::${productId}`;
+
+    // Create query for a single date using direct equality
+    let query = {
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND sk = :sk',
+      ExpressionAttributeValues: {
+        ':pk': { S: productDatePK },
+        ':sk': { S: date }
+      }
+    };
+
+    if (!bypassDiscoveryRules) {
+      query.FilterExpression = '#reservationContext.#isDiscoverable = :isDiscoverable AND #reservationContext.#temporalWindows.#discoveryWindow.#open <= :currentDateTime AND #reservationContext.#temporalWindows.#discoveryWindow.#close >= :currentDateTime';
+      query.ExpressionAttributeNames = {
+        '#reservationContext': 'reservationContext',
+        '#isDiscoverable': 'isDiscoverable',
+        '#temporalWindows': 'temporalWindows',
+        '#discoveryWindow': 'discoveryWindow',
+        '#open': 'open',
+        '#close': 'close'
+      };
+      query.ExpressionAttributeValues[':isDiscoverable'] = { BOOL: true };
+      query.ExpressionAttributeValues[':currentDateTime'] = { N: String(queryTime) };
+    }
+    console.log(`Query: ${JSON.stringify(query, null, 2)}`);
+    const result = await runQuery(query);
+
+    // Ensure we always return an array
+    return Array.isArray(result) ? result : (result?.items || []);
+
+  } catch (error) {
+    logger.error("Error in fetchProductDateByDate", error);
     throw error;
   }
 }
@@ -276,5 +325,6 @@ async function deleteProductDates(collectionId, activityType, activityId, produc
 module.exports = {
   deleteProductDates,
   fetchProductDates,
+  fetchProductDateByDate,
   initializeProductDates,
 };

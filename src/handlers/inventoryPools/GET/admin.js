@@ -1,5 +1,5 @@
 const { logger, sendResponse, Exception } = require("/opt/base");
-const { fetchInventoryPoolsOnDate } = require("../methods");
+const { fetchInventoryPoolsOnDate, fetchInventoryPoolsForDateRange } = require("../methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET InventoryPool by Product on Date", event);
@@ -24,11 +24,15 @@ exports.handler = async (event, context) => {
     const activityType = event?.pathParameters?.activityType;
     const activityId = event?.pathParameters?.activityId;
     const productId = event?.pathParameters?.productId;
-    const date = event?.queryStringParameters?.date;
-
-    if (!collectionId || !activityType || !activityId || !productId || !date) {
-      throw new Exception("Missing required path parameters: collectionId, activityType, activityId, productId, date");
+ 
+    if (!collectionId || !activityType || !activityId || !productId) {
+      throw new Exception("Missing required path parameters: collectionId, activityType, activityId, productId");
     }
+
+    // Check if requesting by date range or single date
+    const startDate = event?.queryStringParameters?.startDate || null;
+    const endDate = event?.queryStringParameters?.endDate || null;
+    const date = event?.queryStringParameters?.date || null;
 
     // Validate optional parameters
     const facilityType = event?.queryStringParameters?.facilityType || null;
@@ -39,7 +43,48 @@ exports.handler = async (event, context) => {
     const allocationStatus = event?.queryStringParameters?.allocationStatus || null;
     const limit = event?.queryStringParameters?.limit ? parseInt(event.queryStringParameters.limit) : null;
 
-    const inventoryPools = await fetchInventoryPoolsOnDate({ collectionId, activityType, activityId, productId, date, facilityType, facilityId, assetType, assetId, inventoryId, allocationStatus, limit });
+    let inventoryPools;
+
+     if (startDate && endDate) {
+      logger.debug(`Fetching InventoryPools for ${collectionId}::${activityType}::${activityId}::${productId} from ${startDate} to ${endDate}`);
+      inventoryPools = await fetchInventoryPoolsForDateRange({ 
+        collectionId, 
+        activityType, 
+        activityId, 
+        productId, 
+        startDate,
+        endDate,
+        facilityType, 
+        facilityId, 
+        assetType, 
+        assetId, 
+        inventoryId
+      });
+      logger.debug(`Fetched ${inventoryPools.length} InventoryPools from ${startDate} to ${endDate}`);
+    } 
+    // Otherwise, fetch for single date
+    else if (date) {
+      logger.debug(`Fetching InventoryPools for ${collectionId}::${activityType}::${activityId}::${productId} on date ${date}`);
+      inventoryPools = await fetchInventoryPoolsOnDate({ 
+        collectionId, 
+        activityType, 
+        activityId, 
+        productId, 
+        date, 
+        facilityType, 
+        facilityId, 
+        assetType, 
+        assetId, 
+        inventoryId, 
+        allocationStatus, 
+        limit 
+      });
+      logger.debug(`Fetched ${inventoryPools.length} InventoryPools on date ${date}`);
+    }
+    // If neither date nor date range provided, throw error
+    else {
+      throw new Exception("Must provide either 'date' for a single date or 'startDate' and 'endDate' for a date range");
+    }
 
     logger.debug(`Fetched InventoryPools for ${collectionId}::${activityType}::${activityId}::${productId} on date ${date}. ${inventoryPools.length} items found.`);
 
