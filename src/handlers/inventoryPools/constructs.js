@@ -35,13 +35,9 @@ class InventoryPoolsConstruct extends LambdaConstruct {
     // Add /inventory-pools/{collectionId}/{activityType}/{activityId}/{productId} resource
     this.inventoryPoolsByProductResource = this.inventoryPoolsResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
 
-    // Add /inventory-pools/{collectionId}/{activityType}/{activityId}/{productId}/{date} resource for PUT
-    this.inventoryPoolsByDateResource = this.inventoryPoolsByProductResource.addResource('{date}');
-
     this.addCorsPreflightForResources([
       this.inventoryPoolsResource,
       this.inventoryPoolsByProductResource,
-      this.inventoryPoolsByDateResource,
     ]);
 
     // inventoryPools GET by Product ID and Dates Lambda Function
@@ -74,10 +70,11 @@ class InventoryPoolsConstruct extends LambdaConstruct {
     this.inventoryPoolsPutByDateFunction = this.generateBasicLambdaFn(
       scope,
       'inventoryPoolsPutFunction',
-      'src/handlers/inventoryPools/_collectionId/_activityType/_activityId/_productId/_date/PUT',
+      'src/handlers/inventoryPools/PUT',
       handlerName,
       {
         basicReadWrite: true,
+        timeout: Duration.minutes(1),
       }
     );
 
@@ -115,9 +112,9 @@ class InventoryPoolsConstruct extends LambdaConstruct {
       authorizer: this.resolveAuthorizer(),
     });
 
-    // PUT /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}/{date} will be used to update inventoryPools records for a given Product and date. The request body should include the updated asset quantities.
+    // PUT /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}?date=YYYY-MM-DD will be used to update inventoryPools records for a given Product and date. The request body should include the updated capacity and available values.
 
-    this.inventoryPoolsByDateResource.addMethod('PUT', new apigw.LambdaIntegration(this.inventoryPoolsPutByDateFunction), {
+    this.inventoryPoolsByProductResource.addMethod('PUT', new apigw.LambdaIntegration(this.inventoryPoolsPutByDateFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });

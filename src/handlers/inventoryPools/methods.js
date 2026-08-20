@@ -54,6 +54,53 @@ async function fetchInventoryPoolsOnDate(props) {
 
 }
 
+async function fetchInventoryPoolsForDateRange(props) {
+  try {
+    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null } = props;
+
+    logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
+
+    if (!collectionId || !activityType || !activityId || !productId || !startDate || !endDate) {
+      throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId, startDate, endDate");
+    }
+
+    // Build list of dates to query
+    const dates = buildDateRange(startDate, endDate);
+    let allInventoryPools = [];
+
+    // Fetch inventory pools for each date in the range
+    for (const date of dates) {
+      try {
+        const inventoryPools = await fetchInventoryPoolsOnDate({ 
+          collectionId, 
+          activityType, 
+          activityId, 
+          productId, 
+          date,
+          facilityType,
+          facilityId,
+          assetType,
+          assetId,
+          inventoryId
+        });
+        allInventoryPools = allInventoryPools.concat(inventoryPools);
+      } catch (error) {
+        logger.warn(`Error fetching InventoryPools for date ${date}:`, error);
+        // Continue with next date if one fails
+      }
+    }
+
+    logger.debug(`Fetched ${allInventoryPools.length} InventoryPool records from ${startDate} to ${endDate}`);
+
+    return allInventoryPools;
+
+  } catch (error) {
+    logger.error("Error fetching InventoryPools for date range", error);
+    throw error;
+  }
+}
+
+
 async function initializeInventoryPools(props) {
   try {
     const {
@@ -80,7 +127,7 @@ async function initializeInventoryPools(props) {
     let successes = [];
     let failures = [];
 
-    for (const productDate of productDates?.items) {
+    for (const productDate of productDates) {
 
       // get the assetList from the productDate
       const assetList = productDate?.assetList || [];
@@ -190,6 +237,7 @@ async function deleteInventoryPools(props) {
 
 module.exports = {
   fetchInventoryPoolsOnDate,
+  fetchInventoryPoolsForDateRange,
   initializeInventoryPools,
   deleteInventoryPools,
 };

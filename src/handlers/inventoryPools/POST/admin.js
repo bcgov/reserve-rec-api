@@ -112,7 +112,7 @@ exports.handler = async (event, context) => {
 
     return sendResponse(
       200,
-      [],
+      inventoryPoolsToCreate,
       `Successfully initialized ${inventoryPoolPutItems.length} inventory records for product ${productId} from ${startDate} to ${endDate}`,
       null,
       context

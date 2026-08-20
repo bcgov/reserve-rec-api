@@ -1,5 +1,5 @@
 
-const { fetchProductDates } = require("../../methods");
+const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../../configs");
 const { logger, sendResponse, Exception } = require("/opt/base");
 /**
@@ -25,9 +25,11 @@ exports.handler = async (event, context) => {
       throw new Exception("collectionId, activityType, activityId, and productId are required in the path", { code: 400 });
     }
 
-    let startDate = event?.queryStringParameters?.startDate || null;
-    let endDate = event?.queryStringParameters?.endDate || null;
-
+       // Support both single date and date range queries
+    // If 'date' is provided, use it for both startDate and endDate (single day query)
+    // Otherwise use startDate and endDate for range queries
+    let startDate = event?.queryStringParameters?.date || event?.queryStringParameters?.startDate || null;
+    let endDate = event?.queryStringParameters?.date || event?.queryStringParameters?.endDate || null;
     // If startDate and endDate are not provided, we will return the next two weeks of ProductDates for the Product by default. This is to prevent accidentally returning a huge amount of data if someone forgets to provide a date range.
 
 
@@ -64,7 +66,24 @@ exports.handler = async (event, context) => {
       projectionFields: PUBLIC_PRODUCTDATE_PROJECTIONS, // We will only return a limited set of fields for the public handler to minimize data exposure
     }
 
-    const productDates = await fetchProductDates(props);
+     // Check if this is a single date query
+    const date = startDate === endDate ? startDate : null;
+    
+    let productDates;
+    if (date) {
+      logger.debug(`Single date query detected - using fetchProductDateByDate for ${date}`);
+      productDates = await fetchProductDateByDate({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        date,
+        bypassDiscoveryRules: false
+      });
+    } else {
+      logger.debug(`Range query - using fetchProductDates from ${startDate} to ${endDate}`);
+      productDates = await fetchProductDates(props);
+    }
 
     return sendResponse(200, productDates, "Success", null, context);
 
