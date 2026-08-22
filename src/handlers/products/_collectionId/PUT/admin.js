@@ -3,6 +3,8 @@ const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { PRODUCT_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { syncAssetListToProductDates } = require("../../../productDates/methods");
+const { syncCapacityToInventoryPools } = require("../../../inventoryPools/methods");
 
 /**
  * @api {put} /products/{collectionId} PUT
@@ -52,6 +54,22 @@ exports.handler = async (event, context) => {
     // Use batchTransactData to update the database
     const res = await batchTransactData(updateItems);
 
+    // ProductDates and InventoryPools snapshot the Product's assetList, so an assetList
+    // change has to be pushed down to them or the two will drift apart.
+    for (const updateRequest of updateRequests) {
+      if (!updateRequest?.data?.assetList) {
+        continue;
+      }
+
+      await cascadeAssetList({
+        collectionId,
+        pk: updateRequest?.key?.pk,
+        productId: updateRequest?.key?.sk,
+        assetList: updateRequest.data.assetList,
+        timezone: updateRequest?.data?.timezone
+      });
+    }
+
     return sendResponse(200, updateRequests, "Success", null, context);
   } catch (error) {
     return sendResponse(
@@ -63,3 +81,36 @@ exports.handler = async (event, context) => {
     );
   }
 };
+
+/**
+ * Pushes a Product's new assetList down to its future ProductDates and their InventoryPools.
+ *
+ * Failures here are logged but not thrown: the Product update itself has already been
+ * committed, and failing the request would tell the caller the edit did not happen.
+ */
+async function cascadeAssetList({ collectionId, pk, productId, assetList, timezone }) {
+  try {
+    // pk is "product::<collectionId>::<activityType>::<activityId>"
+    const [, , activityType, activityId] = String(pk).split("::");
+
+    const updatedDates = await syncAssetListToProductDates({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      assetList,
+      ...(timezone && { timezone })
+    });
+
+    await syncCapacityToInventoryPools({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      dates: updatedDates,
+      assetList
+    });
+  } catch (error) {
+    logger.error(`Failed to cascade assetList for product ${pk}::${productId}`, error);
+  }
+}
