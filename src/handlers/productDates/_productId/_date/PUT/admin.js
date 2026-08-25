@@ -39,6 +39,9 @@ exports.handler = async (event, context) => {
     const updatedProductDate = {
       ...existingProductDate,
       assetList: body.assetList || existingProductDate.assetList,
+      // Flag a per-date assetList edit so a later Product-level assetList change does not
+      // overwrite it (see syncAssetListToProductDates).
+      ...(body.assetList && { assetListManuallyEdited: true }),
       // Update reservation context if provided
       ...(body.reservationContext && { reservationContext: { ...existingProductDate.reservationContext, ...body.reservationContext } }),
       lastUpdated: new Date().toISOString()
