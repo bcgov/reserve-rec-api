@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
 
     // Parse body
     const body = JSON.parse(event?.body || '{}');
-    const { capacity, notes } = body;
+    const { capacity, notes, preCloseCapacity } = body;
 
     // Validate required parameters
     const missingParams = [];
@@ -116,19 +116,29 @@ exports.handler = async (event, context) => {
         availability: newAvailability
       };
       
+      // Handle preCloseCapacity: only persist when closing, clear when opening/editing
+      if (preCloseCapacity !== undefined) {
+        if (preCloseCapacity === null) {
+          // Explicitly clear preCloseCapacity when opening or editing an open pool
+          updateData.preCloseCapacity = null;
+        } else {
+          // Persist preCloseCapacity when closing a pool
+          updateData.preCloseCapacity = preCloseCapacity;
+        }
+      }
+      
       // Add notes if provided
       if (notes !== undefined && notes !== null) {
         updateData.notes = notes;
       }
       
-      // Set manuallyEdited flag based on editMode
-      // Manual edits set the flag to true (create override badge)
-      // Bulk edits set the flag to false (clear any existing override badge)
+      // Set manuallyEdited flag ONLY for manual edits
+      // For bulk edits (like toggles), preserve the existing flag by NOT updating it
       if (editMode === 'manual') {
         updateData.manuallyEdited = true;
-      } else {
-        updateData.manuallyEdited = false;
       }
+      // NOTE: We do NOT set manuallyEdited = false for bulk edits
+      // This preserves any existing badge from previous manual edits
       
       return {
         key: {
