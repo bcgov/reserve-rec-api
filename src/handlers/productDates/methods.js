@@ -29,6 +29,14 @@ async function fetchProductDates(props) {
       }
     };
 
+    if (startDate && endDate) {
+      query.KeyConditionExpression = 'pk = :pk AND sk BETWEEN :startDate AND :endDate';
+      query.ExpressionAttributeValues[':startDate'] = { S: startDate };
+      query.ExpressionAttributeValues[':endDate'] = { S: endDate };
+    } else {
+      query.KeyConditionExpression = 'pk = :pk';
+    }
+
     if (!bypassDiscoveryRules) {
       query.FilterExpression = '#reservationContext.#isDiscoverable = :isDiscoverable AND #reservationContext.#temporalWindows.#discoveryWindow.#open <= :currentDateTime AND #reservationContext.#temporalWindows.#discoveryWindow.#close >= :currentDateTime';
       query.ExpressionAttributeNames = {
