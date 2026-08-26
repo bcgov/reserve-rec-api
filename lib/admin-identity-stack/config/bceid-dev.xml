@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><ns2:EntityDescriptor xmlns:ns2="urn:oasis:names:tc:SAML:2.0:metadata" xmlns="http://www.w3.org/2000/09/xmldsig#" xmlns:ns3="http://www.w3.org/2001/04/xmlenc#" xmlns:ns4="urn:oasis:names:tc:SAML:2.0:assertion" ID="SM14db0cea65969c3774f1113b6587b8d23baad832e370" entityID="urn:ca:bc:gov:bcpark:nonprod">
+    
+    <ns2:Extensions xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport">
+        <alg:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+        <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha224"/>
+        <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+        <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha384"/>
+        <alg:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha1-rsa-MGF1"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha224-rsa-MGF1"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha384-rsa-MGF1"/>
+        <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha512-rsa-MGF1"/>
+    </ns2:Extensions>
+    <ns2:IDPSSODescriptor ID="SMfafdcb151934c8a23276b31cd3e04742baad7cd03a3" WantAuthnRequestsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <ns2:KeyDescriptor use="signing">
+            <KeyInfo Id="SMf51e86d0c23b8ec602701f8212319defbaacbb4a3cd">
+                <X509Data>
+                    <X509IssuerSerial>
+                        <X509IssuerName>E=WTSWAM@gov.bc.ca,CN=SFS Certificate Authority,OU=SFS-CA,O=Government of the Province of British Columbia,L=Victoria,ST=British Columbia,C=CA</X509IssuerName>
+                        <X509SerialNumber>11358469103843346665</X509SerialNumber>
+                    </X509IssuerSerial>
+                    <X509Certificate>MIIECzCCAvMCCQCdoWN4XtUI6TANBgkqhkiG9w0BAQsFADCByjELMAkGA1UEBhMCQ0ExGTAXBgNVBAgTEEJyaXRpc2ggQ29sdW1iaWExETAPBgNVBAcTCFZpY3RvcmlhMTcwNQYDVQQKEy5Hb3Zlcm5tZW50IG9mIHRoZSBQcm92aW5jZSBvZiBCcml0aXNoIENvbHVtYmlhMQ8wDQYDVQQLEwZTRlMtQ0ExIjAgBgNVBAMTGVNGUyBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxHzAdBgkqhkiG9w0BCQEWEFdUU1dBTUBnb3YuYmMuY2EwHhcNMTMwNDA1MjI1NjU3WhcNMzMwNDA1MjI1NjU3WjCBwzELMAkGA1UEBhMCQ0ExGTAXBgNVBAgTEEJyaXRpc2ggQ29sdW1iaWExETAPBgNVBAcTCFZpY3RvcmlhMTcwNQYDVQQKEy5Hb3Zlcm5tZW50IG9mIHRoZSBQcm92aW5jZSBvZiBCcml0aXNoIENvbHVtYmlhMQwwCgYDVQQLEwNTRlMxHjAcBgNVBAMTFXNmcy1zZnN0ZXN0Lmdvdi5iYy5jYTEfMB0GCSqGSIb3DQEJARYQV1RTV0FNQGdvdi5iYy5jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJw5E045jlJ+sbSgNfkvyJA3+27KRBmAlq+MURoR3OSiWc20MWdt5pKxdRUq2fYxrQjtrtPuGqkkEGaeI0iNZwRInby6Hu6ubCwf1Q7fTlW78ls+CjNkYNUC3/wuC3mn1Qng8U0ldQ7tQU4cPOqwLIvSiJdiJZrmF8RDppodYcHhbij77t6tiHVCxQYgqxNcut3gwnxVr2416yWHXVqqpccKLTiI/JoeCb5oI2UUCrdevyWd4H5qNZly4hL5PBCYY4TupUayjhbWfxJK4UWcDv7OOa+uxq4kYnGexDpqCbW6bvcHbk47P5RAZIvgvnGoBgSfoh37zxQ/Fp6VE4iWAucCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAbdkjQ9uHpvdkSeIGOnfxu4Vnf3jGO4yo8+BrnoGaLC8i2CWmVodi9GOu3H3jrGvsSoz7n6C2A+vIvDxvA7twjwLAquZVQJnBCpMKmwlPCACAwZ+Elb4r2qMmxa2Fm0IeYz3x2BWYOATtic81fFzhJ8QkWBuwb9+dJ+0l/GGQf9pO2qiIqUEd2oIUVDxqWRYzhPezejpfVjBsTPXY5xQhdBUKHMr0ZpSU9kMoJzcM1n6lJH7pFHZBUKN792hoE55OlK3LQLUoh+3W4DN/YVKkDs6kHr4oL6uz9j2W84HUPX5DLmFFiJ+LpS052VBtYchjx2Bt0FPsHJJ4C0F0r5G4ow==</X509Certificate>
+                    <X509SubjectName>E=WTSWAM@gov.bc.ca,CN=sfs-sfstest.gov.bc.ca,OU=SFS,O=Government of the Province of British Columbia,L=Victoria,ST=British Columbia,C=CA</X509SubjectName>
+                </X509Data>
+            </KeyInfo>
+        </ns2:KeyDescriptor>
+        <ns2:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</ns2:NameIDFormat>
+        <ns2:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://sfstest7.gov.bc.ca/affwebservices/public/saml2sso"/>
+        <ns2:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://sfstest7.gov.bc.ca/affwebservices/public/saml2sso"/>
+        <ns4:Attribute Name="email" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"/>
+        <ns4:Attribute Name="displayname" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"/>
+        <ns4:Attribute Name="GUID" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"/>
+    </ns2:IDPSSODescriptor>
+</ns2:EntityDescriptor>
