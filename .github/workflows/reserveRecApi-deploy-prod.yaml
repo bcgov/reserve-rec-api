@@ -59,8 +59,13 @@ jobs:
 
       ### CDK Deploy
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
+      ### --no-rollback: a failed stack stops at UPDATE_FAILED with earlier stacks left
+      ### deployed, so the run can be fixed forward and repeated. Rolling back instead tries
+      ### to restore resources whose old versions may no longer exist -- a pruned Lambda
+      ### layer version did exactly that on 2026-08-06, leaving WaitingRoomStack in
+      ### UPDATE_ROLLBACK_FAILED and blocking every prod deploy for three weeks.
       - name: CDK Deploy
-        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --no-rollback
 
       ### Sync WS_URL into the DynamoDB public config record.
       ### The waiting room stack publishes wsApiUrl to SSM after deploy.
