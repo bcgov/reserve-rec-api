@@ -31,7 +31,7 @@ const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = r
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 
-const DEFAULT_SESSION_LENGTH = 30; // in minutes
+const DEFAULT_SESSION_LENGTH = 15; // in minutes
 
 /**
  * Resolve the booking owner's identity (firstName, lastName, email, phone) from
@@ -742,7 +742,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // For now, cart timer, session timer, hold timer, etc... are all used interchangeably and represent the amount of time that inventory will be held for a user while they complete the booking process.
 
     const timeout = product?.holdDuration?.minutes || DEFAULT_SESSION_LENGTH;
-    const sessionExpiry = addMinutes(new Date(), timeout).getTime();
+    const sessionExpiry = addMinutes(new Date(queryTime), timeout).getTime();
 
     // === Resolve owner identity from Cognito ===
     // Name, email, and phone for the booking owner come from the verified
@@ -767,6 +767,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       globalId: globalId,
       bookingId: globalId,
       sessionId: sessionId,
+      sessionInitTime: queryTime,
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
       activityType: activityType,
@@ -780,7 +781,6 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       productDisplayName: product?.displayName,
       facilityDisplayName: sanitizeString(props?.facilityDisplayName, 200),
       geozoneDisplayName: sanitizeString(props?.geozoneDisplayName, 200),
-      bookingInitTime: queryTime,
       status: BOOKING_STATUS_ENUMS[0],
       isPending: 'PENDING', // For expiry sparse GSI1
       timezone: product.timezone,
@@ -1078,6 +1078,8 @@ function formatBookingResponsePublic(bookingResponse) {
       bookingInfo = {
         bookingId: booking.bookingId,
         sessionId: booking.sessionId,
+        sessionInitTime: booking.sessionInitTime,
+        sessionExpiry: booking.sessionExpiry,
         startDate: booking.startDate,
         endDate: booking.endDate,
         status: booking.status,
