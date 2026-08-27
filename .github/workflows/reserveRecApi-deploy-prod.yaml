@@ -59,13 +59,21 @@ jobs:
 
       ### CDK Deploy
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
-      ### --no-rollback: a failed stack stops at UPDATE_FAILED with earlier stacks left
-      ### deployed, so the run can be fixed forward and repeated. Rolling back instead tries
-      ### to restore resources whose old versions may no longer exist -- a pruned Lambda
-      ### layer version did exactly that on 2026-08-06, leaving WaitingRoomStack in
-      ### UPDATE_ROLLBACK_FAILED and blocking every prod deploy for three weeks.
+      ###
+      ### Keep --rollback. --no-rollback looks appealing here -- a failed stack would stop
+      ### at UPDATE_FAILED instead of attempting a rollback that can strand the stack in
+      ### UPDATE_ROLLBACK_FAILED (which happened on 2026-08-06, when a rollback tried to
+      ### restore a pruned Lambda layer version and blocked prod deploys for three weeks).
+      ### But CDK refuses --no-rollback whenever the changeset contains a resource
+      ### replacement, and any change to a layer's content is a replacement, so most
+      ### releases would fail outright with "TtyNotAttached: Change includes a replacement
+      ### which cannot be deployed with --no-rollback". --force does not override this.
+      ###
+      ### If a rollback does strand a stack, clear it with:
+      ###   aws cloudformation continue-update-rollback --stack-name <stack> \
+      ###     --resources-to-skip <logical-ids that cannot be restored>
       - name: CDK Deploy
-        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --no-rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --rollback
 
       ### Sync WS_URL into the DynamoDB public config record.
       ### The waiting room stack publishes wsApiUrl to SSM after deploy.
