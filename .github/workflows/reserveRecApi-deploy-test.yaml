@@ -1,6 +1,6 @@
 name: Deploy ReserveRecApi Test
 
-run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Test Environment
+run-name: Deploying ${{ inputs.releaseTag || github.ref_name }} (API) to ReserveRecApi Test Environment
 
 on:
   push:
@@ -40,8 +40,12 @@ jobs:
             ${{ runner.os }}-test-cdk-out-
 
       ### Checkout GitHub Repo
+      ### On workflow_dispatch, check out the tag named in releaseTag; on a tag push the
+      ### input is empty and we fall back to the ref that triggered the run.
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.releaseTag || github.ref }}
 
       - name: Install AWS CDK
         run: |
