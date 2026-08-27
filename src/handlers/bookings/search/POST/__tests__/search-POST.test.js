@@ -69,7 +69,7 @@ describe("Bookings Admin Search POST handler", () => {
                 displayName: "Camping Day-use Pass - AM",
                 endDate: "2026-06-10",
                 facilityDisplayName: "Camping",
-                geozoneDisplayName: "Garibaldi Provincial Park",
+                geozoneDisplayName: "Garibaldi Park",
                 namedOccupant: {
                   contactInfo: {
                     email: "test@example.com",
