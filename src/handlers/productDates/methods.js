@@ -29,6 +29,14 @@ async function fetchProductDates(props) {
       }
     };
 
+    if (startDate && endDate) {
+      query.KeyConditionExpression = 'pk = :pk AND sk BETWEEN :startDate AND :endDate';
+      query.ExpressionAttributeValues[':startDate'] = { S: startDate };
+      query.ExpressionAttributeValues[':endDate'] = { S: endDate };
+    } else {
+      query.KeyConditionExpression = 'pk = :pk';
+    }
+
     if (!bypassDiscoveryRules) {
       query.FilterExpression = '#reservationContext.#isDiscoverable = :isDiscoverable AND #reservationContext.#temporalWindows.#discoveryWindow.#open <= :currentDateTime AND #reservationContext.#temporalWindows.#discoveryWindow.#close >= :currentDateTime';
       query.ExpressionAttributeNames = {
@@ -322,8 +330,107 @@ async function deleteProductDates(collectionId, activityType, activityId, produc
 
 }
 
+
+/**
+ * Propagates a Product's assetList to its existing ProductDates.
+ *
+ * ProductDates snapshot the Product's assetList when they are created, so a later
+ * change to the Product (e.g. the number of passes) would otherwise never reach them.
+ * Only dates from today forward are touched, and any ProductDate whose assetList was
+ * manually overridden on the ProductDate itself is left alone.
+ *
+ * @param {Object} props
+ * @param {string} props.collectionId
+ * @param {string} props.activityType
+ * @param {string|number} props.activityId
+ * @param {string|number} props.productId
+ * @param {Array} props.assetList - the Product's new assetList
+ * @param {string} [props.timezone] - IANA timezone used to determine "today"
+ *
+ * @returns {Array<string>} the dates (sk) that were updated
+ */
+async function syncAssetListToProductDates(props) {
+  const {
+    collectionId,
+    activityType,
+    activityId,
+    productId,
+    assetList,
+    timezone = 'America/Vancouver'
+  } = props;
+
+  if (!Array.isArray(assetList) || assetList.length === 0) {
+    logger.debug('No assetList provided, skipping ProductDate assetList sync');
+    return [];
+  }
+
+  const today = DateTime.now().setZone(timezone).toISODate();
+
+  // Queried directly rather than through fetchProductDates: this needs every date from
+  // today forward regardless of discovery rules, and the sk range has to be enforced here.
+  const result = await runQuery({
+    TableName: REFERENCE_DATA_TABLE_NAME,
+    KeyConditionExpression: 'pk = :pk AND sk BETWEEN :startDate AND :endDate',
+    ExpressionAttributeValues: {
+      ':pk': { S: `productDate::${collectionId}::${activityType}::${activityId}::${productId}` },
+      ':startDate': { S: today },
+      ':endDate': { S: '9999-12-31' }
+    }
+  });
+
+  const productDates = result?.items || [];
+  const putItems = [];
+  const updatedDates = [];
+
+  for (const productDate of productDates) {
+    if (productDate?.assetListManuallyEdited) {
+      logger.debug(`ProductDate ${productDate.sk} has a manual assetList override, skipping`);
+      continue;
+    }
+
+    // Preserve each existing asset's identity, only carry over the new quantities.
+    const mergedAssetList = mergeAssetQuantities(productDate?.assetList, assetList);
+
+    putItems.push({
+      TableName: REFERENCE_DATA_TABLE_NAME,
+      Item: marshall(
+        { ...productDate, assetList: mergedAssetList, lastUpdated: new Date().toISOString() },
+        { removeUndefinedValues: true }
+      )
+    });
+    updatedDates.push(productDate.sk);
+  }
+
+  if (putItems.length === 0) {
+    logger.info(`No ProductDates required an assetList sync for Product ${productId}`);
+    return [];
+  }
+
+  await batchTransactData(putItems, 'Put');
+
+  logger.info(`Synced assetList to ${updatedDates.length} ProductDates for Product ${productId}`);
+
+  return updatedDates;
+}
+
+/**
+ * Merges the Product's assetList into a ProductDate's assetList, matching on the asset's
+ * primaryKey. Assets the ProductDate does not know about are added; assets the Product no
+ * longer has are dropped.
+ */
+function mergeAssetQuantities(existingAssetList = [], productAssetList = []) {
+  const keyOf = (asset) => `${asset?.primaryKey?.pk}::${asset?.primaryKey?.sk}`;
+  const existingByKey = new Map((existingAssetList || []).map((asset) => [keyOf(asset), asset]));
+
+  return productAssetList.map((asset) => ({
+    ...(existingByKey.get(keyOf(asset)) || {}),
+    ...asset
+  }));
+}
+
 module.exports = {
   deleteProductDates,
+  syncAssetListToProductDates,
   fetchProductDates,
   fetchProductDateByDate,
   initializeProductDates,
