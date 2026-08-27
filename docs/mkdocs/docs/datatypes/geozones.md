@@ -37,7 +37,7 @@ sk: <geozoneId>
 ```
 
 
-Example — BC Parks geozone relating to Garibaldi Provincial Park (ORCS 7)
+Example — BC Parks geozone relating to Garibaldi Park (ORCS 7)
 ```
 pk: geozone::bcparks_7
 sk: 1
@@ -92,7 +92,7 @@ This geozone might be used to encompass the limits of the Bedwell Trail Area, sh
 --8<-- "datatypes/examples/geozone2.json"
 ```
 
-## Strathcona Provincial Park
+## Strathcona Park
 
 This example geozone shows how a park may be represented as a special kind of geozone. An additional field `orcs` pertaining to the ORCS ID, or some other field signifying this special geozone case, could be added if absolutely necessary.
 
@@ -106,7 +106,7 @@ Also known as 'parks', these datatypes were the backbone of older systems and ar
 
 However, because the preexisting concept of a protected area is rooted in its legal definition, it is unable to change to accommodate the wide range of use cases this data model demands. This makes the protected area datatype a poor candidate for the backbone of this model.
 
-[Collections](https://github.com/bcgov/reserve-rec-api/wiki/Data-Model---2.-Schemas---1.-Introduction#collections) remain the backbone of the data model, and [geozones](#geozones) remain the datatype at the very top of the data hierarchy. Protected areas can be represented as a subset of geozones and linked to collections as necessary to maintain continuity with historical systems or regulator requirements. See the [Strathcona Provincial Park](#strathcona-provincial-park) example of how this might be achieved.
+[Collections](https://github.com/bcgov/reserve-rec-api/wiki/Data-Model---2.-Schemas---1.-Introduction#collections) remain the backbone of the data model, and [geozones](#geozones) remain the datatype at the very top of the data hierarchy. Protected areas can be represented as a subset of geozones and linked to collections as necessary to maintain continuity with historical systems or regulator requirements. See the [Strathcona Park](#strathcona-park) example of how this might be achieved.
 
 
 

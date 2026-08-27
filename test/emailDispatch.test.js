@@ -112,7 +112,7 @@ describe('Email Dispatch System', () => {
         templateName: 'receipt_bcparks_kootenay',
         recipientEmail: 'customer@example.com',
         recipientName: 'John Doe',
-        subject: 'Booking Receipt - Kokanee Creek Provincial Park',
+        subject: 'Booking Receipt - Kokanee Creek Park',
         locale: 'en',
         templateData: {
           booking: {
@@ -123,7 +123,7 @@ describe('Email Dispatch System', () => {
             status: 'confirmed'
           },
           location: {
-            parkName: 'Kokanee Creek Provincial Park',
+            parkName: 'Kokanee Creek Park',
             region: 'kootenay'
           },
           payment: {
@@ -314,7 +314,7 @@ describe('Email Dispatch System', () => {
 
     it('should get correct region branding', () => {
       const mockLocationData = {
-        parkName: 'Kokanee Creek Provincial Park',
+        parkName: 'Kokanee Creek Park',
         region: 'kootenay'
       };
 

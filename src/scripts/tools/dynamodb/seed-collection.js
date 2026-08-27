@@ -28,7 +28,7 @@ const SEED_CONFIG = [
 
     geozone: {
       id: 1,
-      displayName: "Garibaldi Provincial Park",
+      displayName: "Garibaldi Park",
       description:
         "Located in the heart of the Coast Mountains just 64 km north of Vancouver, Garibaldi is known for its natural beauty and numerous hiking trails. Here, you'll find rich geological history, diverse vegetation, snow-capped mountains, iridescent waters, abundant wildlife, and scenic vistas. The towering 2,678 m peak of Mount Garibaldi is the park's centrepiece. Offering over 90 km of established hiking trails, Garibaldi Park is a favourite year-round destination for outdoor enthusiasts.",
       location: { lat: 49.963373, lng: -122.670368 },
@@ -377,7 +377,7 @@ const SEED_CONFIG = [
 
     geozone: {
       id: 1,
-      displayName: "Mount Seymour Provincial Park",
+      displayName: "Mount Seymour Park",
       description:
         "Located just 30 minutes from downtown Vancouver, Mount Seymour Park has been enjoyed by generations of Lower Mainland residents. The park offers viewpoints overlooking the city of Vancouver, Mount Baker, and east over Indian Arm Park. There are opportunities for bird and wildlife viewing, and four areas for day-use picnicking are available. There are several lakes in the park. Elsay Lake is the largest. Its waters and those of De Pencier, Gopher, and Goldie drain eastward to Indian Arm. Some of the smaller lakes and ponds feed their waters west to the Seymour River. You will find many trails of various lengths and difficulty. Lower mountain trails are used extensively by mountain bikers and hikers, while upper mountain trails are for hiking only. Winter trails are put in place each year. The park offers extensive winter recreation facilities including skiing, snowshoeing, and a supervised snow-play area operated by Mt Seymour Resort. There are impressive views of the Lower Mainland, the Fraser Valley, and Mount Baker from the Deep Cove lookout parking lot and from the parking lots and pull-outs near the top of the mountain.",
       location: { lat: 49.38852, lng: -122.91933 },
