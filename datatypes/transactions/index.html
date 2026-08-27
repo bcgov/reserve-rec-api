@@ -1,0 +1,2106 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Financial Data Models & Schemas - BC Parks Reservation System Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#financial-data-models-schemas" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-header__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BC Parks Reservation System Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Financial Data Models &amp; Schemas
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../data-model/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Model
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/qr-code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../stacks/admin-api-stack.md" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Stacks
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BC Parks Reservation System Documentation" class="md-nav__button md-logo" aria-label="BC Parks Reservation System Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BC Parks Reservation System Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Model Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/data-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/primitive-property-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Property Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contexts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contexts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-categorization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Categorization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/data-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/admin-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contexts/public-user-journey-phases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public User Journey Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datatypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geozones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geozones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Facilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../activities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Activities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Products
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProductDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AvailabilitySignals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bookings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bookings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../booking-dates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BookingDates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4_12" id="__nav_2_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policies-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/policy-primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/reservation-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reservation Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/party-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/fee-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fee Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policies/change-policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/qr-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QR Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stacks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stacks/admin-api-stack.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin API Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="financial-data-models-schemas">Financial Data Models &amp; Schemas<a class="headerlink" href="#financial-data-models-schemas" title="Permanent link">&para;</a></h1>
+<h2 id="transaction">Transaction<a class="headerlink" href="#transaction" title="Permanent link">&para;</a></h2>
+<p>A Transaction represents an immutable financial datapoint within the system, providing an authoritative audit trail (via Worldline/Bambora REST API payments) to the internal operational state of a reservation. It serves as a historical record tracking whether an allocation of funds succeeded or failed, capturing the raw payment gateway responses, authorization values, and the initiating identities.</p>
+<p>Because financial capture is the final "gatekeeping" step for securing inventory, the system must write transaction items regardless if the payment succeeded or failed. Even when external payment providers reject a user's payment token (such as a card decline or network timeout), a Transaction item is successfully persisted with a <code>failed</code> state. This prevents silent failures and guarantees some tracing is available prior to throwing an error back to the client application or writing an administration log entry.</p>
+<p>Transactions are processed using <a href="https://docs.na.worldline-solutions.com/build-your-integration/checkout-form/custom-checkout/setup">Worldline's Custom Checkout</a> token authentication, securing payment handling by isolating primary account numbers (PAN) from the application databases. In standard checkout flows, successful transactions are executed alongside a booking state transition via multi-item writes (<code>batchTransactData</code>). For administrative overrides, the transaction payload captures the identity of the presiding administrative staff member (<code>adminId</code>), ensuring full operational visibility.</p>
+<p>More information on <a href="https://docs.na.worldline-solutions.com/build-your-integration/checkout-form/checkout/redirect-parameters">Worldline Redirect parameters here</a>.</p>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th><strong>property</strong></th>
+<th><strong>type</strong></th>
+<th><strong>description</strong></th>
+<th><strong>derived from</strong></th>
+<th><strong>evaluated when</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td><code>transaction::${bookingId}</code></td>
+<td>Searching for all payment and transaction attempts related to a specific <a href="../bookings/">Booking</a>. Multiple payment attempts means duplicate <code>pk</code>s.</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td><code>${date}::${clientTransactionId}</code></td>
+<td>Search multiple transaction attempts or retries over time for the same booking context (disambiguated by <code>date</code> and <code>clientTransactionId</code>).</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type classifier / Schema identifier</td>
+<td><code>"transaction"</code></td>
+<td>Identifying that this item is a "transaction".</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique UUID</td>
+<td>Matches the <code>clientTransactionId</code> value</td>
+<td>Searching for this specific item using the <code>globalId</code> GSI (same as <code>clientTransactionId</code>).</td>
+</tr>
+<tr>
+<td><code>bookingId</code></td>
+<td>String</td>
+<td>Unique identifier of the associated reservation record</td>
+<td><code>bookingId</code></td>
+<td>Linking the transaction to its parent <a href="../bookings/">Booking</a>.</td>
+</tr>
+<tr>
+<td><code>userId</code></td>
+<td>String</td>
+<td>The unique identity <code>sub</code> of the user who owns the underlying booking</td>
+<td>Provided via request routing or fetched from the authenticated <a href="../bookings/">Booking</a> record</td>
+<td>Associating the transaction charge to the user.</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>Number</td>
+<td>The total captured amount evaluated by the Fee Policy at time of booking</td>
+<td><code>feeValues.bookingTotal</code> or <code>trnAmount</code></td>
+<td>Submitting the final calculated payload charge parameters to Worldline and storing the billing statement trace.</td>
+</tr>
+<tr>
+<td><code>clientTransactionId</code></td>
+<td>String</td>
+<td>Unique client-side tracking UUID prefixed to prevent collision errors, prefixed with <code>BCPR-</code></td>
+<td>Automatically generated on request</td>
+<td>Providing a unique transaction ID to the payment gateway for tracking, auditing, and reporting.</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>String</td>
+<td>The localized calendar day the transaction request occurred (formatted <code>yyyy-LL-dd</code>)</td>
+<td>Generated using <code>getNow().toFormat("yyyy-LL-dd")</code></td>
+<td>Filtering and sorting payment records for daily reconciliations or auditing.</td>
+</tr>
+<tr>
+<td><code>sessionId</code></td>
+<td>String</td>
+<td>The unique workflow token tracking the web session</td>
+<td><code>sessionId</code></td>
+<td>Ensuring the transaction request was submitted from a valid checkout lifecycle window.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>String</td>
+<td>The state of the settlement attempt</td>
+<td>Evaluated from the payment gateway outcome. Settled values: <code>"paid"</code> or <code>"failed"</code></td>
+<td>Determining if the system should proceed to complete the booking states or abort execution.</td>
+</tr>
+<tr>
+<td><code>refundAmounts</code></td>
+<td>Array</td>
+<td>A historical log of all refund amounts applied against this transaction</td>
+<td>Array of objects: <code>[{ [refundTransactionId]: refundAmount }]</code></td>
+<td>Reconciling the total original charge against subsequent administrative refunds to determine if a full or partial refund state is reached.</td>
+</tr>
+<tr>
+<td><code>cardAvsId</code></td>
+<td>String</td>
+<td>Gateway-specific string identifier for the AVS state</td>
+<td>Worldline's <code>card.avs.id</code></td>
+<td>Auditing detailed banking response states.</td>
+</tr>
+<tr>
+<td><code>cardAvsMessage</code></td>
+<td>String</td>
+<td>Explanatory message from the network regarding address matching</td>
+<td>Worldline's <code>card.avs.message</code></td>
+<td>Diagnosing failed transactions in admin logs.</td>
+</tr>
+<tr>
+<td><code>cardAvsProcessed</code></td>
+<td>Boolean/String</td>
+<td>Flag indicating if AVS verification was attempted</td>
+<td>Worldline's <code>card.avs.processed</code></td>
+<td>Checking gateway verification compliance.</td>
+</tr>
+<tr>
+<td><code>cardAvsAddrMatch</code></td>
+<td>Number/String</td>
+<td>Address Verification Service street match flag</td>
+<td>Worldline's <code>card.address_match</code></td>
+<td>Reviewing fraud flags during dispute resolutions.</td>
+</tr>
+<tr>
+<td><code>cardAvsPostalResult</code></td>
+<td>Number/String</td>
+<td>Address Verification Service postal/zip match flag</td>
+<td>Worldline's <code>card.postal_result</code></td>
+<td>Reviewing fraud flags during dispute resolutions.</td>
+</tr>
+<tr>
+<td><code>cardBin</code></td>
+<td>String</td>
+<td>The Bank Identification Number of the card used</td>
+<td>Worldline's <code>card.card_bin</code></td>
+<td>Analyzing issuer data or blocking specific bins if necessary.</td>
+</tr>
+<tr>
+<td><code>cardLastFour</code></td>
+<td>String</td>
+<td>The last four digits of the primary account number (PAN)</td>
+<td>Worldline's <code>card.last_four</code></td>
+<td>Providing identifiable card context to the user without storing sensitive full PANs.</td>
+</tr>
+<tr>
+<td><code>cardType</code></td>
+<td>String</td>
+<td>The brand/type of the credit card used</td>
+<td>Worldline's <code>card.card_type</code> (e.g., <code>"VI"</code>)</td>
+<td>Displaying payment context in admin receipts or reports.</td>
+</tr>
+<tr>
+<td><code>customRef1</code></td>
+<td>String</td>
+<td>Custom tracking token mapping back to the reservation</td>
+<td>Worldline's <code>custom.ref1</code> (<code>bookingId</code>)</td>
+<td>Validating callback lifecycle matching.</td>
+</tr>
+<tr>
+<td><code>customRef2</code></td>
+<td>String</td>
+<td>Custom tracking token mapping back to the checkout session</td>
+<td>Worldline's <code>custom.ref2</code> (<code>sessionId</code>)</td>
+<td>Tracking checkout session lifecycles.</td>
+</tr>
+<tr>
+<td><code>trnAmount</code></td>
+<td>Number</td>
+<td>The final transaction amount echoed back from the gateway</td>
+<td>Worldline's <code>amount</code></td>
+<td>Reconciling internal expected amounts with actual gateway charges.</td>
+</tr>
+<tr>
+<td><code>trnApproved</code></td>
+<td>String</td>
+<td>Stringified boolean showing explicit gateway clearance status</td>
+<td>Worldline's <code>approved</code> (<code>"1"</code> if payment is approved, <code>"0"</code> if declined)</td>
+<td>Providing scannable boolean validation criteria for downstream transaction pipelines.</td>
+</tr>
+<tr>
+<td><code>trnAuthCode</code></td>
+<td>String/Number</td>
+<td>The precise authorization approval alphanumeric string from the card issuer</td>
+<td>Worldline's <code>auth_code</code> returned from a successful credit check payload</td>
+<td>Preserving the banking system audit validation proof for secure reconciliation.</td>
+</tr>
+<tr>
+<td><code>trnCreated</code></td>
+<td>String</td>
+<td>The timestamp the transaction was finalized in the gateway</td>
+<td>Worldline's <code>created</code></td>
+<td>Auditing the exact processing time at the provider level.</td>
+</tr>
+<tr>
+<td><code>trnId</code></td>
+<td>String</td>
+<td>The authoritative transaction tracking ID generated by Worldline</td>
+<td>Worldline's <code>id</code> returned from the Worldline API layer</td>
+<td>Storing the external reference code, necessary to issue refunds or charge voids.</td>
+</tr>
+<tr>
+<td><code>trnLinks</code></td>
+<td>Object</td>
+<td>The related Worldline links for refunds and voids</td>
+<td>Worldline's <code>links</code> object returned from the Worldline API layer</td>
+<td>Providing the related links to issue refunds and voids for an order. The link contains the <code>trnId</code>, e.g. <code>https://api.na.bambora.com/v1/payments/&lt;id&gt;/returns</code></td>
+</tr>
+<tr>
+<td><code>trnMessage</code></td>
+<td>String</td>
+<td>Human-readable feedback returned directly from the terminal network</td>
+<td>Worldline's <code>message</code> text</td>
+<td>Providing concise descriptive error strings for system logs and frontend decline feedback notifications.</td>
+</tr>
+<tr>
+<td><code>trnPaymentMethod</code></td>
+<td>String</td>
+<td>The method of payment processed</td>
+<td>Worldline's <code>payment_method</code> (e.g., <code>"CC"</code>)</td>
+<td>Auditing how the transaction was funded.</td>
+</tr>
+<tr>
+<td><code>trnRiskScore</code></td>
+<td>Number/String</td>
+<td>Fraud risk matrix score calculated by the gateway</td>
+<td>Worldline's <code>risk_score</code></td>
+<td>Flagging suspicious booking requests automatically.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>Object</td>
+<td>The raw, unmutated JSON payload returned by the gateway</td>
+<td>Worldline's <code>data</code> response object</td>
+<td>Ensuring a complete historical snapshot is kept for deep auditing.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refund">Refund<a class="headerlink" href="#refund" title="Permanent link">&para;</a></h3>
+<p>A Refund represents the return of funds to a user's original payment method. Refunds are heavily restricted and typically (first-pass / MVP) initiated by a system admin. They sit alongside the original <code>Transaction</code> in the database under the same partition key (<code>transaction::${bookingId}</code>) but are differentiated by their sort key (<code>refund::&lt;date&gt;::&lt;refundTransactionId&gt;</code>), ensuring a booking's complete financial history can be queried in a single database call.</p>
+<p>A single transaction can have multiple partial refunds applied to it. The system automatically reconciles these totals to update the parent transaction status to either <code>"partial refund"</code> or <code>"refunded"</code> (full). </p>
+<h4 id="properties_1">Properties<a class="headerlink" href="#properties_1" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th><strong>property</strong></th>
+<th><strong>type</strong></th>
+<th><strong>description</strong></th>
+<th><strong>derived from</strong></th>
+<th><strong>evaluated when</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td><code>transaction::${bookingId}</code></td>
+<td>Grouping the refund with its parent booking and original transaction in a single partition.</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td><code>refund::${date}::${refundTransactionId}</code></td>
+<td>Querying all refunds for a booking using <code>begins_with(sk, "refund::")</code>.</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type classifier</td>
+<td><code>"refund"</code></td>
+<td>Identifying that this item is a return of funds.</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique ID for the refund</td>
+<td><code>refundTransactionId</code></td>
+<td>Searching for a specific refund item directly via GSI.</td>
+</tr>
+<tr>
+<td><code>bookingId</code></td>
+<td>String</td>
+<td>Unique identifier of the associated reservation</td>
+<td><code>bookingId</code> from the parent transaction</td>
+<td>Linking the return to the parent booking.</td>
+</tr>
+<tr>
+<td><code>clientTransactionId</code></td>
+<td>String</td>
+<td>The original transaction's UUID that the refund applies to</td>
+<td><code>clientTransactionId</code></td>
+<td>Auditing which specific payment attempt this refund reverses.</td>
+</tr>
+<tr>
+<td><code>refundTransactionId</code></td>
+<td>String</td>
+<td>The authoritative refund ID generated by Worldline</td>
+<td>Worldline's returned refund <code>id</code></td>
+<td>Tracking the refund event strictly at the payment provider layer.</td>
+</tr>
+<tr>
+<td><code>userId</code></td>
+<td>String</td>
+<td>The unique identity of the user who owns the booking</td>
+<td><code>userId</code></td>
+<td>Associating the returned funds back to the user context.</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>Number</td>
+<td>The specific amount of funds returned in this request</td>
+<td><code>refundAmount</code> passed via the API payload</td>
+<td>Determining how much to refund in Worldline and logging the returned value.</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>String</td>
+<td>Localized calendar day the refund occurred</td>
+<td><code>getNow().toFormat("yyyy-LL-dd")</code></td>
+<td>Filtering and sorting refunds for daily reconciliation.</td>
+</tr>
+<tr>
+<td><code>createdAt</code></td>
+<td>String</td>
+<td>Precise ISO timestamp of the refund</td>
+<td><code>getNowISO()</code></td>
+<td>Preserving the exact millisecond the refund was executed.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>String</td>
+<td>The state of the refund execution</td>
+<td><code>"refunded"</code>, <code>"refund in progress"</code>, or <code>"failed"</code></td>
+<td>Displaying accurate settlement progress to users and admins.</td>
+</tr>
+<tr>
+<td><code>refundSequence</code></td>
+<td>Number</td>
+<td>The sequential number of this refund relative to others</td>
+<td>Calculated dynamically during the idempotency lock check</td>
+<td>Identifying if this is the 1st, 2nd, or nth partial refund against the transaction.</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>String</td>
+<td>Human-readable gateway feedback</td>
+<td>Worldline's <code>message</code> text</td>
+<td>Providing failure context if the refund API call is rejected.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>Object</td>
+<td>The raw JSON payload returned by Worldline's return API</td>
+<td>Worldline's full response object</td>
+<td>Preserving a snapshot of the gateway interaction for debugging.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="refundhash">RefundHash<a class="headerlink" href="#refundhash" title="Permanent link">&para;</a></h3>
+<p>A RefundHash acts as a temporary, cryptographic idempotency lock within DynamoDB to prevent critical concurrency bugs (e.g., a "double refund" race condition). </p>
+<p>Because refunds rely on external API calls to a payment gateway, a user or admin accidentally double-clicking a "Refund" button could fire two identical requests at the exact same millisecond. Traditional JavaScript validation checks might query the database and see no prior refunds for <em>both</em> requests before either has time to write a result.</p>
+<p>To solve this, the system generates a <code>RefundHash</code> using a time-bucketed formula before calling Worldline. This item is inserted into DynamoDB using an atomic conditional write (<code>attribute_not_exists</code>). If a duplicate request arrives in the same 3-minute window (adjustable), it produces the identical hash. DynamoDB will instantly reject the second write at the database level, aborting the duplicate API request before money is accidentally moved.</p>
+<h4 id="properties_2">Properties<a class="headerlink" href="#properties_2" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th><strong>property</strong></th>
+<th><strong>type</strong></th>
+<th><strong>description</strong></th>
+<th><strong>derived from</strong></th>
+<th><strong>evaluated when</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pk</code></td>
+<td>String</td>
+<td>Partition key</td>
+<td><code>refundHash::${dateKey}</code></td>
+<td>Partitioning idempotency locks by day for easy TTL expiration or cleanup.</td>
+</tr>
+<tr>
+<td><code>sk</code></td>
+<td>String</td>
+<td>Sort key</td>
+<td>SHA256 Hash string</td>
+<td>Enforcing database-level uniqueness via conditional writes.</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>String</td>
+<td>Data type classifier</td>
+<td><code>"refundHash"</code></td>
+<td>Identifying the item as an idempotency lock.</td>
+</tr>
+<tr>
+<td><code>refundHash</code></td>
+<td>String</td>
+<td>Cryptographic SHA256 signature of the refund attempt</td>
+<td>Computed from <code>${userId}::${clientTransactionId}::${refundAmount}::${windowBucket}</code></td>
+<td>Ensuring two identical requests in the same time window produce the exact same lock string.</td>
+</tr>
+<tr>
+<td><code>globalId</code></td>
+<td>String</td>
+<td>Globally unique identifier</td>
+<td>Matches <code>refundHash</code></td>
+<td>Searching for a specific idempotency block via GSI if debugging concurrency failures.</td>
+</tr>
+<tr>
+<td><code>bookingId</code></td>
+<td>String</td>
+<td>Associated booking ID</td>
+<td><code>bookingId</code></td>
+<td>Tracing the blocked/locked request back to the reservation.</td>
+</tr>
+<tr>
+<td><code>clientTransactionId</code></td>
+<td>String</td>
+<td>Associated original transaction ID</td>
+<td><code>clientTransactionId</code></td>
+<td>Tracing the locked request back to the targeted payment.</td>
+</tr>
+<tr>
+<td><code>userId</code></td>
+<td>String</td>
+<td>User ID associated with the booking</td>
+<td><code>userId</code></td>
+<td>Validating context during the hash generation.</td>
+</tr>
+<tr>
+<td><code>refundAmount</code></td>
+<td>Number</td>
+<td>The requested refund amount</td>
+<td>API request payload</td>
+<td>Ensuring the hash is unique to the specific amount requested (allowing differently-priced refunds to process back-to-back).</td>
+</tr>
+<tr>
+<td><code>refundSequence</code></td>
+<td>Number</td>
+<td>The sequential number this refund will be if successful</td>
+<td>Pre-calculated from existing database records</td>
+<td>Storing the expected sequence number before the external gateway call happens.</td>
+</tr>
+<tr>
+<td><code>totalRefundedBefore</code></td>
+<td>Number</td>
+<td>The total amount refunded <em>prior</em> to this attempt</td>
+<td>Pre-calculated from existing database records</td>
+<td>Ensuring business logic limits aren't exceeded by parallel requests.</td>
+</tr>
+<tr>
+<td><code>createdAt</code></td>
+<td>String</td>
+<td>Precise ISO timestamp</td>
+<td><code>getNowISO()</code></td>
+<td>Auditing exactly when the lock was acquired.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "toc.integrate", "navigation.top", "content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.instant", "navigation.footer", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "content.tabs.link", "content.tooltips", "content.code.select", "content.code.highlight", "content.code.line_numbers", "content.code.wrap"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
