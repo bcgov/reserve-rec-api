@@ -1,6 +1,6 @@
 name: Deploy ReserveRecApi Prod
 
-run-name: Deploying ${{ github.ref_name }} (API) to ReserveRecApi Prod Environment
+run-name: Deploying ${{ inputs.releaseTag }} (API) to ReserveRecApi Prod Environment
 
 on:
   workflow_dispatch:
@@ -37,8 +37,12 @@ jobs:
             ${{ runner.os }}-prod-cdk-out-
 
       ### Checkout GitHub Repo
+      ### Checks out the tag named in the releaseTag input. Without an explicit ref this
+      ### silently deploys whichever ref the run was dispatched from, ignoring the input.
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.releaseTag }}
 
       - name: Install AWS CDK
         run: |
@@ -55,8 +59,13 @@ jobs:
 
       ### CDK Deploy
       ### Note: cdk synth does not have to be run separately as cdk deploy runs it automatically
+      ### --no-rollback: a failed stack stops at UPDATE_FAILED with earlier stacks left
+      ### deployed, so the run can be fixed forward and repeated. Rolling back instead tries
+      ### to restore resources whose old versions may no longer exist -- a pruned Lambda
+      ### layer version did exactly that on 2026-08-06, leaving WaitingRoomStack in
+      ### UPDATE_ROLLBACK_FAILED and blocking every prod deploy for three weeks.
       - name: CDK Deploy
-        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --rollback
+        run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --no-rollback
 
       ### Sync WS_URL into the DynamoDB public config record.
       ### The waiting room stack publishes wsApiUrl to SSM after deploy.
