@@ -56,8 +56,8 @@ splits any profile cleanly across IPs).
 
 ### 3. k6
 
-This machine is NixOS: `nix-shell -p k6` (or add `k6` to a dev shell). Any k6 ≥ 0.46
-works. For the full 14k-VU search burst you will likely need distributed generators
+Install k6 from your package manager or https://k6.io/docs/get-started/installation/.
+Any k6 ≥ 0.46 works. For the full 14k-VU search burst you will likely need distributed generators
 (`k6-operator`, or several machines with `BURST_VUS` split between them) — a single
 box runs out of sockets/CPU first.
 
