@@ -36,13 +36,23 @@ injects an `X-Origin-Verify` header that an origin WAF rule requires — direct 
 requests are dropped — and the CloudFront hop (including the path-strip function) is part
 of the user-visible latency being measured.
 
-### 2. WAF / rate-limit allowlisting
+### 2. Egress: validate rate limiting before the run
 
-The front-door WAF rate-limits aggressive clients. Before a run, allowlist the load
-generator's source IPs in the WAF (or temporarily raise the rate rule), and remove the
-allowlist afterwards. Without this, the WAF becomes the thing under test. Note also the
-waiting-room join guard caps queue entries at 4 per source IP (`MAX_ENTRIES_PER_IP`) —
-relevant only if running with `WAITING_ROOM=true` from few generator IPs.
+A load generator concentrates traffic that real users spread across thousands of
+source IPs, so any per-IP rate limit sees the generator as one aggressive client.
+Before a run, **validate what rate limiting actually exists**: check the WAF console
+for rate-based rules on the front-door distribution and the API stage (none are
+defined in either repo's CDK — anything present is console-managed). If a rate rule
+exists, exempt the generator's source IPs for the run (or temporarily raise the
+rule) and remove the exemption afterwards — exemption is crowd-realistic, since no
+individual real user trips a per-IP rule. If none exists, no action is needed.
+
+Two per-IP limits that ARE in code regardless: the waiting-room join guard caps
+queue entries at 4 per source IP (`MAX_ENTRIES_PER_IP`) — relevant only with
+`WAITING_ROOM=true`, where you need distinct generator IPs ≥ admitted-VUs ÷ 4 or a
+raised env value — and generator-side socket/ephemeral-port exhaustion, which is
+what §3's distributed generators solve (`--execution-segment "i:N"` per machine
+splits any profile cleanly across IPs).
 
 ### 3. k6
 
@@ -238,6 +248,14 @@ standalone public distribution rewrites 403/404 → 200 `index.html`, so a misco
 target yields "passing" runs that never hit the API. Every response is content-type/body
 sniffed (`lib/api.js`); any HTML response fails a check, increments the counter, and
 fails the run.
+
+### Recording results
+
+Write measured capacity numbers, breaking points and bottleneck analysis up
+**internally** (Confluence / the ticket), not in this repo. The repo is public: the
+harness itself only restates what the public handler code already shows, but a
+committed results document would hand out the system's measured limits — exactly the
+aggregation an abuse actor wants and the one thing not already derivable from source.
 
 ---
 
