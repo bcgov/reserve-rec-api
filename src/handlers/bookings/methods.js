@@ -2593,8 +2593,11 @@ async function getGeoZoneForBooking(bookings) {
         if (result?.items && result.items.length > 0) {
           // Sort by geozoneId to get the primary one
           const sortedGeozones = result.items.sort((a, b) => (a.geozoneId || 0) - (b.geozoneId || 0));
-          geozoneCache[collectionId] = sortedGeozones[0].displayName;
-          logger.debug(`Cached geozone name for ${collectionId}: ${geozoneCache[collectionId]}`);
+          geozoneCache[collectionId] = {
+            displayName: sortedGeozones[0].displayName,
+            imageUrl: sortedGeozones[0].imageUrl || null
+          };
+          logger.debug(`Cached geozone name for ${collectionId}: ${geozoneCache[collectionId].displayName}`);
         } else {
           logger.warn(`No geozones found for collectionId ${collectionId}`);
         }
@@ -2608,7 +2611,9 @@ async function getGeoZoneForBooking(bookings) {
     logger.debug('GeozoneCache before mapping:', geozoneCache);
     bookings.items = bookings.items.map(booking => ({
       ...booking,
-      geozoneDisplayName: geozoneCache[booking.collectionId] || booking.collectionId
+      geozoneDisplayName: geozoneCache[booking.collectionId]?.displayName || booking.collectionId,
+      // The booking cards on My bookings show the park photo, which only lives on the geozone.
+      geozoneImageUrl: geozoneCache[booking.collectionId]?.imageUrl || null
     }));
     
     logger.debug(`Enriched ${bookings.items.length} bookings with geozone display names`);
