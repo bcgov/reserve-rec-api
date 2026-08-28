@@ -40,12 +40,17 @@ export const tokens = new SharedArray("cognito-tokens", function () {
   return arr;
 });
 
-// Each VU gets a stable token. Distinct users per VU matter: the API's
-// duplicate-booking guard 409s a second booking for the same
-// (user, product, startDate) while one is in progress or confirmed.
-export function tokenForVU(vuId) {
+// Map a 1-based DENSE index to a token. Callers must pass an index that is
+// dense within the authenticated scenario (see userForIteration() in
+// scenarios.js): raw exec.vu.idInTest is only dense for single-scenario
+// profiles — under capacity the 14k search-burst VUs scatter the booking
+// VUs' ids, which would collide users mod pool size. Distinct users per
+// concurrent booking matter because the API's duplicate-booking guard 409s
+// a second booking for the same (user, product, startDate) while one is in
+// progress or confirmed.
+export function tokenForVU(denseId) {
   if (tokens.length === 0) throw new Error(HINT);
-  return tokens[(vuId - 1) % tokens.length];
+  return tokens[(denseId - 1) % tokens.length];
 }
 
 export function assertTokenCount(needed, profile) {

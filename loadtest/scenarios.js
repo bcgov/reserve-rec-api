@@ -165,6 +165,22 @@ function currentRampStep() {
   return "rampdown";
 }
 
+// Token selection. k6 exposes no per-scenario VU id (only idInTest /
+// idInInstance, both shared across scenarios), so:
+// - single-scenario profiles: idInTest IS dense (1..maxVUs) — sticky per-VU
+//   token, which the abandonment profile's per-VU hold tracking relies on;
+// - capacity: gated_ramp shares the id space with the 14k search-burst VUs,
+//   so map by the scenario-unique sequential iteration counter instead. All
+//   gated_ramp iterations run the same chain, so concurrent iterations
+//   differ by < maxVUs <= pool size (enforced in setup()) and never share a
+//   user; a rare straggler collision is absorbed by the 409 self-heal path.
+function userForIteration() {
+  if (exec.scenario.name === "gated_ramp") {
+    return tokenForVU(exec.scenario.iterationInTest + 1);
+  }
+  return tokenForVU(exec.vu.idInTest);
+}
+
 function namedOccupant() {
   return {
     firstName: "Load",
@@ -226,6 +242,7 @@ function runChain(user, tags) {
     return;
   }
   if (!data || !data.bookingId) return;
+  const bookedAt = Date.now();
 
   if (Math.random() < cfg.ABANDON_RATIO) {
     api.bookingsAbandoned.add(1);
@@ -236,7 +253,20 @@ function runChain(user, tags) {
     return;
   }
 
-  api.completeBooking(user.accessToken, data.bookingId, data.sessionId, namedOccupant(), tags);
+  if (cfg.CHECKOUT_THINK_S > 0) sleep(cfg.CHECKOUT_THINK_S);
+
+  const complete = api.completeBooking(
+    user.accessToken,
+    data.bookingId,
+    data.sessionId,
+    namedOccupant(),
+    tags
+  );
+  if (complete.response.status >= 200 && complete.response.status < 300) {
+    // Booking-success → complete-success elapsed time; the AC requires this
+    // to stay under both the admission TTL and the booking hold duration.
+    api.checkoutDuration.add(Date.now() - bookedAt, tags);
+  }
 
   if (cfg.ENABLE_TRANSACTIONS) {
     api.createTransaction(
@@ -275,7 +305,7 @@ function runChain(user, tags) {
 // ---------------------------------------------------------------------------
 
 export function bookingChain() {
-  const user = tokenForVU(exec.vu.idInTest);
+  const user = userForIteration();
   const tags = exec.scenario.name === "gated_ramp" ? { step: currentRampStep() } : {};
   runChain(user, tags);
 }
@@ -286,7 +316,7 @@ export function searchOnly() {
 }
 
 export function peakIteration() {
-  const user = tokenForVU(exec.vu.idInTest);
+  const user = userForIteration();
   if (Math.random() < cfg.BROWSE_RATIO) {
     // Browser: 1–3 searches with think time, then a dates check, no booking.
     const searches = 1 + Math.floor(Math.random() * 3);
@@ -301,7 +331,7 @@ export function peakIteration() {
 }
 
 export function contentionIteration() {
-  const user = tokenForVU(exec.vu.idInTest);
+  const user = userForIteration();
   // One shot per VU, all at the same product/date. No cancel afterwards —
   // successes must stay held so bookings_succeeded can be compared against
   // seeded capacity (SEED_INVENTORY threshold).
@@ -314,7 +344,7 @@ export function contentionIteration() {
 let abandonedHold = false;
 
 export function abandonIteration() {
-  const user = tokenForVU(exec.vu.idInTest);
+  const user = userForIteration();
   const booking = api.createBooking(user.accessToken, cfg.SEED, cfg.BOOKING_DATE, cfg.QUANTITY, {});
   const data = booking.parsed && booking.parsed.data;
 

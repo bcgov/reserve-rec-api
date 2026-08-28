@@ -12,7 +12,7 @@
 
 import http from "k6/http";
 import { check } from "k6";
-import { Counter } from "k6/metrics";
+import { Counter, Trend } from "k6/metrics";
 import { BASE_URL } from "../config.js";
 
 export const htmlMasquerade = new Counter("html_masquerade_responses");
@@ -26,6 +26,10 @@ export const duplicateConflicts = new Counter("booking_duplicate_409");
 export const soldOutRejections = new Counter("inventory_conditional_check_failed");
 export const transactionConflicts = new Counter("inventory_transaction_conflict");
 export const rebookAfterRelease = new Counter("rebook_after_release");
+// Elapsed ms from a successful POST /bookings to a successful /complete —
+// compare max/p99 against the admission TTL and booking hold duration (see
+// README "Checkout duration vs the TTLs").
+export const checkoutDuration = new Trend("checkout_duration", true);
 export const waitingRoomNotAdmitted = new Counter("waiting_room_not_admitted");
 
 const JSON_HEADERS = { "Content-Type": "application/json" };

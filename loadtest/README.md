@@ -62,17 +62,18 @@ DYNAMODB_ENDPOINT_URL=https://dynamodb.ca-central-1.amazonaws.com \
 node src/scripts/tools/dynamodb/seed-collection.js
 ```
 
-The seed creates collection `bcparks_7` with `vehicleAccess` (and other) activities; all
-seeded products are `activitySubType: vehicleParking`, so booking quantity is hard-capped
-at **1** — the harness defaults `QUANTITY=1` accordingly. The default target ids are
-`bcparks_7 / vehicleAccess / 1 / 1`; override with `COLLECTION_ID` / `ACTIVITY_TYPE` /
+The seed creates collection `bcparks_7` whose activities are all type `dayuse`
+(activity ids 1–3 per park area, e.g. `dayuse/1` = Cheakamus Day-use Pass with product
+id 1); every seeded product is `activitySubType: vehicleParking`, so booking quantity is
+hard-capped at **1** — the harness defaults `QUANTITY=1` accordingly. The default target
+ids are `bcparks_7 / dayuse / 1 / 1`; override with `COLLECTION_ID` / `ACTIVITY_TYPE` /
 `ACTIVITY_ID` / `PRODUCT_ID`.
 
 Pick a `BOOKING_DATE` (default: tomorrow, UTC) whose productDate has
 `reservationContext.isReservable === true` and an open reservation window — verify with:
 
 ```sh
-curl -s "https://test-reserve.bcparks.ca/dayuse/api/product-dates/bcparks_7/vehicleAccess/1/1?date=2026-08-29" | jq '.data'
+curl -s "https://test-reserve.bcparks.ca/dayuse/api/product-dates/bcparks_7/dayuse/1/1?date=2026-08-29" | jq '.data'
 ```
 
 ### 5. Token pool (mint day-of)
@@ -95,9 +96,11 @@ users, SRP-authenticates each, and writes `loadtest/tokens.json`
 
 - **Access tokens live 24h** (`accessTokenValidity: 1 day` on the client) — mint the
   same day as the run.
-- Each concurrent VU needs its **own** user (see "Duplicate-booking constraint" below);
-  `scenarios.js` fails fast in `setup()` if `tokens.json` has fewer users than the
-  profile's max VUs. Mint at least `RAMP_MAX_VUS` (default 300) for `capacity`.
+- Each concurrent **booking** needs its **own** user (see "Duplicate-booking
+  constraint" below). Token assignment is scenario-dense, so the 14k unauthenticated
+  search-burst VUs in `capacity` don't consume users — only the booking scenario's max
+  VUs matter. `scenarios.js` fails fast in `setup()` if `tokens.json` has fewer users
+  than that. Mint at least `RAMP_MAX_VUS` (default 300) for `capacity`.
 - Default emails are `success+loadtest<n>@simulator.amazonses.com` (SES mailbox
   simulator) because completes/cancels trigger real SES email sends — simulator
   addresses can't bounce against the account's sender reputation. Override with
@@ -208,6 +211,28 @@ Expected-outcome statuses are excluded from `http_req_failed` via per-request
 400 additionally under `contention` (the rejection being measured), 400 on `cancel`
 (raced the expiry reaper), 403 on `claim`. Everything else counts as an error.
 
+### Checkout duration vs the TTLs (admission window AC)
+
+The chain records a `checkout_duration` Trend: elapsed ms from the successful
+`POST /bookings` response to the successful `/complete` response. Add realistic
+form-filling time with `-e CHECKOUT_THINK_S=120` (seconds of sleep between booking and
+complete, default 0) — remember arrival-rate executors then need proportionally more
+VUs (`*_MAX_VUS` ≥ rate × iteration duration).
+
+Interpret against two server-side windows:
+
+- **Waiting-room admission TTL**: `ADMISSION_TTL_MINUTES`, default **15 min**
+  (`src/handlers/waiting-room/claim/handler.js:8`).
+- **Booking hold / session expiry**: `product.holdDuration.minutes`, falling back to
+  `DEFAULT_SESSION_LENGTH` = **15 min** (`src/handlers/bookings/methods.js:34`, applied
+  at `:744`); `/complete` 403s once `sessionExpiry` passes.
+
+**Verdict rule**: the run's `checkout_duration` **max and p99** (both printed in the
+summary) must stay comfortably below *both* TTLs — worst-case checkout under load fits
+inside the admission window and the hold window. If p99 approaches either 15-minute
+mark under load (slow completes, retries, think time), the TTLs are too tight for real
+users and the AC fails.
+
 A `html_masquerade_responses: count==0` threshold backs the SPA-HTML guard: the
 standalone public distribution rewrites 403/404 → 200 `index.html`, so a misconfigured
 target yields "passing" runs that never hit the API. Every response is content-type/body
@@ -222,8 +247,13 @@ The API 409s a second booking for the same `(user, product, startDate)` while on
 `in progress` or `confirmed` (returning `data.existingBookingId`). The harness handles
 this by:
 
-1. **One user per VU** — `lib/data.js` assigns tokens per-VU and `setup()` aborts if the
-   pool is smaller than the profile's max VUs.
+1. **One user per concurrent booking** — k6 has no per-scenario VU id (`idInTest` is
+   global, so under `capacity` the search-burst VUs would scatter the booking VUs' ids
+   and collide users mod pool size). Single-scenario profiles therefore use the dense
+   `idInTest` as a sticky per-VU token; `gated_ramp` maps by the scenario-unique
+   sequential iteration counter (`exec.scenario.iterationInTest`), which keeps all
+   concurrent iterations on distinct users as long as the pool ≥ `RAMP_MAX_VUS` —
+   which `setup()` enforces.
 2. **Cancelling between iterations** — the chain cancels its booking at iteration end
    (both completed and simulated-abandon paths), resetting the guard and keeping seeded
    inventory from draining during long ramps.
@@ -318,5 +348,17 @@ stated from both the k6 `step` tag and the server metrics.
 - k6 files are ESM; syntax-check with
   `node --input-type=module --check < loadtest/scenarios.js` (same for `config.js`,
   `lib/*.js`)
-- Full validation needs a real target:
-  `k6 run --vus 1 --iterations 1 -e PROFILE=peak loadtest/scenarios.js`
+- Structural validation without a target: `k6 archive -e PROFILE=capacity loadtest/scenarios.js -O /dev/null`
+  (runs the full init stage; repeat per profile).
+- Smoke run (needs `loadtest/tokens.json` with ≥ 2 users; do NOT pass `--vus`/
+  `--iterations` — they replace the scenarios config and k6 errors on the missing
+  `default` function):
+
+  ```sh
+  k6 run -e PROFILE=coldstart -e COLD_RATE=6 -e COLD_DURATION=15s \
+    -e COLD_PREALLOC_VUS=2 -e COLD_MAX_VUS=2 loadtest/scenarios.js
+  ```
+
+  ~15 s, a handful of full-chain iterations. Against the real front door it should
+  pass all thresholds; against a dummy `BASE_URL` it completes with failed
+  request checks/thresholds (which proves the harness itself runs).

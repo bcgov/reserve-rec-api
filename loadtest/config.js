@@ -36,7 +36,7 @@ export const BASE_URL = str("BASE_URL", "https://test-reserve.bcparks.ca/dayuse/
 // ---------------------------------------------------------------------------
 export const SEED = {
   collectionId: str("COLLECTION_ID", "bcparks_7"),
-  activityType: str("ACTIVITY_TYPE", "vehicleAccess"),
+  activityType: str("ACTIVITY_TYPE", "dayuse"),
   activityId: str("ACTIVITY_ID", "1"),
   productId: str("PRODUCT_ID", "1"),
 };
@@ -88,6 +88,14 @@ export const PEAK_PREALLOC_VUS = num("PEAK_PREALLOC_VUS", 50);
 export const PEAK_MAX_VUS = num("PEAK_MAX_VUS", 300);
 export const BROWSE_RATIO = num("BROWSE_RATIO", 0.7); // fraction of arrivals that only browse
 export const ABANDON_RATIO = num("ABANDON_RATIO", 0.4); // fraction of booking starts that never complete
+
+// Simulated checkout "think time" (seconds) between POST /bookings and
+// /complete, so checkout_duration reflects realistic form-filling time (AC:
+// admission TTL / hold duration must exceed a realistic checkout). Applies
+// to every profile that runs the chain. NOTE: longer iterations mean
+// arrival-rate executors need proportionally more VUs — size *_MAX_VUS as
+// rate x iteration duration.
+export const CHECKOUT_THINK_S = num("CHECKOUT_THINK_S", 0);
 
 // ---------------------------------------------------------------------------
 // Scenario 4 — contention
