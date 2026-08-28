@@ -266,31 +266,12 @@ stay held for the oversell count).
 
 ---
 
-## Upstream blockers (flag-gated request builders)
+## Payment is out of scope
 
-Two chain steps are implemented but **disabled by default** because the handlers are
-broken upstream. The default measured chain is therefore
-**search → product-dates → POST /bookings → POST /bookings/{id}/complete**.
-
-### `POST /transactions` — `ENABLE_TRANSACTIONS=false`
-
-`src/handlers/transactions/methods.js:833` sets
-`transactionAmount = bookingRecord.feeValues?.bookingTotal`, but **no code path ever
-writes `feeValues` onto a booking record**, so the amount is `undefined` and the request
-400s on every call (payload built at `:752` onward is never reached with a valid amount).
-Until fixed, transactions stay out of the chain; flip `-e ENABLE_TRANSACTIONS=true` once
-the handler works. The builder sends the verified contract: `trnAmount`, `bookingId`
-(**in the body, not the path**), `token`, `userId` (must equal the access token's `sub`),
-`sessionId`.
-
-### `POST /worldline-notification` — `ENABLE_WEBHOOK=false`
-
-`src/handlers/worldlineNotification/POST/index.js` is dead end-to-end: it passes a bare
-string where a props object is expected, feeds `completeBooking`'s return value into
-`quickApiUpdateHandler` (wrong shape), and requires a transaction with status
-`in progress` which nothing produces. The builder (form-encoded
-`trnOrderNumber/ref1=bookingId/ref2=sessionId/trnApproved=1`, `?webhookSecret=` query
-auth) is ready behind `-e ENABLE_WEBHOOK=true -e WEBHOOK_SECRET=...` for when it's fixed.
+Payment (Worldline) is **disabled product-wide**: the booking flow ends at
+`POST /bookings/{id}/complete`, which is exactly where the measured chain
+(**search → product-dates → POST /bookings → POST /bookings/{id}/complete**) ends.
+Extend the harness with the payment leg only when payment enablement lands.
 
 ## Waiting room
 

@@ -219,9 +219,9 @@ function ensureAdmission(user, tags) {
   return false;
 }
 
-// The default measured chain: search → product-dates → book → complete
-// (abandonment skips complete). Transactions and the Worldline webhook stay
-// flag-gated until the upstream defects are fixed — see README.
+// The measured chain: search → product-dates → book → complete (abandonment
+// skips complete). Payment (Worldline) is disabled product-wide, so the
+// booking flow — and this chain — ends at complete.
 function runChain(user, tags) {
   api.search({ text: cfg.SEARCH_TEXT, schema: "facility", size: 25 }, tags);
   api.getProductDates(cfg.SEED, cfg.BOOKING_DATE, tags);
@@ -266,33 +266,6 @@ function runChain(user, tags) {
     // Booking-success → complete-success elapsed time; the AC requires this
     // to stay under both the admission TTL and the booking hold duration.
     api.checkoutDuration.add(Date.now() - bookedAt, tags);
-  }
-
-  if (cfg.ENABLE_TRANSACTIONS) {
-    api.createTransaction(
-      user.accessToken,
-      {
-        trnAmount: cfg.TXN_AMOUNT,
-        bookingId: data.bookingId,
-        token: cfg.WORLDLINE_TOKEN,
-        userId: user.sub,
-        sessionId: data.sessionId,
-      },
-      tags
-    );
-  }
-  if (cfg.ENABLE_WEBHOOK) {
-    api.worldlineNotification(
-      cfg.WEBHOOK_SECRET,
-      {
-        trnOrderNumber: `LT-${data.bookingId}`,
-        ref1: data.bookingId,
-        ref2: data.sessionId,
-        trnApproved: "1",
-        trnAmount: String(cfg.TXN_AMOUNT),
-      },
-      tags
-    );
   }
 
   // Reset the duplicate-booking guard so this user can book again next

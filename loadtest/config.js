@@ -127,20 +127,9 @@ export const COLD_GATE = str("COLD_GATE", "0s"); // startTime offset (idle gate)
 export const COLD_PREALLOC_VUS = num("COLD_PREALLOC_VUS", 100);
 export const COLD_MAX_VUS = num("COLD_MAX_VUS", 400);
 
-// ---------------------------------------------------------------------------
-// Flag-gated endpoints (upstream defects — see README "Upstream blockers")
-// ---------------------------------------------------------------------------
-// POST /transactions is broken upstream (src/handlers/transactions/methods.js:833
-// reads bookingRecord.feeValues.bookingTotal, which no code path writes → 400
-// on every call). Keep off until fixed.
-export const ENABLE_TRANSACTIONS = flag("ENABLE_TRANSACTIONS", false);
-export const TXN_AMOUNT = num("TXN_AMOUNT", 10);
-export const WORLDLINE_TOKEN = str("WORLDLINE_TOKEN", "loadtest-token");
-
-// POST /worldline-notification is dead upstream (three defects in
-// src/handlers/worldlineNotification/POST/index.js). Keep off until fixed.
-export const ENABLE_WEBHOOK = flag("ENABLE_WEBHOOK", false);
-export const WEBHOOK_SECRET = str("WEBHOOK_SECRET", "");
+// Payment (Worldline) is disabled product-wide: the booking flow ends at
+// POST /bookings/{id}/complete, so the harness has no payment leg. Extend it
+// only when payment enablement lands.
 
 // Waiting-room admission flow. Default state in a fresh env is no queue META
 // rows, which means enforcement fails open and bookings bypass the queue —

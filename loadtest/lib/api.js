@@ -163,30 +163,6 @@ export function cancelBooking(accessToken, bookingId, extraTags) {
   return { response: res, parsed: guard(res, "cancel") };
 }
 
-// POST /transactions — bookingId goes in the BODY, not the path. userId must
-// equal the access token's sub. KNOWN-BROKEN upstream (see README): gated
-// behind ENABLE_TRANSACTIONS at the call site.
-export function createTransaction(accessToken, body, extraTags) {
-  const res = http.post(`${BASE_URL}/transactions`, JSON.stringify(body), {
-    headers: authHeaders(accessToken),
-    tags: tags("transactions", extraTags),
-  });
-  return { response: res, parsed: guard(res, "transactions") };
-}
-
-// POST /worldline-notification?webhookSecret= — form-encoded body, no auth
-// beyond the query secret. KNOWN-DEAD upstream (see README): gated behind
-// ENABLE_WEBHOOK at the call site.
-export function worldlineNotification(webhookSecret, form, extraTags) {
-  // k6 form-encodes automatically when the body is an object.
-  const res = http.post(
-    `${BASE_URL}/worldline-notification?webhookSecret=${encodeURIComponent(webhookSecret)}`,
-    form,
-    { tags: tags("worldline-notification", extraTags) }
-  );
-  return { response: res, parsed: guard(res, "worldline-notification") };
-}
-
 // POST /waiting-room/join — auth required. Idempotent per (user, queue).
 export function waitingRoomJoin(accessToken, seed, startDate, extraTags) {
   const body = {
