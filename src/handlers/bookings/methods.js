@@ -212,7 +212,14 @@ async function getBookingsByUserId(userId, props) {
       params.FilterExpression = filterExpression;
     }
 
-    const result = await runQuery(params);
+    // runQuery returns { items, lastEvaluatedKey }; limit/lastEvaluatedKey are only
+    // honoured when the caller supplies them, so existing callers page through the
+    // whole result set as before.
+    const result = await runQuery(
+      params,
+      props?.limit || null,
+      props?.lastEvaluatedKey || null
+    );
     return result;
   } catch (error) {
     throw new Exception(`Error getting booking by userId: ${error}`);

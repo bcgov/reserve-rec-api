@@ -33,6 +33,9 @@ const defaults = {
     },
     bookingsAdminGETFunction: {
       name: 'BookingsAdminGET',
+    },
+    bookingsAdminUserGETFunction: {
+      name: 'BookingsAdminUserGET',
     }
   },
 };
@@ -50,6 +53,10 @@ class AdminBookingsConstruct extends LambdaConstruct {
     // /bookings/admin resource
     this.bookingsAdminResource = this.bookingsResource.addResource('admin');
 
+    // /bookings/admin/user/{userId} resource (all bookings for one customer)
+    this.bookingsAdminUserResource = this.bookingsAdminResource.addResource('user');
+    this.bookingsAdminUserByUserIdResource = this.bookingsAdminUserResource.addResource('{userId}');
+
     // /bookings/search resource
     this.bookingsSearchResource = this.bookingsResource.addResource('search');
 
@@ -61,6 +68,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
     this.addCorsPreflightForResources([
       this.bookingsResource,
       this.bookingsAdminResource,
+      this.bookingsAdminUserByUserIdResource,
       this.bookingsSearchResource,
       this.bookingsByBookingIdResource,
       this.bookingsByBookingIdCheckinResource,
@@ -80,6 +88,23 @@ class AdminBookingsConstruct extends LambdaConstruct {
 
     // GET /bookings/admin (admin search with query param filters)
     this.bookingsAdminResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsAdminGetFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+
+    // GET /bookings/admin/user/{userId} Lambda function
+    this.bookingsAdminUserGetFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsAdminUserGETFunction',
+      'src/handlers/bookings/admin/user/_userId/GET',
+      'admin.handler',
+      {
+        transDataBasicRead: true,
+      }
+    );
+
+    // GET /bookings/admin/user/{userId}
+    this.bookingsAdminUserByUserIdResource.addMethod('GET', new apigw.LambdaIntegration(this.bookingsAdminUserGetFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
@@ -156,6 +181,7 @@ class AdminBookingsConstruct extends LambdaConstruct {
     // Add permissions to read functions
     const readFunctions = [
       this.bookingsAdminGetFunction,
+      this.bookingsAdminUserGetFunction,
     ];
 
     for (const func of readFunctions) {
