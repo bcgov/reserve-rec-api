@@ -224,6 +224,19 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     // Add /transactions resource
     this.transactionsResource = this.resolveApi().root.addResource('transactions');
 
+    // TEMPORARY (prod route migration, pass 1 of 2) -- do not merge to main.
+    // Prod's deployed template still carries /transactions/{clientTransactionId} from
+    // before the rename to {bookingId}. API Gateway allows only ONE variable path part
+    // per parent, and CloudFormation creates before it deletes, so deploying the rename
+    // in one pass fails with "A sibling ({clientTransactionId}) of this resource already
+    // has a variable path part" (prod deploy run 33124144102, 2026-08-27). Pass 1
+    // omits the {bookingId} subtree ON PROD ONLY, letting the old tree delete cleanly;
+    // pass 2 (plain main) then creates {bookingId} with no sibling in the way.
+    // Dev/test already have {bookingId} and must be left untouched, hence the guard --
+    // this same tag deploys test via the tag-push trigger.
+    const omitBookingIdRoutes = this.stackScope.getDeploymentName() === 'prod';
+    if (!omitBookingIdRoutes) {
+
     // Add /transactions/{bookingId} resource
     this.transactionsByTransactionIdResource = this.transactionsResource.addResource('{bookingId}');
 
@@ -233,13 +246,15 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     // Add /transactions/{bookingId}/refunds/{refundId} resource
     this.transactionsRefundsByRefundIdResource = this.transactionsRefundsResource.addResource('{refundId}');
 
+    }
+
     // Add CORS preflight for transactions
     this.addCorsPreflightForResources([
       this.transactionsResource,
       this.transactionsByTransactionIdResource,
       this.transactionsRefundsResource,
       this.transactionsRefundsByRefundIdResource
-    ]);
+    ].filter(Boolean));
 
     // Transactions GET Lambda Function
     this.transactionsPublicGetFunction = this.generateBasicLambdaFn(
@@ -259,10 +274,12 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     });
 
     // GET /transactions/{bookingId}
-    this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
+    if (this.transactionsByTransactionIdResource) {
+      this.transactionsByTransactionIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicGetFunction), {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      });
+    }
 
     // Transactions POST Lambda Function
     this.transactionsPublicPostFunction = this.generateBasicLambdaFn(
@@ -293,16 +310,20 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     );
 
     // GET /transactions/{bookingId}/refunds
-    this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
+    if (this.transactionsRefundsResource) {
+      this.transactionsRefundsResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      });
+    }
 
     // GET /transactions/{bookingId}/refunds/{refundId}
-    this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
+    if (this.transactionsRefundsByRefundIdResource) {
+      this.transactionsRefundsByRefundIdResource.addMethod('GET', new apigw.LambdaIntegration(this.transactionsPublicRefundsGetFunction), {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      });
+    }
 
     // Transactions Refunds POST Lambda Function
     this.transactionsPublicRefundsPostFunction = this.generateBasicLambdaFn(
@@ -316,10 +337,12 @@ class PublicTransactionsConstruct extends LambdaConstruct {
     );
 
     // POST /transactions/{bookingId}/refunds
-    this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicRefundsPostFunction), {
-      authorizationType: apigw.AuthorizationType.CUSTOM,
-      authorizer: this.resolveAuthorizer(),
-    });
+    if (this.transactionsRefundsResource) {
+      this.transactionsRefundsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicRefundsPostFunction), {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer(),
+      });
+    }
 
     // Add SNS permissions to the refunds POST function
     if (props.refundRequestTopicArn) {
