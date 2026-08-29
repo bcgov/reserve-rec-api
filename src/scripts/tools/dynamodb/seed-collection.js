@@ -11,7 +11,8 @@
  *   node seed-collection.js
  *
  * To target a different environment, set TABLE_NAME and DYNAMODB_ENDPOINT_URL accordingly.
- * To seed a different collection, copy this file and edit the SEED_CONFIG below.
+ * To seed only some of the collections below, set COLLECTION_IDS=bcparks_15,bcparks_7.
+ * To seed a collection that is not here yet, add an entry to SEED_CONFIG.
  */
 
 const AWS = require('aws-sdk');
@@ -1149,7 +1150,23 @@ async function batchWriteItems(items) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function run() {
-  const configs = Array.isArray(SEED_CONFIG) ? SEED_CONFIG : [SEED_CONFIG];
+  let configs = Array.isArray(SEED_CONFIG) ? SEED_CONFIG : [SEED_CONFIG];
+
+  // COLLECTION_IDS=bcparks_15,bcparks_7 seeds just those collections. Seeding a
+  // shared environment one collection at a time keeps a run from overwriting
+  // records that belong to another park.
+  const only = (process.env.COLLECTION_IDS || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean);
+  if (only.length) {
+    configs = configs.filter(c => only.includes(c.collectionId));
+    const missing = only.filter(id => !configs.some(c => c.collectionId === id));
+    if (missing.length) {
+      console.error(`No SEED_CONFIG entry for: ${missing.join(', ')}`);
+      process.exit(1);
+    }
+  }
   const startTime = new Date().getTime();
   let totalWritten = 0;
 
