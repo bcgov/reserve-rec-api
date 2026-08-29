@@ -213,7 +213,7 @@ async function getBookingsByUserId(userId, props) {
     }
 
     const result = await runQuery(params);
-    return result;
+    return await getGeoZoneForBooking(result);
   } catch (error) {
     throw new Exception(`Error getting booking by userId: ${error}`);
   }
@@ -751,6 +751,11 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // on a booking (Ref #480). Address fields stay from props.
     const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId);
 
+    // The pass sub-type (e.g. 'trailUse') lives on the activity - products
+    // don't carry one, so `product.activitySubType` was always undefined and
+    // the attribute never made it onto the booking.
+    const activity = await getActivityByActivityId(collectionId, activityType, activityId);
+
     // === Build the child BookingDates first
     const bookingDateItems = productDates.map((productDate) => initBookingDateItem(globalId, product, productDate, assetRef, props));
 
@@ -770,7 +775,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
       activityType: activityType,
-      activitySubType: product.activitySubType,
+      activitySubType: activity?.activitySubType || product?.activitySubType,
       activityId: activityId,
       productId: productId,
       startDate: startDate,
@@ -2541,9 +2546,35 @@ async function sendBookingCancellationEmail(emailParams, sub) {
 
 
 /**
- * Enrich bookings with geozone display names
+ * Look up the pass sub-type for every activity the given bookings reference.
+ * One query per collection, keyed `collectionId::activityType::activityId`.
+ * @param {Array} items - booking items
+ * @returns {Promise<object>} map of activity key -> activitySubType
+ */
+async function getActivitySubTypes(items) {
+  const subTypes = {};
+  const collectionIds = [...new Set(items.map(b => b.collectionId).filter(Boolean))];
+
+  for (const collectionId of collectionIds) {
+    try {
+      const res = await getActivitiesByCollectionId(collectionId, {});
+      for (const activity of res?.items || []) {
+        subTypes[`${collectionId}::${activity.activityType}::${activity.activityId}`] = activity.activitySubType;
+      }
+    } catch (error) {
+      logger.warn(`Failed to fetch activities for collectionId ${collectionId}:`, error.message || error);
+    }
+  }
+
+  return subTypes;
+}
+
+/**
+ * Enrich bookings with the geozone display name and image, and the pass
+ * sub-type. The bookings table stores none of the three reliably, so the cards
+ * on My bookings would otherwise have to fetch them one by one.
  * @param {object} bookings - The bookings result object with items array
- * @returns {Promise<object>} Bookings with geozoneDisplayName added to each booking
+ * @returns {Promise<object>} Bookings with geozoneDisplayName, geozoneImageUrl and activitySubType
  */
 async function getGeoZoneForBooking(bookings) {
   logger.debug('getGeoZoneForBooking called with:', { 
@@ -2593,8 +2624,8 @@ async function getGeoZoneForBooking(bookings) {
         if (result?.items && result.items.length > 0) {
           // Sort by geozoneId to get the primary one
           const sortedGeozones = result.items.sort((a, b) => (a.geozoneId || 0) - (b.geozoneId || 0));
-          geozoneCache[collectionId] = sortedGeozones[0].displayName;
-          logger.debug(`Cached geozone name for ${collectionId}: ${geozoneCache[collectionId]}`);
+          geozoneCache[collectionId] = sortedGeozones[0];
+          logger.debug(`Cached geozone for ${collectionId}: ${geozoneCache[collectionId]?.displayName}`);
         } else {
           logger.warn(`No geozones found for collectionId ${collectionId}`);
         }
@@ -2604,11 +2635,18 @@ async function getGeoZoneForBooking(bookings) {
       }
     }
     
-    // Attach displayName to each booking
-    logger.debug('GeozoneCache before mapping:', geozoneCache);
+    // Bookings made before the sub-type fix have no activitySubType of their
+    // own, so fall back to the activity it was booked against.
+    const subTypeCache = await getActivitySubTypes(bookings.items);
+
+    // Attach displayName, image and pass sub-type to each booking
     bookings.items = bookings.items.map(booking => ({
       ...booking,
-      geozoneDisplayName: geozoneCache[booking.collectionId] || booking.collectionId
+      geozoneDisplayName: geozoneCache[booking.collectionId]?.displayName || booking.geozoneDisplayName || booking.collectionId,
+      geozoneImageUrl: geozoneCache[booking.collectionId]?.imageUrl || '',
+      activitySubType: booking.activitySubType
+        || subTypeCache[`${booking.collectionId}::${booking.activityType}::${booking.activityId}`]
+        || ''
     }));
     
     logger.debug(`Enriched ${bookings.items.length} bookings with geozone display names`);
