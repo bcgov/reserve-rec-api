@@ -74,7 +74,7 @@ await sendReceiptEmail({
     transactionId: 'TXN123456'
   },
   locationData: {
-    parkName: 'Kokanee Creek Provincial Park',
+    parkName: 'Kokanee Creek Park',
     region: 'kootenay'
   },
   brandingData: getRegionBranding({ region: 'kootenay' }),

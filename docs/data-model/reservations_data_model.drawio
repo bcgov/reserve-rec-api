@@ -505,7 +505,7 @@
         <mxCell id="UiBcS7HMJBMjUfMpE8h--15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="gUU8DwM63IYBVtJZEsb1-1" source="gUU8DwM63IYBVtJZEsb1-6" target="UiBcS7HMJBMjUfMpE8h--14">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="gUU8DwM63IYBVtJZEsb1-6" value="Cape Scott Provincial Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
+        <mxCell id="gUU8DwM63IYBVtJZEsb1-6" value="Cape Scott Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
           <mxGeometry x="130" y="465" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="gUU8DwM63IYBVtJZEsb1-9" value="Eric Lake Campground" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
@@ -561,7 +561,7 @@
         <mxCell id="UiBcS7HMJBMjUfMpE8h--22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="gUU8DwM63IYBVtJZEsb1-1" source="UiBcS7HMJBMjUfMpE8h--23" target="UiBcS7HMJBMjUfMpE8h--35">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="UiBcS7HMJBMjUfMpE8h--23" value="Garibaldi Provincial Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
+        <mxCell id="UiBcS7HMJBMjUfMpE8h--23" value="Garibaldi Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
           <mxGeometry x="130" y="870" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="UiBcS7HMJBMjUfMpE8h--39" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="gUU8DwM63IYBVtJZEsb1-1" source="UiBcS7HMJBMjUfMpE8h--24" target="UiBcS7HMJBMjUfMpE8h--26">
@@ -641,7 +641,7 @@
             <mxPoint x="160" y="155" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="UiBcS7HMJBMjUfMpE8h--45" value="Rathtrevor Provincial&lt;div&gt;Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
+        <mxCell id="UiBcS7HMJBMjUfMpE8h--45" value="Rathtrevor&lt;div&gt;Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="gUU8DwM63IYBVtJZEsb1-1">
           <mxGeometry x="120" y="50" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="UiBcS7HMJBMjUfMpE8h--61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="gUU8DwM63IYBVtJZEsb1-1" source="UiBcS7HMJBMjUfMpE8h--46" target="UiBcS7HMJBMjUfMpE8h--48">
@@ -711,7 +711,7 @@
         <mxCell id="dwvAEq3vLe7JWtDtQx2T-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="TR4Wr8E9V9bhGi_csxH7-1" source="TR4Wr8E9V9bhGi_csxH7-33" target="Nh1bmFgGscMWfX3sC1sj-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="TR4Wr8E9V9bhGi_csxH7-33" value="Strathcona Provincial Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="TR4Wr8E9V9bhGi_csxH7-1">
+        <mxCell id="TR4Wr8E9V9bhGi_csxH7-33" value="Strathcona Park" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="TR4Wr8E9V9bhGi_csxH7-1">
           <mxGeometry x="310" y="60" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="dwvAEq3vLe7JWtDtQx2T-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="TR4Wr8E9V9bhGi_csxH7-1" source="Nh1bmFgGscMWfX3sC1sj-0" target="Nh1bmFgGscMWfX3sC1sj-5">
@@ -890,7 +890,7 @@
         <mxCell id="EQ-R74Xv1B5MUnoCJ4RK-83" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" vertex="1" parent="7Uf5LMyvyUjf8tSQObzz-1">
           <mxGeometry x="20" y="415" width="190" height="210" as="geometry" />
         </mxCell>
-        <mxCell id="7Uf5LMyvyUjf8tSQObzz-6" value="Geozone:&lt;div&gt;Garibaldi Provincial Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="7Uf5LMyvyUjf8tSQObzz-1">
+        <mxCell id="7Uf5LMyvyUjf8tSQObzz-6" value="Geozone:&lt;div&gt;Garibaldi Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="7Uf5LMyvyUjf8tSQObzz-1">
           <mxGeometry x="360" y="10" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="EQ-R74Xv1B5MUnoCJ4RK-24" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="7Uf5LMyvyUjf8tSQObzz-1" source="7Uf5LMyvyUjf8tSQObzz-9" target="EQ-R74Xv1B5MUnoCJ4RK-3">
@@ -1207,7 +1207,7 @@
         <mxCell id="VXCaxScsYVYKvliwXCAs-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="C3k3oypGZbBw3Sh2f8bH-1" source="C3k3oypGZbBw3Sh2f8bH-5" target="VXCaxScsYVYKvliwXCAs-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="C3k3oypGZbBw3Sh2f8bH-5" value="Geozone:&lt;div&gt;Strathcona Provincial Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="C3k3oypGZbBw3Sh2f8bH-1">
+        <mxCell id="C3k3oypGZbBw3Sh2f8bH-5" value="Geozone:&lt;div&gt;Strathcona Park&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" vertex="1" parent="C3k3oypGZbBw3Sh2f8bH-1">
           <mxGeometry x="693.75" y="30" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="C3k3oypGZbBw3Sh2f8bH-8" value="Facility:&lt;div&gt;Bedwell Lake Trailhead Lot&lt;br&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;" vertex="1" parent="C3k3oypGZbBw3Sh2f8bH-1">

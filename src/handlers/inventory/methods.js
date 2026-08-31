@@ -82,14 +82,14 @@ async function initializeInventory(collectionId, activityType, activityId, produ
     };
     const productDates = await fetchProductDates(props);
 
-    logger.debug(`Fetched ${productDates?.items?.length} product dates for initialization`);
+    logger.debug(`Fetched ${productDates?.length} product dates for initialization`);
 
     // For each ProductDate, inspect the assetList and create an Inventory record for each asset.
 
     let inventoryToCreate = [];
     let successes = [];
     let failures = [];
-    for (const productDate of productDates?.items) {
+    for (const productDate of productDates ?? []) {
       // get the assetList from the productDate
       const assetList = productDate?.assetList || [];
 

@@ -31,7 +31,7 @@ const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = r
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 
-const DEFAULT_SESSION_LENGTH = 30; // in minutes
+const DEFAULT_SESSION_LENGTH = 15; // in minutes
 
 /**
  * Resolve the booking owner's identity (firstName, lastName, email, phone) from
@@ -47,8 +47,7 @@ const DEFAULT_SESSION_LENGTH = 30; // in minutes
  * @returns {Promise<{firstName:string,lastName:string,email:string,mobilePhone:string}|null>}
  */
 async function resolveAuthenticatedOccupantIdentity(sub) {
-  if (!sub) return null;
-  try {
+  if (!sub) return null;  try {
     const userInfo = await getUserInfoBySub(sub, 'public');
     const attrs = userInfo?.Attributes || [];
     const get = (n) => attrs.find(a => a.Name === n)?.Value || '';
@@ -373,7 +372,7 @@ async function initInventoryPoolCheckRequest(props) {
 
     logger.debug('productDates', productDates);
 
-    if (!productDates?.items || productDates.items.length === 0) {
+    if (!productDates || productDates.length === 0) {
       throw new Exception(`No ProductDates found for Product (CollectionID: ${props.collectionId}, Type: ${props.activityType}, ID: ${props.activityId}, ProductID: ${props.productId})`, { code: 404 });
     }
 
@@ -394,7 +393,7 @@ async function initInventoryPoolCheckRequest(props) {
     let assetRef = props.assetRef;
 
     if (!assetRef) {
-      for (const productDate of productDates.items) {
+      for (const productDate of productDates) {
         if (productDate?.assetList.length === 1) {
           assetRef = productDate.assetList[0];
         } else {
@@ -416,7 +415,7 @@ async function initInventoryPoolCheckRequest(props) {
 
     const inventoryRequests = [];
 
-    for (const productDate of productDates.items) {
+    for (const productDate of productDates) {
 
       // Get the InventoryPool PK from the relevant properties
 
@@ -486,7 +485,7 @@ async function validateBookingRequest(product, productDates, props) {
     }
 
     // Are the min/max number of days allowed for booking respected?
-    const numberOfDays = productDates?.items?.length;
+    const numberOfDays = productDates?.length;
 
     logger.debug(`Number of days requested: ${numberOfDays}`);
 
@@ -517,7 +516,7 @@ async function validateBookingRequest(product, productDates, props) {
       throw `Vehicle parking passes are limited to one pass per booking`;
     }
 
-    for (const productDate of productDates?.items) {
+    for (const productDate of productDates ?? []) {
 
       console.log('productDate', productDate);
 
@@ -612,7 +611,7 @@ async function createBooking(props) {
 
     const productDates = await fetchProductDates(props);
 
-    if (!productDates?.items || productDates.items.length === 0) {
+    if (!productDates || productDates.length === 0) {
       throw new Exception(`No ProductDates found for Product (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, { code: 404 });
     }
 
@@ -634,7 +633,7 @@ async function createBooking(props) {
     let assetRef = props?.assetRef;
 
     if (!assetRef) {
-      for (const productDate of productDates.items) {
+      for (const productDate of productDates) {
         if (productDate?.assetList.length === 1) {
           assetRef = productDate.assetList[0];
         } else {
@@ -681,7 +680,7 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
 
     const inventoryRequests = [];
 
-    for (const productDate of productDates.items) {
+    for (const productDate of productDates) {
 
       // Get the InventoryPool PK from the relevant properties
 
@@ -743,7 +742,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // For now, cart timer, session timer, hold timer, etc... are all used interchangeably and represent the amount of time that inventory will be held for a user while they complete the booking process.
 
     const timeout = product?.holdDuration?.minutes || DEFAULT_SESSION_LENGTH;
-    const sessionExpiry = addMinutes(new Date(), timeout).getTime();
+    const sessionExpiry = addMinutes(new Date(queryTime), timeout).getTime();
 
     // === Resolve owner identity from Cognito ===
     // Name, email, and phone for the booking owner come from the verified
@@ -753,7 +752,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId);
 
     // === Build the child BookingDates first
-    const bookingDateItems = productDates.items.map((productDate) => initBookingDateItem(globalId, product, productDate, assetRef, props));
+    const bookingDateItems = productDates.map((productDate) => initBookingDateItem(globalId, product, productDate, assetRef, props));
 
     logger.debug(`${bookingDateItems.length} booking date items initialized for booking creation.`);
 
@@ -768,6 +767,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       globalId: globalId,
       bookingId: globalId,
       sessionId: sessionId,
+      sessionInitTime: queryTime,
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
       activityType: activityType,
@@ -781,7 +781,6 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       productDisplayName: product?.displayName,
       facilityDisplayName: sanitizeString(props?.facilityDisplayName, 200),
       geozoneDisplayName: sanitizeString(props?.geozoneDisplayName, 200),
-      bookingInitTime: queryTime,
       status: BOOKING_STATUS_ENUMS[0],
       isPending: 'PENDING', // For expiry sparse GSI1
       timezone: product.timezone,
@@ -962,8 +961,8 @@ function deleteEmptyAttributes(obj) {
 function buildBookingReservationContext(product, productDates, queryTime) {
   try {
 
-    const firstDay = productDates.items[0];
-    const lastDay = productDates.items[productDates.items.length - 1];
+    const firstDay = productDates[0];
+    const lastDay = productDates[productDates.length - 1];
 
     let isRestrictedBookingTriggered = false;
 
@@ -978,7 +977,7 @@ function buildBookingReservationContext(product, productDates, queryTime) {
     const bookingReservationContext = {
       arrivalDate: firstDay.date,
       departureDate: lastDay.date,
-      totalDays: productDates.items.length,
+      totalDays: productDates.length,
       checkInTime: firstDay?.reservationContext?.temporalAnchors?.checkInTime || null,
       checkOutTime: lastDay?.reservationContext?.temporalAnchors?.checkOutTime || null,
       noShowTime: firstDay?.reservationContext?.temporalAnchors?.noShowTime || null,
@@ -1079,6 +1078,8 @@ function formatBookingResponsePublic(bookingResponse) {
       bookingInfo = {
         bookingId: booking.bookingId,
         sessionId: booking.sessionId,
+        sessionInitTime: booking.sessionInitTime,
+        sessionExpiry: booking.sessionExpiry,
         startDate: booking.startDate,
         endDate: booking.endDate,
         status: booking.status,

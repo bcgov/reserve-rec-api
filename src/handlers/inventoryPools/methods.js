@@ -1,6 +1,6 @@
 const { logger, Exception, buildDateRange } = require('/opt/base');
 const { fetchProductDates } = require('../productDates/methods');
-const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall } = require("/opt/dynamodb");
 
 async function fetchInventoryPoolsOnDate(props) {
   try {
@@ -119,7 +119,7 @@ async function initializeInventoryPools(props) {
     // === Validate that the ProductDates exist for the given date range ===
     const productDates = await fetchProductDates({ collectionId, activityType, activityId, productId, startDate, endDate, bypassDiscoveryRules });
 
-    logger.debug(`Fetched ${productDates?.items?.length} product dates for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
+    logger.debug(`Fetched ${productDates?.length} product dates for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
 
     // === For each product date, create InventoryPools - one per Asset ===
 
@@ -235,9 +235,81 @@ async function deleteInventoryPools(props) {
   }
 }
 
+
+/**
+ * Applies new asset quantities to the InventoryPools of the given dates.
+ *
+ * Capacity is set to the new quantity, and availability is recalculated so that units
+ * already taken (capacity - availability on the existing pool) stay taken.
+ *
+ * @param {Object} props
+ * @param {string} props.collectionId
+ * @param {string} props.activityType
+ * @param {string|number} props.activityId
+ * @param {string|number} props.productId
+ * @param {Array<string>} props.dates - dates whose pools should be updated
+ * @param {Array} props.assetList - the new assetList (quantity per asset)
+ *
+ * @returns {number} the number of InventoryPools updated
+ */
+async function syncCapacityToInventoryPools(props) {
+  const { collectionId, activityType, activityId, productId, dates = [], assetList = [] } = props;
+
+  if (dates.length === 0 || assetList.length === 0) {
+    return 0;
+  }
+
+  const quantityBySk = new Map(
+    assetList
+      .filter((asset) => asset?.primaryKey?.pk && asset?.primaryKey?.sk)
+      .map((asset) => [`${asset.primaryKey.pk}::${asset.primaryKey.sk}`, asset.quantity ?? 0])
+  );
+
+  let putItems = [];
+
+  // ponytail: one query per date - InventoryPool pk includes the date, so there is no
+  // single-query alternative. Same pattern as deleteInventoryPools.
+  for (const date of dates) {
+    const pools = await fetchInventoryPoolsOnDate({ collectionId, activityType, activityId, productId, date });
+
+    for (const pool of pools) {
+      if (!quantityBySk.has(pool.sk)) {
+        continue;
+      }
+
+      const newCapacity = quantityBySk.get(pool.sk);
+      const taken = Math.max(0, (pool.capacity ?? 0) - (pool.availability ?? 0));
+      const newAvailability = Math.max(0, newCapacity - taken);
+
+      if (newCapacity < taken) {
+        logger.warn(`InventoryPool ${pool.pk}::${pool.sk} is oversold: new capacity ${newCapacity} is below ${taken} already taken`);
+      }
+
+      putItems.push({
+        TableName: REFERENCE_DATA_TABLE_NAME,
+        Item: marshall(
+          { ...pool, capacity: newCapacity, availability: newAvailability, lastUpdated: new Date().toISOString() },
+          { removeUndefinedValues: true }
+        )
+      });
+    }
+  }
+
+  if (putItems.length === 0) {
+    return 0;
+  }
+
+  await batchTransactData(putItems, 'Put');
+
+  logger.info(`Synced capacity to ${putItems.length} InventoryPools for Product ${productId}`);
+
+  return putItems.length;
+}
+
 module.exports = {
   fetchInventoryPoolsOnDate,
   fetchInventoryPoolsForDateRange,
+  syncCapacityToInventoryPools,
   initializeInventoryPools,
   deleteInventoryPools,
 };

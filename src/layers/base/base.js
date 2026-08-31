@@ -43,6 +43,65 @@ const logger = createLogger({
 });
 
 /**
+ * Coerces a status code into something API Gateway will accept.
+ *
+ * A Lambda proxy response carrying a statusCode outside 100-599 is rejected by API
+ * Gateway, which then returns its own opaque 502 -- so an out-of-range code silently
+ * replaces the handler's intended error with a far less useful one.
+ */
+const normalizeStatusCode = function (code) {
+  const parsed = Number(code);
+  if (Number.isInteger(parsed) && parsed >= 100 && parsed <= 599) {
+    return parsed;
+  }
+  return 500;
+};
+
+/**
+ * JSON.stringify that cannot throw.
+ *
+ * Handlers pass raw caught errors straight into the response body. AWS SDK errors hold a
+ * circular `IncomingMessage -> req -> res` chain, so stringifying one throws and the
+ * Lambda returns nothing at all -- API Gateway turns that into a 502 and the real cause
+ * survives only in CloudWatch. Errors are also awkward in their own right: their
+ * properties are non-enumerable, so a plain stringify renders them as `{}`.
+ *
+ * Errors are therefore projected down to the fields worth returning, which both removes
+ * the circular chain and stops us walking the SDK's buffered HTTP response. Anything else
+ * that is somehow still circular degrades to a marker rather than taking the response down.
+ */
+const safeStringify = function (value) {
+  const seen = new WeakSet();
+  try {
+    return JSON.stringify(value, function (key, val) {
+      if (val instanceof Error) {
+        return {
+          name: val.name,
+          message: val.message,
+          ...(val.code !== undefined ? { code: val.code } : {})
+        };
+      }
+      if (val !== null && typeof val === 'object') {
+        if (seen.has(val)) {
+          return '[Circular]';
+        }
+        seen.add(val);
+      }
+      return val;
+    });
+  } catch (err) {
+    // Last resort: never let response serialization be the thing that fails the request.
+    logger.error('Failed to serialize response body', err?.message || err);
+    return JSON.stringify({
+      code: 500,
+      data: null,
+      msg: 'Response could not be serialized',
+      error: String(err?.message || err)
+    });
+  }
+};
+
+/**
  * Constructs a response object with the provided parameters.
  * @param {number} code - The HTTP status code of the response.
  * @param {*} data - The data payload of the response.
@@ -53,9 +112,11 @@ const logger = createLogger({
  * @returns {object} - The constructed response object.
  */
 const sendResponse = function (code, data, message, error, context, other = null) {
+  const statusCode = normalizeStatusCode(code);
+
   // All responses must include the following fields as a minimum.
   let body = {
-    code: code,
+    code: statusCode,
     data: data,
     msg: message,
     error: error,
@@ -78,9 +139,9 @@ const sendResponse = function (code, data, message, error, context, other = null
   }
 
   const response = {
-    statusCode: code,
+    statusCode: statusCode,
     headers: headers,
-    body: JSON.stringify(body),
+    body: safeStringify(body),
   };
   return response;
 };
@@ -461,6 +522,7 @@ module.exports = {
   logger,
   sendMessage,
   sendResponse,
+  safeStringify,
   httpGet,
   VALIDATION_PATTERNS,
   writeAuditLog
