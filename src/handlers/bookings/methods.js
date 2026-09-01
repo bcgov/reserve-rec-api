@@ -184,35 +184,49 @@ async function getBookingsByUserId(userId, props) {
       },
     };
 
-    let filterExpression = "";
+    // The userId GSI also carries a booking's bookingDate children (and, once other
+    // transactional records are written against a user, their rows too), so restrict
+    // the result set to the booking documents themselves. `schema` is a DynamoDB
+    // reserved word and has to go through an expression attribute name.
+    const filterClauses = ["#schema = :schema"];
+    params.ExpressionAttributeNames["#schema"] = "schema";
+    params.ExpressionAttributeValues[":schema"] = marshall("booking");
 
     if (props?.bookingId) {
-      filterExpression = "bookingId = :bookingId";
+      filterClauses.push("bookingId = :bookingId");
       params.ExpressionAttributeValues[":bookingId"] = marshall(
         props.bookingId
       );
     }
     if (props?.startDate) {
-      filterExpression =
-        (filterExpression ? filterExpression + " AND " : "") +
-        "startDate >= :startDate";
+      filterClauses.push("startDate >= :startDate");
       params.ExpressionAttributeValues[":startDate"] = marshall(
         props.startDate
       );
     }
     if (props?.endDate) {
-      filterExpression =
-        (filterExpression ? filterExpression + " AND " : "") +
-        "endDate <= :endDate";
+      filterClauses.push("endDate <= :endDate");
       params.ExpressionAttributeValues[":endDate"] = marshall(props.endDate);
     }
 
-    // Only add FilterExpression if it's not empty
-    if (filterExpression) {
-      params.FilterExpression = filterExpression;
+    params.FilterExpression = filterClauses.join(" AND ");
+
+    // The GSI sorts on sk (`startDate::...`), so descending gives newest first.
+    // Opt-in, to leave the public listing on its existing oldest-first order.
+    if (props?.scanIndexForward === false) {
+      params.ScanIndexForward = false;
     }
 
-    const result = await runQuery(params);
+    // runQuery returns { items, lastEvaluatedKey }. It fetches a single DynamoDB page
+    // (paginated defaults to true), so lastEvaluatedKey is the caller's cursor for the
+    // next one; passing limit/lastEvaluatedKey is optional and callers that omit them
+    // keep the behaviour they had before.
+    const result = await runQuery(
+      params,
+      props?.limit || null,
+      props?.lastEvaluatedKey || null
+    );
+    // Enrichment returns the same result object, so the cursor survives.
     return await getGeoZoneForBooking(result);
   } catch (error) {
     throw new Exception(`Error getting booking by userId: ${error}`);
