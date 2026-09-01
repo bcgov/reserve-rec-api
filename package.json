@@ -33,6 +33,7 @@
     "sandbox:destroy": "cdk destroy -c @context=dev -c sandboxName=${SANDBOX_NAME} --all --force"
   },
   "devDependencies": {
+    "amazon-cognito-identity-js": "^6.3.20",
     "esbuild": "^0.25.11",
     "jest": "^29.7.0"
   },
