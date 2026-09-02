@@ -47,6 +47,30 @@ const INVENTORYPOOLS_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    isOpen: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    preCloseCapacity: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['number', 'null']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    notes: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string', 'null']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    manuallyEdited: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
   }
 };
 
