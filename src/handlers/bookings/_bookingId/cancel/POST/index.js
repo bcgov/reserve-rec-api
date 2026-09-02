@@ -67,7 +67,14 @@ exports.handler = async (event, context) => {
     // Check if booking is already cancelled
     if (booking.status === "cancelled") {
       throw new Exception(`Booking ${bookingId} is already cancelled`, {
-        code: 400,
+        code: 409,
+      });
+    }
+
+    // Check if booking is already checked-in
+    if (booking.checkedInTime) {
+      throw new Exception(`Booking is already checked-in`, {
+        code: 409,
       });
     }
 
@@ -82,7 +89,7 @@ exports.handler = async (event, context) => {
       });
       throw new Exception(
         `Booking has status "${booking.status}" and cannot be cancelled`,
-        { code: 400 }
+        { code: 409 }
       );
     }
     logger.info("Status check passed", { status: booking.status });
@@ -95,7 +102,7 @@ exports.handler = async (event, context) => {
 
     const queryTime = new Date().getTime();
 
-    const checkoutTime = booking?.reservationContext?.checkoutTime;
+    const checkoutTime = booking?.reservationContext?.checkOutTime;
 
 
     if (checkoutTime && queryTime > checkoutTime) {
