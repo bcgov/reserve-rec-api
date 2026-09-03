@@ -12,6 +12,9 @@ You must arrive and depart according to the times on the pass you have booked, t
 {{#if booking.accountBookingUrl}}
 View your booking: {{{booking.accountBookingUrl}}}
 {{/if}}
+{{#if booking.cancellationUrl}}
+Cancel your reservation: {{{booking.cancellationUrl}}}
+{{/if}}
 
 ----------------------------------------
 BOOKING DETAILS

@@ -113,6 +113,18 @@ const FACILITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    closureStatus: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    closureReason: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
     passesRequired: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
@@ -225,6 +237,18 @@ const FACILITY_API_UPDATE_CONFIG = {
     isOpen: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    closureStatus: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    closureReason: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
         rf.expectAction(action, ['set']);
       }
     },
