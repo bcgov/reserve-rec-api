@@ -49,6 +49,11 @@ class InventoryPoolsConstruct extends LambdaConstruct {
       handlerName,
       {
         basicRead: true,
+        // Pools live in the reference table, but the checked-in tally counts
+        // bookings, which live in the transactional one. Without this the
+        // query is denied and every date renders NA
+        // (bcgov/reserve-rec-admin#391).
+        transDataBasicRead: true,
       }
     );
 
