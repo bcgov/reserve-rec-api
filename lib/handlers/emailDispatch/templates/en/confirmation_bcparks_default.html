@@ -43,20 +43,36 @@
             background-color: #ffffff;
         }
 
-        /* Interim header: white BC Parks wordmark on a brand-blue band.
-           The official colour logo asset is not yet available (see #56);
-           a text wordmark renders reliably in every client, unlike the
-           reversed SVG which Gmail strips. */
+        /* Header: the colour BC Parks logo on white, matching the branded
+           verify-account email. The PNG is attached by Content-ID — clients
+           strip inline SVG and most refuse .svg in <img> (#731). The wordmark
+           below it is the fallback if the image fails to load. */
         .header {
-            background-color: #003366;
-            padding: 22px 32px;
+            background-color: #ffffff;
+            padding: 24px 32px;
+        }
+
+        .header-logo {
+            display: block;
+            border: 0;
+            outline: none;
         }
 
         .header-wordmark {
             font-size: 22px;
             font-weight: 700;
-            color: #ffffff;
+            color: #003366;
             letter-spacing: 0.3px;
+        }
+
+        /* Inline icons beside a detail value. Icon fonts do not render in
+           email, so these are PNGs attached by Content-ID (#731). */
+        .detail-icon {
+            width: 14px;
+            height: 14px;
+            border: 0;
+            vertical-align: -2px;
+            margin-right: 6px;
         }
 
         .content {
@@ -152,6 +168,14 @@
             font-size: 16px;
         }
 
+        .detail-value-name {
+            text-transform: uppercase;
+        }
+
+        .detail-value-confirmation {
+            white-space: nowrap;
+        }
+
         .detail-value-time {
             font-size: 13px;
             color: #5c5c5c;
@@ -160,7 +184,7 @@
 
         .row-rule td {
             border-top: 1px solid #d9d9d9;
-            padding-top: 0;
+            padding-top: 12px;
             padding-bottom: 12px;
         }
 
@@ -228,7 +252,7 @@
         }
 
         .footer-content {
-            padding: 24px 22px;
+            padding: 24px 32px;
             color: white;
         }
 
@@ -276,6 +300,21 @@
                 display: block;
                 width: 100% !important;
             }
+
+            /* Stacked cells each inherited the row divider, drawing it twice. */
+            .row-rule td+td {
+                border-top: none;
+                padding-top: 0;
+            }
+
+            .acknowledgment {
+                margin: 0 0 16px 0;
+                padding: 20px 16px;
+            }
+
+            .footer-content {
+                padding: 20px 24px;
+            }
         }
     </style>
 </head>
@@ -285,12 +324,16 @@
         <div class="container">
             <!-- Header -->
             <div class="header">
+                {{#if branding.logoCid}}
+                <img src="cid:{{branding.logoCid}}" width="133" height="40" alt="BC Parks" class="header-logo" />
+                {{else}}
                 <span class="header-wordmark">BC Parks</span>
+                {{/if}}
             </div>
 
             <!-- Content -->
             <div class="content">
-                <h1>Your day-use {{pluralize booking.invQuantity "pass" "passes"}} for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}</h1>
+                <h1>Your day-use {{pluralize booking.invQuantity "pass" "passes"}} for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}.</h1>
 
                 <p class="success-message">Success! You're all set.</p>
 
@@ -329,20 +372,20 @@
                                 {{#if booking.productName}}
                                 <td width="50%">
                                     <span class="detail-label">Pass type</span>
-                                    <span class="detail-value">{{booking.productName}}{{#if booking.arrivalDate}} &middot; {{formatDate booking.arrivalDate 'short'}}{{/if}}</span>
+                                    <span class="detail-value">{{#if branding.pinCid}}<img src="cid:{{branding.pinCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.productName}}{{#if booking.arrivalDate}} &middot; {{formatDate booking.arrivalDate 'short'}}{{/if}}</span>
                                 </td>
                                 {{/if}}
                                 {{#if booking.invQuantity}}
                                 <td width="50%">
                                     <span class="detail-label">{{pluralize booking.invQuantity "Pass" "Passes"}}</span>
-                                    <span class="detail-value">{{booking.invQuantity}}</span>
+                                    <span class="detail-value">{{#if branding.ticketCid}}<img src="cid:{{branding.ticketCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.invQuantity}}</span>
                                 </td>
                                 {{/if}}
                             </tr>
                             <tr class="row-rule">
                                 <td width="50%">
                                     <span class="detail-label">Named occupant</span>
-                                    <span class="detail-value">{{customer.firstName}} {{customer.lastName}}</span>
+                                    <span class="detail-value detail-value-name">{{customer.firstName}} {{customer.lastName}}</span>
                                 </td>
                                 {{#if customer.licensePlate}}
                                 <td width="50%">
@@ -356,7 +399,7 @@
                             <tr class="row-rule">
                                 <td colspan="2">
                                     <span class="detail-label">Confirmation number</span>
-                                    <span class="detail-value">{{booking.bookingId}}</span>
+                                    <span class="detail-value detail-value-confirmation">{{booking.bookingId}}</span>
                                 </td>
                             </tr>
                         </table>
@@ -386,10 +429,21 @@
                     </p>
                 </div>
 
+                {{#if booking.cancellationUrl}}
+                <div class="cardless-body">
+                    <h2>Cancellations</h2>
+                    <div class="horizontal-rule-yellow"></div>
+                    <p class="before-you-go-instructions">
+                        If your plans change, please cancel your pass so it can be released to someone else.
+                    </p>
+                    <a href="{{booking.cancellationUrl}}" target="_blank" class="btn-primary">Cancel your reservation</a>
+                </div>
+                {{/if}}
+
                 <p class="disclaimer">
                     This email is provided for information related to your BC Parks account only. The inbox is not
                     monitored. If you need assistance, please contact
-                    <a href="mailto:parkinfo@gov.bc.ca">parkinfo@gov.bc.ca</a>.
+                    <a href="mailto:parkinfo@gov.bc.ca" style="text-decoration: underline;">parkinfo@gov.bc.ca</a>.
                 </p>
             </div>
 

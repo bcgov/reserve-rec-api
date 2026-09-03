@@ -35,10 +35,11 @@ exports.handler = async (event, context) => {
     // Extract query parameters
     const date = event?.queryStringParameters?.date;
     const editMode = event?.queryStringParameters?.editMode || 'bulk'; // 'manual' or 'bulk'
+    const clearManualEdit = event?.queryStringParameters?.clearManualEdit === 'true'; // Explicitly clear manuallyEdited flag
 
     // Parse body
     const body = JSON.parse(event?.body || '{}');
-    const { capacity, notes, preCloseCapacity } = body;
+    const { capacity, notes, preCloseCapacity, isOpen } = body;
 
     // Validate required parameters
     const missingParams = [];
@@ -93,10 +94,10 @@ exports.handler = async (event, context) => {
       // Calculate new availability: add/subtract the same delta as capacity
       let newAvailability = oldAvailability + capacityDelta;
       
-      // Validate: availability cannot be negative
+      // ALWAYS prevent negative availability - capacity cannot be reduced below booked amount
       if (newAvailability < 0) {
         throw new Exception(
-          `Cannot reduce capacity below current bookings. Current availability would become negative: ${newAvailability}`,
+          `Cannot reduce capacity below current bookings. Current availability would become negative: ${newAvailability}.`,
           { code: 400 }
         );
       }
@@ -132,13 +133,22 @@ exports.handler = async (event, context) => {
         updateData.notes = notes;
       }
       
+      // if we dont turn off isOpen dont turn it off! 
+      if (isOpen !== undefined && isOpen !== null) {
+        updateData.isOpen = isOpen;
+      }
+      
       // Set manuallyEdited flag ONLY for manual edits
       // For bulk edits (like toggles), preserve the existing flag by NOT updating it
       if (editMode === 'manual') {
         updateData.manuallyEdited = true;
       }
-      // NOTE: We do NOT set manuallyEdited = false for bulk edits
-      // This preserves any existing badge from previous manual edits
+      
+      // Explicitly clear the manuallyEdited flag if requested (e.g., when schedule overwrites manual override)
+      if (clearManualEdit) {
+        updateData.manuallyEdited = false;
+      }
+      // NOTE: If neither manual nor clearManualEdit, we preserve the existing flag
       
       return {
         key: {
