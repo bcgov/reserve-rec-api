@@ -1,5 +1,6 @@
 const { logger, sendResponse, Exception } = require("/opt/base");
 const { fetchInventoryPoolsOnDate, fetchInventoryPoolsForDateRange } = require("../methods");
+const { countCheckedInBookingsByDate } = require("../../bookings/methods");
 
 exports.handler = async (event, context) => {
   logger.info("GET InventoryPool by Product on Date", event);
@@ -42,6 +43,11 @@ exports.handler = async (event, context) => {
     const inventoryId = event?.queryStringParameters?.inventoryId || null;
     const allocationStatus = event?.queryStringParameters?.allocationStatus || null;
     const limit = event?.queryStringParameters?.limit ? parseInt(event.queryStringParameters.limit) : null;
+
+    // The capacity calendar needs a checked-in tally beside Passes and
+    // Reserved. Opt-in so callers that only want capacity don't pay for the
+    // bookings query (bcgov/reserve-rec-admin#391).
+    const includeCheckedIn = event?.queryStringParameters?.includeCheckedIn === 'true';
 
     let inventoryPools;
 
@@ -88,6 +94,18 @@ exports.handler = async (event, context) => {
 
     logger.debug(`Fetched InventoryPools for ${collectionId}::${activityType}::${activityId}::${productId} on date ${date}. ${inventoryPools.length} items found.`);
 
+    if (includeCheckedIn && inventoryPools.length) {
+      inventoryPools = await withCheckedInCounts(inventoryPools, {
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        startDate,
+        endDate,
+        date,
+      });
+    }
+
     return sendResponse(200, inventoryPools, "Success", null, context);
 
   } catch (error) {
@@ -101,3 +119,38 @@ exports.handler = async (event, context) => {
     );
   }
 };
+
+/**
+ * Attach checkedInCount to each pool for its own date. A date with no
+ * check-ins gets 0 rather than being left undefined, so the caller can tell
+ * "none checked in" apart from "not counted" — the calendar shows NA for the
+ * latter (bcgov/reserve-rec-admin#391).
+ *
+ * A failure here must not cost the caller its capacity data, so the counts are
+ * best-effort: on error the pools are returned unannotated.
+ */
+async function withCheckedInCounts(pools, { collectionId, activityType, activityId, productId, startDate, endDate, date }) {
+  const from = startDate || date;
+  const to = endDate || date;
+
+  try {
+    const counts = await countCheckedInBookingsByDate({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      startDate: from,
+      endDate: to,
+    });
+
+    return pools.map((pool) => ({
+      ...pool,
+      checkedInCount: counts[pool.date] ?? 0,
+    }));
+  } catch (error) {
+    logger.error("Could not count checked-in bookings; returning pools without counts", {
+      error: error?.message || String(error),
+    });
+    return pools;
+  }
+}
