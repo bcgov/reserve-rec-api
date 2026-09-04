@@ -17,6 +17,7 @@ jest.mock('/opt/base', () => ({
 jest.mock('@aws-sdk/util-dynamodb', () => ({ unmarshall: jest.fn((x) => x) }));
 
 jest.mock('/opt/dynamodb', () => ({
+  batchTransactData: jest.fn(),
   marshall: jest.fn((x) => x),
   runQuery: jest.fn(),
   getOne: jest.fn(),
@@ -55,8 +56,10 @@ jest.mock('../../src/handlers/bookings/configs', () => ({
 }));
 
 const { getUserInfoBySub } = require('../../src/handlers/users/methods');
+const { batchTransactData } = require('/opt/dynamodb');
 const {
   requireVerifiedEmail,
+  releaseHoldOnRefusal,
   resolveAuthenticatedOccupantIdentity,
 } = require('../../src/handlers/bookings/methods');
 
@@ -127,5 +130,40 @@ describe('resolveAuthenticatedOccupantIdentity', () => {
     getUserInfoBySub.mockResolvedValue({ Attributes: [{ Name: 'email', Value: 'a@b.c' }] });
 
     expect((await resolveAuthenticatedOccupantIdentity('sub-1')).emailVerified).toBe(false);
+  });
+});
+
+describe('releaseHoldOnRefusal', () => {
+  const hold = { bookingId: 'b-1', status: 'in progress', pk: 'pk', sk: 'sk' };
+
+  it('lets a passing check through without touching the hold', async () => {
+    await releaseHoldOnRefusal(hold, () => {}, 1, 'sub-1');
+
+    expect(batchTransactData).not.toHaveBeenCalled();
+  });
+
+  it('releases the hold and still raises the refusal', async () => {
+    const refuse = () => { throw new Error('refused'); };
+
+    await expect(releaseHoldOnRefusal(hold, refuse, 1, 'sub-1')).rejects.toThrow('refused');
+    expect(batchTransactData).toHaveBeenCalled();
+  });
+
+  // A completed or already-cancelled booking is not a hold to release.
+  it('only releases a booking that is still holding inventory', async () => {
+    const refuse = () => { throw new Error('refused'); };
+
+    await expect(
+      releaseHoldOnRefusal({ ...hold, status: 'confirmed' }, refuse, 1, 'sub-1')
+    ).rejects.toThrow('refused');
+    expect(batchTransactData).not.toHaveBeenCalled();
+  });
+
+  // Losing the hold-release must never swallow the reason the caller was refused.
+  it('still raises the refusal when the release itself fails', async () => {
+    batchTransactData.mockRejectedValueOnce(new Error('dynamo down'));
+    const refuse = () => { throw new Error('refused'); };
+
+    await expect(releaseHoldOnRefusal(hold, refuse, 1, 'sub-1')).rejects.toThrow('refused');
   });
 });
