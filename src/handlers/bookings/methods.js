@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const {
+  batchTransactData,
   getOneByGlobalId,
   marshall,
   runQuery,
@@ -61,6 +62,50 @@ async function resolveAuthenticatedOccupantIdentity(sub) {
   } catch (error) {
     logger.error('Failed to resolve occupant identity from Cognito', { sub, error: error?.message });
     throw error;
+  }
+}
+
+/**
+ * Run a policy check that, if it refuses, means this booking can never be
+ * completed by this account. On refusal the hold is flagged cancelled before
+ * the error is raised, so the expired-booking scraper returns the inventory on
+ * its next pass instead of the hold sitting until its session expires first.
+ *
+ * Only for final refusals. A validation error the caller can correct must not
+ * destroy their hold.
+ *
+ * Releasing must never mask the refusal: if the release itself fails, that is
+ * logged and the original refusal is still raised.
+ *
+ * @param {Object} booking - the held booking
+ * @param {Function} check - throws to refuse
+ * @param {number} queryTime
+ * @param {string} userId
+ */
+async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
+  try {
+    check();
+  } catch (refusal) {
+    try {
+      if (booking && booking.status === 'in progress') {
+        const updateRequest = await flagCancelledBooking(
+          booking,
+          queryTime,
+          'Booking refused: account email not verified',
+          userId
+        );
+        await batchTransactData(updateRequest);
+        logger.info('Released hold after a refused booking attempt', {
+          bookingId: booking?.bookingId,
+        });
+      }
+    } catch (releaseError) {
+      logger.error('Could not release the hold after a refused booking attempt', {
+        bookingId: booking?.bookingId,
+        error: releaseError?.message || String(releaseError),
+      });
+    }
+    throw refusal;
   }
 }
 
@@ -1264,7 +1309,12 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
     // wrote them when the booking was first created). Ref #480.
     if (sub) {
       const ownerIdentity = await resolveAuthenticatedOccupantIdentity(sub);
-      requireVerifiedEmail(ownerIdentity);
+      // A refusal here is final — this account will not be allowed to complete
+      // this booking on a retry — so the hold is released rather than left to
+      // occupy inventory until it expires. Validation failures (a missing
+      // occupant name, say) deliberately do NOT release: the caller can fix
+      // those and complete the same hold.
+      await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub);
       updatedBookingItem.namedOccupant = ownerIdentity
         ? {
           firstName: ownerIdentity.firstName,
@@ -2785,6 +2835,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   sanitizeString,
+  releaseHoldOnRefusal,
   requireVerifiedEmail,
   resolveAuthenticatedOccupantIdentity,
   sendBookingConfirmationEmail,
