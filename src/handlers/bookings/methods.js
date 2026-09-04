@@ -56,10 +56,37 @@ async function resolveAuthenticatedOccupantIdentity(sub) {
       lastName: get('family_name'),
       email: get('email'),
       mobilePhone: get('custom:mobilePhone') || get('phone_number'),
+      emailVerified: get('email_verified') === 'true',
     };
   } catch (error) {
     logger.error('Failed to resolve occupant identity from Cognito', { sub, error: error?.message });
     throw error;
+  }
+}
+
+/**
+ * A pass may not be held or secured by an account whose email address is not
+ * verified.
+ *
+ * The booking control is hidden in the UI for unverified accounts, but that is
+ * a client-side check only: calling the API directly held and confirmed a pass
+ * on an unverified account (reproduced on dev 2026-09-04). Verification only
+ * decided whether confirmation email was sent.
+ *
+ * Enforcing it here makes verification a real gate, which costs an automated
+ * signup a working mailbox and the time to clear it. Note that CONFIRMED and
+ * email_verified are independent: changing the address after signup leaves an
+ * account able to sign in with email_verified false.
+ *
+ * @param {{emailVerified?: boolean}|null} identity - from resolveAuthenticatedOccupantIdentity
+ * @throws {Exception} 403 when the account's address is unverified
+ */
+function requireVerifiedEmail(identity) {
+  if (identity && identity.emailVerified === false) {
+    throw new Exception(
+      'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
+      { code: 403 }
+    );
   }
 }
 
@@ -818,6 +845,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // request body — clients must not be able to put another user's identity
     // on a booking (Ref #480). Address fields stay from props.
     const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId);
+    requireVerifiedEmail(ownerIdentity);
 
     // The pass sub-type (e.g. 'trailUse') lives on the activity - products
     // don't carry one, so `product.activitySubType` was always undefined and
@@ -1236,6 +1264,7 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
     // wrote them when the booking was first created). Ref #480.
     if (sub) {
       const ownerIdentity = await resolveAuthenticatedOccupantIdentity(sub);
+      requireVerifiedEmail(ownerIdentity);
       updatedBookingItem.namedOccupant = ownerIdentity
         ? {
           firstName: ownerIdentity.firstName,
@@ -2756,6 +2785,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   sanitizeString,
+  requireVerifiedEmail,
   resolveAuthenticatedOccupantIdentity,
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail,
