@@ -293,6 +293,60 @@ async function getBookingByBookingId(
   }
 }
 
+/**
+ * Count currently checked-in bookings per date for one product.
+ *
+ * Bookings live under pk `booking::<collectionId>::<activityType>::<activityId>::<productId>`
+ * with sk `<startDate>::<bookingId>`, so a date range is one query per product.
+ * A booking is checked in exactly while it carries checkedInTime — check-out
+ * REMOVEs the attribute — so its presence is the signal, independent of status
+ * (bcgov/reserve-rec-admin#391).
+ *
+ * @returns {Promise<Object>} { 'YYYY-MM-DD': count } — dates with no check-ins are absent
+ */
+async function countCheckedInBookingsByDate({
+  collectionId,
+  activityType,
+  activityId,
+  productId,
+  startDate,
+  endDate,
+}) {
+  const pk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
+  const counts = {};
+  let lastEvaluatedKey = null;
+
+  do {
+    const query = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      KeyConditionExpression: "pk = :pk AND sk BETWEEN :from AND :to",
+      // Only the fields the tally needs, so a busy month stays cheap.
+      ProjectionExpression: "startDate, checkedInTime",
+      ExpressionAttributeValues: {
+        ":pk": marshall(pk),
+        ":from": marshall(`${startDate}::`),
+        // sk sorts lexically, so a high suffix takes every booking on endDate.
+        ":to": marshall(`${endDate}::\uffff`),
+      },
+    };
+    if (lastEvaluatedKey) {
+      query.ExclusiveStartKey = lastEvaluatedKey;
+    }
+
+    const result = await runQuery(query);
+    for (const item of result.items || result || []) {
+      if (!item?.checkedInTime || !item?.startDate) {
+        continue;
+      }
+      counts[item.startDate] = (counts[item.startDate] || 0) + 1;
+    }
+    lastEvaluatedKey = result.LastEvaluatedKey || null;
+  } while (lastEvaluatedKey);
+
+  logger.debug("Checked-in counts", { pk, startDate, endDate, dates: Object.keys(counts).length });
+  return counts;
+}
+
 async function getBookingsByActivityDetails(
   collectionId,
   activityType,
@@ -2693,6 +2747,7 @@ module.exports = {
   flagCancelledBooking,
   formatBookingResponsePublic,
   generateEmailParams,
+  countCheckedInBookingsByDate,
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
