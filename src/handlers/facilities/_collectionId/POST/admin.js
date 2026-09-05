@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_PUT_CONFIG } = require("../../configs");
-const { parseRequest } = require("../../methods");
+const { parseRequest, getFacilitiesByCollectionId } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -26,6 +26,23 @@ exports.handler = async (event, context) => {
 
     body['collectionId'] = collectionId;
     body['schema'] = 'facility';
+
+    const newNames = (Array.isArray(body) ? body : [body])
+      .map((item) => String(item?.displayName || '').trim().toLowerCase())
+      .filter(Boolean);
+    if (newNames.length) {
+      const existing = await getFacilitiesByCollectionId(collectionId, {});
+      const existingNames = new Set(
+        existing?.items?.map((item) => String(item?.displayName || '').trim().toLowerCase())
+      );
+      const duplicate = newNames.find((name) => existingNames.has(name));
+      if (duplicate) {
+        throw new Exception(
+          `A facility named "${duplicate}" already exists in this park.`,
+          { code: 409 }
+        );
+      }
+    }
 
     // Attempt to batch create a facility.
     // If it fails, reset the counter on reserve-rec-counter table and try again.
