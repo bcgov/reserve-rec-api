@@ -128,6 +128,10 @@ async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
  */
 function requireVerifiedEmail(identity) {
   if (identity && identity.emailVerified === false) {
+    // Logged here rather than at the call sites: both the hold and the complete
+    // path funnel into the same generic catch, so without this the refusal is
+    // indistinguishable from any other booking failure.
+    logger.warn("event=booking_refused_unverified_email", { sub: identity?.sub });
     throw new Exception(
       'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
       { code: 403 }

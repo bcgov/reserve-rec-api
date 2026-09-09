@@ -62,9 +62,17 @@ exports.handler = async (event, context) => {
       });
     }
 
+    logger.info("event=booking_completed", { bookingId });
+
     return sendResponse(200, { res }, "Success", null, context);
 
   } catch (error) {
+    // This catch logged nothing at all, so a failed completion was invisible.
+    logger.error("event=booking_complete_failed", {
+      bookingId,
+      code: error?.code,
+      message: error?.message,
+    });
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,

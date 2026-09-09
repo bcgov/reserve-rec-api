@@ -162,9 +162,18 @@ exports.handler = async (event, context) => {
     // the SMS opt-in (it arrives with the complete request). See the booking
     // complete handlers and methods.completeBooking().
 
+    // event=<name> as the first token so a metric filter can match without
+    // parsing prose. Success was previously only returned, never logged, so
+    // holds could not be counted.
+    logger.info("event=hold_created", {
+      bookingId: bookingRequestItems?.[0]?.Put?.Item?.bookingId?.S,
+      userId: claims.sub,
+    });
+
     return sendResponse(200, response, "Success", null, context);
 
   } catch (error) {
+    logger.error("event=hold_failed", { message: error?.message });
     logger.error("Booking creation error:", error);
     if (error?.name === "TransactionCanceledException") {
       // 1. Inspect the error object
