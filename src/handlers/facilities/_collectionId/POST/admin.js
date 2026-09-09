@@ -28,14 +28,28 @@ exports.handler = async (event, context) => {
     body['schema'] = 'facility';
 
     const newNames = (Array.isArray(body) ? body : [body])
-      .map((item) => String(item?.displayName || '').trim().toLowerCase())
+      .map((item) => String(item?.displayName || '').trim())
       .filter(Boolean);
     if (newNames.length) {
-      const existing = await getFacilitiesByCollectionId(collectionId, {});
+      // Reject duplicates within the request itself.
+      const seen = new Set();
+      for (const name of newNames) {
+        const key = name.toLowerCase();
+        if (seen.has(key)) {
+          throw new Exception(
+            `A facility named "${name}" is listed more than once in this request.`,
+            { code: 409 }
+          );
+        }
+        seen.add(key);
+      }
+      // Reject names already used by another facility in the same park.
+      // paginated: false so every existing facility is checked, not just page 1.
+      const existing = await getFacilitiesByCollectionId(collectionId, {}, { paginated: false });
       const existingNames = new Set(
         existing?.items?.map((item) => String(item?.displayName || '').trim().toLowerCase())
       );
-      const duplicate = newNames.find((name) => existingNames.has(name));
+      const duplicate = newNames.find((name) => existingNames.has(name.toLowerCase()));
       if (duplicate) {
         throw new Exception(
           `A facility named "${duplicate}" already exists in this park.`,

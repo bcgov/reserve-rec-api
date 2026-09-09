@@ -80,7 +80,7 @@ async function getFacilitiesByCollectionId(
   try {
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
-    const paginated = params?.paginated || true;
+    const paginated = params?.paginated ?? true;
     let queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
