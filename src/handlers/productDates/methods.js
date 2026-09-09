@@ -1,6 +1,7 @@
 const { logger, Exception } = require("/opt/base");
 const { getOne, batchTransactData, runQuery, REFERENCE_DATA_TABLE_NAME, marshall } = require("/opt/dynamodb");
 const { getProductById } = require("../products/methods");
+const { fetchInventoryPoolsOnDate } = require("../inventoryPools/methods");
 const { buildDateRange } = require("/opt/base");
 const { DateTime } = require("luxon");
 const { formatProjectionsForQuery, resolveTemporalAnchor, resolveTemporalWindow } = require("../../common/data-utils");
@@ -428,10 +429,69 @@ function mergeAssetQuantities(existingAssetList = [], productAssetList = []) {
   }));
 }
 
+/**
+ * Enriches ProductDates with InventoryPool data (isOpen and availability).
+ * For each ProductDate, fetches the corresponding InventoryPool and attaches
+ * only the isOpen and availability fields.
+ */
+async function enrichProductDatesWithInventoryData(productDates, collectionId, activityType, activityId, productId) {
+  try {
+    if (!productDates || productDates.length === 0) {
+      return productDates;
+    }
+
+    // Enrich each ProductDate with its InventoryPool data
+    const enrichedDates = await Promise.all(
+      productDates.map(async (productDate) => {
+        try {
+          const date = productDate.sk;
+          const inventoryPools = await fetchInventoryPoolsOnDate({
+            collectionId,
+            activityType,
+            activityId,
+            productId,
+            date
+          });
+
+          // Get inventory data from the first pool (typically only one pool per product/date)
+          const inventoryData = inventoryPools?.[0];
+          const isOpen = inventoryData?.isOpen ?? false;
+          const available = inventoryData?.availability ?? 0;
+
+          return {
+            ...productDate,
+            inventoryPool: {
+              isOpen,
+              available
+            }
+          };
+        } catch (error) {
+          logger.warn(`Failed to enrich ProductDate for date ${productDate.sk}:`, error);
+          // Return ProductDate with default inventory status on error
+          return {
+            ...productDate,
+            inventoryPool: {
+              isOpen: true,
+              available: 0
+            }
+          };
+        }
+      })
+    );
+
+    return enrichedDates;
+  } catch (error) {
+    logger.error("Error enriching ProductDates with inventory data:", error);
+    // Return original ProductDates if enrichment fails
+    return productDates;
+  }
+}
+
 module.exports = {
   deleteProductDates,
   syncAssetListToProductDates,
   fetchProductDates,
   fetchProductDateByDate,
   initializeProductDates,
+  enrichProductDatesWithInventoryData,
 };

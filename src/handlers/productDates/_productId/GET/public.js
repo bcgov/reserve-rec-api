@@ -1,5 +1,5 @@
 
-const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
+const { fetchProductDates, fetchProductDateByDate, enrichProductDatesWithInventoryData } = require("../../methods");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../../configs");
 const { logger, sendResponse, Exception } = require("/opt/base");
 /**
@@ -84,6 +84,15 @@ exports.handler = async (event, context) => {
       logger.debug(`Range query - using fetchProductDates from ${startDate} to ${endDate}`);
       productDates = await fetchProductDates(props);
     }
+
+    // Enrich ProductDates with InventoryPool data (isOpen and available)
+    productDates = await enrichProductDatesWithInventoryData(
+      productDates,
+      collectionId,
+      activityType,
+      activityId,
+      productId
+    );
 
     return sendResponse(200, productDates, "Success", null, context);
 
