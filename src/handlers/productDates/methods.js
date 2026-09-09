@@ -472,7 +472,7 @@ async function enrichProductDatesWithInventoryData(productDates, collectionId, a
             ...productDate,
             inventoryPool: {
               isOpen: true,
-              available: 0
+              available: null
             }
           };
         }
