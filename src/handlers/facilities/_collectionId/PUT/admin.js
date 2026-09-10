@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_UPDATE_CONFIG } = require("../../configs");
-const { parseRequest } = require("../../methods");
+const { parseRequest, assertFacilityNamesAvailable } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -27,6 +27,12 @@ exports.handler = async (event, context) => {
     }
 
     let updateRequests = await parseRequest(collectionId, body, "PUT", facilityType, facilityId);
+
+    // Block a rename onto a name already used by another facility in the park.
+    await assertFacilityNamesAvailable(
+      collectionId,
+      updateRequests.map((r) => ({ displayName: r?.data?.displayName, sk: r?.key?.sk })),
+    );
 
     // Use quickApiPutHandler to create the put items
     const updateItems = await quickApiUpdateHandler(
