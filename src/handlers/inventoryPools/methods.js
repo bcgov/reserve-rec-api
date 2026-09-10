@@ -12,18 +12,20 @@ async function fetchInventoryPoolsOnDate(props) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId");
     }
 
-    const productDates = await fetchProductDates({
-      collectionId,
-      activityType,
-      activityId,
-      productId,
-      startDate: date,
-      endDate: date,
-      bypassDiscoveryRules
-    });
+    if (!bypassDiscoveryRules) {
+      const productDates = await fetchProductDates({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        startDate: date,
+        endDate: date,
+        bypassDiscoveryRules
+      });
 
-    if (productDates.length === 0) {
-      return [];
+      if (productDates.length === 0) {
+        return [];
+      }
     }
 
     // InventoryPools pk: "inventoryPool::\<collectionId>::\<activityType>::\<activityId>::\<productId>::\<date>"
@@ -86,19 +88,21 @@ async function fetchInventoryPoolsForDateRange(props) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId, startDate, endDate");
     }
 
-    // Validate that ProductDates exist for the given date range (enforces discovery rules)
-    const productDates = await fetchProductDates({
-      collectionId,
-      activityType,
-      activityId,
-      productId,
-      startDate,
-      endDate,
-      bypassDiscoveryRules
-    });
+    let productDates = [];
+    if (!bypassDiscoveryRules) {
+      productDates = await fetchProductDates({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        startDate: startDate,
+        endDate: endDate,
+        bypassDiscoveryRules
+      });
 
-    if (productDates.length === 0) {
-      return [];
+      if (productDates.length === 0) {
+        return [];
+      }
     }
 
     // Only fetch inventory pools for dates that have discoverable ProductDates
