@@ -61,7 +61,7 @@ exports.handler = async (event, context) => {
     if (date) {
       logger.debug(`Single date query - fetching InventoryPool for ${collectionId}::${activityType}::${activityId}::${productId} on date ${date}`);
       inventoryPools = await fetchInventoryPoolsOnDate({
-        bypassDiscoveryRules: false, // Discovery rules are ALWAYS applied for the public handler
+        bypassDiscoveryRules: false, 
         collectionId,
         activityType,
         activityId,
@@ -84,28 +84,22 @@ exports.handler = async (event, context) => {
     }
 
     // Extract only isOpen and available fields
-    let response;
-    
-    if (date) {
-      response = inventoryPools.length > 0 ? {
-        isOpen: inventoryPools[0]?.isOpen ?? true,
-        available: inventoryPools[0]?.availability ?? null
-      } : {
-        isOpen: true,
-        available: null
-      };
-    } else {
-      response = {};
-      for (const pool of inventoryPools) {
-        const poolDate = pool?.pk?.split('::')?.pop(); // Extract date from pk
-        if (poolDate && poolDate >= startDate && poolDate <= endDate) {
-          response[poolDate] = {
-            isOpen: pool?.isOpen ?? true,
-            available: pool?.availability ?? null
-          };
-        }
+    // One pool record per asset per date: sum availability across assets,
+    // and the date is closed if any of its pools is closed.
+    const byDate = {};
+    for (const pool of inventoryPools) {
+      const poolDate = pool?.pk?.split('::')?.pop();
+      if (!poolDate || poolDate < startDate || poolDate > endDate) continue;
+      const entry = byDate[poolDate] ??= { isOpen: true, available: null };
+      if (pool?.isOpen === false) entry.isOpen = false;
+      if (typeof pool?.availability === 'number') {
+        entry.available = (entry.available ?? 0) + pool.availability;
       }
     }
+
+    const response = date
+      ? (byDate[date] ?? { isOpen: true, available: null })
+      : byDate;
 
     logger.debug(`Returning inventory pool data: ${JSON.stringify(response)}`);
     return sendResponse(200, response, "Success", null, context);

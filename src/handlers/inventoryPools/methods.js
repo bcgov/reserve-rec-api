@@ -106,7 +106,7 @@ async function fetchInventoryPoolsForDateRange(props) {
     }
 
     // Only fetch inventory pools for dates that have discoverable ProductDates
-    const discoverableDates = productDates.map(pd => pd.date);
+    const discoverableDates = bypassDiscoveryRules ? buildDateRange(startDate, endDate) : productDates.map(pd => pd.date);
     let allInventoryPools = [];
 
     // Fetch inventory pools for each discoverable date
