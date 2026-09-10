@@ -1,10 +1,10 @@
 const { logger, Exception, buildDateRange } = require('/opt/base');
 const { fetchProductDates } = require('../productDates/methods');
-const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall, formatProjectionsForQuery } = require("/opt/dynamodb");
 
 async function fetchInventoryPoolsOnDate(props) {
   try {
-    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null } = props;
+    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} on date ${date}`);
 
@@ -21,6 +21,14 @@ async function fetchInventoryPoolsOnDate(props) {
       }
     };
 
+    if (projectionFields) {
+      const projectionsMap = formatProjectionsForQuery(projectionFields);
+      if (!query.ExpressionAttributeNames) {
+        query.ExpressionAttributeNames = {};
+      }
+      query.ExpressionAttributeNames = { ...query.ExpressionAttributeNames, ...projectionsMap };
+      query.ProjectionExpression = Object.keys(projectionsMap).join(', ');
+    }
 
     // InventoryPools sk:
     if (facilityType) {
@@ -56,7 +64,7 @@ async function fetchInventoryPoolsOnDate(props) {
 
 async function fetchInventoryPoolsForDateRange(props) {
   try {
-    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null } = props;
+    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
 
@@ -81,7 +89,8 @@ async function fetchInventoryPoolsForDateRange(props) {
           facilityId,
           assetType,
           assetId,
-          inventoryId
+          inventoryId,
+          projectionFields
         });
         allInventoryPools = allInventoryPools.concat(inventoryPools);
       } catch (error) {
