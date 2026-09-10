@@ -4,12 +4,26 @@ const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall, format
 
 async function fetchInventoryPoolsOnDate(props) {
   try {
-    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null, projectionFields = null } = props;
+    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null, bypassDiscoveryRules = true, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} on date ${date}`);
 
     if (!collectionId || !activityType || !activityId || !productId) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId");
+    }
+
+    const productDates = await fetchProductDates({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      startDate: date,
+      endDate: date,
+      bypassDiscoveryRules
+    });
+
+    if (productDates.length === 0) {
+      return [];
     }
 
     // InventoryPools pk: "inventoryPool::\<collectionId>::\<activityType>::\<activityId>::\<productId>::\<date>"
@@ -64,7 +78,7 @@ async function fetchInventoryPoolsOnDate(props) {
 
 async function fetchInventoryPoolsForDateRange(props) {
   try {
-    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, projectionFields = null } = props;
+    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, bypassDiscoveryRules = true, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
 
@@ -72,12 +86,27 @@ async function fetchInventoryPoolsForDateRange(props) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId, startDate, endDate");
     }
 
-    // Build list of dates to query
-    const dates = buildDateRange(startDate, endDate);
+    // Validate that ProductDates exist for the given date range (enforces discovery rules)
+    const productDates = await fetchProductDates({
+      collectionId,
+      activityType,
+      activityId,
+      productId,
+      startDate,
+      endDate,
+      bypassDiscoveryRules
+    });
+
+    if (productDates.length === 0) {
+      return [];
+    }
+
+    // Only fetch inventory pools for dates that have discoverable ProductDates
+    const discoverableDates = productDates.map(pd => pd.date);
     let allInventoryPools = [];
 
-    // Fetch inventory pools for each date in the range
-    for (const date of dates) {
+    // Fetch inventory pools for each discoverable date
+    for (const date of discoverableDates) {
       try {
         const inventoryPools = await fetchInventoryPoolsOnDate({ 
           collectionId, 
@@ -90,6 +119,7 @@ async function fetchInventoryPoolsForDateRange(props) {
           assetType,
           assetId,
           inventoryId,
+          bypassDiscoveryRules,
           projectionFields
         });
         allInventoryPools = allInventoryPools.concat(inventoryPools);

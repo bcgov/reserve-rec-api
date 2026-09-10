@@ -73,6 +73,7 @@ describe("inventory-pools GET public", () => {
       activityId: "9",
       productId: "9",
       date: "2026-09-05",
+      projectionFields: ["pk", "isOpen", "availability"],
     });
     expect(res.data).toMatchObject({ isOpen: true, available: 80 });
   });
@@ -83,12 +84,14 @@ describe("inventory-pools GET public", () => {
     const res = await handler(event({ startDate: "2026-09-05", endDate: "2026-09-07" }), {});
 
     expect(fetchInventoryPoolsForDateRange).toHaveBeenCalledWith({
+      bypassDiscoveryRules: false,
       collectionId: "bcparks_999",
       activityType: "dayuse",
       activityId: "9",
       productId: "9",
       startDate: "2026-09-05",
       endDate: "2026-09-07",
+      projectionFields: ["pk", "isOpen", "availability"],
     });
     expect(res.data).toMatchObject({
       "2026-09-05": { isOpen: true, available: 80 },

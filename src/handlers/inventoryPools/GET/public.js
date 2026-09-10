@@ -72,6 +72,7 @@ exports.handler = async (event, context) => {
     } else {
       logger.debug(`Range query - fetching InventoryPools for ${collectionId}::${activityType}::${activityId}::${productId} from ${startDate} to ${endDate}`);
       inventoryPools = await fetchInventoryPoolsForDateRange({
+        bypassDiscoveryRules: false,
         collectionId,
         activityType,
         activityId,
