@@ -27,12 +27,18 @@ const {
 } = require("../../common/data-constants");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
+const { getProductById } = require("../products/methods");
 const { DateTime } = require("luxon");
 const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 
 const DEFAULT_SESSION_LENGTH = 15; // in minutes
+const DUP_PASS_TYPES = {
+  AM: 'AM',
+  PM: 'PM',
+  ALLDAY: 'All day'
+}
 
 /**
  * Resolve the booking owner's identity (firstName, lastName, email, phone) from
@@ -335,6 +341,35 @@ async function findUserActiveBookingForProductOnDate(userId, productBookingPk, s
   };
   const result = await runQuery(params);
   return result?.items?.[0] || null;
+}
+
+/**
+ * 
+ * Finds all active (in-progress or confirmed) booking owned by a user on a 
+ * given startDate. Used to enforce users not booking AM/PM or All Day passes
+ * that overlap. Issue #762 reserve-rec-public.
+ */
+async function findUserActiveBookingsOnDate(userId, startDate) {
+  if (!userId || !startDate) return null;
+
+  const params = {
+    TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+    IndexName: USERID_INDEX_NAME,
+    KeyConditionExpression: '#userId = :userId AND begins_with(sk, :startDatePrefix)',
+    FilterExpression: '#status IN (:inProgress, :confirmed)',
+    ExpressionAttributeNames: {
+      '#userId': USERID_PROPERTY_NAME,
+      '#status': 'status',
+    },
+    ExpressionAttributeValues: {
+      ':userId': marshall(userId),
+      ':startDatePrefix': marshall(`${startDate}::`),
+      ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
+      ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
+    },
+  };
+  const result = await runQuery(params);
+  return result?.items || [];
 }
 
 async function getBookingByBookingId(
@@ -703,6 +738,30 @@ async function validateBookingRequest(product, productDates, props) {
   }
 }
 
+async function findBookingConflict (existingBookings, newBooking) {
+  logger.debug(`Finding any booking conflicts for new booking against any existing bookings for user: ${newBooking.userId}`);
+  const newBookingProduct = await getProductById(newBooking.collectionId, newBooking.activityType, newBooking.activityId, newBooking.productId);
+  const newBookingAllDayPass = newBookingProduct.displayName?.includes(DUP_PASS_TYPES.ALLDAY)
+
+  const conflictingBooking = existingBookings.find(existingBooking => {
+    if (existingBooking.displayName?.includes(DUP_PASS_TYPES.ALLDAY) && newBookingAllDayPass) return true;
+
+    if (existingBooking.displayName?.includes(DUP_PASS_TYPES.AM) && (newBookingProduct.displayName?.includes(DUP_PASS_TYPES.AM) || newBookingAllDayPass)) return true;
+
+    if (existingBooking.displayName?.includes(DUP_PASS_TYPES.PM) && (newBookingProduct.displayName?.includes(DUP_PASS_TYPES.PM) || newBookingAllDayPass)) return true;
+
+    // Did not find conflict in this booking, will continue to check the next booking.
+    return false;
+  });
+
+  if (!conflictingBooking) return null;
+
+  return {
+    bookingId: conflictingBooking.bookingId,
+    status: conflictingBooking.status
+  }
+}
+
 async function createBooking(props) {
   try {
     logger.debug('Creating booking', {
@@ -740,6 +799,17 @@ async function createBooking(props) {
         `You already have a ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
         { code: 409, data: { existingBookingId: duplicate.bookingId, status: duplicate.status } }
       );
+    }
+
+    // === Block conflicting booking for the same user/startDate/productDisplayName
+    const existingBookings = await findUserActiveBookingsOnDate(props.userId, props.startDate);
+    const bookingConflict = await findBookingConflict(existingBookings, props);
+    logger.debug('Found existing booking conflict: ', bookingConflict);
+    if (bookingConflict) {
+      throw new Exception(
+        `You already have a conflicting booking on this date. Cancel it before booking again.`,
+        { code: 409, data: { conflictingBookingId: bookingConflict.bookingId, status: bookingConflict.status } }
+      )
     }
 
     // === Get the Product ===
@@ -2827,6 +2897,8 @@ module.exports = {
   fetchAllActivities,
   fetchBookingsWithPagination,
   findUserActiveBookingForProductOnDate,
+  findUserActiveBookingsOnDate,
+  findBookingConflict,
   flagCancelledBooking,
   formatBookingResponsePublic,
   generateEmailParams,
