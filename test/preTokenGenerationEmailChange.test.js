@@ -8,7 +8,6 @@ jest.mock('/opt/dynamodb', () => ({
   updateItem: jest.fn(),
   getOne: jest.fn(),
 }));
-jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
 jest.mock('/opt/emailBlocklist', () => {
   const real = jest.requireActual('/opt/emailBlocklist');
   return {
@@ -56,7 +55,7 @@ describe('PreTokenGeneration email change detection', () => {
     jest.clearAllMocks();
     delete process.env.EMAIL_CHANGE_REFUSE;
     delete process.env.EMAIL_CHANGE_REFUSE_BCSC;
-    process.env.BLOCKLIST_SSM_PARAM = '/test/blocklist';
+    process.env.BLOCKLIST_TABLE_NAME = 'blocklist';
     loadBlocklist.mockResolvedValue(blocklist);
   });
 
