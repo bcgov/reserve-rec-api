@@ -1,8 +1,10 @@
+jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
+
 const {
   canonicalizeEmail,
   emailDomain,
   domainMatches,
-} = require('../lib/handlers/cognitoTriggers/preSignUp/canonicalizeEmail');
+} = require('/opt/emailBlocklist');
 
 describe('canonicalizeEmail', () => {
   it('lowercases the whole address', () => {
