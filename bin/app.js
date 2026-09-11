@@ -10,7 +10,6 @@ const { createPublicApiStack } = require('../lib/public-api-stack/public-api-sta
 const { createTransactionalDataStack } = require('../lib/transactional-data-stack/transactional-data-stack.js');
 const { createBookingWorkflowStack } = require('../lib/booking-workflow-stack/booking-workflow-stack.js');
 const { createEmailDispatchStack } = require('../lib/email-dispatch-stack/email-dispatch-stack.js');
-const { createPublicIdentityIntegrationStack } = require('../lib/public-identity-integration-stack/public-identity-integration-stack.js');
 const { createWaitingRoomStack } = require('../lib/waiting-room-stack/waiting-room-stack.js');
 
 /**
@@ -323,7 +322,6 @@ class CDKProject {
     const waitingRoomStack = await this.addStack('waitingRoomStack', createWaitingRoomStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
-    const publicIdentityIntegrationStack = await this.addStack('publicIdentityIntegrationStack', createPublicIdentityIntegrationStack);
 
     const dep = (from, to) => { if (from && to) from.addDependency(to); };
 
@@ -345,8 +343,6 @@ class CDKProject {
     dep(transactionalDataStack, openSearchStack);
     dep(adminIdentityStack, coreStack);
     dep(publicIdentityStack, coreStack);
-    dep(publicIdentityIntegrationStack, publicIdentityStack);
-    dep(publicIdentityIntegrationStack, transactionalDataStack);
     dep(waitingRoomStack, coreStack);
     dep(waitingRoomStack, publicIdentityStack);
     // roleAggregatorStack.addDependency(adminIdentityStack);
