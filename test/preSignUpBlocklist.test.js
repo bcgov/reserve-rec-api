@@ -3,7 +3,7 @@ jest.mock('/opt/base', () => ({
 }));
 jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
 
-const { canonicalizeEmail } = require('../lib/handlers/cognitoTriggers/preSignUp/canonicalizeEmail');
+const { canonicalizeEmail } = require('/opt/emailBlocklist');
 const { refusalReason } = require('../lib/handlers/cognitoTriggers/preSignUp');
 
 // Synthetic, deliberately: the real list is defence data and does not belong in

@@ -23,6 +23,7 @@ module.exports = {
     '^/opt/data-utils$': '<rootDir>/src/layers/dataUtils/data-utils.js',
     '^/opt/data-constants$': '<rootDir>/src/layers/dataUtils/data-constants.js',
     '^/opt/dynamodb$': '<rootDir>/src/layers/awsUtils/dynamodb.js',
+    '^/opt/emailBlocklist$': '<rootDir>/src/layers/base/emailBlocklist.js',
     '^/opt/locations/configs$': '<rootDir>/src/layers/dataUtils/locations/configs.js',
     '^/opt/locations/methods$': '<rootDir>/src/layers/dataUtils/locations/methods.js',
     '^/opt/opensearch$': '<rootDir>/src/layers/awsUtils/opensearch.js',
