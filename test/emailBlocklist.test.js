@@ -1,4 +1,3 @@
-jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
 
 const {
@@ -121,55 +120,48 @@ describe('loadBlocklist', () => {
   ];
 
   // The module caches per container, so each test gets its own instance. The
-  // sources are required lazily, so the mocks are re-read after the reset too.
+  // source is required lazily, so the mock is re-read after the reset too.
   function fresh() {
     jest.resetModules();
     const { loadBlocklist: load } = require('/opt/emailBlocklist');
     const { runQuery } = require('/opt/dynamodb');
-    const { getParameter } = require('/opt/ssm');
-    return { load, runQuery, getParameter };
+    return { load, runQuery };
   }
 
   it('reads the table', async () => {
-    const { load, runQuery, getParameter } = fresh();
+    const { load, runQuery } = fresh();
     runQuery.mockResolvedValue({ items });
-    const list = await load({ tableName: 't' });
+    const list = await load('t');
     expect(runQuery).toHaveBeenCalledWith(expect.objectContaining({ TableName: 't' }), null, null, false);
-    expect(getParameter).not.toHaveBeenCalled();
     expect(list.addresses.has('banned@gmail.com')).toBe(true);
     expect(list.domains).toEqual(['blocked.example']);
     expect(list.patterns[0].test('sample12345@gmail.com')).toBe(true);
   });
 
-  it('unions the table with the SSM parameter while both are configured', async () => {
-    const { load, runQuery, getParameter } = fresh();
-    runQuery.mockResolvedValue({ items });
-    getParameter.mockResolvedValue(JSON.stringify({ addresses: ['B.a.n.n.e.d@gmail.com', 'other@example.com'], domains: ['blocked.example'] }));
-    const list = await load({ tableName: 't', paramName: '/p' });
-    expect(list.addresses).toEqual(new Set(['banned@gmail.com', 'other@example.com']));
+  it('canonicalises entries again rather than trusting them', async () => {
+    const { load, runQuery } = fresh();
+    runQuery.mockResolvedValue({ items: [
+      { kind: 'address', value: 'B.a.n.n.e.d@gmail.com' },
+      { kind: 'domain', value: 'Blocked.Example ' },
+      { kind: 'domain', value: 'blocked.example' },
+    ] });
+    const list = await load('t');
+    expect(list.addresses).toEqual(new Set(['banned@gmail.com']));
     expect(list.domains).toEqual(['blocked.example']);   // deduplicated
-  });
-
-  it('still accepts the SSM parameter name alone', async () => {
-    const { load, runQuery, getParameter } = fresh();
-    getParameter.mockResolvedValue(JSON.stringify({ addresses: ['x@example.com'] }));
-    const list = await load('/p');
-    expect(runQuery).not.toHaveBeenCalled();
-    expect(list.addresses.has('x@example.com')).toBe(true);
   });
 
   it('caches across calls', async () => {
     const { load, runQuery } = fresh();
     runQuery.mockResolvedValue({ items });
-    await load({ tableName: 't' });
-    await load({ tableName: 't' });
+    await load('t');
+    await load('t');
     expect(runQuery).toHaveBeenCalledTimes(1);
   });
 
   it('propagates a table failure so the caller can fail open', async () => {
     const { load, runQuery } = fresh();
     runQuery.mockRejectedValue(new Error('down'));
-    await expect(load({ tableName: 't' })).rejects.toThrow('down');
+    await expect(load('t')).rejects.toThrow('down');
   });
 });
 

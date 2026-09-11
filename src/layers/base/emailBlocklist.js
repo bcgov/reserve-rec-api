@@ -1,5 +1,5 @@
 /**
- * Email blocklist: canonical-form comparison plus the SSM-backed list.
+ * Email blocklist: canonical-form comparison plus the DynamoDB-backed list.
  *
  * Lives in the base layer because both Cognito triggers need it and each
  * handler directory is packaged on its own, so one cannot require the other.
@@ -19,8 +19,7 @@
  *
  * The list lives in DynamoDB, one item per entry, so each ban carries its own
  * reason and date and adding one is a single put rather than a read-modify-
- * write of a JSON blob. SSM was the first home and hit its 8KB ceiling; it is
- * still read while an environment is being seeded, then dropped.
+ * write of a JSON blob. SSM was the first home and hit its 8KB ceiling.
  */
 
 // Subaddressing: the part after '+' is routing, not identity. Applied to every
@@ -143,7 +142,7 @@ function addEntries(list, { addresses = [], domains = [], patterns = [] }) {
   return list;
 }
 
-/** DynamoDB items → the JSON shape the SSM parameter used. */
+/** DynamoDB items → the list shape the CLI imports and refusalReason reads. */
 function itemsToLists(items) {
   const lists = { addresses: [], domains: [], patterns: [] };
   for (const item of items) {
@@ -162,30 +161,20 @@ let cached = null;
 let cachedAt = 0;
 
 /**
- * @param {{tableName?: string, paramName?: string}} sources - the table, and
- *   the SSM parameter while one still exists; either may be unset
+ * @param {string} tableName
  * @returns {Promise<{addresses: Set<string>, domains: string[], patterns: RegExp[]}>}
  */
-async function loadBlocklist(sources) {
+async function loadBlocklist(tableName) {
   if (cached && Date.now() - cachedAt < CACHE_TTL_MS) return cached;
 
-  // Legacy call shape: loadBlocklist('/ssm/param/name').
-  const { tableName, paramName } = typeof sources === 'string' ? { paramName: sources } : (sources || {});
-  const list = emptyBlocklist();
-
-  if (tableName) {
-    const { runQuery } = require('/opt/dynamodb');
-    const { items } = await runQuery({
-      TableName: tableName,
-      KeyConditionExpression: 'pk = :pk',
-      ExpressionAttributeValues: { ':pk': { S: BLOCKLIST_PK } },
-    }, null, null, false);
-    addEntries(list, itemsToLists(items));
-  }
-  if (paramName) {
-    const { getParameter } = require('/opt/ssm');
-    addEntries(list, JSON.parse(await getParameter(paramName, false)));
-  }
+  // Required lazily so the CLI can use this module outside a Lambda.
+  const { runQuery } = require('/opt/dynamodb');
+  const { items } = await runQuery({
+    TableName: tableName,
+    KeyConditionExpression: 'pk = :pk',
+    ExpressionAttributeValues: { ':pk': { S: BLOCKLIST_PK } },
+  }, null, null, false);
+  const list = addEntries(emptyBlocklist(), itemsToLists(items));
 
   cached = list;
   cachedAt = Date.now();

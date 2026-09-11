@@ -11,7 +11,7 @@
  *   node src/scripts/tools/cognito/emailBlocklist.js --env dev remove address someone@example.com
  *   node src/scripts/tools/cognito/emailBlocklist.js --env dev import list.json --reason "seeded from SSM"
  *
- * `import` takes the JSON shape the SSM parameter used:
+ * `import` takes a JSON file of the shape:
  *   { "addresses": [...], "domains": [...], "patterns": [...] }
  *
  * The list is defence data. Keep it out of the repository and out of tickets.

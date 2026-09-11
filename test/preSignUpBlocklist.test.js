@@ -1,7 +1,7 @@
 jest.mock('/opt/base', () => ({
   logger: { debug: jest.fn(), info: jest.fn(), error: jest.fn() },
 }));
-jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
+jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
 
 const { canonicalizeEmail } = require('/opt/emailBlocklist');
 const { refusalReason } = require('../lib/handlers/cognitoTriggers/preSignUp');
@@ -68,7 +68,7 @@ describe('refusalReason', () => {
 
 describe('handler', () => {
   const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
-  const { getParameter } = require('/opt/ssm');
+  const { runQuery } = require('/opt/dynamodb');
 
   const event = (email) => ({
     userPoolId: 'pool',
@@ -78,18 +78,18 @@ describe('handler', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    getParameter.mockReset();
+    runQuery.mockReset();
   });
 
   it('fails open when the list cannot be read', async () => {
-    // Registration must not go down estate-wide because SSM did. The WAF and
-    // the verified-before-hold gate still stand behind this.
-    getParameter.mockRejectedValue(new Error('SSM unavailable'));
+    // Registration must not go down estate-wide because DynamoDB did. The WAF
+    // and the verified-before-hold gate still stand behind this.
+    runQuery.mockRejectedValue(new Error('DynamoDB unavailable'));
     await expect(handler(event('anyone@example.com'))).resolves.toBeDefined();
   });
 
   it('passes an event with no email straight through', async () => {
     await expect(handler(event(undefined))).resolves.toBeDefined();
-    expect(getParameter).not.toHaveBeenCalled();
+    expect(runQuery).not.toHaveBeenCalled();
   });
 });
