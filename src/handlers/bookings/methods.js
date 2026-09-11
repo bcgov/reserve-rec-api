@@ -1385,6 +1385,12 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
       BOOKING_UPDATE_CONFIG
     );
 
+    // A stale completion read must not be able to confirm a booking after another workflow has consumed isPending.
+    bookingUpdateRequest[0].data.ConditionExpression =
+      "attribute_exists(isPending) AND #status = :inProgress";
+    bookingUpdateRequest[0].data.ExpressionAttributeValues[":inProgress"] =
+      marshall(BOOKING_STATUS_ENUMS[0]);
+
     // Merge updated fields with original booking for email params generation
     const completeBookingForEmail = {
       ...booking,
