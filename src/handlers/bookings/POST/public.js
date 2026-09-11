@@ -151,7 +151,7 @@ exports.handler = async (event, context) => {
       endDate,
       invQuantity: quantity,
       userId: claims.sub,
-    })
+    });
 
     const res = await batchTransactData(bookingRequestItems);
 
@@ -175,27 +175,45 @@ exports.handler = async (event, context) => {
   } catch (error) {
     logger.error("event=hold_failed", { message: error?.message });
     logger.error("Booking creation error:", error);
-    if (error?.name === "TransactionCanceledException") {
-      // 1. Inspect the error object
-      error.CancellationReasons.forEach((reason, index) => {
-        // 2. Identify failed items
-        if (reason.Code !== "None") {
-          console.log(`Item[${index}] Code: ${reason.Code}, Message: ${reason.Message}`);
+
+    let errorMessage = '';
+    const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
+
+    if (error?.name === "TransactionCanceledException" && Array.isArray(cancellationReasons)) {
+      cancellationReasons.forEach((reason, index) => {
+        // Check if this specific transaction item failed its condition
+        if (reason.Code === "ConditionalCheckFailed") {
+          const itemObj = bookingRequestItems?.[index]?.data || bookingRequestItems?.[index];
+          const item = itemObj?.Put?.Item || itemObj?.Update?.Key || itemObj?.Delete?.Key || itemObj?.Key || itemObj?.Item;
+          const pkRaw = item?.pk?.S || item?.pk;
+          const pk = typeof pkRaw === "string" ? pkRaw : "";
+
+          if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
+            errorMessage = "Booking item no longer available.";
+          } else if (pk.startsWith("bookingDate::")) {
+            errorMessage = "Error initializing the booking dates.";
+          } else if (pk.startsWith("booking::")) {
+            errorMessage = "Error creating the booking.";
+          } else {
+            errorMessage = "Transaction condition check failed.";
+          }
+
+          console.error(`Condition check failed on item index ${index} (${pk}): ${reason.Message || reason.Code}`);
         }
       });
     }
 
     const safeError = {
       name: error?.name,
-      message: error?.message,
+      message: errorMessage || error?.message,
       code: error?.code,
-      cancellationReasons: error?.CancellationReasons || null,
+      cancellationReasons: cancellationReasons || null,
     };
 
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message,
+      errorMessage || error?.message,
       safeError,
       context
     );
