@@ -151,7 +151,7 @@ exports.handler = async (event, context) => {
       endDate,
       invQuantity: quantity,
       userId: claims.sub,
-    })
+    });
 
     const res = await batchTransactData(bookingRequestItems);
 
@@ -177,27 +177,28 @@ exports.handler = async (event, context) => {
     logger.error("Booking creation error:", error);
 
     let errorMessage = '';
-    if (error?.name === "TransactionCanceledException" && Array.isArray(error.CancellationReasons)) {
-      error.CancellationReasons.forEach((reason, index) => {
+    const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
+
+    if (error?.name === "TransactionCanceledException" && Array.isArray(cancellationReasons)) {
+      cancellationReasons.forEach((reason, index) => {
         // Check if this specific transaction item failed its condition
         if (reason.Code === "ConditionalCheckFailed") {
-          console.log(`Item at index ${index} failed condition check.`);
+          const itemObj = bookingRequestItems?.[index]?.data || bookingRequestItems?.[index];
+          const item = itemObj?.Put?.Item || itemObj?.Update?.Key || itemObj?.Delete?.Key || itemObj?.Key || itemObj?.Item;
+          const pkRaw = item?.pk?.S || item?.pk;
+          const pk = typeof pkRaw === "string" ? pkRaw : "";
 
-          // Map index to friendlier errors, based on the TransactWriteItems order
-          switch (index) {
-            case 0:
-              errorMessage = "Error creating the booking.";
-              console.error(`${errorMessage}: error.message`);
-              break;
-            case 1:
-              errorMessage = "Error initializing the booking dates.";
-              console.error(`${errorMessage}: error.message`);
-              break;
-            case 2:
-              errorMessage = "Booking item no longer available.";
-              console.error(`${errorMessage}: error.message`);
-              break;
+          if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
+            errorMessage = "Booking item no longer available.";
+          } else if (pk.startsWith("bookingDate::")) {
+            errorMessage = "Error initializing the booking dates.";
+          } else if (pk.startsWith("booking::")) {
+            errorMessage = "Error creating the booking.";
+          } else {
+            errorMessage = "Transaction condition check failed.";
           }
+
+          console.error(`Condition check failed on item index ${index} (${pk}): ${reason.Message || reason.Code}`);
         }
       });
     }
@@ -206,13 +207,13 @@ exports.handler = async (event, context) => {
       name: error?.name,
       message: errorMessage || error?.message,
       code: error?.code,
-      cancellationReasons: error?.CancellationReasons || null,
+      cancellationReasons: cancellationReasons || null,
     };
 
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-       errorMessage || error?.message,
+      errorMessage || error?.message,
       safeError,
       context
     );
