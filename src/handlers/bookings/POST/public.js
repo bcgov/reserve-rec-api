@@ -166,19 +166,36 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     logger.error("Booking creation error:", error);
-    if (error?.name === "TransactionCanceledException") {
-      // 1. Inspect the error object
+
+    let errorMessage = '';
+    if (error?.name === "TransactionCanceledException" && Array.isArray(error.CancellationReasons)) {
       error.CancellationReasons.forEach((reason, index) => {
-        // 2. Identify failed items
-        if (reason.Code !== "None") {
-          console.log(`Item[${index}] Code: ${reason.Code}, Message: ${reason.Message}`);
+        // Check if this specific transaction item failed its condition
+        if (reason.Code === "ConditionalCheckFailed") {
+          console.log(`Item at index ${index} failed condition check.`);
+
+          // Map index to friendlier errors, based on the TransactWriteItems order
+          switch (index) {
+            case 0:
+              errorMessage = "Error creating the booking.";
+              console.error(`${errorMessage}: error.message`);
+              break;
+            case 1:
+              errorMessage = "Error initializing the booking dates.";
+              console.error(`${errorMessage}: error.message`);
+              break;
+            case 2:
+              errorMessage = "Booking item no longer available.";
+              console.error(`${errorMessage}: error.message`);
+              break;
+          }
         }
       });
     }
 
     const safeError = {
       name: error?.name,
-      message: error?.message,
+      message: errorMessage || error?.message,
       code: error?.code,
       cancellationReasons: error?.CancellationReasons || null,
     };
@@ -186,7 +203,7 @@ exports.handler = async (event, context) => {
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message,
+       errorMessage || error?.message,
       safeError,
       context
     );
