@@ -16,8 +16,12 @@
  *
  * Canonicalise on the way in AND when a ban is written, or the list fills with
  * entries that can never match.
+ *
+ * The list lives in DynamoDB, one item per entry, so each ban carries its own
+ * reason and date and adding one is a single put rather than a read-modify-
+ * write of a JSON blob. SSM was the first home and hit its 8KB ceiling; it is
+ * still read while an environment is being seeded, then dropped.
  */
-const { getParameter } = require('/opt/ssm');
 
 // Subaddressing: the part after '+' is routing, not identity. Applied to every
 // provider, which is what DUP's expressions did in production. The alternative,
@@ -81,25 +85,110 @@ function domainMatches(domain, blocked) {
   return domain.endsWith(`.${blocked}`);
 }
 
-// The list is small and changes rarely, so one fetch serves the container's
-// life. A signup or login is on a person's critical path; an SSM round trip
-// per attempt is not worth paying for a list that moves weekly.
-let cached = null;
+// One partition holds the whole list; the sort key is `<kind>#<value>`.
+const BLOCKLIST_PK = 'signup';
+const KINDS = ['address', 'domain', 'pattern'];
 
 /**
- * @param {string} paramName - SSM parameter holding the JSON list
+ * Build the DynamoDB item for one entry. Addresses are canonicalised here so
+ * the key is the form the lookup produces; an entry stored raw never matches.
+ * @param {'address'|'domain'|'pattern'} kind
+ * @param {string} value
+ * @param {{reason?: string, addedBy?: string, addedAt?: string}} [meta]
+ */
+function toItem(kind, value, meta = {}) {
+  if (!KINDS.includes(kind)) throw new Error(`unknown blocklist kind: ${kind}`);
+  let key;
+  if (kind === 'address') {
+    key = canonicalizeEmail(value);
+    if (!key) throw new Error(`not an email address: ${value}`);
+  } else if (kind === 'domain') {
+    key = String(value).trim().toLowerCase();
+    if (!key || !key.includes('.')) throw new Error(`not a domain: ${value}`);
+  } else {
+    key = String(value);
+    new RegExp(key, 'i');   // throws on an invalid expression before it is stored
+  }
+  return {
+    pk: BLOCKLIST_PK,
+    sk: `${kind}#${key}`,
+    kind,
+    value: key,
+    reason: meta.reason || '',
+    addedBy: meta.addedBy || '',
+    addedAt: meta.addedAt || new Date().toISOString(),
+  };
+}
+
+/** Empty list, the shape every consumer expects. */
+function emptyBlocklist() {
+  return { addresses: new Set(), domains: [], patterns: [] };
+}
+
+/**
+ * Fold a source into a blocklist. Entries are canonicalised again rather than
+ * trusted: one written in raw form would sit in the list forever without ever
+ * matching anything.
+ */
+function addEntries(list, { addresses = [], domains = [], patterns = [] }) {
+  for (const a of addresses) {
+    const c = canonicalizeEmail(a);
+    if (c) list.addresses.add(c);
+  }
+  for (const d of domains) {
+    const c = String(d).trim().toLowerCase();
+    if (c && !list.domains.includes(c)) list.domains.push(c);
+  }
+  for (const p of patterns) list.patterns.push(new RegExp(p, 'i'));
+  return list;
+}
+
+/** DynamoDB items → the JSON shape the SSM parameter used. */
+function itemsToLists(items) {
+  const lists = { addresses: [], domains: [], patterns: [] };
+  for (const item of items) {
+    if (item.kind === 'address') lists.addresses.push(item.value);
+    else if (item.kind === 'domain') lists.domains.push(item.value);
+    else if (item.kind === 'pattern') lists.patterns.push(item.value);
+  }
+  return lists;
+}
+
+// A signup or login is on a person's critical path; a fetch per attempt is not
+// worth paying for a list that moves daily at most. Five minutes bounds how
+// long a new ban takes to bite on a warm container.
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let cached = null;
+let cachedAt = 0;
+
+/**
+ * @param {{tableName?: string, paramName?: string}} sources - the table, and
+ *   the SSM parameter while one still exists; either may be unset
  * @returns {Promise<{addresses: Set<string>, domains: string[], patterns: RegExp[]}>}
  */
-async function loadBlocklist(paramName) {
-  if (cached) return cached;
-  const raw = JSON.parse(await getParameter(paramName, false));
-  cached = {
-    // Canonicalised again here rather than trusted: an entry written in raw
-    // form would sit in the list forever without ever matching anything.
-    addresses: new Set((raw.addresses || []).map(canonicalizeEmail).filter(Boolean)),
-    domains: (raw.domains || []).map((d) => String(d).trim().toLowerCase()).filter(Boolean),
-    patterns: (raw.patterns || []).map((p) => new RegExp(p, 'i')),
-  };
+async function loadBlocklist(sources) {
+  if (cached && Date.now() - cachedAt < CACHE_TTL_MS) return cached;
+
+  // Legacy call shape: loadBlocklist('/ssm/param/name').
+  const { tableName, paramName } = typeof sources === 'string' ? { paramName: sources } : (sources || {});
+  const list = emptyBlocklist();
+
+  if (tableName) {
+    const { runQuery } = require('/opt/dynamodb');
+    const { items } = await runQuery({
+      TableName: tableName,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: { ':pk': { S: BLOCKLIST_PK } },
+    }, null, null, false);
+    addEntries(list, itemsToLists(items));
+  }
+  if (paramName) {
+    const { getParameter } = require('/opt/ssm');
+    addEntries(list, JSON.parse(await getParameter(paramName, false)));
+  }
+
+  cached = list;
+  cachedAt = Date.now();
   return cached;
 }
 
@@ -123,4 +212,14 @@ function refusalReason(email, blocklist) {
   return null;
 }
 
-module.exports = { canonicalizeEmail, emailDomain, domainMatches, loadBlocklist, refusalReason };
+module.exports = {
+  BLOCKLIST_PK,
+  KINDS,
+  canonicalizeEmail,
+  domainMatches,
+  emailDomain,
+  itemsToLists,
+  loadBlocklist,
+  refusalReason,
+  toItem,
+};
