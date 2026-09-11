@@ -11,7 +11,7 @@
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test'; // Bypass environment validation
 process.env.QR_SECRET_KEY = 'test-secret-key-for-unit-tests-only-do-not-use-in-production';
-process.env.ADMIN_FRONTEND_DOMAIN = 'test.admin.reserve-rec.bcparks.ca';
+process.env.ADMIN_ALTERED_FRONTEND_DOMAIN = 'test.admin.reserve-rec.bcparks.ca';
 
 const { generateQRURL, validateHash, generateQRCodeDataURL, generateQRCodeBuffer, validateEnvironment } = require('../lib/handlers/emailDispatch/qrCodeHelper');
 
@@ -254,19 +254,19 @@ describe('QR Code Helper', () => {
     it('should pass when all environment variables are set', () => {
       // Save originals
       const originalQRSecret = process.env.QR_SECRET_KEY;
-      const originalDomain = process.env.ADMIN_FRONTEND_DOMAIN;
+      const originalDomain = process.env.ADMIN_ALTERED_FRONTEND_DOMAIN;
       const originalNodeEnv = process.env.NODE_ENV;
 
       // Set valid environment
       process.env.QR_SECRET_KEY = 'test-secret-key';
-      process.env.ADMIN_FRONTEND_DOMAIN = 'test.domain.com';
+      process.env.ADMIN_ALTERED_FRONTEND_DOMAIN = 'test.domain.com';
       process.env.NODE_ENV = 'production';
 
       expect(() => validateEnvironment()).not.toThrow();
 
       // Restore
       process.env.QR_SECRET_KEY = originalQRSecret;
-      process.env.ADMIN_FRONTEND_DOMAIN = originalDomain;
+      process.env.ADMIN_ALTERED_FRONTEND_DOMAIN = originalDomain;
       process.env.NODE_ENV = originalNodeEnv;
     });
 

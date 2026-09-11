@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_PUT_CONFIG } = require("../../configs");
-const { parseRequest } = require("../../methods");
+const { parseRequest, assertFacilityNamesAvailable } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -26,6 +26,11 @@ exports.handler = async (event, context) => {
 
     body['collectionId'] = collectionId;
     body['schema'] = 'facility';
+
+    await assertFacilityNamesAvailable(
+      collectionId,
+      Array.isArray(body) ? body : [body],
+    );
 
     // Attempt to batch create a facility.
     // If it fails, reset the counter on reserve-rec-counter table and try again.
