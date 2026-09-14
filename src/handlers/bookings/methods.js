@@ -134,6 +134,10 @@ async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
  */
 function requireVerifiedEmail(identity) {
   if (identity && identity.emailVerified === false) {
+    // Logged here rather than at the call sites: both the hold and the complete
+    // path funnel into the same generic catch, so without this the refusal is
+    // indistinguishable from any other booking failure.
+    logger.warn("event=booking_refused_unverified_email", { sub: identity?.sub });
     throw new Exception(
       'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
       { code: 403 }
@@ -1450,6 +1454,12 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
       ],
       BOOKING_UPDATE_CONFIG
     );
+
+    // A stale completion read must not be able to confirm a booking after another workflow has consumed isPending.
+    bookingUpdateRequest[0].data.ConditionExpression =
+      "attribute_exists(isPending) AND #status = :inProgress";
+    bookingUpdateRequest[0].data.ExpressionAttributeValues[":inProgress"] =
+      marshall(BOOKING_STATUS_ENUMS[0]);
 
     // Merge updated fields with original booking for email params generation
     const completeBookingForEmail = {

@@ -441,6 +441,42 @@ aws ssm get-parameter --name "/reserveRecApi/dev-<name>/coreStack/config" --quer
 ```
 
 
+## 📈 Event Metrics and Alarms
+
+Handlers log operational events as `event=<name>` followed by JSON metadata. `lib/helpers/event-metrics.js` turns each name into a CloudWatch metric of the same name in the `ReserveRecApi/<env>` namespace via a metric filter on the emitting Lambda's log group, and draws them on the `ReserveRecApi-<env>-events` dashboard. The full list is the comment block at the top of that file.
+
+| Group | Metrics | Emitted by |
+|-------|---------|------------|
+| Bookings | `hold_created`, `hold_failed`, `booking_completed`, `booking_complete_failed`, `booking_refused_unverified_email` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`) |
+| Signup | `signup_refused`, `account_created` | Public identity stack (`PreSignUp`, `PreTokenGeneration`) |
+| Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
+| Audit | `email_change_requested`, `email_change_request_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
+
+Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm.
+
+```json
+"eventAlarms": { "<event name>": <count> }
+```
+
+To add an event: log it as `event=<name>` with the base layer logger, add the name to `EVENT_GROUPS`, and pass it to `addEventMetrics` where the Lambda is defined. Functions that emit events set `logRetention`, which is what lets the metric filter attach to a log group that may not exist yet.
+
+## 🚫 Signup Email Blocklist
+
+The `PreSignUp` trigger refuses account creation, and `PreTokenGeneration` refuses an email change, for an address on the blocklist. Addresses are compared in canonical form (lowercase, subaddress tag removed, dots removed at Gmail), so `banned+x@gmail.com` and `b.a.n.n.e.d@gmail.com` match an entry for `banned@gmail.com`. See `src/layers/base/emailBlocklist.js`.
+
+The list lives in the identity stack's `EmailBlocklist` DynamoDB table, one item per entry, each with a reason and date. Edit it with the tool, never by hand:
+
+```bash
+node src/scripts/tools/cognito/emailBlocklist.js --env dev list
+node src/scripts/tools/cognito/emailBlocklist.js --env dev add address someone@example.com --reason "..."
+node src/scripts/tools/cognito/emailBlocklist.js --env dev add domain example.com --reason "..."
+node src/scripts/tools/cognito/emailBlocklist.js --env dev add pattern '^sample[0-9]{4,}@' --reason "..."
+node src/scripts/tools/cognito/emailBlocklist.js --env dev remove address someone@example.com
+node src/scripts/tools/cognito/emailBlocklist.js --env dev import list.json --reason "..."
+```
+
+Entry kinds: `address` (exact, canonical), `domain` (the domain and its subdomains), `pattern` (case-insensitive regular expression against the canonical address). A warm Lambda re-reads the list every five minutes. The list is defence data: it is never committed here, and a failure to read it fails open so an outage never takes signup down.
+
 ## 🏗️ CDKProject Architecture
 
 ### Core Classes

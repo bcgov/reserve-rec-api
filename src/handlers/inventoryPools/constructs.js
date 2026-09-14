@@ -19,6 +19,48 @@ const defaults = {
   }
 };
 
+class PublicInventoryPoolsConstruct extends LambdaConstruct {
+  constructor(scope, id, props) {
+    super(scope, id, {
+      ...props,
+      defaults: defaults
+    });
+
+    const handlerName = 'public.handler';
+
+    // Add /inventory-pools resource
+    this.inventoryPoolsResource = this.resolveApi().root.addResource('inventoryPools');
+
+    // Add /inventory-pools/{collectionId}/{activityType}/{activityId}/{productId} resource
+    this.inventoryPoolsByProductResource = this.inventoryPoolsResource.addResource('{collectionId}').addResource('{activityType}').addResource('{activityId}').addResource('{productId}');
+
+    this.addCorsPreflightForResources([
+      this.inventoryPoolsResource,
+      this.inventoryPoolsByProductResource,
+    ]);
+
+    // inventoryPools GET by Product ID and Date Lambda Function
+    this.inventoryPoolsGetByProductFunction = this.generateBasicLambdaFn(
+      scope,
+      'inventoryPoolsGetFunction',
+      'src/handlers/inventoryPools/GET',
+      handlerName,
+      {
+        basicRead: true,
+      }
+    );
+
+    // GET /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}?date=YYYY-MM-DD
+    // Public access, no authorization required
+    this.inventoryPoolsByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryPoolsGetByProductFunction), {
+      authorizationType: apigw.AuthorizationType.NONE,
+    });
+
+    // Grant permissions
+    this.grantBasicRefDataTableRead(this.inventoryPoolsGetByProductFunction);
+  }
+}
+
 class InventoryPoolsConstruct extends LambdaConstruct {
   constructor(scope, id, props) {
     super(scope, id, {
@@ -127,5 +169,6 @@ class InventoryPoolsConstruct extends LambdaConstruct {
 }
 
 module.exports = {
+  PublicInventoryPoolsConstruct,
   InventoryPoolsConstruct,
 }

@@ -1,15 +1,31 @@
 const { logger, Exception, buildDateRange } = require('/opt/base');
 const { fetchProductDates } = require('../productDates/methods');
-const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall, formatProjectionsForQuery } = require("/opt/dynamodb");
 
 async function fetchInventoryPoolsOnDate(props) {
   try {
-    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null } = props;
+    const { collectionId, activityType, activityId, productId, date, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, limit = null, bypassDiscoveryRules = true, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} on date ${date}`);
 
     if (!collectionId || !activityType || !activityId || !productId) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId");
+    }
+
+    if (!bypassDiscoveryRules) {
+      const productDates = await fetchProductDates({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        startDate: date,
+        endDate: date,
+        bypassDiscoveryRules
+      });
+
+      if (productDates.length === 0) {
+        return [];
+      }
     }
 
     // InventoryPools pk: "inventoryPool::\<collectionId>::\<activityType>::\<activityId>::\<productId>::\<date>"
@@ -21,6 +37,14 @@ async function fetchInventoryPoolsOnDate(props) {
       }
     };
 
+    if (projectionFields) {
+      const projectionsMap = formatProjectionsForQuery(projectionFields);
+      if (!query.ExpressionAttributeNames) {
+        query.ExpressionAttributeNames = {};
+      }
+      query.ExpressionAttributeNames = { ...query.ExpressionAttributeNames, ...projectionsMap };
+      query.ProjectionExpression = Object.keys(projectionsMap).join(', ');
+    }
 
     // InventoryPools sk:
     if (facilityType) {
@@ -56,7 +80,7 @@ async function fetchInventoryPoolsOnDate(props) {
 
 async function fetchInventoryPoolsForDateRange(props) {
   try {
-    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null } = props;
+    const { collectionId, activityType, activityId, productId, startDate, endDate, facilityType = null, facilityId = null, assetType = null, assetId = null, inventoryId = null, bypassDiscoveryRules = true, projectionFields = null } = props;
 
     logger.debug(`Fetching InventoryPools for collectionId: ${collectionId}, activityType: ${activityType}, activityId: ${activityId}, productId: ${productId} from ${startDate} to ${endDate}`);
 
@@ -64,12 +88,29 @@ async function fetchInventoryPoolsForDateRange(props) {
       throw new Exception("Missing required parameters: collectionId, activityType, activityId, productId, startDate, endDate");
     }
 
-    // Build list of dates to query
-    const dates = buildDateRange(startDate, endDate);
+    let productDates = [];
+    if (!bypassDiscoveryRules) {
+      productDates = await fetchProductDates({
+        collectionId,
+        activityType,
+        activityId,
+        productId,
+        startDate: startDate,
+        endDate: endDate,
+        bypassDiscoveryRules
+      });
+
+      if (productDates.length === 0) {
+        return [];
+      }
+    }
+
+    // Only fetch inventory pools for dates that have discoverable ProductDates
+    const discoverableDates = bypassDiscoveryRules ? buildDateRange(startDate, endDate) : productDates.map(pd => pd.date);
     let allInventoryPools = [];
 
-    // Fetch inventory pools for each date in the range
-    for (const date of dates) {
+    // Fetch inventory pools for each discoverable date
+    for (const date of discoverableDates) {
       try {
         const inventoryPools = await fetchInventoryPoolsOnDate({ 
           collectionId, 
@@ -81,7 +122,9 @@ async function fetchInventoryPoolsForDateRange(props) {
           facilityId,
           assetType,
           assetId,
-          inventoryId
+          inventoryId,
+          bypassDiscoveryRules,
+          projectionFields
         });
         allInventoryPools = allInventoryPools.concat(inventoryPools);
       } catch (error) {

@@ -1,6 +1,11 @@
 const { LambdaConstruct } = require("../../../lib/helpers/base-lambda");
 const apigw = require("aws-cdk-lib/aws-apigateway");
 const iam = require("aws-cdk-lib/aws-iam");
+const logs = require("aws-cdk-lib/aws-logs");
+
+// Matches the existing log group retention; needed by the event metric
+// filters (see lib/helpers/event-metrics.js).
+const EVENT_LOG_RETENTION = logs.RetentionDays.TWO_YEARS;
 
 const defaults = {
   resources: {
@@ -293,6 +298,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       {
         basicReadWrite: true,
         transDataBasicReadWrite: true,
+        logRetention: EVENT_LOG_RETENTION,
       }
     );
 
@@ -320,6 +326,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       {
         transDataBasicReadWrite: true,
         basicRead: true,
+        logRetention: EVENT_LOG_RETENTION,
       }
     );
 

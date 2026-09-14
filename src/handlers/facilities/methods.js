@@ -54,6 +54,74 @@ function addFilters(queryObj, filters) {
 }
 
 /**
+ * Resolves the `paginated` flag. Defaults to true; only an explicit boolean
+ * false or the string "false" turns pagination off. An empty query-string
+ * value ("") therefore keeps the default rather than dumping the whole
+ * partition.
+ *
+ * @param {boolean|string} [value]
+ * @returns {boolean}
+ */
+function isPaginated(value) {
+  return !(value === false || value === "false");
+}
+
+/**
+ * Throws a 409 if any of the given display names is already used by another
+ * facility in the same park, or is repeated within the request itself.
+ *
+ * @async
+ * @param {string} collectionId
+ * @param {{displayName: string, sk?: string}[]} entries - names being set; `sk`
+ *   identifies the facility being updated so it is not compared against itself.
+ */
+async function assertFacilityNamesAvailable(collectionId, entries) {
+  const targets = (entries || [])
+    .map((e) => ({ name: String(e?.displayName || "").trim(), sk: e?.sk }))
+    .filter((e) => e.name);
+  if (!targets.length) {
+    return;
+  }
+
+  // Reject duplicates within the request itself.
+  const seen = new Set();
+  for (const { name } of targets) {
+    const key = name.toLowerCase();
+    if (seen.has(key)) {
+      throw new Exception(
+        `A facility named "${name}" is listed more than once in this request.`,
+        { code: 409 },
+      );
+    }
+    seen.add(key);
+  }
+
+  // Reject names already used by a different facility in the same park.
+  // paginated: false so every existing facility is checked, not just page 1.
+  const existing = await getFacilitiesByCollectionId(
+    collectionId,
+    {},
+    { paginated: false },
+  );
+  const usedBy = new Map(); // lowercased displayName -> owning sk
+  for (const item of existing?.items || []) {
+    const key = String(item?.displayName || "").trim().toLowerCase();
+    if (key) {
+      usedBy.set(key, item?.sk);
+    }
+  }
+  for (const { name, sk } of targets) {
+    const owner = usedBy.get(name.toLowerCase());
+    if (owner && owner !== sk) {
+      throw new Exception(
+        `A facility named "${name}" already exists in this park.`,
+        { code: 409 },
+      );
+    }
+  }
+}
+
+/**
  * Retrieves all facilities matching a facility collection id.
  *
  * @async
@@ -80,7 +148,7 @@ async function getFacilitiesByCollectionId(
   try {
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
-    const paginated = params?.paginated || true;
+    const paginated = isPaginated(params?.paginated);
     let queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
@@ -133,7 +201,7 @@ async function getFacilitiesByFacilityType(
   try {
     const limit = params?.limit || null;
     const lastEvaluatedKey = params?.lastEvaluatedKey || null;
-    const paginated = params?.paginated || true;
+    const paginated = isPaginated(params?.paginated);
     let queryObj = {
       TableName: REFERENCE_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
@@ -451,4 +519,5 @@ module.exports = {
   fetchFacilities,
   parseRequest,
   processItem,
+  assertFacilityNamesAvailable,
 };
