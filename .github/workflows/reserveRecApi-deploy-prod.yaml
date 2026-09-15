@@ -73,6 +73,11 @@ jobs:
       ###   aws cloudformation continue-update-rollback --stack-name <stack> \
       ###     --resources-to-skip <logical-ids that cannot be restored>
       - name: CDK Deploy
+        env:
+          # Gate the payment backend to match the enablePayments feature flag.
+          # Unset -> empty string -> '' !== 'false' -> routes stay enabled (safe default).
+          ENABLE_WORLDLINE_NOTIFICATION: ${{ vars.ENABLE_WORLDLINE_NOTIFICATION }}
+          ENABLE_PUBLIC_TRANSACTIONS: ${{ vars.ENABLE_PUBLIC_TRANSACTIONS }}
         run: export LOG_LEVEL=debug && cdk deploy -c @context=prod --all --require-approval never --rollback
 
       ### Sync WS_URL into the DynamoDB public config record.
