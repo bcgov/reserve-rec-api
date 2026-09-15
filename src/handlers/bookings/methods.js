@@ -1289,6 +1289,15 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
       throw new Exception(`Booking not found (BookingID: ${bookingId})`, { code: 404 });
     }
 
+    // === Ownership check ===
+    // An authenticated caller (sub present) may only complete their own booking; without
+    // this, knowing a bookingId + sessionId is enough to finalize someone else's hold and
+    // stamp your own occupant identity on it. Server-side completions (e.g. the Worldline
+    // webhook) pass no sub and are trusted — they carry no user identity to check.
+    if (sub && booking.userId !== sub) {
+      throw new Exception(`Not authorized to complete this booking (BookingID: ${bookingId})`, { code: 403 });
+    }
+
     // === Validate the Booking can be completed ===
 
     validateBookingCompletion(booking, sessionId, props);

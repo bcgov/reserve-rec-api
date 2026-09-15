@@ -32,6 +32,8 @@ jest.mock("/opt/base", () => ({
   }),
   calculatePartySize: jest.fn(() => 4),
   writeAuditLog: jest.fn().mockResolvedValue(undefined),
+  // Authorized by default; a test overrides this to assert the 403 path.
+  checkAuthContext: jest.fn(() => ({ sub: "admin-123", permissions: { superadmin: "superadmin" } })),
 }));
 
 jest.mock("/opt/dynamodb", () => ({
