@@ -4,7 +4,18 @@ const {
   OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
   nonKeyableTerms,
 } = require("/opt/opensearch");
-const { sendResponse, logger } = require("/opt/base");
+const { sendResponse, logger, filterByRole } = require("/opt/base");
+
+// This is the PUBLIC (unauthenticated) search endpoint, so results are sanitized for the
+// default role: admin-only fields are stripped and hidden (isVisible:false) documents are
+// never returned. The ref-data stream indexes the whole DynamoDB item, so without this the
+// raw _source would leak adminNotes and unpublished records.
+const PUBLIC_ROLE_FILTERS = { default: ["adminNotes"] };
+const isPublicHit = (hit) => hit?._source?.isVisible !== false;
+const toPublicHit = (hit) => ({
+  ...hit,
+  _source: filterByRole(hit._source, "default", PUBLIC_ROLE_FILTERS),
+});
 
 // Lambda function entry point
 exports.handler = async function (event, context) {
@@ -138,12 +149,14 @@ exports.handler = async function (event, context) {
 
       const searchResponse = await query.search();
 
-      // Provide the display name for the suggestions
-      const suggestions = searchResponse.body.hits.hits.map((hit) => ({
-        text: hit._source.displayName,
-        score: hit._score,
-        _source: hit._source,
-      }));
+      // Provide the display name for the suggestions (public: drop hidden, strip admin fields)
+      const suggestions = searchResponse.body.hits.hits
+        .filter(isPublicHit)
+        .map((hit) => ({
+          text: hit._source.displayName,
+          score: hit._score,
+          _source: filterByRole(hit._source, "default", PUBLIC_ROLE_FILTERS),
+        }));
 
       return sendResponse(200, suggestions, "Success", null, context);
     }
@@ -182,8 +195,14 @@ exports.handler = async function (event, context) {
     logger.debug("Request:", query.request); // Log the request (available after sending)
     logger.debug("Response:", response); // Log the response
 
+    // Public sanitization: drop hidden documents and strip admin-only fields from each hit
+    const hits = response?.body?.hits;
+    if (Array.isArray(hits?.hits)) {
+      hits.hits = hits.hits.filter(isPublicHit).map(toPublicHit);
+    }
+
     // Send a success response
-    return sendResponse(200, response?.body?.hits, "Success", null, context);
+    return sendResponse(200, hits, "Success", null, context);
   } catch (err) {
     logger.error(JSON.stringify(err)); // Log the error
 
