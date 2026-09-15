@@ -7,17 +7,16 @@ const TOKEN_ENDPOINTS = {
   prod: 'https://id.gov.bc.ca/oauth2/token'
 };
 
+// Proxies the BC Services Card OAuth token exchange. The request headers/body carry the
+// BCSC client_secret and the one-time authorization code, and the response carries the
+// access and id tokens — none of that may be logged (it lands in CloudWatch). Only
+// non-sensitive operational fields (method, path, env, status) are logged here.
 exports.handler = async (event) => {
-  console.log('=== BCSC POST Handler Started ===');
-  console.log('HTTP Method:', event.httpMethod);
-  console.log('Event path:', event.path);
-  console.log('Event headers:', JSON.stringify(event.headers, null, 2));
-  console.log('Event body:', event.body);
+  logger.info('BCSC token exchange request', { method: event.httpMethod, path: event.path });
 
   try {
     // Handle OPTIONS preflight
     if (event.httpMethod === 'OPTIONS') {
-      console.log('Handling OPTIONS preflight request');
       return {
         statusCode: 200,
         headers: {
@@ -31,62 +30,47 @@ exports.handler = async (event) => {
 
     const match = event.path.match(/\/bcsc\/token\/(dev|test|prod)/);
     if (!match) {
-      console.error('Invalid path - no environment match found');
-      return { 
-        statusCode: 400, 
+      logger.warn('BCSC token exchange: invalid path format');
+      return {
+        statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'invalid_request',
-          error_description: 'Invalid path format' 
+          error_description: 'Invalid path format'
         })
       };
     }
-    
+
     const env = match[1];
-    console.log('=== Token Exchange for Environment:', env);
-    
     const tokenUrl = TOKEN_ENDPOINTS[env];
     const headers = { ...event.headers };
 
     // Clean up headers
     delete headers.host;
     delete headers.Host;
-    
+
     let body = event.body;
     if (event.isBase64Encoded) {
       body = Buffer.from(body, 'base64').toString('utf-8');
     }
-    
-    console.log('Making token exchange request to BCSC...'); 
-    console.log('Target URL:', tokenUrl);
-    console.log('Request body:', body);
-    
-    const response = await axios.post(tokenUrl, body, { 
+
+    const response = await axios.post(tokenUrl, body, {
       headers,
       timeout: 25000 // 25 second timeout
     });
-    
-    console.log('BCSC Response received:');
-    console.log('Status:', response.status);
-    console.log('Data:', response.data);
-    
+    logger.info('BCSC token exchange completed', { env, status: response.status });
+
     const jsonResponse = { ...response.data };
-    
-    // Log what we're removing
-    if (jsonResponse.id_token) {
-      console.log('Removing id_token from response');
-      console.log('ID token preview:', jsonResponse.id_token.substring(0, 50) + '...');
-      delete jsonResponse.id_token;
-    }
-    
-    console.log('Final response to client:', jsonResponse);
-    
+
+    // id_token is stripped before returning to the client
+    delete jsonResponse.id_token;
+
     return {
       statusCode: 200,
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type,Authorization',
@@ -94,21 +78,21 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify(jsonResponse)
     };
-    
+
   } catch (err) {
-    console.error('=== ERROR in BCSC POST Handler ===');
-    console.error('Error name:', err.name);
-    console.error('Error message:', err.message);
-    console.error('Error response:', err.response?.data);
-    console.error('Error status:', err.response?.status);
-    
+    logger.error('BCSC token exchange failed', {
+      name: err.name,
+      message: err.message,
+      status: err.response?.status
+    });
+
     return {
       statusCode: err.response?.status || 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'server_error',
         error_description: err.message,
         bcsc_error: err.response?.data
