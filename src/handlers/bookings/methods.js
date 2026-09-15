@@ -801,16 +801,17 @@ async function createBooking(props) {
       );
     }
 
+    // TODO: #762 readdress this after initial release
     // === Block conflicting booking for the same user/startDate/productDisplayName
-    const existingBookings = await findUserActiveBookingsOnDate(props.userId, props.startDate);
-    const bookingConflict = await findBookingConflict(existingBookings, props);
-    logger.debug('Found existing booking conflict: ', bookingConflict);
-    if (bookingConflict) {
-      throw new Exception(
-        `You already have a conflicting booking on this date. Cancel it before booking again.`,
-        { code: 409, data: { conflictingBookingId: bookingConflict.bookingId, status: bookingConflict.status } }
-      )
-    }
+    // const existingBookings = await findUserActiveBookingsOnDate(props.userId, props.startDate);
+    // const bookingConflict = await findBookingConflict(existingBookings, props);
+    // logger.debug('Found existing booking conflict: ', bookingConflict);
+    // if (bookingConflict) {
+    //   throw new Exception(
+    //     `You already have a conflicting booking on this date. Cancel it before booking again.`,
+    //     { code: 409, data: { conflictingBookingId: bookingConflict.bookingId, status: bookingConflict.status } }
+    //   )
+    // }
 
     // === Get the Product ===
 
