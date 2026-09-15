@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { TABLE_NAME, REFERENCE_DATA_TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetData, marshall, incrementCounter, batchGetData, excludeDeletedItems } = require('/opt/dynamodb');
+const { TABLE_NAME, REFERENCE_DATA_TABLE_NAME, batchTransactData, runQuery, getOne, parallelizedBatchGetData, marshall, incrementCounter, batchGetData, excludeDeletedItems, excludeHiddenItems } = require('/opt/dynamodb');
 const {
   Exception,
   buildDateRange,
@@ -82,7 +82,7 @@ function addFilters(queryObj, filters) {
  * @throws {Exception} With code 400 if database operation fails
  *
  */
-async function getProductsByCollectionId(collectionId, activityType, activityId, filters = {}, params = null) {
+async function getProductsByCollectionId(collectionId, activityType, activityId, filters = {}, params = null, onlyVisible = false) {
   logger.info("Get Products By CollectionId");
   try {
     if (!collectionId || !activityType || !activityId) {
@@ -105,6 +105,7 @@ async function getProductsByCollectionId(collectionId, activityType, activityId,
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Products: ${res?.items?.length} found.`);
@@ -141,7 +142,8 @@ async function getProductsByActivityType(
   activityType,
   activityId,
   filters = {},
-  params = null
+  params = null,
+  onlyVisible = false
 ) {
   logger.info("Get Products By Activity Type");
   try {
@@ -165,6 +167,7 @@ async function getProductsByActivityType(
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Products: ${res?.items?.length} found.`);
@@ -776,6 +779,11 @@ async function fetchProducts(collectionId, activityType, activityId, productId, 
       }
     });
 
+    // Effective role for this collection. Default (unauthenticated / public)
+    // callers must not see draft (isVisible:false) records; staff+ still do.
+    const role = effectiveCollectionRole(authContext, collectionId);
+    const onlyVisible = role === "default";
+
     // Get product by productId
     if (productId) {
       res = await getProductByProductId(
@@ -792,13 +800,12 @@ async function fetchProducts(collectionId, activityType, activityId, productId, 
         activityType,
         activityId,
         filters,
-        queryParams || null
+        queryParams || null,
+        onlyVisible
       );
     }
 
-    // Filter by the user's effective role for this collection. Resolves the
-    // top-level superadmin marker so superadmins see adminNotes etc.
-    const role = effectiveCollectionRole(authContext, collectionId);
+    // Filter each record's fields by the caller's role (strips adminNotes etc.).
     return filterByRole(res, role, ROLE_BASED_FILTERS);
 }
 
