@@ -199,6 +199,7 @@ exports.handler = async (event, context) => {
 
       // Party size only (not detailed age breakdown)
       partySize: partySize,
+      invQuantity: booking?.invQuantity,
       partyInformation: booking?.partyInformation,
       
       // Location info (needed to verify correct park/activity)
