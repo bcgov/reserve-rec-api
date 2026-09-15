@@ -6,6 +6,7 @@ const {
   marshall,
   incrementCounter,
   excludeDeletedItems,
+  excludeHiddenItems,
 } = require("/opt/dynamodb");
 const { Exception, logger, filterByRole, effectiveCollectionRole } = require("/opt/base");
 const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
@@ -143,6 +144,7 @@ async function getFacilitiesByCollectionId(
   collectionId,
   filters,
   params = null,
+  onlyVisible = false,
 ) {
   logger.info("Get Facilities by Facility Collection ID");
   try {
@@ -161,6 +163,7 @@ async function getFacilitiesByCollectionId(
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Facilities: ${res?.items?.length} found.`);
@@ -196,6 +199,7 @@ async function getFacilitiesByFacilityType(
   facilityType,
   filters,
   params = null,
+  onlyVisible = false,
 ) {
   logger.info("Get Facility by Facility Type");
   try {
@@ -215,6 +219,7 @@ async function getFacilitiesByFacilityType(
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Facilities: ${res?.items?.length} found.`);
@@ -493,22 +498,26 @@ async function fetchFacilities(
     );
   }
 
+  // Effective role for this collection. Default (unauthenticated / public)
+  // callers must not see draft (isVisible:false) records; staff+ still do.
+  const role = effectiveCollectionRole(authContext, collectionId);
+  const onlyVisible = role === "default";
+
   if (facilityType && !facilityId) {
     res = await getFacilitiesByFacilityType(
       collectionId,
       facilityType,
       filters,
       queryParams,
+      onlyVisible,
     );
   }
 
   if (!facilityType && !facilityId) {
-    res = await getFacilitiesByCollectionId(collectionId, filters, queryParams);
+    res = await getFacilitiesByCollectionId(collectionId, filters, queryParams, onlyVisible);
   }
 
-  // Filter by the user's effective role for this collection. Resolves the
-  // top-level superadmin marker so superadmins see adminNotes etc.
-  const role = effectiveCollectionRole(authContext, collectionId);
+  // Filter each record's fields by the caller's role (strips adminNotes etc.).
   return filterByRole(res, role, ROLE_BASED_FILTERS);
 }
 

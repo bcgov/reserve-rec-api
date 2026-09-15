@@ -792,6 +792,39 @@ async function getRelationshipsByGsipk(gsipk, schema1 = null, params = {}) {
   }
 }
 
+/**
+ * Strip sensitive fields (adminNotes) from expanded relationship entities that
+ * belong to a collection the caller is not scoped to. expandRelationships attaches
+ * the full target entity, so without this a staffer scoped to one park could read
+ * the admin notes of entities in parks they don't manage (a cross-collection leak).
+ * Superadmins are unfiltered. Intended for API responses only — never call it on
+ * the internal expand used to assemble data (e.g. from facilities/methods).
+ *
+ * @param {Array} items - expanded relationships, each with an `entity` field
+ * @param {Object} permissions - the caller's resourceMap from the authorizer context
+ * @returns {Array} items with out-of-scope entities' sensitive fields removed
+ */
+function filterExpandedEntitiesByRole(items, permissions = {}) {
+  if (permissions && permissions.superadmin === "superadmin") {
+    return items;
+  }
+  return (items || []).map((item) => {
+    const entity = item?.entity;
+    if (!entity) return item;
+    // Derive the entity's collection from its pk (product::<col>::...,
+    // activity::<col>, geozone::<col>::...) or an explicit field.
+    const collectionId =
+      entity.collectionId ||
+      (typeof entity.pk === "string" ? entity.pk.split("::")[1] : null);
+    const role = collectionId ? permissions?.[collectionId] ?? "default" : "default";
+    if (role === "default") {
+      const { adminNotes, ...safe } = entity;
+      return { ...item, entity: safe };
+    }
+    return item;
+  });
+}
+
 module.exports = {
   batchWriteRelationships,
   createEntityWithRelationships,
@@ -801,6 +834,7 @@ module.exports = {
   getRelationshipsByPk,
   getRelationshipsByGsipk,
   expandRelationships,
+  filterExpandedEntitiesByRole,
   extractAndCreateRelationships,
   queryRelationshipsBySchema,
 };
