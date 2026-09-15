@@ -2,6 +2,7 @@
  */
 const {
   calculatePartySize,
+  checkAuthContext,
   Exception,
   getRequestClaimsFromEvent,
   logger,
@@ -73,6 +74,11 @@ exports.handler = async (event, context) => {
     }
 
     const booking = await getBookingByBookingId(bookingId);
+
+    // Staff (or higher) scoped to THIS booking's collection may check it in. Previously the
+    // handler only confirmed some admin identity, so an admin for one park could check in
+    // bookings in any park (getBookingByBookingId is a global GSI lookup with no tenant filter).
+    checkAuthContext(event, "staff", booking?.collectionId);
 
     // Check if booking status is confirmed (only status allowed)
     if (booking.status !== "confirmed") {

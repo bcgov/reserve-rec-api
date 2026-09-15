@@ -1,5 +1,5 @@
 const { quickApiPutHandler, formatForQuickApi } = require("../../../common/data-utils");
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { logger, sendResponse, Exception, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 const { INVENTORY_API_PUT_CONFIG } = require("../configs");
 const { initializeInventory } = require("../methods");
@@ -30,6 +30,10 @@ exports.handler = async (event, context) => {
     if (!collectionId || !activityType || !activityId || !productId) {
       throw new Exception("Missing required path parameters: collectionId, activityType, activityId, productId");
     }
+
+    // Require a staff (or higher) tier scoped to this collection before writing inventory.
+    // Previously the handler wrote unconditionally, relying only on the resourceMap allow-list.
+    checkAuthContext(event, "staff", collectionId);
 
     if (!startDate) {
       throw new Exception("Missing required query parameter: startDate");
