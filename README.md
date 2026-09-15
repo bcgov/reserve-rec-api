@@ -452,6 +452,8 @@ Handlers log operational events as `event=<name>` followed by JSON metadata. `li
 | Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
 | Audit | `email_change_requested`, `email_change_request_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
 
+Four more pages read the same metrics, all from `lib/helpers/dashboards.js`: `ReserveRecApi-<env>-overview` (the API as a whole, Lambda errors and duration across every function carrying the environment prefix, both stacks' alarms), `-bookings` (the booking routes and their events), `-accounts` (Cognito's own counters beside the trigger events) and, from reserve-rec-public, `-edge` (the WAF log in us-east-1, as Insights widgets).
+
 Two gauges sit beside the events on the same dashboard: `unconfirmed_users` and `estimated_users`, written hourly by `UserStatusCount` with `PutMetricData`. They are stocks rather than flows, so a metric filter would show zero between readings.
 
 Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm.
