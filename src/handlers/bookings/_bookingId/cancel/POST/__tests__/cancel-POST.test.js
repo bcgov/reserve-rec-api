@@ -45,6 +45,7 @@ jest.mock("../../../../../bookings/methods", () => ({
   getBookingByBookingId: jest.fn(),
   generateEmailParams: jest.fn(),
   sendBookingCancellationEmail: jest.fn(),
+  deleteBookingHoldMarker: jest.fn(),
 }));
 
 const BOOKING_ID = "booking-123";
@@ -56,6 +57,7 @@ const {
   flagCancelledBooking,
   generateEmailParams,
   sendBookingCancellationEmail,
+  deleteBookingHoldMarker,
 } = require("../../../../../bookings/methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
@@ -94,6 +96,7 @@ describe("Bookings Cancel handler", () => {
     flagCancelledBooking.mockResolvedValue({});
     generateEmailParams.mockResolvedValue({});
     sendBookingCancellationEmail.mockResolvedValue({});
+    deleteBookingHoldMarker.mockReturnValue({ action: "Delete", data: { Key: {} } });
     batchTransactData.mockResolvedValue({});
 
     // Mock current time to 12pm on June 11, 2026
@@ -171,7 +174,8 @@ describe("Bookings Cancel handler", () => {
     expect(result.status).toBe(200);
     expect(result.message).toBe("Success");
     expect(flagCancelledBooking).toHaveBeenCalledTimes(1);
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    // Once for the cancel write, once for the hold-marker delete.
+    expect(batchTransactData).toHaveBeenCalledTimes(2);
   });
 
   it("rejects cancellations after checkout time", async () => {
@@ -227,5 +231,30 @@ describe("Bookings Cancel handler", () => {
     expect(result.status).toBe(200);
     expect(generateEmailParams).toHaveBeenCalledWith(expect.objectContaining({ bookingId: BOOKING_ID }));
     expect(sendBookingCancellationEmail).toHaveBeenCalledWith(emailParams, MOCK_USER_ID);
+  });
+
+  it("releases the booking-hold marker on a successful cancel", async () => {
+    const markerDelete = { action: "Delete", data: { Key: { pk: {}, sk: {} } } };
+    deleteBookingHoldMarker.mockReturnValue(markerDelete);
+
+    const result = await handler(makeEvent({}), {});
+
+    expect(result.status).toBe(200);
+    expect(deleteBookingHoldMarker).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: BOOKING_ID })
+    );
+    expect(batchTransactData).toHaveBeenCalledWith([markerDelete]);
+  });
+
+  it("still succeeds if releasing the hold marker fails", async () => {
+    // First call (the cancel write) succeeds; second (marker delete) throws.
+    batchTransactData
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("dynamo boom"));
+
+    const result = await handler(makeEvent({}), {});
+
+    expect(result.status).toBe(200);
+    expect(result.message).toBe("Success");
   });
 });
