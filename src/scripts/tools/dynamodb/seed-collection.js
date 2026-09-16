@@ -790,10 +790,9 @@ const RESERVATION_POLICY_DATE_RULES__ALL_DAY = {
     }
     },
     {
-    "anchorRef": "productDate",
-    "duration": {
-      "days": 1,
-      "direction": "after"
+      id: 'reservationWindow', label: 'Reservation Window',
+      open: { anchorRef: 'productDate', duration: { direction: 'before', days: 2 }, timeOfDay: { hour: 7 } },
+      close: { anchorRef: 'productDate', timeOfDay: { hour: 17 } },
     },
     "id": "noShowTime",
     "label": "No-Show Time",
@@ -1259,8 +1258,8 @@ function computeReservationContext(date, timezone, passType = 'ALL_DAY') {
   const discoveryOpenMs   = localToEpochMs(addDays(date, -21), 0, timezone);
   const discoveryCloseMs  = localToEpochMs(addDays(date,   7), 0, timezone);
 
-  // Reservation window: date - 2 weeks at check-in time, closes at check-out
-  const reservationOpenMs = localToEpochMs(addDays(date, -14), checkInHour, timezone);
+  // Reservation window: passes release 2 days before the visit at 7am local (bcgov/reserve-rec-public#836)
+  const reservationOpenMs = localToEpochMs(addDays(date, -2), 7, timezone);
 
   return {
     isDiscoverable: true,
