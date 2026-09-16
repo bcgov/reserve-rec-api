@@ -1,6 +1,7 @@
 const { logger, Exception, buildDateRange } = require('/opt/base');
 const { fetchProductDates } = require('../productDates/methods');
-const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall, formatProjectionsForQuery } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, runQuery, batchTransactData, marshall } = require("/opt/dynamodb");
+const { formatProjectionsForQuery } = require("../../common/data-utils");
 
 async function fetchInventoryPoolsOnDate(props) {
   try {
