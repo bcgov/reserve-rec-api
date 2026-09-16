@@ -21,23 +21,9 @@
 
 'use strict';
 
-const path = require('path');
 const AWS = require('aws-sdk');
 
-// ── Reuse the REAL temporal resolver (pure luxon math) by shimming the Lambda
-//    layer paths it imports. base.js gives exact epoch math (no drift); the
-//    resolver never calls the dynamodb layer, so that one is stubbed. ──────────
-const Module = require('module');
-const origLoad = Module._load;
-const BASE_PATH = path.resolve(__dirname, '../../../layers/base/base.js');
-Module._load = function (request, ...rest) {
-  if (request === '/opt/base') return origLoad.call(this, BASE_PATH, ...rest);
-  if (request === '/opt/dynamodb') {
-    return { getOne: async () => null, marshall: (x) => x, runQuery: async () => ({ items: [] }), batchGetData: async () => [], REFERENCE_DATA_TABLE_NAME: process.env.TABLE_NAME };
-  }
-  return origLoad.call(this, request, ...rest);
-};
-const { resolveTemporalAnchor, resolveTemporalWindow } = require(path.resolve(__dirname, '../../../common/data-utils.js'));
+const { regenerateProductDates } = require('./lib/reservation-context');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION — seasonal window hours. Edit + re-run each season.
@@ -101,25 +87,6 @@ function buildPolicyRecord(basePolicy, period, win, pk) {
     }
   }
   return policy;
-}
-
-// Mirror of resolveProductDateReservationContext (productDates/methods.js) so
-// regenerated rows match what the live init path would produce.
-function resolveReservationContext(product, date, policy) {
-  const pdr = policy?.productDateRules;
-  const refStore = { productDate: date };
-  const ra = {};
-  const rw = {};
-  for (const a of (pdr?.temporalAnchors || [])) ra[a.id] = resolveTemporalAnchor(a, product?.timezone, refStore).millis;
-  for (const w of (pdr?.temporalWindows || [])) rw[w.id] = resolveTemporalWindow(w, product?.timezone, refStore);
-  return {
-    isDiscoverable: pdr?.isDiscoverable || true,
-    isReservable: pdr?.isReservable || true,
-    minDailyInventory: pdr?.minDailyInventory || 1,
-    maxDailyInventory: pdr?.maxDailyInventory || 1,
-    temporalAnchors: ra,
-    temporalWindows: rw,
-  };
 }
 
 function classifyPeriod(displayName) {
@@ -205,26 +172,7 @@ async function main() {
     await putItem(updatedProduct, `product ${product.sk} → ${policyPk}`);
 
     // 3b. Regenerate reservationContext on each existing productDate row.
-    const pdPk = `productDate::${product.collectionId}::${product.activityType}::${product.activityId}::${product.sk}`;
-    let ExclusiveStartKey;
-    let count = 0;
-    do {
-      const res = await ddb.query({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'pk = :pk',
-        ExpressionAttributeValues: { ':pk': pdPk },
-        ExclusiveStartKey,
-      }).promise();
-      for (const row of (res.Items || [])) {
-        const updated = { ...row };
-        updated.reservationContext = resolveReservationContext(product, row.date, newPolicy);
-        updated.reservationPolicy = newPolicy.productDateRules;
-        updated.lastUpdated = nowISO();
-        if (!DRY_RUN) await ddb.put({ TableName: TABLE_NAME, Item: updated }).promise();
-        count++;
-      }
-      ExclusiveStartKey = res.LastEvaluatedKey;
-    } while (ExclusiveStartKey);
+    const count = await regenerateProductDates(ddb, TABLE_NAME, product, newPolicy, { dryRun: DRY_RUN });
     log(`    ${DRY_RUN ? '[dry-run] would regenerate' : 'regenerated'} ${count} productDate row(s)`);
   }
 

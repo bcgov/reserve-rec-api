@@ -86,7 +86,7 @@
           "anchorRef": "productDate",
           "duration": {
             "direction": "before",
-            "weeks": 2
+            "days": 2
           },
           "timeOfDay": {
             "hour": 7
