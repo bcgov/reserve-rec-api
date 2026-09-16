@@ -29,7 +29,7 @@ const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
 const { getProductById } = require("../products/methods");
 const { DateTime } = require("luxon");
-const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG } = require("./configs");
+const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG, BOOKINGHOLD_PUT_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
 
@@ -341,6 +341,57 @@ async function findUserActiveBookingForProductOnDate(userId, productBookingPk, s
   };
   const result = await runQuery(params);
   return result?.items?.[0] || null;
+}
+
+// === Booking-hold uniqueness marker (one active hold per user/product/date, issue #458) ===
+// The read-based check in createBooking gives the friendly 409, but two
+// concurrent creates can both pass it: each writes a random-bookingId sort key,
+// so their transactions never collide. This deterministic marker, written with
+// attribute_not_exists in the SAME transaction, makes the guard atomic —
+// concurrent creates target the same key and only one commits. The marker is
+// removed on cancel and by the expiry scraper.
+function buildBookingHoldMarkerKey({ userId, collectionId, activityType, activityId, productId, startDate }) {
+  return {
+    pk: `bookinghold::${userId}::${collectionId}::${activityType}::${activityId}::${productId}`,
+    sk: `${startDate}`,
+  };
+}
+
+async function buildBookingHoldMarkerRequest(props) {
+  const { pk, sk } = buildBookingHoldMarkerKey(props);
+  const [markerRequest] = await quickApiPutHandler(
+    TRANSACTIONAL_DATA_TABLE_NAME,
+    [{
+      key: { pk, sk },
+      data: {
+        pk,
+        sk,
+        schema: 'bookingHold',
+        userId: props.userId,
+        collectionId: props.collectionId,
+        activityType: props.activityType,
+        activityId: props.activityId,
+        productId: props.productId,
+        startDate: props.startDate,
+      },
+    }],
+    BOOKINGHOLD_PUT_CONFIG
+  );
+  return markerRequest;
+}
+
+function deleteBookingHoldMarker(booking) {
+  const { pk, sk } = buildBookingHoldMarkerKey(booking);
+  return {
+    action: 'Delete',
+    data: {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      Key: {
+        pk: marshall(pk),
+        sk: marshall(sk),
+      },
+    },
+  };
 }
 
 /**
@@ -872,7 +923,12 @@ async function createBooking(props) {
 
     const { bookingRequest, bookingDateRequests } = await initBookingRequestItems(product, productDates, assetRef, props);
 
-    return bookingDateRequests.concat(bookingRequest).concat(inventoryRequests);
+    // Atomic dedup backstop for the read-based check above: one active hold per
+    // user/product/date. Appended so the response/logging that read index 0 are
+    // unaffected. (issue #458)
+    const holdMarkerRequest = await buildBookingHoldMarkerRequest(props);
+
+    return bookingDateRequests.concat(bookingRequest).concat(inventoryRequests).concat([holdMarkerRequest]);
 
   } catch (error) {
     logger.error('Error creating booking:', error);
@@ -2913,6 +2969,9 @@ module.exports = {
   fetchAllActivities,
   fetchBookingsWithPagination,
   findUserActiveBookingForProductOnDate,
+  buildBookingHoldMarkerKey,
+  buildBookingHoldMarkerRequest,
+  deleteBookingHoldMarker,
   findUserActiveBookingsOnDate,
   findBookingConflict,
   flagCancelledBooking,
