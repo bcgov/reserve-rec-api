@@ -1,4 +1,4 @@
-const { getRelationshipsByPk, getRelationshipsByGsipk, expandRelationships } = require("../../../../../common/relationship-utils");
+const { getRelationshipsByPk, getRelationshipsByGsipk, expandRelationships, filterExpandedEntitiesByRole } = require("../../../../../common/relationship-utils");
 const { Exception, logger, sendResponse } = require("/opt/base");
 
 /**
@@ -79,6 +79,10 @@ exports.handler = async (event, context) => {
     if (expand) {
       logger.info(`Expanding ${items.length} relationships with entity data`);
       items = await expandRelationships(items, bidirectional, pk);
+      // Strip sensitive fields from entities in collections the caller isn't scoped to.
+      let permissions = {};
+      try { permissions = JSON.parse(event?.requestContext?.authorizer?.permissions || "{}"); } catch (e) { /* default deny */ }
+      items = filterExpandedEntitiesByRole(items, permissions);
     }
 
     return sendResponse(200, {

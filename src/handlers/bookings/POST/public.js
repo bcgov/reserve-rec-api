@@ -9,6 +9,10 @@ const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamod
 exports.handler = async (event, context) => {
   logger.info("Bookings POST Activated");
 
+  // Declared out here so the catch can inspect which transaction item failed its
+  // ConditionExpression (inventory sold out, or the booking-hold dedup marker).
+  let bookingRequestItems;
+
   try {
     // Get the query time
 
@@ -141,7 +145,7 @@ exports.handler = async (event, context) => {
       }
     }
 
-    let bookingRequestItems = await createBooking({
+    bookingRequestItems = await createBooking({
       ...body,
       collectionId,
       activityType,
@@ -177,6 +181,7 @@ exports.handler = async (event, context) => {
     logger.error("Booking creation error:", error);
 
     let errorMessage = '';
+    let statusCode;
     const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
 
     if (error?.name === "TransactionCanceledException" && Array.isArray(cancellationReasons)) {
@@ -188,7 +193,12 @@ exports.handler = async (event, context) => {
           const pkRaw = item?.pk?.S || item?.pk;
           const pk = typeof pkRaw === "string" ? pkRaw : "";
 
-          if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
+          if (pk.startsWith("bookinghold::")) {
+            // Lost the atomic race with a concurrent create for the same
+            // user/pass/date — same outcome as the sequential 409 guard.
+            errorMessage = "You already have a booking for this pass. Cancel it before booking again.";
+            statusCode = 409;
+          } else if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
             errorMessage = "Booking item no longer available.";
           } else if (pk.startsWith("bookingDate::")) {
             errorMessage = "Error initializing the booking dates.";
@@ -211,7 +221,7 @@ exports.handler = async (event, context) => {
     };
 
     return sendResponse(
-      Number(error?.code) || 400,
+      Number(error?.code) || statusCode || 400,
       error?.data || null,
       errorMessage || error?.message,
       safeError,

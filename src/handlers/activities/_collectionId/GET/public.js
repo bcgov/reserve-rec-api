@@ -97,11 +97,13 @@ exports.handler = async (event, context) => {
     }
 
     if (activityType && !activityId) {
-      res = await getActivitiesByActivityType(collectionId, activityType, filters, event?.queryStringParameters || null);
+      // Public handler: only visible (non-draft) activities.
+      res = await getActivitiesByActivityType(collectionId, activityType, filters, event?.queryStringParameters || null, true);
     }
 
     if (!activityType && !activityId) {
-      res = await getActivitiesByCollectionId(collectionId, filters, event?.queryStringParameters || null);
+      // Public handler: only visible (non-draft) activities.
+      res = await getActivitiesByCollectionId(collectionId, filters, event?.queryStringParameters || null, true);
     }
 
     return sendResponse(200, res, 'Success', null, context);

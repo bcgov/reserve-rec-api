@@ -1,4 +1,4 @@
-const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter, excludeDeletedItems } = require("/opt/dynamodb");
+const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter, excludeDeletedItems, excludeHiddenItems } = require("/opt/dynamodb");
 const { Exception, logger } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("./configs");
 /**
@@ -64,7 +64,7 @@ function addFilters(queryObj, filters) {
  * @throws {Exception} With code 400 if database operation fails
  *
  */
-async function getActivitiesByCollectionId(collectionId, filters, params = null) {
+async function getActivitiesByCollectionId(collectionId, filters, params = null, onlyVisible = false) {
   logger.info("Get Activities by Activity Collection ID");
   try {
     const limit = params?.limit || null;
@@ -82,6 +82,7 @@ async function getActivitiesByCollectionId(collectionId, filters, params = null)
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Activities: ${res?.items?.length} found.`);
@@ -116,7 +117,8 @@ async function getActivitiesByActivityType(
   collectionId,
   activityType,
   filters,
-  params = null
+  params = null,
+  onlyVisible = false
 ) {
   logger.info("Get Activity by activity type");
   try {
@@ -136,6 +138,7 @@ async function getActivitiesByActivityType(
       queryObj = addFilters(queryObj, filters);
     }
     queryObj = excludeDeletedItems(queryObj);
+    if (onlyVisible) queryObj = excludeHiddenItems(queryObj);
 
     const res = await runQuery(queryObj, limit, lastEvaluatedKey, paginated);
     logger.info(`Activities: ${res?.items?.length} found.`);

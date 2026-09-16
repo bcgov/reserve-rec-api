@@ -14,7 +14,8 @@ const {
   getBookingByBookingId,
   flagCancelledBooking,
   generateEmailParams,
-  sendBookingCancellationEmail
+  sendBookingCancellationEmail,
+  deleteBookingHoldMarker
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
@@ -122,6 +123,18 @@ exports.handler = async (event, context) => {
     await batchTransactData(updateRequest);
 
     logger.info(`Booking ${bookingId} cancelled.`);
+
+    // Release the per-user/product/date hold marker so the user can immediately
+    // re-book this slot. Best-effort: a leftover marker only blocks re-booking
+    // until the expiry scraper reaps it, so never fail the cancel over it.
+    try {
+      await batchTransactData([deleteBookingHoldMarker(booking)]);
+    } catch (markerError) {
+      logger.warn("Failed to delete booking-hold marker on cancel", {
+        bookingId,
+        error: markerError?.message,
+      });
+    }
 
     // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
     // can't roll back a successful cancellation.

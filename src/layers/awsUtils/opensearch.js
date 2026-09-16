@@ -412,13 +412,20 @@ class OSQuery {
       maxExpansions = 50,
     } = options;
 
+    // Clamp the caller-supplied fuzzy parameters. These come straight from the
+    // request body, and a large max_expansions with a low prefix_length makes a
+    // single query arbitrarily expensive (cluster CPU) — the DoS lever. Cap the
+    // expansions at the default ceiling and keep prefix_length in a sane range.
+    const safeMaxExpansions = Math.min(Math.max(parseInt(maxExpansions, 10) || 50, 1), 50);
+    const safePrefixLength = Math.min(Math.max(parseInt(prefixLength, 10) || 0, 0), 20);
+
     setNestedValue(this.query, ["bool", "must"], {
       match: {
         [field]: {
           query: value,
           fuzziness: fuzziness,
-          prefix_length: prefixLength,
-          max_expansions: maxExpansions,
+          prefix_length: safePrefixLength,
+          max_expansions: safeMaxExpansions,
         },
       },
     });

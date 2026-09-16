@@ -32,6 +32,31 @@ const BOOKINGDATES_PUT_CONFIG = {...BOOKING_PUT_CONFIG}; // For now, BookingDate
 
 const BOOKING_UPDATE_CONFIG = {...BOOKING_PUT_CONFIG}; // For now, use the same config for updates, but in the future we may want to allow different fields or rules for updates vs creates, in which case we can create a separate config object for updates
 
+// Uniqueness marker enforcing one active hold per user/product/date. Written
+// into the create-booking transaction; allowOverwrite:false gives it the
+// attribute_not_exists(pk) condition that makes the dedup guard atomic.
+const BOOKINGHOLD_PUT_CONFIG = {
+  developerMode: true,
+  failOnError: true,
+  allowOverwrite: false,
+  fields: {
+    pk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    },
+    sk: {
+      isMandatory: true,
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ['string']);
+        rf.expectAction(action, ['set']);
+      }
+    }
+  }
+};
+
 const BOOKING_PUT_CONFIG_TEMP = {
   failOnError: true,
   autoTimeStamp: true,
@@ -455,5 +480,6 @@ const BOOKING_PUT_CONFIG_TEMP = {
 module.exports = {
   BOOKING_PUT_CONFIG,
   BOOKING_UPDATE_CONFIG,
-  BOOKINGDATES_PUT_CONFIG
+  BOOKINGDATES_PUT_CONFIG,
+  BOOKINGHOLD_PUT_CONFIG
 };

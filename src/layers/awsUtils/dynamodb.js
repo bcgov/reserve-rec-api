@@ -373,6 +373,32 @@ function excludeDeletedItems(queryObj) {
   return queryObj;
 }
 
+/**
+ * Adds a filter so hidden (draft) items are excluded — for unauthenticated /
+ * default-role callers only. A hidden item has `isVisible = false`; items that
+ * are published or never set the flag (attribute absent) are kept, matching how
+ * excludeDeletedItems treats its flag. Staff/admin callers do not apply this, so
+ * they still see drafts.
+ *
+ * @param {Object} queryObj - The DynamoDB query object to mutate.
+ * @returns {Object} The same query object with the visible-only filter applied.
+ */
+function excludeHiddenItems(queryObj) {
+  const visibleClause = "(attribute_not_exists(#isVisible) OR #isVisible = :visible)";
+  queryObj.FilterExpression = queryObj.FilterExpression
+    ? `(${queryObj.FilterExpression}) AND ${visibleClause}`
+    : visibleClause;
+  queryObj.ExpressionAttributeNames = {
+    ...queryObj.ExpressionAttributeNames,
+    "#isVisible": "isVisible",
+  };
+  queryObj.ExpressionAttributeValues = {
+    ...queryObj.ExpressionAttributeValues,
+    ":visible": { BOOL: true },
+  };
+  return queryObj;
+}
+
 async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated = true) {
   let data = [];
   let pageData = {};
@@ -685,6 +711,7 @@ module.exports = {
   dynamodb,
   dynamodbClient,
   excludeDeletedItems,
+  excludeHiddenItems,
   getOne,
   incrementCounter,
   getOneByGlobalId,
