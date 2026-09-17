@@ -19,14 +19,11 @@ jest.mock("/opt/base", () => ({
 
 jest.mock("../../src/handlers/bookings/methods", () => ({
   createBooking: jest.fn(),
+  formatBookingResponsePublic: jest.fn(),
 }));
 
 jest.mock("../../src/handlers/bookings/configs", () => ({
   BOOKING_PUT_CONFIG: {},
-}));
-
-jest.mock("../../src/common/data-utils", () => ({
-  quickApiPutHandler: jest.fn(),
 }));
 
 jest.mock("/opt/dynamodb", () => ({
@@ -35,8 +32,7 @@ jest.mock("/opt/dynamodb", () => ({
 }));
 
 const { handler } = require("../../src/handlers/bookings/POST/public");
-const { createBooking } = require("../../src/handlers/bookings/methods");
-const { quickApiPutHandler } = require("../../src/common/data-utils");
+const { createBooking, formatBookingResponsePublic } = require("../../src/handlers/bookings/methods");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
@@ -66,38 +62,38 @@ describe("Bookings POST handler", () => {
       collectionId: "bcparks_123",
       activityType: "backcountryCamp",
       activityId: "1",
+      productId: "product-1",
       startDate: "2024-01-01",
+      quantity: 2,
       userId: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };
 
     createBooking.mockResolvedValue([{ booking: "data" }]);
-    quickApiPutHandler.mockResolvedValue([{ put: "item" }]);
     batchTransactData.mockResolvedValue({ result: "ok" });
+    formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
 
     const result = await handler(event, context);
 
     expect(createBooking).toHaveBeenCalledWith(
-      "bcparks_123",
-      "backcountryCamp",
-      "1",
-      "2024-01-01",
       expect.objectContaining({
         collectionId: "bcparks_123",
         activityType: "backcountryCamp",
         activityId: "1",
+        productId: "product-1",
         startDate: "2024-01-01",
+        endDate: "2024-01-01",
+        invQuantity: 2,
         userId: "test-user-123",
       })
     );
-    expect(quickApiPutHandler).toHaveBeenCalled();
-    expect(batchTransactData).toHaveBeenCalled();
+    expect(batchTransactData).toHaveBeenCalledWith([{ booking: "data" }]);
+    expect(formatBookingResponsePublic).toHaveBeenCalledWith([{ booking: "data" }]);
 
     expect(result.status).toBe(200);
     expect(result.message).toBe("Success");
     const data = typeof result.data === "string" ? JSON.parse(result.data) : result.data;
-    expect(data.booking).toEqual([{ booking: "data" }]);
-    expect(data.res).toEqual({ result: "ok" });
+    expect(data).toEqual({ bookingId: "booking-1" });
   });
 
   it("should extract parameters from pathParameters and queryStringParameters", async () => {
@@ -108,28 +104,36 @@ describe("Bookings POST handler", () => {
         collectionId: "ac2",
         activityType: "type2",
         activityId: "id2",
+        productId: "prod2",
         startDate: "2024-02-02",
+      },
+      queryStringParameters: {
+        quantity: "3",
+        endDate: "2024-02-04",
       },
     };
 
     createBooking.mockResolvedValue([{ booking: "data2" }]);
-    quickApiPutHandler.mockResolvedValue([{ put: "item2" }]);
     batchTransactData.mockResolvedValue({ result: "ok2" });
+    formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-2" });
 
     const result = await handler(event, context);
 
     expect(createBooking).toHaveBeenCalledWith(
-      "ac2",
-      "type2",
-      "id2",
-      "2024-02-02",
       expect.objectContaining({
+        collectionId: "ac2",
+        activityType: "type2",
+        activityId: "id2",
+        productId: "prod2",
+        startDate: "2024-02-02",
+        endDate: "2024-02-04",
+        invQuantity: 3,
         userId: "test-user-123",
       })
     );
     expect(result.status).toBe(200);
     const data = typeof result.data === "string" ? JSON.parse(result.data) : result.data;
-    expect(data.booking).toEqual([{ booking: "data2" }]);
+    expect(data).toEqual({ bookingId: "booking-2" });
   });
 
   it("should handle errors thrown in try block", async () => {
@@ -137,7 +141,9 @@ describe("Bookings POST handler", () => {
       collectionId: "bcparks_123",
       activityType: "backcountry",
       activityId: "id1",
+      productId: "product-1",
       startDate: "2024-01-01",
+      quantity: 1,
       userId: "test-user-123",
     };
     const event = { body: JSON.stringify(body) };

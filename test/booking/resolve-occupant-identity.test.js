@@ -78,6 +78,7 @@ describe("resolveAuthenticatedOccupantIdentity", () => {
       family_name: "Doe",
       email: "jane@example.com",
       phone_number: "+12345550000",
+      email_verified: "true",
     }));
 
     const id = await resolveAuthenticatedOccupantIdentity(SUB);
@@ -88,6 +89,7 @@ describe("resolveAuthenticatedOccupantIdentity", () => {
       lastName: "Doe",
       email: "jane@example.com",
       mobilePhone: "+12345550000",
+      emailVerified: true,
     });
   });
 
@@ -114,6 +116,7 @@ describe("resolveAuthenticatedOccupantIdentity", () => {
       lastName: "",
       email: "jane@example.com",
       mobilePhone: "",
+      emailVerified: false,
     });
   });
 
