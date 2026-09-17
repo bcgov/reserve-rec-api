@@ -205,8 +205,9 @@ describe('QR Code Helper', () => {
       await generateQRCodeDataURL(url);
       const duration = Date.now() - startTime;
 
-      // Should complete in less than 500ms (generous threshold)
-      expect(duration).toBeLessThan(500);
+      // Guards against a hang, not performance: cold CI runners have taken
+      // ~600ms for the first call, which a tight bound flagged as a failure.
+      expect(duration).toBeLessThan(5000);
     });
   });
 
