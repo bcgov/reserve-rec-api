@@ -70,7 +70,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-123',
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: 'user-wrong' });
@@ -91,7 +91,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-456',
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: OWNER });
@@ -101,6 +101,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       const res = await handler(event, context);
 
       expect(res.status).toBe(200);
+      expect(getBookingByBookingId).toHaveBeenCalledWith('booking-456', false);
       expect(generateQRURL).toHaveBeenCalledWith('booking-456');
       expect(generateQRCodeDataURL).toHaveBeenCalledWith('https://example.com/verify/booking-456/def456');
       expect(res.data.qrCode).toEqual({
@@ -116,7 +117,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-789',
-        bookingStatus: 'in progress',
+        status: 'in progress',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: OWNER });
@@ -136,7 +137,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-cancel',
-        bookingStatus: 'cancelled',
+        status: 'cancelled',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: OWNER });
@@ -158,7 +159,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-error',
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: OWNER });
@@ -187,7 +188,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
       };
       getBookingByBookingId.mockResolvedValue({
         bookingId: 'booking-url-error',
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         userId: OWNER,
       });
       getRequestClaimsFromEvent.mockReturnValue({ sub: OWNER });
@@ -216,7 +217,7 @@ describe('Bookings GET handler - QR Code Generation', () => {
         callOrder.push('fetchBooking');
         return {
           bookingId: 'booking-timing',
-          bookingStatus: 'confirmed',
+          status: 'confirmed',
           userId: OWNER,
         };
       });

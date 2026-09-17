@@ -127,10 +127,7 @@ describe("Admin Refunds GET handler", () => {
     expect(result.status).toBe(200);
     expect(result.data).toEqual(baseRefundList);
     expect(result.message).toBe("Success");
-    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(
-      MOCK_BOOKING_ID,
-      undefined
-    );
+    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(MOCK_BOOKING_ID);
   });
 
   it("gets all refunds for a bookingId using queryStringParameters", async () => {
@@ -142,10 +139,7 @@ describe("Admin Refunds GET handler", () => {
 
     expect(result.status).toBe(200);
     expect(result.data).toEqual(baseRefundList);
-    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(
-      MOCK_BOOKING_ID,
-      undefined
-    );
+    expect(getAllRefundsByBookingId).toHaveBeenCalledWith(MOCK_BOOKING_ID);
   });
 
   it("gets a specific refund using bookingId and refundId using pathParameters", async () => {

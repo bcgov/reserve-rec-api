@@ -39,6 +39,7 @@ jest.mock("/opt/dynamodb", () => ({
 jest.mock("../../src/handlers/bookings/methods", () => ({
   getBookingByBookingId: jest.fn(),
   flagCancelledBooking: jest.fn(),
+  deleteBookingHoldMarker: jest.fn(() => ({ action: "Delete", data: {} })),
   generateEmailParams: jest.fn(),
   sendBookingCancellationEmail: jest.fn(),
 }));
@@ -123,19 +124,29 @@ describe("Bookings Cancel POST handler", () => {
     expect(result.message).toContain("does not own booking");
   });
 
-  it("rejects bookings that aren't in a cancellable state", async () => {
+  it("rejects bookings that aren't in a cancellable state with 409", async () => {
     getBookingByBookingId.mockResolvedValue({ ...okBooking, status: "completed" });
     const result = await handler(makeEvent(), {});
-    expect(result.status).toBe(400);
-    expect(result.message).toMatch(/cannot be cancelled/);
-  });
-
-  it("rejects 'in progress' bookings (only confirmed are cancellable here)", async () => {
-    getBookingByBookingId.mockResolvedValue({ ...okBooking, status: "in progress" });
-    const result = await handler(makeEvent(), {});
-    expect(result.status).toBe(400);
+    expect(result.status).toBe(409);
     expect(result.message).toMatch(/cannot be cancelled/);
     expect(flagCancelledBooking).not.toHaveBeenCalled();
+  });
+
+  it("cancels 'in progress' bookings so the cart timer can release the hold", async () => {
+    const inProgress = { ...okBooking, status: "in progress" };
+    getBookingByBookingId.mockResolvedValue(inProgress);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(flagCancelledBooking).toHaveBeenCalledWith(
+      inProgress,
+      expect.any(Number),
+      undefined,
+      SUB
+    );
+    expect(batchTransactData).toHaveBeenCalled();
+    expect(result.status).toBe(200);
+    expect(result.data.bookingId).toBe(BOOKING_ID);
   });
 
   it("caps an oversized reason at 1000 chars before passing it down", async () => {

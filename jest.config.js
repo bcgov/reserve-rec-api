@@ -2,6 +2,8 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/test', '<rootDir>/src'],
   testMatch: ['**/*.test.js'],
+  // Integration tests need a running API; they run via jest.integration.config.js
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/test/integration/'],
   transformIgnorePatterns: ['node_modules/'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
