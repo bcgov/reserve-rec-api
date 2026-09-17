@@ -715,10 +715,17 @@ function addDays(dateStr, days) {
  * Computes the reservationContext for a productDate given the standard reservation policy.
  * All temporal values are epoch milliseconds.
  */
-function computeReservationContext(date, timezone) {
-  const checkInMs       = localToEpochMs(date, 7, timezone);
-  const checkOutMs      = localToEpochMs(date, 17, timezone);
-  const noShowMs        = localToEpochMs(addDays(date, 1), 17, timezone);
+function computeReservationContext(date, timezone, passType = 'ALL_DAY', activitySubType = 'VEHICLE') {
+  const passTimes = {
+    ALL_DAY: { checkInHour: 7, checkOutHour: 17 },
+    AM: { checkInHour: 7, checkOutHour: 13 },
+    PM: { checkInHour: 13, checkOutHour: 17 },
+  };
+  const { checkInHour, checkOutHour } = passTimes[passType] || passTimes.ALL_DAY;
+
+  const checkInMs       = localToEpochMs(date, checkInHour, timezone);
+  const checkOutMs      = localToEpochMs(date, checkOutHour, timezone);
+  const noShowMs        = localToEpochMs(addDays(date, 1), checkOutHour, timezone);
 
   const discoveryWindowOpenMs  = localToEpochMs('2026-04-15', 7, timezone);
   const discoveryWindowCloseMs = localToEpochMs('2026-12-31', 17, timezone);
@@ -729,11 +736,13 @@ function computeReservationContext(date, timezone) {
 
   // Reservation window: passes release 2 days before the visit at 7am local (bcgov/reserve-rec-public#836)
   const reservationOpenMs = localToEpochMs(addDays(date, -2), 7, timezone);
+  // Reservation window: passes release 2 days before the visit at 7am local (bcgov/reserve-rec-public#836)
+  const reservationOpenMs = localToEpochMs(addDays(date, -2), 7, timezone);
 
   return {
     isDiscoverable: true,
     isReservable: true,
-    maxDailyInventory: 4,
+    maxDailyInventory: activitySubType == 'TRAIL' ? 4 : 1,
     minDailyInventory: 1,
     temporalAnchors: {
       checkInTime:          checkInMs,
@@ -990,6 +999,17 @@ function buildProductDateItems(collectionId, facilities) {
       for (const product of activity.products) {
         const dates = buildDateRange(product.startDate, product.endDate);
         for (const date of dates) {
+          const { activitySubType, passType } = resolveSubActivityPassType(activity, product);
+          const partyPolicy = {
+            VEHICLE: POLICY_PARTY__VEHICLE,
+            TRAIL: POLICY_PARTY__TRAIL,
+          }[activitySubType];
+          const reservationPolicy = {
+            ALL_DAY: RESERVATION_POLICY_DATE_RULES__ALL_DAY,
+            AM: RESERVATION_POLICY_DATE_RULES__AM,
+            PM: RESERVATION_POLICY_DATE_RULES__PM,
+          }[passType];
+
           items.push({
             pk: `productDate::${collectionId}::${activity.type}::${activity.id}::${product.id}`,
             sk: date,
@@ -1009,9 +1029,9 @@ function buildProductDateItems(collectionId, facilities) {
             ],
             changePolicy:      POLICY_CHANGE,
             feePolicy:         POLICY_FEE,
-            partyPolicy:       POLICY_PARTY,
-            reservationPolicy: RESERVATION_POLICY_DATE_RULES,
-            reservationContext: computeReservationContext(date, product.timezone),
+            partyPolicy,
+            reservationPolicy: reservationPolicy.productDateRules,
+            reservationContext: computeReservationContext(date, product.timezone, passType, activitySubType),
             availabilityEstimationPattern: null,
             version: 1,
             creationDate: ts,
