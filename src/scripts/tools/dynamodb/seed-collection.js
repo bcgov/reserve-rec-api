@@ -794,6 +794,7 @@ const RESERVATION_POLICY_DATE_RULES__ALL_DAY = {
       open: { anchorRef: 'productDate', duration: { direction: 'before', days: 2 }, timeOfDay: { hour: 7 } },
       close: { anchorRef: 'productDate', timeOfDay: { hour: 17 } },
     },
+    {
     "id": "noShowTime",
     "label": "No-Show Time",
     "timeOfDay": {
