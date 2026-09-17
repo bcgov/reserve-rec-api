@@ -748,8 +748,6 @@ async function validateBookingRequest(product, productDates, props) {
 
     for (const productDate of productDates ?? []) {
 
-      console.log('productDate', productDate);
-
       // Is the ProductDate reservable?
       if (!productDate?.reservationContext?.isReservable) {
         throw `ProductDate ${productDate.date} is not reservable`;
@@ -782,7 +780,11 @@ async function validateBookingRequest(product, productDates, props) {
 
   } catch (error) {
     logger.error('Error validating booking request:', error);
-    throw new Exception("Error validating booking request:", {
+    // Intentional validation failures are thrown as plain strings — surface the
+    // specific reason to the caller. Anything else is unexpected, so keep it
+    // generic to avoid leaking internals (stack/TypeError text) to the client.
+    const message = typeof error === 'string' ? error : 'Error validating booking request';
+    throw new Exception(message, {
       code: 400,
       error: error,
     });
@@ -2992,6 +2994,7 @@ module.exports = {
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail,
   validateAdminRequirements,
+  validateBookingRequest,
   validateDateRange,
   validateCollectionAccess,
   getGeoZoneForBooking

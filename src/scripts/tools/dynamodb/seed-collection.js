@@ -1239,7 +1239,7 @@ function addDays(dateStr, days) {
  * Computes the reservationContext for a productDate given its reservation policy.
  * All temporal values are epoch milliseconds.
  */
-function computeReservationContext(date, timezone, passType = 'ALL_DAY') {
+function computeReservationContext(date, timezone, passType = 'ALL_DAY', activitySubType = 'VEHICLE') {
   const passTimes = {
     ALL_DAY: { checkInHour: 7, checkOutHour: 17 },
     AM: { checkInHour: 7, checkOutHour: 13 },
@@ -1264,7 +1264,7 @@ function computeReservationContext(date, timezone, passType = 'ALL_DAY') {
   return {
     isDiscoverable: true,
     isReservable: true,
-    maxDailyInventory: 4,
+    maxDailyInventory: activitySubType == 'TRAIL' ? 4 : 1,
     minDailyInventory: 1,
     temporalAnchors: {
       checkInTime:          checkInMs,

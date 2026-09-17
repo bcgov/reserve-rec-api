@@ -35,10 +35,14 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
 const mockCFSend = jest.fn();
 jest.mock('@aws-sdk/client-cloudfront', () => ({
   CloudFrontClient: jest.fn(() => ({ send: mockCFSend })),
-  GetFunctionCommand: jest.fn(),
-  UpdateFunctionCommand: jest.fn(),
-  PublishFunctionCommand: jest.fn(),
+  // Tag each command so assertions can pin the call sequence by type
+  GetFunctionCommand: jest.fn((args) => ({ __cmd: 'Get', ...args })),
+  UpdateFunctionCommand: jest.fn((args) => ({ __cmd: 'Update', ...args })),
+  PublishFunctionCommand: jest.fn((args) => ({ __cmd: 'Publish', ...args })),
 }));
+
+// Command types sent, in order, e.g. ['Get', 'Get', 'Update', 'Publish']
+const cfCommandSequence = () => mockCFSend.mock.calls.map(([cmd]) => cmd.__cmd);
 
 const mockWsSend = jest.fn();
 jest.mock('@aws-sdk/client-apigatewaymanagementapi', () => ({
@@ -408,24 +412,29 @@ describe('toggle-mode2 handler', () => {
 
   beforeEach(() => {
     process.env.VIEWER_FUNCTION_NAME = 'WaitingRoomViewerFn-wr';
+    delete process.env.FRONT_DOOR_VIEWER_FUNCTION_NAME;
     mockCFSend.mockReset();
-    // Default mock flow: GetFunction → UpdateFunction → PublishFunction
-    mockCFSend
-      .mockResolvedValueOnce({ ETag: 'etag-1' })       // GetFunction
-      .mockResolvedValueOnce({ ETag: 'etag-2' })       // UpdateFunction
-      .mockResolvedValueOnce({});                       // PublishFunction
+    // The handler reads the primary function once for the stored queueId, then does
+    // Get → Update → Publish per target.
+    mockCFSend.mockImplementation(async (cmd) =>
+      cmd.__cmd === 'Update' ? { ETag: 'etag-update' } : { ETag: 'etag-get' }
+    );
     db.putQueueMeta.mockResolvedValue({});
     db.updateQueueMetaStatus.mockResolvedValue(true);
     db.scanQueuesByStatus.mockResolvedValue([]);
     db.queryQueueEntries.mockResolvedValue([]);
+    db.getQueueMeta.mockResolvedValue(undefined);
   });
 
   it('activates Mode 2 (active: true) — creates DynamoDB queue record', async () => {
-    // Simulate 2 existing waiting entries (from a previous activation on same day)
-    db.queryQueueEntries.mockResolvedValue([
-      { pk: 'QUEUE#MODE2#global#1#2026-03-05', sk: 'ENTRY#user-1', status: 'waiting' },
-      { pk: 'QUEUE#MODE2#global#1#2026-03-05', sk: 'ENTRY#user-2', status: 'waiting' },
-    ]);
+    // Re-activating a same-day queue: counters come from the stored meta record
+    db.getQueueMeta.mockResolvedValue({
+      totalEntries: 2,
+      admittedCount: 1,
+      lastReleasedAt: 0,
+      openingTime: '2026-03-05T17:00:00.000Z',
+      createdAt: 1700000000,
+    });
     const res = await handler({ body: JSON.stringify({ active: true }) });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
@@ -434,15 +443,28 @@ describe('toggle-mode2 handler', () => {
     expect(body.data.queueId).toMatch(/^QUEUE#MODE2#global#1#/);
     expect(body.data.batchSize).toBe(50);
     expect(body.data.releaseIntervalSeconds).toBe(300);
-    expect(mockCFSend).toHaveBeenCalledTimes(3);
+    // One up-front GetFunction for the stored queueId, then Get/Update/Publish
+    // for the single configured target.
+    expect(cfCommandSequence()).toEqual(['Get', 'Get', 'Update', 'Publish']);
     expect(db.putQueueMeta).toHaveBeenCalledTimes(1);
     const queueArg = db.putQueueMeta.mock.calls[0][0];
     expect(queueArg.queueStatus).toBe('releasing');
     expect(queueArg.batchSize).toBe(50);
     expect(queueArg.releaseIntervalSeconds).toBe(300);
     expect(queueArg.lastReleasedAt).toBe(0);
-    // totalEntries reflects existing entries, not 0
+    // counters from the existing meta are preserved, not zeroed
     expect(queueArg.totalEntries).toBe(2);
+    expect(queueArg.admittedCount).toBe(1);
+    expect(queueArg.openingTime).toBe('2026-03-05T17:00:00.000Z');
+  });
+
+  it('activates a brand-new Mode 2 queue with zeroed counters', async () => {
+    const res = await handler({ body: JSON.stringify({ active: true }) });
+    expect(res.statusCode).toBe(200);
+    const queueArg = db.putQueueMeta.mock.calls[0][0];
+    expect(queueArg.totalEntries).toBe(0);
+    expect(queueArg.admittedCount).toBe(0);
+    expect(queueArg.lastReleasedAt).toBe(0);
   });
 
   it('activates Mode 2 with custom batchSize and interval', async () => {
@@ -456,6 +478,24 @@ describe('toggle-mode2 handler', () => {
     expect(queueArg.releaseIntervalSeconds).toBe(120);
   });
 
+  it('activates Mode 2 on both the standalone and front door functions', async () => {
+    process.env.FRONT_DOOR_VIEWER_FUNCTION_NAME = 'FrontDoorViewerFn-fd';
+    const res = await handler({ body: JSON.stringify({ active: true }) });
+    delete process.env.FRONT_DOOR_VIEWER_FUNCTION_NAME;
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data.functionNames).toEqual(['WaitingRoomViewerFn-wr', 'FrontDoorViewerFn-fd']);
+    // Up-front Get, then Get/Update/Publish per target
+    expect(cfCommandSequence()).toEqual([
+      'Get', 'Get', 'Update', 'Publish', 'Get', 'Update', 'Publish',
+    ]);
+    const updatedNames = mockCFSend.mock.calls
+      .map(([cmd]) => cmd)
+      .filter((cmd) => cmd.__cmd === 'Update')
+      .map((cmd) => cmd.Name);
+    expect(updatedNames).toEqual(['WaitingRoomViewerFn-wr', 'FrontDoorViewerFn-fd']);
+  });
+
   it('deactivates Mode 2 (active: false) — closes all releasing Mode 2 queues', async () => {
     db.scanQueuesByStatus.mockResolvedValue([
       { pk: 'QUEUE#MODE2#global#1#2026-03-05', queueStatus: 'releasing' },
@@ -467,7 +507,7 @@ describe('toggle-mode2 handler', () => {
     const body = JSON.parse(res.body);
     expect(body.data.active).toBe(false);
     expect(body.data.batchSize).toBeUndefined();
-    expect(mockCFSend).toHaveBeenCalledTimes(3);
+    expect(cfCommandSequence()).toEqual(['Get', 'Get', 'Update', 'Publish']);
     expect(db.putQueueMeta).not.toHaveBeenCalled();
     expect(db.scanQueuesByStatus).toHaveBeenCalledWith('releasing');
     // Both MODE2 queues closed; non-Mode2 queue skipped

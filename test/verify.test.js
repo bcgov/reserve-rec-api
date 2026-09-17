@@ -1,11 +1,11 @@
 /**
  * Unit tests for QR code verification endpoint
- * 
+ *
  * Tests cover:
  * - Hash validation
- * - Admin authorization
+ * - Admin authorization (via checkAuthContext)
  * - Booking retrieval
- * - Status validation (confirmed, cancelled, expired, pending)
+ * - Response shape / PII minimisation
  * - Error handling (invalid hash, missing booking, unauthorized)
  */
 
@@ -13,12 +13,12 @@
 process.env.NODE_ENV = 'test';
 process.env.QR_SECRET_KEY = 'test-secret-key-for-unit-tests-only-do-not-use-in-production';
 process.env.ADMIN_ALTERED_FRONTEND_DOMAIN = 'test.admin.reserve-rec.bcparks.ca';
-process.env.AWS_SAM_LOCAL = 'true'; // Use mock claims
 
-// Test helpers
+const SUPERADMIN_GROUP = 'ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup';
+
 const MOCK_ADMIN_CLAIMS = {
   sub: 'test-admin',
-  'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
+  'cognito:groups': [SUPERADMIN_GROUP],
   email: 'admin@example.com'
 };
 
@@ -49,41 +49,61 @@ function createAdminEvent(overrides = {}) {
 }
 
 // Mock the base layer
-jest.mock('/opt/base', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-  sendResponse: jest.fn((code, data, message) => ({
-    statusCode: code,
-    body: JSON.stringify({ data, message })
-  })),
-  getRequestClaimsFromEvent: jest.fn(),
-  handleCORS: jest.fn((event, context) => {
-    if (event?.httpMethod === 'OPTIONS') {
-      return { statusCode: 200, body: JSON.stringify({ data: {}, message: 'Success' }) };
-    }
-    return null;
-  }),
-  calculatePartySize: jest.fn((partyInfo) => {
-    if (!partyInfo) return 0;
-    return (partyInfo.adult || 0) + (partyInfo.senior || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0);
-  }),
-  VALIDATION_PATTERNS: {
-    BOOKING_ID: /^[a-zA-Z0-9-_]{8,100}$/,
-    QR_HASH: /^[a-f0-9]{16}$/i
-  },
-  writeAuditLog: jest.fn(),
-  Exception: class Exception extends Error {
-    constructor(message, options) {
+jest.mock('/opt/base', () => {
+  class Exception extends Error {
+    constructor(message, errorData) {
       super(message);
-      this.code = options?.code;
-      this.data = options?.data;
+      this.code = errorData?.code || null;
+      this.error = errorData?.error || null;
+      this.msg = message || null;
+      this.data = errorData?.data || null;
     }
   }
-}));
+  return {
+    logger: {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    },
+    sendResponse: jest.fn((code, data, message) => ({
+      statusCode: code,
+      body: JSON.stringify({ data, message })
+    })),
+    getRequestClaimsFromEvent: jest.fn(),
+    handleCORS: jest.fn((event, context) => {
+      if (event?.httpMethod === 'OPTIONS') {
+        return { statusCode: 200, body: JSON.stringify({ data: {}, message: 'Success' }) };
+      }
+      return null;
+    }),
+    calculatePartySize: jest.fn((partyInfo) => {
+      if (!partyInfo) return 0;
+      return (partyInfo.adult || 0) + (partyInfo.senior || 0) + (partyInfo.youth || 0) + (partyInfo.child || 0);
+    }),
+    VALIDATION_PATTERNS: {
+      BOOKING_ID: /^[a-zA-Z0-9-_]{8,100}$/,
+      QR_HASH: /^[a-f0-9]{16}$/i
+    },
+    writeAuditLog: jest.fn(),
+    // The handler gates on checkAuthContext(event, 'limited'). Stand in for the real
+    // layer implementation: no authorizer claims -> 401, non-superadmin -> 403.
+    checkAuthContext: jest.fn((event) => {
+      const claims = event?.requestContext?.authorizer?.claims;
+      if (!claims) {
+        throw new Exception('Unauthorized - Invalid permissions format', { code: 401 });
+      }
+      if (!(claims['cognito:groups'] || []).some((g) => g.includes('SuperAdminGroup'))) {
+        throw new Exception(
+          'Unauthorized: User does not have the required permission tier for this operation.',
+          { code: 403 }
+        );
+      }
+      return { sub: claims.sub, permissions: { superadmin: 'superadmin' } };
+    }),
+    Exception,
+  };
+});
 
 // Mock the QR code helper
 const { generateQRURL } = require('../lib/handlers/emailDispatch/qrCodeHelper');
@@ -102,10 +122,10 @@ jest.mock('../src/handlers/bookings/methods', () => ({
 }));
 
 const { handler } = require('../src/handlers/verify/GET/admin');
-const { sendResponse } = require('/opt/base');
+const { sendResponse, writeAuditLog } = require('/opt/base');
 
 describe('Verify Endpoint', () => {
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -118,7 +138,7 @@ describe('Verify Endpoint', () => {
 
       const mockBooking = {
         bookingId: bookingId,
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         startDate: '2025-12-20',
         endDate: '2025-12-22',
       };
@@ -134,11 +154,12 @@ describe('Verify Endpoint', () => {
 
       await handler(event, {});
 
+      expect(mockGetBookingByBookingId).toHaveBeenCalledWith(bookingId, null, true);
       expect(sendResponse).toHaveBeenCalledWith(
         200,
         expect.objectContaining({
-          valid: true,
           bookingId: bookingId,
+          status: 'confirmed',
         }),
         'Success',
         null,
@@ -163,11 +184,12 @@ describe('Verify Endpoint', () => {
 
       expect(sendResponse).toHaveBeenCalledWith(
         403,
-        expect.any(Object),
+        null,
         expect.any(String),
         expect.anything(),
         {}
       );
+      expect(mockGetBookingByBookingId).not.toHaveBeenCalled();
     });
 
     it('should reject requests without authorization', async () => {
@@ -182,11 +204,12 @@ describe('Verify Endpoint', () => {
 
       expect(sendResponse).toHaveBeenCalledWith(
         401,
-        expect.any(Object),
+        null,
         expect.any(String),
         expect.anything(),
         {}
       );
+      expect(mockGetBookingByBookingId).not.toHaveBeenCalled();
     });
   });
 
@@ -196,12 +219,10 @@ describe('Verify Endpoint', () => {
       const url = generateQRURL(bookingId);
       const hash = url.split('/').pop();
 
-      const mockBooking = {
+      mockGetBookingByBookingId.mockResolvedValue({
         bookingId: bookingId,
-        bookingStatus: 'confirmed',
-      };
-
-      mockGetBookingByBookingId.mockResolvedValue(mockBooking);
+        status: 'confirmed',
+      });
 
       const event = createAdminEvent({
         pathParameters: {
@@ -214,9 +235,7 @@ describe('Verify Endpoint', () => {
 
       expect(sendResponse).toHaveBeenCalledWith(
         200,
-        expect.objectContaining({
-          valid: true,
-        }),
+        expect.objectContaining({ bookingId: bookingId }),
         'Success',
         null,
         {}
@@ -224,22 +243,12 @@ describe('Verify Endpoint', () => {
     });
 
     it('should reject invalid hash format', async () => {
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: 'BOOK-123',
           hash: 'invalid-hash-123', // Invalid format (not 16 hex chars)
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -258,34 +267,24 @@ describe('Verify Endpoint', () => {
     it('should reject hash from different bookingId', async () => {
       const bookingId1 = 'BOOK-123';
       const bookingId2 = 'BOOK-456';
-      
+
       const url1 = generateQRURL(bookingId1);
       const hash1 = url1.split('/').pop();
 
       // Mock booking exists for bookingId2 (to pass timing attack prevention)
       mockGetBookingByBookingId.mockResolvedValue({
         bookingId: bookingId2,
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         startDate: '2025-12-20',
         endDate: '2025-12-22',
       });
 
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId2, // Different bookingId
           hash: hash1, // Hash from bookingId1
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -310,16 +309,21 @@ describe('Verify Endpoint', () => {
 
       const mockBooking = {
         bookingId: bookingId,
-        bookingStatus: 'confirmed',
+        status: 'confirmed',
         startDate: '2025-12-20',
         endDate: '2025-12-22',
         collectionId: 'bcparks_kootenay',
         activityType: 'backcountry',
         displayName: 'Kootenay Backcountry Campsite',
+        globalId: 'global-1',
+        activityId: 'activity-1',
+        sessionId: 'session-1',
+        sessionExpiry: '2025-01-01T00:00:00.000Z',
+        feeInformation: { total: 100 },
         namedOccupant: {
           firstName: 'John',
           lastName: 'Doe',
-          email: 'john.doe@example.com',
+          contactInfo: { email: 'john.doe@example.com' },
           phone: '555-1234',
         },
         partyInformation: {
@@ -330,58 +334,45 @@ describe('Verify Endpoint', () => {
 
       mockGetBookingByBookingId.mockResolvedValue(mockBooking);
 
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
       expect(sendResponse).toHaveBeenCalledWith(
         200,
         expect.objectContaining({
-          valid: true,
           bookingId: bookingId,
+          displayName: 'Kootenay Backcountry Campsite',
           status: 'confirmed',
-          statusDetails: expect.objectContaining({
-            isConfirmed: true,
-            isCancelled: false,
-          }),
-          booking: expect.objectContaining({
-            bookingId: bookingId,
-            displayName: 'Kootenay Backcountry Campsite',
-            guestName: 'John Doe', // Changed: aggregated name, not full namedOccupant
-            partySize: 3, // Changed: total count, not detailed breakdown
-            // Security: Should NOT include email, phone, feeInformation, globalId, activityId
-          }),
+          startDate: '2025-12-20',
+          endDate: '2025-12-22',
+          collectionId: 'bcparks_kootenay',
+          activityType: 'backcountry',
+          // Guest details are flattened out of namedOccupant
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          partySize: 3,
         }),
         'Success',
         null,
         {}
       );
 
-      // Verify sensitive data is NOT in response
+      // Verify sensitive/internal data is NOT in the response
       const responseData = sendResponse.mock.calls[0][1];
-      expect(responseData.booking.namedOccupant).toBeUndefined();
-      expect(responseData.booking.partyInformation).toBeUndefined();
-      expect(responseData.booking.feeInformation).toBeUndefined();
-      expect(responseData.booking.globalId).toBeUndefined();
-      expect(responseData.booking.activityId).toBeUndefined();
-      expect(responseData.booking.bookedAt).toBeUndefined();
-      expect(responseData.booking.sessionId).toBeUndefined();
-      expect(responseData.booking.sessionExpiry).toBeUndefined();
+      expect(responseData.namedOccupant).toBeUndefined();
+      expect(responseData.feeInformation).toBeUndefined();
+      expect(responseData.globalId).toBeUndefined();
+      expect(responseData.activityId).toBeUndefined();
+      expect(responseData.sessionId).toBeUndefined();
+      expect(responseData.sessionExpiry).toBeUndefined();
+      expect(responseData.bookedAt).toBeUndefined();
     });
 
     it('should identify cancelled booking', async () => {
@@ -389,91 +380,60 @@ describe('Verify Endpoint', () => {
       const url = generateQRURL(bookingId);
       const hash = url.split('/').pop();
 
-      const mockBooking = {
+      mockGetBookingByBookingId.mockResolvedValue({
         bookingId: bookingId,
-        bookingStatus: 'cancelled',
+        status: 'cancelled',
         startDate: '2025-12-20',
         endDate: '2025-12-22',
-      };
+      });
 
-      mockGetBookingByBookingId.mockResolvedValue(mockBooking);
-
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
       expect(sendResponse).toHaveBeenCalledWith(
         200,
-        expect.objectContaining({
-          valid: true,
-          status: 'cancelled',
-          statusDetails: expect.objectContaining({
-            isCancelled: true,
-            isConfirmed: false,
-          }),
-        }),
+        expect.objectContaining({ status: 'cancelled' }),
         'Success',
         null,
         {}
       );
     });
 
-    it('should identify expired session', async () => {
-      const bookingId = 'BOOK-EXPIRED-123';
+    it('should return checkOutTime and checkedInTime for status calculation', async () => {
+      const bookingId = 'BOOK-INPROGRESS-123';
       const url = generateQRURL(bookingId);
       const hash = url.split('/').pop();
 
-      const mockBooking = {
+      mockGetBookingByBookingId.mockResolvedValue({
         bookingId: bookingId,
-        bookingStatus: 'in progress',
-        sessionExpiry: '2025-01-01T00:00:00.000Z', // Past date
+        status: 'in progress',
+        checkedInTime: '2025-12-20T18:00:00.000Z',
+        reservationContext: { checkOutTime: '2025-12-22T11:00:00.000Z', internalNote: 'secret' },
         startDate: '2025-12-20',
         endDate: '2025-12-22',
-      };
+      });
 
-      mockGetBookingByBookingId.mockResolvedValue(mockBooking);
-
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
       expect(sendResponse).toHaveBeenCalledWith(
         200,
         expect.objectContaining({
-          valid: true,
-          statusDetails: expect.objectContaining({
-            isExpired: true,
-          }),
+          status: 'in progress',
+          checkedInTime: '2025-12-20T18:00:00.000Z',
+          reservationContext: { checkOutTime: '2025-12-22T11:00:00.000Z' },
         }),
         'Success',
         null,
@@ -484,27 +444,17 @@ describe('Verify Endpoint', () => {
 
   describe('Error Handling', () => {
     it('should handle missing bookingId parameter', async () => {
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           hash: 'somehash',
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
       expect(sendResponse).toHaveBeenCalledWith(
         400,
-        expect.any(Object),
+        null,
         expect.any(String),
         expect.anything(),
         {}
@@ -512,22 +462,12 @@ describe('Verify Endpoint', () => {
     });
 
     it('should reject invalid bookingId format', async () => {
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: 'invalid@booking!id', // Invalid characters
           hash: 'a1b2c3d4e5f6g7h8',
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
@@ -550,31 +490,21 @@ describe('Verify Endpoint', () => {
 
       mockGetBookingByBookingId.mockRejectedValue(new Error('Booking not found'));
 
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'test-admin',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@example.com'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
-      // Changed: Returns 400 (not 404) to prevent bookingId enumeration
+      // Returns 400 (not 404) to prevent bookingId enumeration
       expect(sendResponse).toHaveBeenCalledWith(
         400,
         expect.objectContaining({
           valid: false,
-          reason: 'Invalid or expired QR code', // Changed: generic message
+          reason: 'Invalid or expired QR code', // generic message
         }),
         'Invalid QR code',
         null,
@@ -583,9 +513,7 @@ describe('Verify Endpoint', () => {
     });
 
     it('should handle CORS preflight', async () => {
-      const event = {
-        httpMethod: 'OPTIONS',
-      };
+      const event = { httpMethod: 'OPTIONS' };
 
       const result = await handler(event, {});
 
@@ -596,54 +524,62 @@ describe('Verify Endpoint', () => {
   });
 
   describe('Audit Trail', () => {
-    it('should include verification metadata in response', async () => {
+    it('should write a successful verification to the audit log', async () => {
       const bookingId = 'BOOK-AUDIT-123';
       const url = generateQRURL(bookingId);
       const hash = url.split('/').pop();
 
-      const mockBooking = {
+      mockGetBookingByBookingId.mockResolvedValue({
         bookingId: bookingId,
-        bookingStatus: 'confirmed',
-      };
+        status: 'confirmed',
+        collectionId: 'bcparks_kootenay',
+        activityType: 'backcountry',
+        partyInformation: { adult: 2 },
+      });
 
-      mockGetBookingByBookingId.mockResolvedValue(mockBooking);
-
-      const event = {
-        httpMethod: 'GET',
+      const event = createAdminEvent({
+        claims: { sub: 'admin-user-123', email: 'admin@bcparks.ca' },
         pathParameters: {
           bookingId: bookingId,
           hash: hash,
-        },
-        requestContext: {
-          authorizer: {
-            claims: {
-              sub: 'admin-user-123',
-              'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'],
-              email: 'admin@bcparks.ca'
-            }
-          }
         }
-      };
+      });
 
       await handler(event, {});
 
-      expect(sendResponse).toHaveBeenCalledWith(
-        200,
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        'admin-user-123',
+        bookingId,
+        'QR_VERIFY_SUCCESS',
         expect.objectContaining({
-          verificationMetadata: expect.objectContaining({
-            verifiedBy: 'admin-user-123',
-            verifiedAt: expect.any(String),
-            // Changed: verifierEmail removed from response (privacy)
-          }),
+          status: 'confirmed',
+          partySize: 2,
+          collectionId: 'bcparks_kootenay',
+          activityType: 'backcountry',
+          timestamp: expect.any(String),
         }),
-        'Success',
-        null,
-        {}
+        expect.anything(),
+        expect.anything(),
+        expect.anything()
       );
+    });
 
-      // Verify verifierEmail is NOT in response
-      const responseData = sendResponse.mock.calls[0][1];
-      expect(responseData.verificationMetadata.verifierEmail).toBeUndefined();
+    it('should write an unauthorized attempt to the audit log', async () => {
+      const event = createMockEvent({
+        pathParameters: { bookingId: 'BOOK-123', hash: 'somehash' },
+      });
+
+      await handler(event, {});
+
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        'UNAUTHORIZED',
+        'BOOK-123',
+        'QR_VERIFY_UNAUTHORIZED',
+        expect.objectContaining({ reason: expect.any(String) }),
+        expect.anything(),
+        expect.anything(),
+        expect.anything()
+      );
     });
   });
 });
