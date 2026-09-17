@@ -511,12 +511,12 @@ const SEED_CONFIG = [
             {
               type: "dayuse",
               id: 1,
-              displayName: "Joffre Lakes day-use trail pass",
+              displayName: "Day-use trail pass",
               activitySubType: "trailUse",
               products: [
                 {
                   id: 1,
-                  displayName: "Joffre Lakes day-use trail pass - DAY",
+                  displayName: "Day-use trail pass - DAY",
                   startDate: "2026-10-01",
                   endDate: "2026-10-25",
                   capacity: 570,
@@ -1586,7 +1586,7 @@ function buildProductDateItems(collectionId, facilities) {
             feePolicy:         POLICY_FEE,
             partyPolicy:       `POLICY_PARTY__${activitySubType}`,
             reservationPolicy: `RESERVATION_POLICY_DATE_RULES__${passType}`,
-            reservationContext: computeReservationContext(date, product.timezone, passType),
+            reservationContext: computeReservationContext(date, product.timezone, passType, activitySubType),
             availabilityEstimationPattern: null,
             version: 1,
             creationDate: ts,
