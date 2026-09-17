@@ -736,8 +736,6 @@ function computeReservationContext(date, timezone, passType = 'ALL_DAY', activit
 
   // Reservation window: passes release 2 days before the visit at 7am local (bcgov/reserve-rec-public#836)
   const reservationOpenMs = localToEpochMs(addDays(date, -2), 7, timezone);
-  // Reservation window: passes release 2 days before the visit at 7am local (bcgov/reserve-rec-public#836)
-  const reservationOpenMs = localToEpochMs(addDays(date, -2), 7, timezone);
 
   return {
     isDiscoverable: true,
