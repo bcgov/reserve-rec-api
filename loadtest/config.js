@@ -52,6 +52,11 @@ function defaultBookingDate() {
 }
 export const BOOKING_DATE = str("BOOKING_DATE", defaultBookingDate());
 
+// Search leg switch. Off by default: the search endpoint is no longer part of
+// the measured chain (in Test it 400s - the search Lambda role is not mapped in
+// the OpenSearch domain). Re-enable with -e SEARCH_ENABLED=true; it also
+// restores the ungated_search_burst scenario under PROFILE=capacity.
+export const SEARCH_ENABLED = flag("SEARCH_ENABLED", false);
 export const SEARCH_TEXT = str("SEARCH_TEXT", "Joffre");
 // Extra terms for browse variety; misses are still valid OpenSearch load.
 export const SEARCH_TERMS = str("SEARCH_TERMS", "Joffre,Garibaldi,Golden Ears,Cypress,Strathcona").split(",");
@@ -152,7 +157,8 @@ export function buildThresholds(profile) {
     // configured target.
     html_masquerade_responses: ["count==0"],
   };
-  const endpoints = ["search", "product-dates", "bookings", "complete", "cancel"];
+  const endpoints = ["product-dates", "bookings", "complete", "cancel"];
+  if (SEARCH_ENABLED) endpoints.unshift("search");
   for (const ep of endpoints) {
     thresholds[`http_req_duration{endpoint:${ep}}`] = [`p(95)<${P95_MS}`];
   }

@@ -121,7 +121,13 @@ users, SRP-authenticates each, and writes `loadtest/tokens.json`
 
 ## Running
 
-All commands from the repo root. `PROFILE` selects the scenario set:
+All commands from the repo root. `PROFILE` selects the scenario set.
+
+The search leg is **off by default** (`SEARCH_ENABLED=false`): `POST /search` is no
+longer part of the measured chain, and in Test it 400s because the search Lambda's role
+is not mapped in the OpenSearch domain. Pass `-e SEARCH_ENABLED=true` to restore it -
+that re-adds the `search` calls to every chain, the `search` p95 threshold, and the
+`ungated_search_burst` scenario under `capacity`.
 
 ```sh
 # Scenario 1 + 2 together (the default): gated booking ramp measured while an

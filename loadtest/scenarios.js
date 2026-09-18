@@ -65,10 +65,9 @@ const searchBurst = {
 const PROFILES = {
   // Scenarios 1 + 2 run concurrently by design: the gated booking ramp is
   // measured while the ungated search burst saturates the read path.
-  capacity: {
-    gated_ramp: gatedRamp,
-    ungated_search_burst: searchBurst,
-  },
+  capacity: cfg.SEARCH_ENABLED
+    ? { gated_ramp: gatedRamp, ungated_search_burst: searchBurst }
+    : { gated_ramp: gatedRamp },
   peak: {
     realistic_peak: {
       executor: "ramping-arrival-rate",
@@ -223,7 +222,7 @@ function ensureAdmission(user, tags) {
 // skips complete). Payment (Worldline) is disabled product-wide, so the
 // booking flow — and this chain — ends at complete.
 function runChain(user, tags) {
-  api.search({ text: cfg.SEARCH_TEXT, schema: "facility", size: 25 }, tags);
+  if (cfg.SEARCH_ENABLED) api.search({ text: cfg.SEARCH_TEXT, schema: "facility", size: 25 }, tags);
   api.getProductDates(cfg.SEED, cfg.BOOKING_DATE, tags);
 
   if (cfg.WAITING_ROOM && !ensureAdmission(user, tags)) return;
@@ -292,7 +291,7 @@ export function peakIteration() {
   const user = userForIteration();
   if (Math.random() < cfg.BROWSE_RATIO) {
     // Browser: 1–3 searches with think time, then a dates check, no booking.
-    const searches = 1 + Math.floor(Math.random() * 3);
+    const searches = cfg.SEARCH_ENABLED ? 1 + Math.floor(Math.random() * 3) : 0;
     for (let i = 0; i < searches; i++) {
       api.search({ text: randomSearchTerm(), schema: "facility", size: 25 });
       sleep(1 + Math.random() * 3);
