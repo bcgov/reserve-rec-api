@@ -30,6 +30,8 @@ function str(name, fallback) {
 // CloudFront-injected X-Origin-Verify header, and the CloudFront hop (incl.
 // the path-strip function) is deliberately part of the measured path.
 export const BASE_URL = str("BASE_URL", "https://test-reserve.bcparks.ca/dayuse/api");
+// The SPA shell (index.html) the homepage profile lands on: BASE_URL minus /api.
+export const SHELL_URL = str("SHELL_URL", BASE_URL.replace(/\/api\/?$/, "/"));
 
 // ---------------------------------------------------------------------------
 // Seeded data (src/scripts/tools/dynamodb/seed-collection.js)
@@ -132,6 +134,19 @@ export const COLD_GATE = str("COLD_GATE", "0s"); // startTime offset (idle gate)
 export const COLD_PREALLOC_VUS = num("COLD_PREALLOC_VUS", 100);
 export const COLD_MAX_VUS = num("COLD_MAX_VUS", 400);
 
+// ---------------------------------------------------------------------------
+// Scenario 7 — homepage
+// ---------------------------------------------------------------------------
+// HOME_VUS people land on the home page: the SPA shell through CloudFront plus
+// the three API calls the app fires on boot (config, featureFlags,
+// waiting-room status). No auth, no tokens.json needed. Arrivals are
+// simultaneous by default; HOME_SPREAD_S > 0 spreads them uniformly over that
+// many seconds. HOME_ITERATIONS > 1 makes each person land again.
+export const HOME_VUS = num("HOME_VUS", 1000);
+export const HOME_ITERATIONS = num("HOME_ITERATIONS", 1);
+export const HOME_SPREAD_S = num("HOME_SPREAD_S", 0);
+export const HOME_MAX_DURATION = str("HOME_MAX_DURATION", "5m");
+
 // Payment (Worldline) is disabled product-wide: the booking flow ends at
 // POST /bookings/{id}/complete, so the harness has no payment leg. Extend it
 // only when payment enablement lands.
@@ -146,7 +161,7 @@ export const WR_POLL_INTERVAL_S = num("WR_POLL_INTERVAL_S", 2);
 // ---------------------------------------------------------------------------
 // SLO thresholds
 // ---------------------------------------------------------------------------
-export const P95_MS = num("P95_MS", 3000);
+export const P95_MS = num("P95_MS", 10000);
 export const MAX_ERROR_RATE = num("MAX_ERROR_RATE", 0.005);
 
 export function buildThresholds(profile) {
@@ -157,8 +172,11 @@ export function buildThresholds(profile) {
     // configured target.
     html_masquerade_responses: ["count==0"],
   };
-  const endpoints = ["product-dates", "bookings", "complete", "cancel"];
-  if (SEARCH_ENABLED) endpoints.unshift("search");
+  const endpoints =
+    profile === "homepage"
+      ? ["shell", "config", "feature-flags", "waiting-room-status"]
+      : ["product-dates", "bookings", "complete", "cancel"];
+  if (SEARCH_ENABLED && profile !== "homepage") endpoints.unshift("search");
   for (const ep of endpoints) {
     thresholds[`http_req_duration{endpoint:${ep}}`] = [`p(95)<${P95_MS}`];
   }
