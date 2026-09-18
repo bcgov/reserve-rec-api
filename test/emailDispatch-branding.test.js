@@ -68,6 +68,20 @@ describe('confirmation email branding', () => {
     expect(html).toContain('src="cid:icon-pin"');
     expect(html).toContain('src="cid:icon-ticket"');
   });
+
+  // #855: the footer social links must point at the official BC Parks accounts
+  // (YourBCParks / yourbcparks), and render as icons rather than "FB"/"IG" text.
+  it('links the social icons to the official BC Parks accounts', () => {
+    const html = render({ branding: { facebookCid: 'icon-facebook', instagramCid: 'icon-instagram' } });
+
+    expect(html).toContain('https://www.facebook.com/YourBCParks/');
+    expect(html).toContain('https://www.instagram.com/yourbcparks/');
+    expect(html).not.toContain('facebook.com/BCParks/');
+    expect(html).not.toContain('instagram.com/bcparks/');
+
+    expect(html).toContain('src="cid:icon-facebook"');
+    expect(html).toContain('src="cid:icon-instagram"');
+  });
 });
 
 describe('confirmation email cancellation section', () => {
