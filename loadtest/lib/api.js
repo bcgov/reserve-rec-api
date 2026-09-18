@@ -13,7 +13,7 @@
 import http from "k6/http";
 import { check } from "k6";
 import { Counter, Trend } from "k6/metrics";
-import { BASE_URL } from "../config.js";
+import { BASE_URL, SHELL_URL } from "../config.js";
 
 export const htmlMasquerade = new Counter("html_masquerade_responses");
 export const bookingsSucceeded = new Counter("bookings_succeeded");
@@ -66,6 +66,34 @@ function toQuery(params) {
   return Object.keys(params)
     .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
     .join("&");
+}
+
+// GET the SPA shell (index.html) through CloudFront. This one is HTML by
+// design, so it bypasses guard(); the check is that it IS the shell.
+export function getShell(extraTags) {
+  const res = http.get(SHELL_URL, { tags: tags("shell", extraTags) });
+  check(res, { "shell is the SPA index": (r) => r.status === 200 && /<app-root/i.test(r.body || "") }, {
+    endpoint: "shell",
+  });
+  return { response: res, parsed: null };
+}
+
+// The three unauthenticated calls the SPA makes on boot.
+export function getPublicConfig(extraTags) {
+  const res = http.get(`${BASE_URL}/config?config=public`, { tags: tags("config", extraTags) });
+  return { response: res, parsed: guard(res, "config") };
+}
+
+export function getFeatureFlags(extraTags) {
+  const res = http.get(`${BASE_URL}/featureFlags`, { tags: tags("feature-flags", extraTags) });
+  return { response: res, parsed: guard(res, "feature-flags") };
+}
+
+export function getWaitingRoomStatus(extraTags) {
+  const res = http.get(`${BASE_URL}/waiting-room/mode2/status`, {
+    tags: tags("waiting-room-status", extraTags),
+  });
+  return { response: res, parsed: guard(res, "waiting-room-status") };
 }
 
 // POST /search — no auth. `text` is free text, other fields become term filters.

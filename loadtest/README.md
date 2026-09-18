@@ -148,12 +148,16 @@ k6 run -e PROFILE=abandonment -e ABANDON_DURATION=25m loadtest/scenarios.js
 
 # Scenario 6 — cold start (see procedure below):
 k6 run -e PROFILE=coldstart loadtest/scenarios.js
+
+# Scenario 7 — 1000 people land on the home page at once (no tokens needed):
+k6 run -e PROFILE=homepage loadtest/scenarios.js
+k6 run -e PROFILE=homepage -e HOME_VUS=200 -e HOME_SPREAD_S=30 loadtest/scenarios.js
 ```
 
 Useful extras: `--out json=results.json` or `--out experimental-prometheus-rw` for
 retention; `--summary-export summary.json` for the threshold verdicts.
 
-### The six scenarios
+### The seven scenarios
 
 | # | Scenario | Profile | Shape |
 |---|----------|---------|-------|
@@ -163,6 +167,7 @@ retention; `--summary-export summary.json` for the threshold verdicts.
 | 4 | `contention` | `contention` | `CONTENTION_VUS` users each fire one booking at the SAME product/date; counts guard rejections vs successes |
 | 5 | `abandonment` | `abandonment` | constant arrivals; `ABANDON_RATIO` of successful holds are left to expire; verifies released inventory is rebookable |
 | 6 | `cold_start` | `coldstart` | sharp constant-arrival step from zero after `COLD_GATE` |
+| 7 | `homepage` | `homepage` | `HOME_VUS` (1000) unauthenticated landings: SPA shell via CloudFront + the three boot calls (`config`, `featureFlags`, `waiting-room/mode2/status`); simultaneous unless `HOME_SPREAD_S` staggers them |
 
 ### How the two concurrent profiles work (scenario 1 + 2)
 
@@ -197,6 +202,21 @@ from rebooking until release — so a fresh success by that VU (counted in
 `rebook_after_release`) proves the release actually happened. **A run shorter than the
 hold window can't observe any releases**: soak for at least `ABANDON_DURATION=20m`,
 ideally 25–30m, and expect `rebook_after_release > 0`.
+
+### Scenario 7 — home-page landing
+
+What a browser does on a cold visit to `/dayuse/`: fetch the shell (`index.html`, served
+by CloudFront - tagged `endpoint:shell`, and the one request in the harness that is
+*supposed* to be HTML) and then, as the app boots, `GET /config?config=public`,
+`GET /featureFlags`, and `GET /waiting-room/mode2/status`. The ~20 JS/CSS chunks are
+edge-cached and are not fetched. Nothing is authenticated, so this profile does not read
+`tokens.json` and `setup()` does not enforce a pool size.
+
+`per-vu-iterations` starts all `HOME_VUS` VUs at once, which models a scheduled-opening
+stampede. `HOME_SPREAD_S=30` spreads the arrivals uniformly over 30 s instead;
+`HOME_ITERATIONS=3` has every person land three times. Read the result per endpoint:
+`shell` shows the CloudFront hop, the three API endpoints show Lambda cold-start fan-out
+under a burst (compare with CloudWatch `Init Duration` and concurrent executions).
 
 ### Scenario 6 — cold-start procedure
 

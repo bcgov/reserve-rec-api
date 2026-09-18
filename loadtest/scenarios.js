@@ -6,6 +6,7 @@
  *   k6 run -e PROFILE=contention  loadtest/scenarios.js   (scenario 4)
  *   k6 run -e PROFILE=abandonment loadtest/scenarios.js   (scenario 5)
  *   k6 run -e PROFILE=coldstart   loadtest/scenarios.js   (scenario 6)
+ *   k6 run -e PROFILE=homepage    loadtest/scenarios.js   (scenario 7, no tokens)
  *
  * See loadtest/README.md for the full runbook. Runs inside k6 (goja) — no
  * Node APIs here.
@@ -120,6 +121,17 @@ const PROFILES = {
       maxVUs: cfg.COLD_MAX_VUS,
     },
   },
+  homepage: {
+    // HOME_VUS people land on the home page at once (per-vu-iterations
+    // starts every VU immediately); HOME_SPREAD_S staggers them.
+    homepage: {
+      executor: "per-vu-iterations",
+      exec: "homepageLanding",
+      vus: cfg.HOME_VUS,
+      iterations: cfg.HOME_ITERATIONS,
+      maxDuration: cfg.HOME_MAX_DURATION,
+    },
+  },
 };
 
 if (!PROFILES[PROFILE]) {
@@ -139,10 +151,11 @@ const AUTH_VUS_NEEDED = {
   contention: cfg.CONTENTION_VUS,
   abandonment: cfg.ABANDON_MAX_VUS,
   coldstart: cfg.COLD_MAX_VUS,
+  homepage: 0,
 }[PROFILE];
 
 export function setup() {
-  assertTokenCount(AUTH_VUS_NEEDED, PROFILE);
+  if (AUTH_VUS_NEEDED > 0) assertTokenCount(AUTH_VUS_NEEDED, PROFILE);
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +293,16 @@ export function bookingChain() {
   const user = userForIteration();
   const tags = exec.scenario.name === "gated_ramp" ? { step: currentRampStep() } : {};
   runChain(user, tags);
+}
+
+// One person landing on the home page: shell, then the three boot calls the
+// SPA fires (in the order the browser issues them).
+export function homepageLanding() {
+  if (cfg.HOME_SPREAD_S > 0) sleep(Math.random() * cfg.HOME_SPREAD_S);
+  api.getShell();
+  api.getPublicConfig();
+  api.getFeatureFlags();
+  api.getWaitingRoomStatus();
 }
 
 export function searchOnly() {
