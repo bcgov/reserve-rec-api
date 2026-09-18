@@ -275,14 +275,19 @@
         .social-icon {
             width: 32px;
             height: 32px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             text-decoration: none;
             font-size: 18px;
+        }
+
+        .social-icon img {
+            display: block;
+            width: 32px;
+            height: 32px;
+            border: 0;
         }
 
         @media only screen and (max-width: 600px) {
@@ -427,8 +432,8 @@
                 </div>
                 <div class="footer-content">
                     <div class="social-icons">
-                        <a href="https://www.facebook.com/BCParks/" target="_blank" class="social-icon">FB</a>
-                        <a href="https://www.instagram.com/bcparks/" target="_blank" class="social-icon">IG</a>
+                        <a href="https://www.facebook.com/YourBCParks/" target="_blank" class="social-icon">{{#if branding.facebookCid}}<img src="cid:{{branding.facebookCid}}" width="32" height="32" alt="Facebook" />{{else}}FB{{/if}}</a>
+                        <a href="https://www.instagram.com/yourbcparks/" target="_blank" class="social-icon">{{#if branding.instagramCid}}<img src="cid:{{branding.instagramCid}}" width="32" height="32" alt="Instagram" />{{else}}IG{{/if}}</a>
                     </div>
                 </div>
                 </div>
