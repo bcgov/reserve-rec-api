@@ -1,8 +1,8 @@
 const { getOne } = require('/opt/dynamodb');
-const { sendResponse, logger } = require('/opt/base');
+const { requestIdentity, sendResponse, logger } = require('/opt/base');
 
 exports.handler = async (event, context) => {
-  logger.debug('Read Config', event);
+  logger.debug('Read Config', requestIdentity(event));
 
   try {
     const configItem = await getOne('config', 'admin');

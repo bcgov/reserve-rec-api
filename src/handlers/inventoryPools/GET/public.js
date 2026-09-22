@@ -1,4 +1,4 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { fetchInventoryPoolsOnDate, fetchInventoryPoolsForDateRange } = require("../methods");
 const { PUBLIC_INVENTORYPOOL_PROJECTIONS } = require("../configs");
 
@@ -8,7 +8,7 @@ const { PUBLIC_INVENTORYPOOL_PROJECTIONS } = require("../configs");
  * Returns only isOpen and available fields (see PUBLIC_INVENTORYPOOL_PROJECTIONS).
  */
 exports.handler = async (event, context) => {
-  logger.info("GET InventoryPool by Product on Date (public)", event);
+  logger.info("GET InventoryPool by Product on Date (public)", requestIdentity(event));
 
   if (event.httpMethod === 'OPTIONS') {
     return {

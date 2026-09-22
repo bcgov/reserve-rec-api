@@ -1,6 +1,7 @@
 // Get transaction
 
 const {
+  requestIdentity,
   Exception,
   logger,
   sendResponse,
@@ -14,7 +15,7 @@ const {
 } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Transactions user GET:", event);
+  logger.info("Transactions user GET:", requestIdentity(event));
 
   try {
     // Get the user sub from the authorizer context

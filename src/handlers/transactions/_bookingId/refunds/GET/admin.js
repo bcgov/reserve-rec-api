@@ -1,10 +1,10 @@
 // Get refund by refund ID
 
-const { Exception, logger, sendResponse, handleCORS } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, handleCORS } = require("/opt/base");
 const { getAllRefundsByBookingId, getRefundByRefundId } = require("../../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Refunds admin GET:", event);
+  logger.info("Refunds admin GET:", requestIdentity(event));
 
   // Handle CORS preflight
   const corsResponse = handleCORS(event, context);

@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../common/data-utils");
 const { COLLECTION_API_UPDATE_CONFIG } = require("../configs");
 const { parseRequest, getCollectionByCollectionId } = require("../methods");
@@ -9,7 +9,7 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  * Update a Collection
  */
 exports.handler = async (event, context) => {
-  logger.info("PUT Collections", event);
+  logger.info("PUT Collections", requestIdentity(event));
   try {
     const authContext = checkAuthContext(event, "superadmin");
 

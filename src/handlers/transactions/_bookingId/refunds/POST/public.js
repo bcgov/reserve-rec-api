@@ -1,7 +1,7 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 
 exports.handler = async (event, context) => {
-  logger.info("Refund public POST:", event);
+  logger.info("Refund public POST:", requestIdentity(event));
 
   try {
     // TODO: complete public endpoint for refunds later

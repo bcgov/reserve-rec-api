@@ -1,11 +1,11 @@
-const { Exception, logger, sendResponse, checkAuthContext, writeAuditLog, getNowISO } = require('/opt/base');
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext, writeAuditLog, getNowISO } = require('/opt/base');
 const { getOne, marshall, batchWriteData, REFERENCE_DATA_TABLE_NAME, AUDIT_TABLE_NAME, PutItemCommand } = require('/opt/dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'ca-central-1' });
 
 exports.handler = async (event, context) => {
-  logger.info('Update Feature Flags', event);
+  logger.info('Update Feature Flags', requestIdentity(event));
   
   // Handle CORS preflight
   if (event?.httpMethod === 'OPTIONS') {
