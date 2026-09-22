@@ -7,6 +7,8 @@ jest.mock('/opt/base', () => ({
 jest.mock('/opt/emailBlocklist', () => ({
   loadBlocklist: jest.fn().mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] }),
   refusalReason: jest.fn().mockReturnValue(null),
+  // The mailbox claim is covered in preSignUpEmailClaim.test.js.
+  canonicalizeEmail: () => null,
 }));
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
 

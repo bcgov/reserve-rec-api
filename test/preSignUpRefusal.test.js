@@ -11,6 +11,8 @@ jest.mock('/opt/emailBlocklist', () => ({
   loadBlocklist: (...args) => mockLoadBlocklist(...args),
   refusalReason: (...args) => mockRefusalReason(...args),
   emailDomain: (email) => String(email).split('@')[1] || null,
+  // The mailbox claim is covered in preSignUpEmailClaim.test.js.
+  canonicalizeEmail: () => null,
 }));
 
 jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
