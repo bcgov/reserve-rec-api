@@ -23,6 +23,7 @@ jest.mock("/opt/opensearch", () => ({
 
 // Mock the Base Layer (Utilities and Auth)
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   sendResponse: jest.fn((status, data, message, error, context) => ({
     status,
     data,

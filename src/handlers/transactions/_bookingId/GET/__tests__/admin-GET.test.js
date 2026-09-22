@@ -1,6 +1,7 @@
 "use strict";
 
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, options) {
     this.message = message;
     this.code = options?.code;

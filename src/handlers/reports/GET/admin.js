@@ -10,11 +10,11 @@
  *   - facilityId (optional): Filter by specific activity/facility ID
  */
 
-const { logger, sendResponse, handleCORS, Exception, checkAuthContext } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, handleCORS, Exception, checkAuthContext } = require("/opt/base");
 const { runQuery, getOne, TRANSACTIONAL_DATA_TABLE_NAME, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
-  logger.info("Daily Passes Report GET:", event);
+  logger.info("Daily Passes Report GET:", requestIdentity(event));
 
   const corsResponse = handleCORS(event, context);
   if (corsResponse) return corsResponse;

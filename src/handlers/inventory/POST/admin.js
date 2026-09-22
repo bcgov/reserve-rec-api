@@ -1,5 +1,5 @@
 const { quickApiPutHandler, formatForQuickApi } = require("../../../common/data-utils");
-const { logger, sendResponse, Exception, checkAuthContext } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 const { INVENTORY_API_PUT_CONFIG } = require("../configs");
 const { initializeInventory } = require("../methods");
@@ -8,7 +8,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
 
 exports.handler = async (event, context) => {
-  logger.info("POST Inventory by Product", event);
+  logger.info("POST Inventory by Product", requestIdentity(event));
 
   try {
     // Validate required parameters from path, queryparams, and body.

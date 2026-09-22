@@ -1,5 +1,5 @@
 const { quickApiPutHandler, formatForQuickApi } = require("../../../common/data-utils");
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 const { INVENTORYPOOLS_API_PUT_CONFIG } = require("../configs");
 const { initializeInventoryPools } = require("../methods");
@@ -8,7 +8,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
 
 exports.handler = async (event, context) => {
-  logger.info("POST InventoryPool by Product", event);
+  logger.info("POST InventoryPool by Product", requestIdentity(event));
 
   if (event.httpMethod === 'OPTIONS') {
     return {

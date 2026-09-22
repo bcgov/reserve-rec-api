@@ -24,6 +24,8 @@ jest.mock("/opt/base", () => {
   };
 
   return {
+
+    requestIdentity: jest.fn(() => ({})),
     Exception: mockException,
     logger: {
       info: jest.fn(),

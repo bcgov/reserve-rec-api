@@ -1,5 +1,5 @@
 // Create new booking
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent, requestIdentity } = require("/opt/base");
 const { createBooking, formatBookingResponsePublic, } = require("../methods");
 const { batchTransactData } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
@@ -7,7 +7,7 @@ const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings POST Activated");
+  logger.info("Bookings POST Activated", requestIdentity(event));
 
   // Declared out here so the catch can inspect which transaction item failed its
   // ConditionExpression (inventory sold out, or the booking-hold dedup marker).

@@ -1,5 +1,6 @@
 // Create new transaction
 const {
+  requestIdentity,
   Exception,
   getRequestClaimsFromEvent,
   logger,
@@ -8,7 +9,7 @@ const {
 const { processTokenTransaction } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Transactions public POST:", event);
+  logger.info("Transactions public POST:", requestIdentity(event));
 
   try {
     // Get relevant data from the event

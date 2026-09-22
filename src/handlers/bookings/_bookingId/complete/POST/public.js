@@ -2,14 +2,14 @@
 // email. The email must go out only after the DynamoDB write succeeds —
 // otherwise a transient DB failure would leave the user with a confirmation
 // email for a booking that was never saved.
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
 const { enqueueSmsReminderIfNeeded } = require("../../../notifications");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
 exports.handler = async (event, context) => {
-  logger.info("POST Complete Booking:", event);
+  logger.info("POST Complete Booking:", requestIdentity(event));
 
   try {
     const body = JSON.parse(event?.body);

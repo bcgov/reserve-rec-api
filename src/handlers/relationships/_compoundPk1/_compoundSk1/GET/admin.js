@@ -1,5 +1,5 @@
 const { getRelationshipsByPk, getRelationshipsByGsipk, expandRelationships, filterExpandedEntitiesByRole } = require("../../../../../common/relationship-utils");
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 
 /**
  * GET /relationships/{pk1}/{sk1}
@@ -15,7 +15,7 @@ const { Exception, logger, sendResponse } = require("/opt/base");
  *
  */
 exports.handler = async (event, context) => {
-  logger.info("GET Relationships From", event);
+  logger.info("GET Relationships From", requestIdentity(event));
 
   const pk1 = event?.pathParameters?.pk1;
   const sk1 = event?.pathParameters?.sk1;

@@ -5,6 +5,7 @@ const {
   nonKeyableTerms,
 } = require("/opt/opensearch");
 const {
+  requestIdentity,
   sendResponse,
   logger,
   handleCORS,
@@ -14,7 +15,7 @@ const {
 } = require("/opt/base");
 // Lambda function entry point
 exports.handler = async function (event, context) {
-  logger.debug("Search:", event);
+  logger.debug("Search:", requestIdentity(event));
 
   // Handle CORS preflight
   const corsResponse = handleCORS(event, context);
