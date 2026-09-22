@@ -1,0 +1,65 @@
+// The handler's refusal path: what propagates, what fails open, and what the
+// caller is told.
+
+jest.mock('/opt/base', () => ({
+  logger: { debug: jest.fn(), info: jest.fn(), error: jest.fn() },
+}));
+
+const mockLoadBlocklist = jest.fn();
+const mockRefusalReason = jest.fn();
+jest.mock('/opt/emailBlocklist', () => ({
+  loadBlocklist: (...args) => mockLoadBlocklist(...args),
+  refusalReason: (...args) => mockRefusalReason(...args),
+}));
+
+jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
+
+const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
+
+const event = (email = 'someone@example.test') => ({
+  userPoolId: 'pool',
+  triggerSource: 'PreSignUp_SignUp',
+  request: { userAttributes: { email } },
+});
+
+describe('PreSignUp refusal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLoadBlocklist.mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] });
+    mockRefusalReason.mockReturnValue(null);
+  });
+
+  it('allows an address the blocklist does not match', async () => {
+    await expect(handler(event())).resolves.toBeDefined();
+  });
+
+  it('refuses a matched address', async () => {
+    mockRefusalReason.mockReturnValue('domain');
+    await expect(handler(event())).rejects.toThrow(/could not complete your registration/i);
+  });
+
+  // The refusal reaches the caller, so it must not name the attribute or the
+  // rule that matched.
+  it('says nothing about which rule matched', async () => {
+    mockRefusalReason.mockReturnValue('pattern');
+    await expect(handler(event())).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.not.stringMatching(/email|address|domain|pattern|blocked|banned/i),
+      })
+    );
+  });
+
+  // Regression guard: the refusal used to be recognised by its message text, so
+  // rewording it turned every refusal into a fail-open.
+  it('still refuses when the message is not what the catch expects', async () => {
+    mockRefusalReason.mockReturnValue('address');
+    const err = await handler(event()).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.signupRefused).toBe(true);
+  });
+
+  it('fails open when the blocklist cannot be read', async () => {
+    mockLoadBlocklist.mockRejectedValue(new Error('DynamoDB unavailable'));
+    await expect(handler(event())).resolves.toBeDefined();
+  });
+});
