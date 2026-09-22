@@ -1,5 +1,6 @@
 const { DURATION_PROPERTY_ENUMS, TIME_24H_ENUMS } = require('./data-constants');
 const { DateTime, Exception } = require('/opt/base');
+const { isValidPhoneNumber } = require('/opt/phone');
 
 class rulesFns {
 
@@ -410,17 +411,23 @@ class rulesFns {
   }
 
   /**
-   * Validates that the provided value is a string and matches the 10-digit phone number format.
+   * Validates that the provided value is a phone number an SMS can reach:
+   * E.164 with a country code, or a bare NANP number. Deliberately not
+   * NANP-only - out-of-country visitors book too - and deliberately the same
+   * check the SMS sender normalizes with, so nothing is stored that the
+   * reminder would then skip.
    *
-   * @param {string} value - The value to validate as a 10-digit phone number.
-   * @throws {Exception} Throws an exception if the value is not a string or does not match the 10-digit phone number format.
+   * @param {string} value - The value to validate as a phone number.
+   * @throws {Exception} Throws an exception if the value is not a string or cannot be resolved to E.164.
    */
-  expect10DigitPhoneFormat(value) {
+  expectPhoneFormat(value) {
     try {
       this.expectType(value, ['string']);
-      this.regexMatch(value, /^\d{10}$/);
+      if (!isValidPhoneNumber(value)) {
+        throw new Error('unresolvable');
+      }
     } catch (error) {
-      throw new Exception(`Invalid 10 digit phone format: '${value}'.`, { code: 400 });
+      throw new Exception(`Invalid phone format: '${value}'.`, { code: 400 });
     }
   }
 
