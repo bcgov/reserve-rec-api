@@ -10,6 +10,7 @@ const mockRefusalReason = jest.fn();
 jest.mock('/opt/emailBlocklist', () => ({
   loadBlocklist: (...args) => mockLoadBlocklist(...args),
   refusalReason: (...args) => mockRefusalReason(...args),
+  emailDomain: (email) => String(email).split('@')[1] || null,
 }));
 
 jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
@@ -56,6 +57,24 @@ describe('PreSignUp refusal', () => {
     const err = await handler(event()).catch((e) => e);
     expect(err).toBeInstanceOf(Error);
     expect(err.signupRefused).toBe(true);
+  });
+
+  it('records the domain and caller, never the local part', async () => {
+    const { logger } = require('/opt/base');
+    mockRefusalReason.mockReturnValue('domain');
+    await handler({
+      ...event('someone@blocked.test'),
+      callerContext: { clientId: 'client-1' },
+    }).catch(() => {});
+
+    const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
+    expect(fields).toMatchObject({
+      reason: 'domain',
+      domain: 'blocked.test',
+      clientId: 'client-1',
+      triggerSource: 'PreSignUp_SignUp',
+    });
+    expect(JSON.stringify(fields)).not.toContain('someone');
   });
 
   it('fails open when the blocklist cannot be read', async () => {
