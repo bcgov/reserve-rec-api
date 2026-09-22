@@ -465,7 +465,7 @@ async function runScan(query, limit = null, lastEvaluatedKey = null, paginated =
     if (limit && paginated) {
       query.Limit = limit;
     }
-    pageData = await getDynamoDBClient().scan(query);
+    pageData = await getDynamoDBClient().send(new ScanCommand(query));
     if (pageData?.Items) {
       data = data.concat(
         pageData.Items.map(item => {
