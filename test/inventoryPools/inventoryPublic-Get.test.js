@@ -5,6 +5,7 @@
  * Tests for retrieving inventory pool data (isOpen and availability)
  */
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;

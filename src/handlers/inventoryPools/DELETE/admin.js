@@ -1,9 +1,9 @@
 
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { deleteInventoryPools } = require("../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("DELETE InventoryPool by Product", event);
+  logger.info("DELETE InventoryPool by Product", requestIdentity(event));
 
   if (event.httpMethod === 'OPTIONS') {
     return {

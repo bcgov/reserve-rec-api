@@ -1,5 +1,5 @@
 const { RELATIONSHIP_API_PUT_CONFIG } = require('../configs');
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../common/data-utils");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
@@ -12,7 +12,7 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  */
 
 exports.handler = async (event, context) => {
-  logger.info("POST relationship", event);
+  logger.info("POST relationship", requestIdentity(event));
   try {
     
     const { pk1, sk1, pk2, sk2 } = JSON.parse(event?.body);

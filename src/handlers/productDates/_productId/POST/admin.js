@@ -1,4 +1,4 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { initializeProductDates, fetchProductDates } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 const { quickApiPutHandler, formatForQuickApi } = require("../../../../common/data-utils");
@@ -8,7 +8,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
 
 exports.handler = async (event, context) => {
-  logger.info("POST Product Dates", event);
+  logger.info("POST Product Dates", requestIdentity(event));
 
   // Allow Options
   if (event.httpMethod === "OPTIONS") {

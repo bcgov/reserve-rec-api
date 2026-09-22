@@ -1,9 +1,9 @@
 // Get refund by refund ID
 
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 
 exports.handler = async (event, context) => {
-  logger.info("Refunds public GET:", event);
+  logger.info("Refunds public GET:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {

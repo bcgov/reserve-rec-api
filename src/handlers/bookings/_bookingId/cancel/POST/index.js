@@ -8,7 +8,7 @@
  * by a subscriber Lambda functions found in /bookings/cancel/subscriber and
  * transactions/refunds/subscriber.
  */
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData } = require("/opt/dynamodb");
 const {
   getBookingByBookingId,
@@ -19,7 +19,7 @@ const {
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Cancel POST:", event);
+  logger.info("Bookings Cancel POST:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {

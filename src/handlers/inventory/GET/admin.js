@@ -1,8 +1,8 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { fetchInventoryOnDate } = require("../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("GET Inventory by Product on Date", event);
+  logger.info("GET Inventory by Product on Date", requestIdentity(event));
   try {
 
     // Validate required parameters from path and queryparams
