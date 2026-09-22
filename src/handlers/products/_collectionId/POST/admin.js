@@ -1,4 +1,4 @@
-const { logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { PRODUCT_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
 const { createEntityWithRelationships } = require("../../../../common/relationship-utils.js");
@@ -9,7 +9,7 @@ const { createEntityWithRelationships } = require("../../../../common/relationsh
  * Create Products
  */
 exports.handler = async (event, context) => {
-  logger.info("POST Products", event);
+  logger.info("POST Products", requestIdentity(event));
   try {
     const authContext = checkAuthContext(event, "superadmin");
 

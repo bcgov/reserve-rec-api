@@ -436,6 +436,26 @@ function getRequestClaimsFromEvent(event) {
   }
 }
 
+/**
+ * Identity fields for one request, for handler entry logs. `requestId` is the
+ * id the API Gateway access log also records, so the two can be joined.
+ */
+function requestIdentity(event) {
+  const ctx = event?.requestContext || {};
+  const auth = ctx.authorizer || {};
+  // Only the Cognito sub identifies the caller; email and username stay out.
+  const userId = auth.userId && auth.userId !== 'guest' ? auth.userId : null;
+  return {
+    requestId: ctx.requestId || null,
+    userId: userId,
+    authenticated: auth.isAuthenticated === 'true' || auth.isAuthenticated === true,
+    ip: ctx.identity?.sourceIp || null,
+    userAgent: ctx.identity?.userAgent || null,
+    httpMethod: ctx.httpMethod || event?.httpMethod || null,
+    path: ctx.path || event?.path || null,
+  };
+}
+
 const Exception = class extends Error {
   constructor(message, errorData) {
     super(message);
@@ -520,6 +540,7 @@ module.exports = {
   getRequestClaimsFromEvent,
   isoToEpoch,
   logger,
+  requestIdentity,
   sendMessage,
   sendResponse,
   safeStringify,
