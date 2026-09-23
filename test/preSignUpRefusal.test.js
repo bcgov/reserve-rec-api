@@ -79,6 +79,30 @@ describe('PreSignUp refusal', () => {
     expect(JSON.stringify(fields)).not.toContain('someone');
   });
 
+  // A federated refusal creates no user and CloudTrail redacts the attributes,
+  // so without the provider id there is no way back to the account.
+  it('names the provider identity on a federated refusal', async () => {
+    const { logger } = require('/opt/base');
+    mockRefusalReason.mockReturnValue('address');
+    await handler({
+      ...event('someone@blocked.test'),
+      triggerSource: 'PreSignUp_ExternalProvider',
+      userName: 'BCSC_a1b2c3d4',
+    }).catch(() => {});
+
+    const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
+    expect(fields).toMatchObject({ reason: 'address', identity: 'BCSC_a1b2c3d4' });
+  });
+
+  it('leaves identity off a native signup, which has no provider', async () => {
+    const { logger } = require('/opt/base');
+    mockRefusalReason.mockReturnValue('address');
+    await handler({ ...event('someone@blocked.test'), userName: 'ignored' }).catch(() => {});
+
+    const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
+    expect(fields).not.toHaveProperty('identity');
+  });
+
   it('fails open when the blocklist cannot be read', async () => {
     mockLoadBlocklist.mockRejectedValue(new Error('DynamoDB unavailable'));
     await expect(handler(event())).resolves.toBeDefined();
