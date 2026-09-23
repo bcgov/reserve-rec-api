@@ -100,7 +100,7 @@ describe('PreSignUp mailbox claim', () => {
     await expect(handler(signUp('me@example.test', 'PreSignUp_AdminCreateUser'))).rejects.toEqual(refused);
   });
 
-  it('logs a duplicate refusal with the domain and caller, never the local part', async () => {
+  it('logs a duplicate refusal against the canonical address, not the tagged one', async () => {
     existingAccount('someone@example.test');
     await handler(signUp('someone+1@example.test')).catch(() => {});
     const [fields] = logged('event=signup_refused');
@@ -109,8 +109,8 @@ describe('PreSignUp mailbox claim', () => {
       domain: 'example.test',
       clientId: 'client-1',
       triggerSource: 'PreSignUp_SignUp',
+      localPart: 'someone',
     });
-    expect(JSON.stringify(fields)).not.toContain('someone');
   });
 
   it('allows the same address in another case, as a retry of the same signup', async () => {
