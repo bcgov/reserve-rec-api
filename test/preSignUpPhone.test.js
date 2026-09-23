@@ -9,6 +9,7 @@ jest.mock('/opt/emailBlocklist', () => ({
   refusalReason: jest.fn().mockReturnValue(null),
   // The mailbox claim is covered in preSignUpEmailClaim.test.js.
   canonicalizeEmail: () => null,
+  emailDomain: (email) => String(email).split('@')[1] || null,
 }));
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
 
@@ -47,6 +48,19 @@ describe('PreSignUp phone check', () => {
     const [, fields] = mockLoggerInfo.mock.calls.find(([m]) => m === 'event=signup_phone_refused');
     expect(fields).toMatchObject({ digits: 12, hasPlus: false });
     expect(JSON.stringify(fields)).not.toContain('447911123456');
+  });
+
+  it('emits the refusal event, not just the phone one', async () => {
+    // The shape log alone left these out of event=signup_refused.
+    await expect(handler(signUp({ 'custom:mobilePhone': '586588' }))).rejects.toThrow();
+    const [, fields] = mockLoggerInfo.mock.calls.find(([m]) => m === 'event=signup_refused');
+    expect(fields).toMatchObject({ reason: 'phone', triggerSource: 'PreSignUp_SignUp' });
+  });
+
+  it('throws a flagged refusal, not a fault', async () => {
+    // A plain Error reads as a trigger fault, not a refusal.
+    await expect(handler(signUp({ 'custom:mobilePhone': '586588' })))
+      .rejects.toMatchObject({ signupRefused: true, message: expect.stringMatching(/area code/) });
   });
 
   it('allows a NANP number and an international one', async () => {
