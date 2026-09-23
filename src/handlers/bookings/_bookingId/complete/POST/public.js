@@ -11,9 +11,12 @@ const { batchTransactData } = require("/opt/dynamodb");
 exports.handler = async (event, context) => {
   logger.info("POST Complete Booking:", requestIdentity(event));
 
+  // Declared out here so the catch can name the booking. Inside the try it is
+  // out of scope there, and reading it throws over whatever the real error was.
+  const bookingId = event.pathParameters?.bookingId;
+
   try {
     const body = JSON.parse(event?.body);
-    const bookingId = event.pathParameters?.bookingId;
     const sessionId = body.sessionId;
 
     if (!bookingId) {
