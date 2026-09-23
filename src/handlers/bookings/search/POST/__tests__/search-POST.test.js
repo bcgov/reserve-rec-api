@@ -271,6 +271,84 @@ describe("Bookings Admin Search POST handler", () => {
     expect(result.data.hits).toHaveLength(0);
   });
 
+  it("filters on the userId keyword subfield and collapses to one hit per customer", async () => {
+    const { OSQuery } = require("/opt/opensearch");
+    const event = {
+      body: JSON.stringify({ userIds: ["sub-one", "sub-two"], size: 2 })
+    };
+
+    await handler(event, {});
+
+    expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
+      expect.objectContaining({ "userId.keyword": "sub-one,sub-two" })
+    );
+    expect(OSQuery).toHaveBeenCalledWith(
+      "test-index",
+      expect.objectContaining({ collapseField: "userId.keyword" })
+    );
+  });
+
+  it("scopes a userIds search to the caller's collections for non-superadmins", async () => {
+    checkAuthContext.mockReturnValue({
+      permissions: { collection_a: "staff", collection_b: "limited", collection_c: "default" },
+    });
+    const event = {
+      body: JSON.stringify({ userIds: ["sub-one"], checkinStatus: "current" })
+    };
+
+    await handler(event, {});
+
+    expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
+      expect.objectContaining({ collectionId: "collection_a,collection_b" })
+    );
+  });
+
+  it("does not scope a userIds search by collection for superadmins", async () => {
+    checkAuthContext.mockReturnValue({ permissions: { superadmin: "superadmin" } });
+    const event = {
+      body: JSON.stringify({ userIds: ["sub-one"], checkinStatus: "current" })
+    };
+
+    await handler(event, {});
+
+    expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
+      expect.not.objectContaining({ collectionId: expect.anything() })
+    );
+  });
+
+  it("does not collapse results when no userIds are supplied", async () => {
+    const { OSQuery } = require("/opt/opensearch");
+    const event = {
+      body: JSON.stringify({ text: "test" })
+    };
+
+    await handler(event, {});
+
+    expect(OSQuery).toHaveBeenCalledWith(
+      "test-index",
+      expect.objectContaining({ collapseField: null })
+    );
+  });
+
+  it("treats 'current' status as any confirmed booking that has not checked out yet", async () => {
+    const event = {
+      body: JSON.stringify({ checkinStatus: "current" })
+    };
+
+    await handler(event, {});
+
+    expect(mockAddRangeQueryRule).toHaveBeenCalledWith(
+      'reservationContext.checkOutTime',
+      fixedDate,
+      4102444799000,
+      true,
+      true
+    );
+    expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "confirmed" })
+    );
+  });
+
   it("catches OpenSearch exceptions and returns a formatted error response", async () => {
     const mockError = { code: 503, msg: "OpenSearch cluster unavailable", error: "Timeout" };
     mockSearch.mockRejectedValue(mockError); // Force a failure
