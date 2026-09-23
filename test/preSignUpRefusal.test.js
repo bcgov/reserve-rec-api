@@ -17,6 +17,13 @@ jest.mock('/opt/emailBlocklist', () => ({
 
 jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
 
+process.env.REFUSAL_TABLE_NAME = 'refusals';
+const mockDdbSend = jest.fn();
+jest.mock('@aws-sdk/client-dynamodb', () => ({
+  ...jest.requireActual('@aws-sdk/client-dynamodb'),
+  DynamoDBClient: jest.fn(() => ({ send: (...args) => mockDdbSend(...args) })),
+}));
+
 const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
 
 const event = (email = 'someone@example.test') => ({
@@ -28,6 +35,7 @@ const event = (email = 'someone@example.test') => ({
 describe('PreSignUp refusal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDdbSend.mockResolvedValue({});
     mockLoadBlocklist.mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] });
     mockRefusalReason.mockReturnValue(null);
     // Null keeps the mailbox claim out of scope here; it is covered in
@@ -116,6 +124,63 @@ describe('PreSignUp refusal', () => {
 
     const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
     expect(fields).not.toHaveProperty('identity');
+  });
+
+  describe('refusal record', () => {
+    const bcsc = () => ({
+      ...event('someone@blocked.test'),
+      triggerSource: 'PreSignUp_ExternalProvider',
+      userName: 'bcsc_a1b2c3d4',
+      request: {
+        userAttributes: {
+          email: 'someone@blocked.test',
+          given_name: 'Test',
+          family_name: 'User',
+          address: '{"formatted":"1 Example St"}',
+        },
+      },
+    });
+    const writes = () => mockDdbSend.mock.calls.map(([cmd]) => cmd.input);
+
+    it('records who a refused BCSC sign-in was, without the address', async () => {
+      mockRefusalReason.mockReturnValue('address');
+      const before = Math.floor(Date.now() / 1000);
+      await expect(handler(bcsc())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+
+      const [{ TableName, Item }] = writes();
+      expect(TableName).toBe('refusals');
+      expect(Item).toEqual({
+        pk: { S: 'bcsc_a1b2c3d4' },
+        sk: { S: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) },
+        givenName: { S: 'Test' },
+        familyName: { S: 'User' },
+        email: { S: 'someone@blocked.test' },
+        reason: { S: 'address' },
+        expiresAt: { N: expect.any(String) },
+      });
+      const ttl = Number(Item.expiresAt.N) - before;
+      expect(ttl).toBeGreaterThanOrEqual(90 * 86400);
+      expect(ttl).toBeLessThan(90 * 86400 + 60);
+    });
+
+    it('records nothing for a native refusal', async () => {
+      mockRefusalReason.mockReturnValue('address');
+      await expect(handler(event('someone@blocked.test'))).rejects.toThrow();
+      expect(mockDdbSend).not.toHaveBeenCalled();
+    });
+
+    it('records nothing for an allowed BCSC sign-in', async () => {
+      await expect(handler(bcsc())).resolves.toBeDefined();
+      expect(mockDdbSend).not.toHaveBeenCalled();
+    });
+
+    it('still refuses when the record cannot be written', async () => {
+      const { logger } = require('/opt/base');
+      mockRefusalReason.mockReturnValue('address');
+      mockDdbSend.mockRejectedValue(new Error('DynamoDB unavailable'));
+      await expect(handler(bcsc())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+      expect(logger.error).toHaveBeenCalledWith('PreSignUp refusal record failed', { error: 'DynamoDB unavailable' });
+    });
   });
 
   it('fails open when the blocklist cannot be read', async () => {
