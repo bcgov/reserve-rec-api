@@ -7,12 +7,12 @@ jest.mock('/opt/base', () => ({
 
 const mockLoadBlocklist = jest.fn();
 const mockRefusalReason = jest.fn();
+const mockCanonicalizeEmail = jest.fn();
 jest.mock('/opt/emailBlocklist', () => ({
   loadBlocklist: (...args) => mockLoadBlocklist(...args),
   refusalReason: (...args) => mockRefusalReason(...args),
   emailDomain: (email) => String(email).split('@')[1] || null,
-  // The mailbox claim is covered in preSignUpEmailClaim.test.js.
-  canonicalizeEmail: () => null,
+  canonicalizeEmail: (...args) => mockCanonicalizeEmail(...args),
 }));
 
 jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
@@ -30,6 +30,9 @@ describe('PreSignUp refusal', () => {
     jest.clearAllMocks();
     mockLoadBlocklist.mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] });
     mockRefusalReason.mockReturnValue(null);
+    // Null keeps the mailbox claim out of scope here; it is covered in
+    // preSignUpEmailClaim.test.js. A refusal test opts in where it needs one.
+    mockCanonicalizeEmail.mockReturnValue(null);
   });
 
   it('allows an address the blocklist does not match', async () => {
@@ -61,22 +64,34 @@ describe('PreSignUp refusal', () => {
     expect(err.signupRefused).toBe(true);
   });
 
-  it('records the domain and caller, never the local part', async () => {
+  it('records the account and caller on a refusal', async () => {
     const { logger } = require('/opt/base');
     mockRefusalReason.mockReturnValue('domain');
+    mockCanonicalizeEmail.mockReturnValue('someone@blocked.test');
     await handler({
       ...event('someone@blocked.test'),
       callerContext: { clientId: 'client-1' },
     }).catch(() => {});
 
     const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
-    expect(fields).toMatchObject({
+    expect(fields).toEqual({
       reason: 'domain',
       domain: 'blocked.test',
       clientId: 'client-1',
       triggerSource: 'PreSignUp_SignUp',
+      localPart: 'someone',
     });
-    expect(JSON.stringify(fields)).not.toContain('someone');
+  });
+
+  // The canonical form, so a plus-tag or dotted variant records as one account.
+  it('records the canonical local part, not the address as typed', async () => {
+    const { logger } = require('/opt/base');
+    mockRefusalReason.mockReturnValue('address');
+    mockCanonicalizeEmail.mockReturnValue('someone@blocked.test');
+    await handler(event('Some.One+parks@Blocked.test')).catch(() => {});
+
+    const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
+    expect(fields.localPart).toBe('someone');
   });
 
   // A federated refusal creates no user and CloudTrail redacts the attributes,
