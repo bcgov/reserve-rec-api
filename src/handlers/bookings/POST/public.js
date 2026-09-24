@@ -177,11 +177,13 @@ exports.handler = async (event, context) => {
     return sendResponse(200, response, "Success", null, context);
 
   } catch (error) {
-    logger.error("event=hold_failed", { message: error?.message });
     logger.error("Booking creation error:", error);
 
     let errorMessage = '';
     let statusCode;
+    // The one-pass-per-user guard refusing a request is the rule working, not
+    // a failure, so it is counted apart from hold_failed.
+    let duplicateOf = error?.data?.existingBookingId ? error.data.status : null;
     const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
 
     if (error?.name === "TransactionCanceledException" && Array.isArray(cancellationReasons)) {
@@ -198,6 +200,7 @@ exports.handler = async (event, context) => {
             // user/pass/date — same outcome as the sequential 409 guard.
             errorMessage = "You already have a booking for this pass. Cancel it before booking again.";
             statusCode = 409;
+            duplicateOf = "in progress";
           } else if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
             errorMessage = "Booking item no longer available.";
           } else if (pk.startsWith("bookingDate::")) {
@@ -211,6 +214,14 @@ exports.handler = async (event, context) => {
           console.error(`Condition check failed on item index ${index} (${pk}): ${reason.Message || reason.Code}`);
         }
       });
+    }
+
+    if (duplicateOf === "confirmed") {
+      logger.info("event=hold_refused_has_booking", { existingBookingId: error?.data?.existingBookingId });
+    } else if (duplicateOf) {
+      logger.info("event=hold_refused_has_hold", { existingBookingId: error?.data?.existingBookingId || null });
+    } else {
+      logger.error("event=hold_failed", { message: errorMessage || error?.message });
     }
 
     const safeError = {
