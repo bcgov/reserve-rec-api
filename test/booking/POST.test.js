@@ -1,6 +1,7 @@
 "use strict";
 
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data.code;
@@ -153,5 +154,50 @@ describe("Bookings POST handler", () => {
     const result = await handler(event, context);
     expect(result.status).toBe(400);
     expect(result.message).toBe("DB error");
+  });
+
+  describe("event logging", () => {
+    const { logger } = require("/opt/base");
+    const event = {
+      body: JSON.stringify({
+        collectionId: "bcparks_123", activityType: "backcountry", activityId: "id1",
+        productId: "product-1", startDate: "2024-01-01", quantity: 1,
+      }),
+    };
+    const eventNames = () => [...logger.info.mock.calls, ...logger.error.mock.calls]
+      .map(([msg]) => msg).filter((msg) => typeof msg === "string" && msg.startsWith("event="));
+    const duplicate = (status) => Object.assign(new Error(`You already have a ${status} booking`), {
+      code: 409, data: { existingBookingId: "b-1", status },
+    });
+
+    it("counts a refusal over a confirmed booking apart from failures", async () => {
+      createBooking.mockRejectedValue(duplicate("confirmed"));
+      const result = await handler(event, context);
+      expect(result.status).toBe(409);
+      expect(eventNames()).toEqual(["event=hold_refused_has_booking"]);
+    });
+
+    it("counts a refusal over an open hold apart from failures", async () => {
+      createBooking.mockRejectedValue(duplicate("in progress"));
+      await handler(event, context);
+      expect(eventNames()).toEqual(["event=hold_refused_has_hold"]);
+    });
+
+    it("counts losing the hold-marker race as a refusal over an open hold", async () => {
+      createBooking.mockResolvedValue([{ data: { Put: { Item: { pk: { S: "bookinghold::u::c::a::i::p" } } } } }]);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(event, context);
+      expect(result.status).toBe(409);
+      expect(eventNames()).toEqual(["event=hold_refused_has_hold"]);
+    });
+
+    it("still counts any other error as hold_failed", async () => {
+      createBooking.mockRejectedValue(new Error("DB error"));
+      await handler(event, context);
+      expect(eventNames()).toEqual(["event=hold_failed"]);
+    });
   });
 });

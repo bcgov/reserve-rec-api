@@ -4,6 +4,7 @@
  * inventory-pools GET attaching checkedInCount (bcgov/reserve-rec-admin#391).
  */
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;

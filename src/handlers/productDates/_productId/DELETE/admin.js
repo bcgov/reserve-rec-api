@@ -1,8 +1,8 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { deleteProductDates } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("DELETE Product Dates", event);
+  logger.info("DELETE Product Dates", requestIdentity(event));
   try {
 
     const body = JSON.parse(event?.body);

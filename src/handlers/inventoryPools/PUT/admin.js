@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../common/data-utils");
 const { INVENTORYPOOLS_API_UPDATE_CONFIG } = require("../configs");
 const { fetchInventoryPoolsOnDate } = require("../methods");
@@ -9,7 +9,7 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
  * Update InventoryPool capacity and availability
  */
 exports.handler = async (event, context) => {
-  logger.info("PUT InventoryPool", event);
+  logger.info("PUT InventoryPool", requestIdentity(event));
   
   if (event.httpMethod === 'OPTIONS') {
     return {

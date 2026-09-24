@@ -1,6 +1,6 @@
 // Search bookings by various filters - POST /bookings/admin/search
 
-const { logger, sendResponse, Exception, handleCORS, checkAuthContext} = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception, handleCORS, checkAuthContext} = require("/opt/base");
 const {
   getBookingByBookingId,
   validateAdminRequirements,
@@ -12,7 +12,7 @@ const {
 } = require("../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Admin Search POST:", event);
+  logger.info("Bookings Admin Search POST:", requestIdentity(event));
 
   // Handle CORS preflight
   const corsResponse = handleCORS(event, context);

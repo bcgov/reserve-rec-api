@@ -1,8 +1,8 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData, getOne, marshall } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
-  logger.info("PUT Product Date", event);
+  logger.info("PUT Product Date", requestIdentity(event));
 
   // Allow Options
   if (event.httpMethod === "OPTIONS") {
