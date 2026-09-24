@@ -1597,8 +1597,8 @@ async function getParkNameForCollection(collectionId) {
  * fetched from DynamoDB.
  */
 async function generateEmailParams(booking) {
+  logger.info('Generate Email Parmas - Booking ID: ', booking?.bookingId);
   try {
-
     // get bookingDates
     const bookingDates = await getBookingDatesByBookingId(booking.bookingId);
 
@@ -2775,6 +2775,7 @@ async function sendBookingConfirmationEmail(emailParams, sub) {
  */
 async function sendBookingCancellationEmail(emailParams, sub) {
   const bookingId = emailParams?.booking?.bookingId;
+  logger.info('Send Booking Cancellation Email - Booking ID: ', bookingId);
   try {
     if (!emailParams?.booking) {
       logger.warn('Cannot send cancellation email - missing email params', { sub });
