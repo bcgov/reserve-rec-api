@@ -15,7 +15,8 @@ jest.mock('/opt/emailBlocklist', () => ({
   canonicalizeEmail: (...args) => mockCanonicalizeEmail(...args),
 }));
 
-jest.mock('/opt/phone', () => ({ isValidPhoneNumber: () => true }));
+const mockIsValidPhoneNumber = jest.fn();
+jest.mock('/opt/phone', () => ({ isValidPhoneNumber: (...args) => mockIsValidPhoneNumber(...args) }));
 
 process.env.REFUSAL_TABLE_NAME = 'refusals';
 const mockDdbSend = jest.fn();
@@ -38,6 +39,7 @@ describe('PreSignUp refusal', () => {
     mockDdbSend.mockResolvedValue({});
     mockLoadBlocklist.mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] });
     mockRefusalReason.mockReturnValue(null);
+    mockIsValidPhoneNumber.mockReturnValue(true);
     // Null keeps the mailbox claim out of scope here; it is covered in
     // preSignUpEmailClaim.test.js. A refusal test opts in where it needs one.
     mockCanonicalizeEmail.mockReturnValue(null);
@@ -106,15 +108,53 @@ describe('PreSignUp refusal', () => {
   // so without the provider id there is no way back to the account.
   it('names the provider identity on a federated refusal', async () => {
     const { logger } = require('/opt/base');
-    mockRefusalReason.mockReturnValue('address');
+    mockIsValidPhoneNumber.mockReturnValue(false);
     await handler({
-      ...event('someone@blocked.test'),
+      ...event('someone@example.test'),
       triggerSource: 'PreSignUp_ExternalProvider',
-      userName: 'BCSC_a1b2c3d4',
+      userName: 'bcsc_a1b2c3d4',
+      request: { userAttributes: { email: 'someone@example.test', 'custom:mobilePhone': '123' } },
     }).catch(() => {});
 
     const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_refused');
-    expect(fields).toMatchObject({ reason: 'address', identity: 'BCSC_a1b2c3d4' });
+    expect(fields).toMatchObject({ reason: 'phone', identity: 'bcsc_a1b2c3d4' });
+  });
+
+  describe('BCSC sign-in', () => {
+    const federated = (userName = 'bcsc_a1b2c3d4') => ({
+      ...event('someone@blocked.test'),
+      triggerSource: 'PreSignUp_ExternalProvider',
+      userName,
+    });
+
+    it('passes and logs signup_flagged', async () => {
+      const { logger } = require('/opt/base');
+      mockRefusalReason.mockReturnValue('pattern');
+      await expect(handler(federated())).resolves.toBeDefined();
+
+      const [, fields] = logger.info.mock.calls.find(([msg]) => msg === 'event=signup_flagged');
+      expect(fields).toMatchObject({ reason: 'pattern', identity: 'bcsc_a1b2c3d4' });
+      expect(logger.info.mock.calls.map(([msg]) => msg)).not.toContain('event=signup_refused');
+      expect(mockDdbSend).not.toHaveBeenCalled();
+    });
+
+    it('leaves a native sign-up unchanged', async () => {
+      mockRefusalReason.mockReturnValue('pattern');
+      await expect(handler(event('someone@blocked.test'))).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+    });
+
+    it('leaves another provider unchanged', async () => {
+      mockRefusalReason.mockReturnValue('pattern');
+      await expect(handler(federated('google_a1b2c3d4'))).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+    });
+
+    it('leaves the phone check unchanged', async () => {
+      mockRefusalReason.mockReturnValue('pattern');
+      mockIsValidPhoneNumber.mockReturnValue(false);
+      const signup = federated();
+      signup.request.userAttributes['custom:mobilePhone'] = '123';
+      await expect(handler(signup)).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+    });
   });
 
   it('leaves identity off a native signup, which has no provider', async () => {
@@ -137,13 +177,14 @@ describe('PreSignUp refusal', () => {
           given_name: 'Test',
           family_name: 'User',
           address: '{"formatted":"1 Example St"}',
+          'custom:mobilePhone': '123',
         },
       },
     });
     const writes = () => mockDdbSend.mock.calls.map(([cmd]) => cmd.input);
 
     it('records who a refused BCSC sign-in was, without the address', async () => {
-      mockRefusalReason.mockReturnValue('address');
+      mockIsValidPhoneNumber.mockReturnValue(false);
       const before = Math.floor(Date.now() / 1000);
       await expect(handler(bcsc())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
 
@@ -155,7 +196,7 @@ describe('PreSignUp refusal', () => {
         givenName: { S: 'Test' },
         familyName: { S: 'User' },
         email: { S: 'someone@blocked.test' },
-        reason: { S: 'address' },
+        reason: { S: 'phone' },
         expiresAt: { N: expect.any(String) },
       });
       const ttl = Number(Item.expiresAt.N) - before;
@@ -176,7 +217,7 @@ describe('PreSignUp refusal', () => {
 
     it('still refuses when the record cannot be written', async () => {
       const { logger } = require('/opt/base');
-      mockRefusalReason.mockReturnValue('address');
+      mockIsValidPhoneNumber.mockReturnValue(false);
       mockDdbSend.mockRejectedValue(new Error('DynamoDB unavailable'));
       await expect(handler(bcsc())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
       expect(logger.error).toHaveBeenCalledWith('PreSignUp refusal record failed', { error: 'DynamoDB unavailable' });
