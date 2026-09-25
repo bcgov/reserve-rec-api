@@ -34,6 +34,12 @@ exports.handler = async function (event, context) {
     // eats the page and pushes another customer's only booking out of the results.
     const userIds = Array.isArray(body?.userIds) ? body.userIds : null;
 
+    // An empty list asks about nobody. Without this it would still collapse, but with
+    // no userId filter, and return one booking for every customer in the index.
+    if (userIds && userIds.length === 0) {
+      return sendResponse(200, { total: { value: 0 }, hits: [] }, "Success", null, context);
+    }
+
     const searchOptions = {
       from: body?.from || 0,
       size: body?.size || 5, // Match frontend default
@@ -68,11 +74,15 @@ exports.handler = async function (event, context) {
     // collections up front, otherwise the kept hit can be from a collection they can't
     // see, get stripped, and hide a booking they can see.
     const isSuperAdmin = authContext?.permissions?.superadmin === "superadmin";
+    // Added as a raw terms clause rather than through filters: the terms helper
+    // lowercases values, and collectionId is a case-sensitive keyword field.
     if (userIds && !isSuperAdmin) {
       const permissions = authContext?.permissions || {};
-      filters['collectionId'] = Object.keys(permissions)
-        .filter((collectionId) => ['limited', 'staff'].includes(permissions[collectionId]))
-        .join(',');
+      const permittedCollectionIds = Object.keys(permissions)
+        .filter((collectionId) => ['limited', 'staff'].includes(permissions[collectionId]));
+      query.query.bool = query.query.bool || {};
+      query.query.bool.filter = query.query.bool.filter || [];
+      query.query.bool.filter.push({ terms: { collectionId: permittedCollectionIds } });
     }
 
     // Calculate epoch timestamps in milliseconds

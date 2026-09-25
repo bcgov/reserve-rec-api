@@ -6,6 +6,8 @@ const mockAddFilterTermsRule = jest.fn();
 const mockAddRangeQueryRule = jest.fn();
 const mockAddExistsQueryRule = jest.fn();
 const mockSearch = jest.fn();
+// The raw query body the handler can push clauses into directly
+let mockQuery = {};
 
 // Mock the OpenSearch Layer
 jest.mock("/opt/opensearch", () => ({
@@ -16,6 +18,7 @@ jest.mock("/opt/opensearch", () => ({
     addExistsQueryRule: mockAddExistsQueryRule,
     search: mockSearch,
     request: { some: "request" },
+    query: mockQuery,
   })),
   OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME: "test-index",
   nonKeyableTerms: [],
@@ -50,6 +53,7 @@ describe("Bookings Admin Search POST handler", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockQuery = {};
 
     // Lock the date context so dynamic ISO strings produced by Date().toISOString() are 100% predictable
     jest.useFakeTimers();
@@ -298,9 +302,38 @@ describe("Bookings Admin Search POST handler", () => {
 
     await handler(event, {});
 
+    // Exact values, not lowercased, so mixed-case collection ids still match
+    expect(mockQuery.bool.filter).toContainEqual({
+      terms: { collectionId: ["collection_a", "collection_b"] },
+    });
     expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
-      expect.objectContaining({ collectionId: "collection_a,collection_b" })
+      expect.not.objectContaining({ collectionId: expect.anything() })
     );
+  });
+
+  it("keeps collection ids exactly as they are", async () => {
+    checkAuthContext.mockReturnValue({ permissions: { BCParks_Mixed: "staff" } });
+    const event = {
+      body: JSON.stringify({ userIds: ["sub-one"], checkinStatus: "current" })
+    };
+
+    await handler(event, {});
+
+    expect(mockQuery.bool.filter).toContainEqual({
+      terms: { collectionId: ["BCParks_Mixed"] },
+    });
+  });
+
+  it("returns no results for an empty userIds list without searching", async () => {
+    const event = {
+      body: JSON.stringify({ userIds: [], checkinStatus: "current" })
+    };
+
+    const result = await handler(event, {});
+
+    expect(mockSearch).not.toHaveBeenCalled();
+    expect(result.status).toBe(200);
+    expect(result.data.hits).toEqual([]);
   });
 
   it("does not scope a userIds search by collection for superadmins", async () => {
@@ -311,8 +344,8 @@ describe("Bookings Admin Search POST handler", () => {
 
     await handler(event, {});
 
-    expect(mockAddFilterTermsRule).toHaveBeenCalledWith(
-      expect.not.objectContaining({ collectionId: expect.anything() })
+    expect(mockQuery.bool?.filter || []).not.toContainEqual(
+      expect.objectContaining({ terms: expect.objectContaining({ collectionId: expect.anything() }) })
     );
   });
 
