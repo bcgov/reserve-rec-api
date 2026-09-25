@@ -1,7 +1,7 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent, requestIdentity } = require("/opt/base");
 const { createBooking, formatBookingResponsePublic, } = require("../methods");
-const { batchTransactData } = require("/opt/dynamodb");
+const { batchTransactData, isTransactionConflict } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
@@ -216,7 +216,11 @@ exports.handler = async (event, context) => {
       });
     }
 
-    if (duplicateOf === "confirmed") {
+    if (isTransactionConflict(error)) {
+      errorMessage = "This pass is in high demand right now. Please try again.";
+      statusCode = 409;
+      logger.warn("event=hold_conflict", { message: error?.message });
+    } else if (duplicateOf === "confirmed") {
       logger.info("event=hold_refused_has_booking", { existingBookingId: error?.data?.existingBookingId });
     } else if (duplicateOf) {
       logger.info("event=hold_refused_has_hold", { existingBookingId: error?.data?.existingBookingId || null });
