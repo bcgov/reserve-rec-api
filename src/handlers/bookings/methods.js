@@ -849,7 +849,7 @@ async function createBooking(props) {
     const duplicate = await findUserActiveBookingForProductOnDate(props.userId, productBookingPk, props.startDate);
     if (duplicate) {
       throw new Exception(
-        `You already have a ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
+        `You already have ${/^[aeiou]/i.test(duplicate.status) ? 'an' : 'a'} ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
         { code: 409, data: { existingBookingId: duplicate.bookingId, status: duplicate.status } }
       );
     }
