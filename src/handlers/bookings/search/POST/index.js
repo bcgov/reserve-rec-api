@@ -29,11 +29,23 @@ exports.handler = async function (event, context) {
 
     // Use a dedicated filter object for precise field matching
     // and a text string for the general fuzzy search.
+    // A userId list asks "which of these customers hold a booking", so collapse the
+    // results to one hit per customer - otherwise a customer with several bookings
+    // eats the page and pushes another customer's only booking out of the results.
+    const userIds = Array.isArray(body?.userIds) ? body.userIds : null;
+
+    // An empty list asks about nobody. Without this it would still collapse, but with
+    // no userId filter, and return one booking for every customer in the index.
+    if (userIds && userIds.length === 0) {
+      return sendResponse(200, { total: { value: 0 }, hits: [] }, "Success", null, context);
+    }
+
     const searchOptions = {
       from: body?.from || 0,
       size: body?.size || 5, // Match frontend default
       sortField: body?.sortField || 'startDate',
-      sortOrder: body?.sortOrder || 'desc'
+      sortOrder: body?.sortOrder || 'desc',
+      collapseField: userIds ? 'userId.keyword' : null
     };
 
     // Construct the search query
@@ -49,6 +61,28 @@ exports.handler = async function (event, context) {
 
     if (body.email) {
       filters['namedOccupant.contactInfo.email.keyword'] = body.email;
+    }
+
+    // userId is dynamically mapped (text + keyword), so the exact match goes through
+    // the keyword subfield. Terms rules take the values as a comma separated string.
+    if (userIds?.length) {
+      filters['userId.keyword'] = userIds.join(',');
+    }
+
+    // Collapse keeps one hit per customer, and for non-superadmins the collection
+    // permission filter further down runs after that. Scope the query to the caller's
+    // collections up front, otherwise the kept hit can be from a collection they can't
+    // see, get stripped, and hide a booking they can see.
+    const isSuperAdmin = authContext?.permissions?.superadmin === "superadmin";
+    // Added as a raw terms clause rather than through filters: the terms helper
+    // lowercases values, and collectionId is a case-sensitive keyword field.
+    if (userIds && !isSuperAdmin) {
+      const permissions = authContext?.permissions || {};
+      const permittedCollectionIds = Object.keys(permissions)
+        .filter((collectionId) => ['limited', 'staff'].includes(permissions[collectionId]));
+      query.query.bool = query.query.bool || {};
+      query.query.bool.filter = query.query.bool.filter || [];
+      query.query.bool.filter.push({ terms: { collectionId: permittedCollectionIds } });
     }
 
     // Calculate epoch timestamps in milliseconds
@@ -79,6 +113,12 @@ exports.handler = async function (event, context) {
       else if (status === 'cancelled') {
         filters['status'] = 'cancelled';
       }
+      else if (status === 'current') {
+        // Reserved or active - anything the customer can still turn up and use.
+        // checkOutTime >= now
+        query.addRangeQueryRule('reservationContext.checkOutTime', now, future, true, true);
+        filters['status'] = 'confirmed';
+      }
     }
 
     if (Object.keys(filters).length > 0) {
@@ -99,7 +139,6 @@ exports.handler = async function (event, context) {
     logger.debug("Request:", query.request); // Log the request (available after sending)
     logger.debug("Response:", response); // Log the response
 
-    const isSuperAdmin = authContext?.permissions?.superadmin === "superadmin";
     if (response && isSuperAdmin) {
       response.body.hits.hits = response.body.hits.hits.map((hit) => {
         return hit._source
@@ -126,6 +165,7 @@ exports.handler = async function (event, context) {
         return {
           // Core verification info only
           bookingId: booking?.bookingId,
+          userId: booking?.userId,
           displayName: booking?.displayName,
           status: booking.status,
           bookingCompletionTime: booking?.bookingCompletionTime || booking?.bookedAt,
