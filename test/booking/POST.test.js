@@ -7,7 +7,7 @@ jest.mock("/opt/base", () => ({
     this.code = data.code;
     this.data = data;
   }),
-  logger: { info: jest.fn(), error: jest.fn() },
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
   sendResponse: jest.fn((status, data, message, error, context) => ({
     status,
     data,
@@ -30,6 +30,7 @@ jest.mock("../../src/handlers/bookings/configs", () => ({
 jest.mock("/opt/dynamodb", () => ({
   TABLE_NAME: "TestTable",
   batchTransactData: jest.fn(),
+  isTransactionConflict: jest.requireActual("/opt/dynamodb").isTransactionConflict,
 }));
 
 const { handler } = require("../../src/handlers/bookings/POST/public");
@@ -154,5 +155,62 @@ describe("Bookings POST handler", () => {
     const result = await handler(event, context);
     expect(result.status).toBe(400);
     expect(result.message).toBe("DB error");
+  });
+
+  describe("event logging", () => {
+    const { logger } = require("/opt/base");
+    const event = {
+      body: JSON.stringify({
+        collectionId: "bcparks_123", activityType: "backcountry", activityId: "id1",
+        productId: "product-1", startDate: "2024-01-01", quantity: 1,
+      }),
+    };
+    const eventNames = () => [...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]
+      .map(([msg]) => msg).filter((msg) => typeof msg === "string" && msg.startsWith("event="));
+    const duplicate = (status) => Object.assign(new Error(`You already have a ${status} booking`), {
+      code: 409, data: { existingBookingId: "b-1", status },
+    });
+
+    it("counts a refusal over a confirmed booking apart from failures", async () => {
+      createBooking.mockRejectedValue(duplicate("confirmed"));
+      const result = await handler(event, context);
+      expect(result.status).toBe(409);
+      expect(eventNames()).toEqual(["event=hold_refused_has_booking"]);
+    });
+
+    it("counts a refusal over an open hold apart from failures", async () => {
+      createBooking.mockRejectedValue(duplicate("in progress"));
+      await handler(event, context);
+      expect(eventNames()).toEqual(["event=hold_refused_has_hold"]);
+    });
+
+    it("counts losing the hold-marker race as a refusal over an open hold", async () => {
+      createBooking.mockResolvedValue([{ data: { Put: { Item: { pk: { S: "bookinghold::u::c::a::i::p" } } } } }]);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(event, context);
+      expect(result.status).toBe(409);
+      expect(eventNames()).toEqual(["event=hold_refused_has_hold"]);
+    });
+
+    it("answers a write race on inventory with a 409 and counts it as a conflict", async () => {
+      createBooking.mockResolvedValue([{ data: {} }]);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "None" }, { Code: "None" }, { Code: "TransactionConflict" }, { Code: "None" }],
+      }));
+      const result = await handler(event, context);
+      expect(result.status).toBe(409);
+      expect(result.message).toBe("This pass is in high demand right now. Please try again.");
+      expect(eventNames()).toEqual(["event=hold_conflict"]);
+    });
+
+    it("still counts any other error as hold_failed", async () => {
+      createBooking.mockRejectedValue(new Error("DB error"));
+      await handler(event, context);
+      expect(eventNames()).toEqual(["event=hold_failed"]);
+    });
   });
 });

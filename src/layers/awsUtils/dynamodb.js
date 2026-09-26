@@ -643,6 +643,35 @@ function chunkArray(array, chunkSize) {
  * @param {string} [action='Put'] - The default action to perform if not specified for each item ('Put', 'Update', 'Delete', 'ConditionExpression').
  * @returns {Promise<boolean>} - A Promise that resolves to true if the batch transact operation succeeds.
  */
+const TRANSACTION_CONFLICT_ATTEMPTS = 3;
+const TRANSACTION_CONFLICT_BASE_DELAY_MS = 25;
+
+// True when DynamoDB cancelled a transaction only because another write hit
+// the same item at the same time; any failed condition makes it permanent.
+function isTransactionConflict(error) {
+  const reasons = error?.CancellationReasons || error?.cancellationReasons;
+  return error?.name === 'TransactionCanceledException'
+    && Array.isArray(reasons)
+    && reasons.some(reason => reason?.Code === 'TransactionConflict')
+    && !reasons.some(reason => reason?.Code === 'ConditionalCheckFailed');
+}
+
+// A cancelled transaction writes nothing, so it is safe to send again.
+async function sendTransaction(TransactItems) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await getDynamoDBClient().send(new TransactWriteItemsCommand({ TransactItems }));
+    } catch (error) {
+      if (attempt >= TRANSACTION_CONFLICT_ATTEMPTS || !isTransactionConflict(error)) {
+        throw error;
+      }
+      const delay = Math.random() * TRANSACTION_CONFLICT_BASE_DELAY_MS * 2 ** attempt;
+      logger.warn(`Transaction conflict on attempt ${attempt}, retrying in ${Math.round(delay)} ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 async function batchTransactData(data, action = 'Put') {
 
   const dataChunks = chunkArray(data, TRANSACTION_MAX_SIZE);
@@ -671,9 +700,7 @@ async function batchTransactData(data, action = 'Put') {
 
       logger.debug(JSON.stringify(TransactItems));
 
-      const data = await getDynamoDBClient().send(
-        new TransactWriteItemsCommand({ TransactItems: TransactItems })
-      );
+      const data = await sendTransaction(TransactItems);
       if (data.$metadata.httpStatusCode !== 200) {
         throw new Error(`BatchTransactItems failed with status code: ${data.$metadata.httpStatusCode}`);
       }
@@ -716,6 +743,7 @@ module.exports = {
   incrementCounter,
   getOneByGlobalId,
   getByGSI,
+  isTransactionConflict,
   parallelizedBatchGetData,
   putItem,
   updateItem,

@@ -47,12 +47,36 @@
             background-color: #ffffff;
         }
 
+        /* Header: the colour BC Parks logo on white, matching the branded
+           verify-account email. The PNG is attached by Content-ID — clients
+           strip inline SVG and most refuse .svg in <img> (#731). The wordmark
+           below it is the fallback if the image fails to load. */
         .header {
             background-color: #ffffff;
             padding: 24px 32px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        }
+
+        .header-logo {
+            display: block;
+            border: 0;
+            outline: none;
+        }
+
+        .header-wordmark {
+            font-size: 22px;
+            font-weight: 700;
+            color: #003366;
+            letter-spacing: 0.3px;
+        }
+
+        /* Inline icons beside a detail value. Icon fonts do not render in
+            email, so these are PNGs attached by Content-ID (#731). */
+        .detail-icon {
+            width: 14px;
+            height: 14px;
+            border: 0;
+            vertical-align: -2px;
+            margin-right: 6px;
         }
 
         .logo {
@@ -86,7 +110,6 @@
 
         .lede-message {
             font-size: 16px;
-            font-weight: 700;
             margin-bottom: 12px;
         }
 
@@ -128,11 +151,14 @@
             padding: 24px;
         }
 
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+
+        .details-table {
+            width: 100%;
+        }
+
+        .details-table td {
+            vertical-align: top;
+            padding-bottom: 20px;
         }
 
         .detail-item {
@@ -148,15 +174,26 @@
 
         .detail-value {
             font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        }
+
+        .detail-value-name {
+            text-transform: uppercase;
+        }
+        
+        .detail-value-confirmation {
+            white-space: nowrap;
         }
 
         .detail-value-time {
             font-size: 13px;
             display: flex;
             align-items: center;
+        }
+
+        .row-rule td {
+            border-top: 1px solid #d9d9d9;
+            padding-top: 12px;
+            padding-bottom: 12px;
         }
 
         .full-width {
@@ -228,16 +265,18 @@
             font-size: 14.5px;
             font-style: italic;
             line-height: 24px;
+            margin-top: 8px;
             margin-bottom: 24px;
+        }
+
+        .disclaimer a {
+            color: #003366;
         }
 
         .footer {
             background-color: #1E3A5F;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            text-align: center;
         }
 
         .acknowledgment {
@@ -250,12 +289,15 @@
         }
 
         .footer-content {
-            padding: 32px 170px 32px 22px;
+            padding: 24px 32px;
+            color: white;
+        }
+
+        .footer-logo {
             font-size: 24px;
             font-weight: 400;
             color: white;
-            margin-bottom: 5px;
-            font-family: auto;
+            margin-bottom: 8px;
         }
 
         .footer-address {
@@ -266,21 +308,18 @@
         }
 
         .social-icons {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 16px;
+            margin-top: 16px;
         }
 
         .social-icon {
+            display: inline-block;
             width: 32px;
             height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            line-height: 32px;
             color: white;
             text-decoration: none;
-            font-size: 18px;
+            font-size: 14px;
+            margin: 0 8px;
         }
 
         .social-icon img {
@@ -290,17 +329,54 @@
             border: 0;
         }
 
+        .cancel-banner {
+            margin-bottom: 24px;
+            padding: 12px 16px;
+            border: 1px solid #ebb2b0;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            color: #212529;
+        }
+
+        .cancel-banner-text {
+            color: #212529;
+        }
+
+        .cancel-icon-color {
+            color: rgb(206, 62, 57, 1);
+        }
+
         @media only screen and (max-width: 600px) {
             .content {
                 padding: 24px 16px;
             }
 
-            .details-grid {
-                grid-template-columns: 1fr;
+            .content h1, .content p {
+                padding: 0px 16px;
             }
 
             .card-body {
                 padding: 16px;
+            }
+
+            .details-table td {
+                display: block;
+                width: 100% !important;
+            }
+
+            /* Stacked cells each inherited the row divider, drawing it twice. */
+            .row-rule td+td {
+                border-top: none;
+                padding-top: 0;
+            }
+
+            .acknowledgment {
+                margin: 0 0 16px 0;
+                padding: 20px 16px;
+            }
+
+            .footer-content {
+                padding: 20px 24px;
             }
         }
     </style>
@@ -311,106 +387,94 @@
         <div class="container">
             <!-- Header -->
             <div class="header">
-                <div class="logo">
-                    <img src="https://bcparks.ca/static/BCParks_Primary_Reversed_Vertical-9873b7442479cf33ebc73121675114fa.svg" alt="BC Parks" style="width: 128px; height: 128px;">
-                </div>
+                {{#if branding.logoCid}}
+                <img src="cid:{{branding.logoCid}}" width="133" height="40" alt="BC Parks" class="header-logo" />
+                {{else}}
+                <span class="header-wordmark">BC Parks</span>
+                {{/if}}
             </div>
 
             <!-- Content -->
             <div class="content">
-                <h1>Your booking has been cancelled</h1>
+                <h1>Cancellation confirmation for {{#if location.parkName}}{{location.parkName}}{{else}}your visit{{/if}}</h1>
 
-                <p class="lede-message">We've cancelled your reservation.</p>
+                <p class="lede-message">Your booking has been cancelled.</p>
 
-                <p class="instructions">The details of the cancelled booking are below.</p>
+                <p class="instructions">Thanks you for cancelling your booking and allowing others to still enjoy a park visit.</p>
 
                 <!-- Booking Card -->
                 <div class="booking-card">
                     <div class="card-header">
                         <div class="park-name">{{#if location.parkName}}{{location.parkName}}{{else}}Your visit{{/if}}</div>
-                        <div class="park-subtitle">{{#if booking.displayName}}{{booking.displayName}}{{/if}}</div>
+                        <div class="park-subtitle">{{#if booking.activityTypeLabel}}{{booking.activityTypeLabel}}{{else}}Day-use pass{{/if}}</div>
                     </div>
 
                     <div class="card-body">
-                        <div class="details-grid">
-                            {{#if booking.arrivalDate}}
-                            <div class="detail-item">
-                                <span class="detail-label">Arrival</span>
-                                <div class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></div>
-                                <span class="detail-value-time">{{ formatTime booking.arrivalDate}}</span>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.departureDate}}
-                            <div class="detail-item">
-                                <span class="detail-label">Departure</span>
-                                <div class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></div>
-                                <span class="detail-value-time">{{ formatTime booking.departureDate}}</span>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.productName}}
-                            <div class="detail-item">
-                                <span class="detail-label">Pass type</span>
-                                <div class="detail-value">{{booking.productName}}</div>
-                            </div>
-                            {{/if}}
-
-                            {{#if booking.invQuantity}}
-                            <div class="detail-item">
-                                <span class="detail-label">Passes</span>
-                                <div class="detail-value">{{booking.invQuantity}}</div>
-                            </div>
-                            {{/if}}
-
-                            <div class="horizontal-rule"></div>
-
-                            <div class="detail-item">
-                                <span class="detail-label">Named occupant</span>
-                                <div class="detail-value">{{customer.firstName}} {{customer.lastName}}</div>
-                            </div>
-
-                            {{#if customer.licensePlate}}
-                            <div class="detail-item">
-                                <span class="detail-label">License plate</span>
-                                <div class="detail-value">{{customer.licensePlate}}</div>
-                            </div>
-                            {{/if}}
-
-                            <div class="horizontal-rule"></div>
-
-                            <div class="detail-item full-width">
-                                <span class="detail-label">Booking number</span>
-                                <div class="detail-value booking-number">{{booking.bookingId}}</div>
-                            </div>
+                        <div class="cancel-banner" role="alert">
+                            <span>{{#if branding.exclamationCid}}<img src="cid:{{branding.exclamationCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}<strong class="cancel-banner-text">This booking has been cancelled</strong></span>
                         </div>
+                        <table class="details-table" role="presentation">
+                            <tr>
+                                {{#if booking.arrivalDate}}
+                                <td width="50%">
+                                    <span class="detail-label">Arrival</span>
+                                    <div class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></div>
+                                    <span class="detail-value-time">{{ formatTime booking.arrivalDate}}</span>
+                                </td>
+                                {{/if}}
+
+                                {{#if booking.departureDate}}
+                                <td width="50%">
+                                    <span class="detail-label">Departure</span>
+                                    <div class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></div>
+                                    <span class="detail-value-time">{{ formatTime booking.departureDate}}</span>
+                                </td>
+                                {{/if}}
+                            </tr>
+                            <tr>
+                                {{#if booking.productName}}
+                                <td width="50%">
+                                    <span class="detail-label">Pass type</span>
+                                    <span class="detail-value">{{#if branding.pinCid}}<img src="cid:{{branding.pinCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.productName}}</div>
+                                </td>
+                                {{/if}}
+
+                                {{#if booking.invQuantity}}
+                                <td width="50%">
+                                    <span class="detail-label">Passes</span>
+                                    <span class="detail-value">{{#if branding.ticketCid}}<img src="cid:{{branding.ticketCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.invQuantity}}</div>
+                                </td>
+                                {{/if}}
+                            </tr>
+                            <tr class="row-rule">
+                                <td width="50%">
+                                    <span class="detail-label">Named occupant</span>
+                                    <span class="detail-value detail-value-name">{{customer.firstName}} {{customer.lastName}}</div>
+                                </td>
+
+                                {{#if customer.licensePlate}}
+                                <td width="50%">
+                                    <span class="detail-label">License plate</span>
+                                    <span  class="detail-value">{{customer.licensePlate}}{{#if customer.licensePlateRegion}}, {{customer.licensePlateRegion}}{{/if}}</div>
+                                </td>
+                                {{else}}
+                                <td width="50%"></td>
+                                {{/if}}
+                            </tr>
+                            <tr class="row-rule">
+                                <td colspan="2">
+                                    <span class="detail-label">Confirmation number</span>
+                                    <div class="detail-value detail-value-cancellation">{{booking.bookingId}}</div>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
 
-                <!-- Follow-up -->
-                <div class="cardless-body">
-                    <h2>Questions about this cancellation?</h2>
-                    <div class="horizontal-rule-yellow"></div>
-                    <p class="followup-instructions">
-                        If you have any follow-up inquiries, please contact <a href="mailto:parkinfo@gov.bc.ca" class="customer-service-link">parkinfo@gov.bc.ca</a>.
-                    </p>
-                </div>
-
-                <!-- Customer Service -->
-                <div class="customer-service">
-                    <h3>Customer Service</h3>
-                    <p>For any inquiries about your booking, please contact a customer service representative.</p>
-                    {{#if branding.contactEmail}}
-                    <span class="customer-service-text">Email</span>
-                    <a href="mailto:{{branding.contactEmail}}" class="customer-service-link">
-                        {{branding.contactEmail}}
-                    </a>
-                    {{/if}}
-                </div>
-
                 <p class="disclaimer">
-                    Please do not reply to this message. It was sent from an unmonitored email address. This message is
-                    a service email related to your BC Parks account use.
+                    This email is provided for information related to your BC Parks account only. The inbox is not
+                    monitored. If you need assistance, please contact
+                    <a href="mailto:parkinfo@gov.bc.ca" style="text-decoration: underline;">parkinfo@gov.bc.ca</a>.
                 </p>
             </div>
 
@@ -421,21 +485,15 @@
                     connection to the land and respect the importance of their diverse teachings, traditions, and practices
                     within these territories.
                 </div>
-                <div>
                 <div class="footer-content">
                     <div class="footer-logo">BC Parks</div>
-
                     <div class="footer-address">PO Box 9398</div>
                     <div class="footer-address">Victoria, BC V8W9M9</div>
                     <div class="footer-address">Canada</div>
-
-                </div>
-                <div class="footer-content">
                     <div class="social-icons">
                         <a href="https://www.facebook.com/YourBCParks/" target="_blank" class="social-icon">{{#if branding.facebookCid}}<img src="cid:{{branding.facebookCid}}" width="32" height="32" alt="Facebook" />{{else}}FB{{/if}}</a>
                         <a href="https://www.instagram.com/yourbcparks/" target="_blank" class="social-icon">{{#if branding.instagramCid}}<img src="cid:{{branding.instagramCid}}" width="32" height="32" alt="Instagram" />{{else}}IG{{/if}}</a>
                     </div>
-                </div>
                 </div>
             </div>
         </div>
