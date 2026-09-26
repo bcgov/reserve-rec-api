@@ -18,10 +18,19 @@ describe('requestIdentity', () => {
       userId: 'sub-123',
       authenticated: true,
       ip: '1.2.3.4',
+      clientIp: null,
       userAgent: 'agent/1',
       httpMethod: 'GET',
       path: '/api/bookings',
     });
+  });
+
+  it('reads clientIp from the CloudFront-Viewer-Address header', () => {
+    const withViewerAddress = {
+      ...event({ userId: 'sub-123', isAuthenticated: 'true' }),
+      headers: { 'CloudFront-Viewer-Address': '198.51.100.9:1234' },
+    };
+    expect(requestIdentity(withViewerAddress).clientIp).toBe('198.51.100.9');
   });
 
   it('reports a guest as having no userId', () => {
@@ -44,13 +53,13 @@ describe('requestIdentity', () => {
     expect(serialized).not.toMatch(/Bearer|eyJ/);
     expect(serialized).not.toMatch(/example\.com|someone/);
     expect(Object.keys(id).sort()).toEqual(
-      ['authenticated', 'httpMethod', 'ip', 'path', 'requestId', 'userAgent', 'userId']
+      ['authenticated', 'clientIp', 'httpMethod', 'ip', 'path', 'requestId', 'userAgent', 'userId']
     );
   });
 
   it('does not throw on an event with no request context', () => {
     expect(requestIdentity({})).toEqual({
-      requestId: null, userId: null, authenticated: false, ip: null,
+      requestId: null, userId: null, authenticated: false, ip: null, clientIp: null,
       userAgent: null, httpMethod: null, path: null,
     });
     expect(() => requestIdentity(undefined)).not.toThrow();
