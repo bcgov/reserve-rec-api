@@ -1,8 +1,8 @@
 const { getOne, REFERENCE_DATA_TABLE_NAME } = require('/opt/dynamodb');
-const { sendResponse, logger } = require('/opt/base');
+const { requestIdentity, sendResponse, logger } = require('/opt/base');
 
 exports.handler = async (event, context) => {
-  logger.debug('Get Feature Flags', event);
+  logger.debug('Get Feature Flags', requestIdentity(event));
   
   // Handle CORS preflight
   if (event?.httpMethod === 'OPTIONS') {

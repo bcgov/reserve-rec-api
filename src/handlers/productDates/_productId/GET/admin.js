@@ -1,8 +1,8 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("GET Product Dates", event);
+  logger.info("GET Product Dates", requestIdentity(event));
 
    // Allow CORS
     if (event.httpMethod === "OPTIONS") {

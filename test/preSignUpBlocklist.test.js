@@ -2,6 +2,11 @@ jest.mock('/opt/base', () => ({
   logger: { debug: jest.fn(), info: jest.fn(), error: jest.fn() },
 }));
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
+// The mailbox claim is covered in preSignUpEmailClaim.test.js.
+jest.mock('@aws-sdk/client-dynamodb', () => ({
+  ...jest.requireActual('@aws-sdk/client-dynamodb'),
+  DynamoDBClient: jest.fn(() => ({ send: jest.fn().mockResolvedValue({}) })),
+}));
 
 const { canonicalizeEmail } = require('/opt/emailBlocklist');
 const { refusalReason } = require('../lib/handlers/cognitoTriggers/preSignUp');

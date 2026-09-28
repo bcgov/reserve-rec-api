@@ -279,12 +279,17 @@
             width: 32px;
             height: 32px;
             line-height: 32px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
             color: white;
             text-decoration: none;
             font-size: 14px;
             margin: 0 8px;
+        }
+
+        .social-icon img {
+            display: block;
+            width: 32px;
+            height: 32px;
+            border: 0;
         }
 
         @media only screen and (max-width: 600px) {
@@ -460,8 +465,8 @@
                     <div class="footer-address">Victoria, BC V8W9M9</div>
                     <div class="footer-address">Canada</div>
                     <div class="social-icons">
-                        <a href="https://www.facebook.com/BCParks/" target="_blank" class="social-icon">FB</a>
-                        <a href="https://www.instagram.com/bcparks/" target="_blank" class="social-icon">IG</a>
+                        <a href="https://www.facebook.com/YourBCParks/" target="_blank" class="social-icon">{{#if branding.facebookCid}}<img src="cid:{{branding.facebookCid}}" width="32" height="32" alt="Facebook" />{{else}}FB{{/if}}</a>
+                        <a href="https://www.instagram.com/yourbcparks/" target="_blank" class="social-icon">{{#if branding.instagramCid}}<img src="cid:{{branding.instagramCid}}" width="32" height="32" alt="Instagram" />{{else}}IG{{/if}}</a>
                     </div>
                 </div>
             </div>

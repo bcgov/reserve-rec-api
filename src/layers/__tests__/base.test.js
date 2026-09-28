@@ -22,7 +22,8 @@ describe('Base Layer Tests', () => {
             code: 200,
             data: { items: [1, 2, 3] },
             msg: 'Success',
-            error: null
+            error: null,
+            serverTime: expect.any(Number)
         });
 
         //Error with extra items.
@@ -35,7 +36,8 @@ describe('Base Layer Tests', () => {
             error: { error: 'error' },
             context: null,
             other1: 1,
-            other2: 2
+            other2: 2,
+            serverTime: expect.any(Number)
         });
     });
 

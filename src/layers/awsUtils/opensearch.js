@@ -161,6 +161,13 @@ class OSQuery {
      * @type {Object|null}
      */
     this.suggest = null;
+    /**
+     * Field to collapse results on, so the search returns one hit per distinct value
+     * instead of every matching document. Used when the caller only needs to know
+     * which values matched (eg. which users hold a booking), not how many.
+     * @type {string|null}
+     */
+    this.collapseField = options?.collapseField || null;
     this.request = null;
     this.initSortQuery();
   }
@@ -197,6 +204,10 @@ class OSQuery {
     // Add suggest to body if provided
     if (this.suggest) {
       body["suggest"] = this.suggest;
+    }
+    // Collapse to one hit per distinct field value if provided
+    if (this.collapseField) {
+      body["collapse"] = { field: this.collapseField };
     }
     if (Object.keys(body).length > 0) {
       this.request.body = body;

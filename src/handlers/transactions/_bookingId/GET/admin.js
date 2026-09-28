@@ -1,6 +1,7 @@
 // Get transaction
 
 const {
+  requestIdentity,
   Exception,
   logger,
   sendResponse,
@@ -14,7 +15,7 @@ const {
 } = require("../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Transactions admin GET:", event);
+  logger.info("Transactions admin GET:", requestIdentity(event));
 
   try {
     // Only allow superadmins to GET payment info

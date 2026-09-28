@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData, getOne } = require("/opt/dynamodb");
 
 /**
@@ -6,7 +6,7 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData, getOne } = require("/opt/d
  * Delete a Collection
  */
 exports.handler = async (event, context) => {
-  logger.info("DELETE Collections", event);
+  logger.info("DELETE Collections", requestIdentity(event));
   try {
     const authContext = checkAuthContext(event, "superadmin");
 

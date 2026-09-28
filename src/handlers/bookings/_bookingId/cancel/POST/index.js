@@ -8,7 +8,7 @@
  * by a subscriber Lambda functions found in /bookings/cancel/subscriber and
  * transactions/refunds/subscriber.
  */
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData } = require("/opt/dynamodb");
 const {
   getBookingByBookingId,
@@ -19,7 +19,7 @@ const {
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Cancel POST:", event);
+  logger.info("Bookings Cancel POST:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {
@@ -136,19 +136,28 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
-    // can't roll back a successful cancellation.
-    try {
-      const emailParams = await generateEmailParams(booking);
-      await sendBookingCancellationEmail(emailParams, userId);
-    } catch (emailError) {
-      logger.error("Failed to queue cancellation email", {
-        bookingId,
-        error: emailError?.message,
-        stack: emailError?.stack,
-      });
+    // Check if the item is a cancellation or a remove from cart.
+    // Bookings that are still "in progress" that are hitting the cancel endpoint 
+    // are simply items being removed from the cart. Items that are "confirmed" are
+    // bookings that have been completed and are being cancelled (and need email confirmation)
+    // TODO: honestly, these should be separated from one endpoint eventually
+    if (booking.status === 'in progress') {
+      logger.info('Item removed from cart, not queueing cancellation email')
+    } else {
+      // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
+      // can't roll back a successful cancellation.
+      try {
+        const emailParams = await generateEmailParams(booking);
+        await sendBookingCancellationEmail(emailParams, userId);
+      } catch (emailError) {
+        logger.error("Failed to queue cancellation email", {
+          bookingId,
+          error: emailError?.message,
+          stack: emailError?.stack,
+        });
+      }
     }
-
+      
     return sendResponse(
       200,
       {

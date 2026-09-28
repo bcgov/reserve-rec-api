@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { PRODUCT_API_UPDATE_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
@@ -11,7 +11,7 @@ const { syncCapacityToInventoryPools } = require("../../../inventoryPools/method
  * Update Products
  */
 exports.handler = async (event, context) => {
-  logger.info("PUT Products", event);
+  logger.info("PUT Products", requestIdentity(event));
   try {
     const authContext = checkAuthContext(event, "staff");
 

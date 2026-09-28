@@ -250,24 +250,18 @@ describe('rulesFns', () => {
     });
   });
 
-  describe('expect10DigitPhoneFormat', () => {
-    it('should not throw for valid phone', () => {
-      let threw = false;
-      try {
-        rules.expect10DigitPhoneFormat('1234567890');
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
+  describe('expectPhoneFormat', () => {
+    it('should not throw for a NANP number', () => {
+      expect(() => rules.expectPhoneFormat('2505550123')).not.toThrow();
     });
-    it('should throw for invalid phone', () => {
-      let threw = false;
-      try {
-        rules.expect10DigitPhoneFormat('12345');
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(true);
+    it('should not throw for an international number in E.164', () => {
+      expect(() => rules.expectPhoneFormat('+447911123456')).not.toThrow();
+    });
+    it('should throw for a number too short to reach anyone', () => {
+      expect(() => rules.expectPhoneFormat('586588')).toThrow(/Invalid phone format/);
+    });
+    it('should throw for a non-string', () => {
+      expect(() => rules.expectPhoneFormat(2505550123)).toThrow(/Invalid phone format/);
     });
   });
 

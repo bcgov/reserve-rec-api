@@ -1,5 +1,6 @@
 // Create new transaction
 const {
+  requestIdentity,
   checkAuthContext,
   Exception,
   getRequestClaimsFromEvent,
@@ -15,7 +16,7 @@ const {
 } = require("/opt/dynamodb");
 
 exports.handler = async (event, context) => {
-  logger.info("Transactions admin POST:", event);
+  logger.info("Transactions admin POST:", requestIdentity(event));
 
   try {
     // Only allow superadmins to make payments

@@ -2,18 +2,21 @@
 // email. The email must go out only after the DynamoDB write succeeds —
 // otherwise a transient DB failure would leave the user with a confirmation
 // email for a booking that was never saved.
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
 const { enqueueSmsReminderIfNeeded } = require("../../../notifications");
 const { batchTransactData } = require("/opt/dynamodb");
 
 
 exports.handler = async (event, context) => {
-  logger.info("POST Complete Booking:", event);
+  logger.info("POST Complete Booking:", requestIdentity(event));
+
+  // Declared out here so the catch can name the booking. Inside the try it is
+  // out of scope there, and reading it throws over whatever the real error was.
+  const bookingId = event.pathParameters?.bookingId;
 
   try {
     const body = JSON.parse(event?.body);
-    const bookingId = event.pathParameters?.bookingId;
     const sessionId = body.sessionId;
 
     if (!bookingId) {

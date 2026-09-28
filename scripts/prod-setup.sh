@@ -142,20 +142,18 @@ create_or_skip_secret() {
   fi
 }
 
-QR_KEY_ADMIN=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
-QR_KEY_PUBLIC=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
+# One HMAC key for every stack that signs or verifies QR URLs: the public API
+# and email dispatch sign, the admin API verifies. Different keys per stack
+# make every public-site QR fail verification (bcgov/reserve-rec-public#854).
+QR_KEY=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
 
-echo "  adminApiStack/qrSecretKey"
-create_or_skip_secret \
-  "/${APP_NAME}/${DEPLOYMENT_NAME}/adminApiStack/qrSecretKey" \
-  "${QR_KEY_ADMIN}" \
-  "QR code signing secret (admin API) — prod"
-
-echo "  publicApiStack/qrSecretKey"
-create_or_skip_secret \
-  "/${APP_NAME}/${DEPLOYMENT_NAME}/publicApiStack/qrSecretKey" \
-  "${QR_KEY_PUBLIC}" \
-  "QR code signing secret (public API) — prod"
+for STACK in adminApiStack publicApiStack emailDispatchStack; do
+  echo "  ${STACK}/qrSecretKey"
+  create_or_skip_secret \
+    "/${APP_NAME}/${DEPLOYMENT_NAME}/${STACK}/qrSecretKey" \
+    "${QR_KEY}" \
+    "QR code signing secret (${STACK}) — prod; must match the other two stacks"
+done
 
 echo ""
 echo "Step 5: Creating identity placeholder secrets (BCSC/Azure — update with prod creds later)..."

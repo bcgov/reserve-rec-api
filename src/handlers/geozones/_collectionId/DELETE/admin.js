@@ -1,4 +1,4 @@
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData, getOne } = require("/opt/dynamodb");
 const { deleteEntityRelationships } = require("../../../../common/relationship-utils.js");
 
@@ -7,7 +7,7 @@ const { deleteEntityRelationships } = require("../../../../common/relationship-u
  * Delete Geozones
  */
 exports.handler = async (event, context) => {
-  logger.info("DELETE Geozones", event);
+  logger.info("DELETE Geozones", requestIdentity(event));
   try {
     const authContext = checkAuthContext(event, "superadmin");
 

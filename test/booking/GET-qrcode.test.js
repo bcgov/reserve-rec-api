@@ -2,6 +2,7 @@ const { handler } = require("../../src/handlers/bookings/GET/public");
 let getBookingByBookingId, getBookingsByUserId, generateQRURL, generateQRCodeDataURL;
 
 jest.mock("/opt/base", () => ({
+  requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data.code;

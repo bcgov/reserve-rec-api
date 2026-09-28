@@ -1,4 +1,4 @@
-const { 
+const { requestIdentity, 
   checkAuthContext, 
   Exception, 
   logger, 
@@ -22,7 +22,7 @@ const {
 const { REFUND_PUT_CONFIG, TRANSACTION_UPDATE_CONFIG } = require("../../../configs");
 
 exports.handler = async (event, context) => {
-  logger.info("Admin Refund POST:", event);
+  logger.info("Admin Refund POST:", requestIdentity(event));
 
   try {
     checkAuthContext(event, "superadmin");

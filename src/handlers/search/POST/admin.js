@@ -4,7 +4,7 @@ const {
   OPENSEARCH_REFERENCE_DATA_INDEX_NAME,
   nonKeyableTerms,
 } = require("/opt/opensearch");
-const { sendResponse, logger, filterByRole } = require("/opt/base");
+const { requestIdentity, sendResponse, logger, filterByRole } = require("/opt/base");
 
 // This is the PUBLIC (unauthenticated) search endpoint, so results are sanitized for the
 // default role: admin-only fields are stripped and hidden (isVisible:false) documents are
@@ -19,7 +19,7 @@ const toPublicHit = (hit) => ({
 
 // Lambda function entry point
 exports.handler = async function (event, context) {
-  logger.debug("Search:", event);
+  logger.debug("Search:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {

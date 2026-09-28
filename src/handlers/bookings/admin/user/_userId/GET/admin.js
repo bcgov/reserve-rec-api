@@ -8,6 +8,7 @@
 // relevance-ranked approximation. The GSI is keyed on userId, so this is a single query.
 
 const {
+  requestIdentity,
   Exception,
   logger,
   sendResponse,
@@ -68,7 +69,7 @@ function parseLastEvaluatedKey(rawKey) {
 }
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Admin User GET:", event);
+  logger.info("Bookings Admin User GET:", requestIdentity(event));
 
   // Handle CORS preflight
   const corsResponse = handleCORS(event, context);

@@ -1,5 +1,5 @@
 const { getRelationshipsByGsipk, expandRelationships, filterExpandedEntitiesByRole } = require("../../../../../../common/relationship-utils");
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 
 /**
  * GET /relationships/reverse/{pk2}/{sk2}
@@ -13,7 +13,7 @@ const { Exception, logger, sendResponse } = require("/opt/base");
  * 
  */
 exports.handler = async (event, context) => {
-  logger.info('GET Relationships To (Reverse)', event);
+  logger.info('GET Relationships To (Reverse)', requestIdentity(event));
 
   const pk2 = event?.pathParameters?.pk2;
   const sk2 = event?.pathParameters?.sk2;

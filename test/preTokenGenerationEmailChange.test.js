@@ -54,7 +54,6 @@ describe('PreTokenGeneration email change detection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.EMAIL_CHANGE_REFUSE;
-    delete process.env.EMAIL_CHANGE_REFUSE_BCSC;
     process.env.BLOCKLIST_TABLE_NAME = 'blocklist';
     loadBlocklist.mockResolvedValue(blocklist);
   });
@@ -133,14 +132,11 @@ describe('PreTokenGeneration email change detection', () => {
     expect(updateItem).not.toHaveBeenCalled();
   });
 
-  it('does not throw for a BCSC account unless the BCSC switch is also on', async () => {
+  it('passes a BCSC email change', async () => {
     process.env.EMAIL_CHANGE_REFUSE = 'true';
     getOne.mockResolvedValue(existing('old@example.com'));
     await expect(handler(event('banned@example.com', { bcsc: true }))).resolves.toBeDefined();
-    expect(logger.warn).toHaveBeenCalledWith('event=email_change_refused', { sub: SUB, source: 'bcsc', reason: 'address' });
-
-    process.env.EMAIL_CHANGE_REFUSE_BCSC = 'true';
-    await expect(handler(event('banned@example.com', { bcsc: true }))).rejects.toThrow('This account cannot be used');
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('fails open when the list cannot be loaded', async () => {
@@ -153,5 +149,69 @@ describe('PreTokenGeneration email change detection', () => {
     expect(logger.error).toHaveBeenCalledWith('PreTokenGeneration blocklist check failed open', { error: 'SSM unavailable' });
     expect(logger.warn).not.toHaveBeenCalled();
     expect(updateItem).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PreTokenGeneration review fields', () => {
+  const flagged = { reviewFlag: true, reviewReason: 'address', reviewFlaggedAt: '2026-01-01T00:00:00.000Z' };
+  const stored = () => (putItem.mock.calls[0] || updateItem.mock.calls[0])[0];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    delete process.env.EMAIL_CHANGE_REFUSE;
+    process.env.BLOCKLIST_TABLE_NAME = 'blocklist';
+    loadBlocklist.mockResolvedValue(blocklist);
+  });
+
+  it('sets review fields on a matching BCSC first login', async () => {
+    getOne.mockResolvedValue(null);
+    await handler(event('banned@example.com', { bcsc: true }));
+    expect(stored()).toMatchObject(flagged);
+    expect(logger.info).toHaveBeenCalledWith('event=account_flagged', { sub: SUB, reason: 'address' });
+  });
+
+  it('sets review fields on an existing BCSC account that matches', async () => {
+    getOne.mockResolvedValue(existing('anyone@blocked.example'));
+    await handler(event('anyone@blocked.example', { bcsc: true }));
+    expect(stored()).toMatchObject({ ...flagged, reviewReason: 'domain' });
+  });
+
+  it('sets none on a non-matching BCSC account', async () => {
+    getOne.mockResolvedValue(null);
+    await handler(event('person@example.com', { bcsc: true }));
+    expect(stored()).not.toHaveProperty('reviewFlag');
+  });
+
+  it('sets none on a native account', async () => {
+    getOne.mockResolvedValue(null);
+    await handler(event('banned@example.com'));
+    expect(stored()).not.toHaveProperty('reviewFlag');
+  });
+
+  it('keeps review fields across logins', async () => {
+    getOne.mockResolvedValue({ ...existing('banned@example.com'), ...flagged, reviewedBy: 'admin' });
+    await handler(event('banned@example.com', { bcsc: true }));
+    expect(loadBlocklist).not.toHaveBeenCalled();
+    expect(stored()).toMatchObject({ ...flagged, reviewedBy: 'admin' });
+  });
+
+  it('keeps a cleared reviewFlag while the address is unchanged', async () => {
+    getOne.mockResolvedValue({ ...existing('banned@example.com'), ...flagged, reviewFlag: false });
+    await handler(event('banned@example.com', { bcsc: true }));
+    expect(stored().reviewFlag).toBe(false);
+  });
+
+  it('sets reviewFlag again after an address change', async () => {
+    getOne.mockResolvedValue({ ...existing('old@example.com'), ...flagged, reviewFlag: false });
+    await handler(event('anyone@blocked.example', { bcsc: true }));
+    expect(stored()).toMatchObject({ reviewFlag: true, reviewReason: 'domain' });
+  });
+
+  it('logs in when the check cannot run', async () => {
+    loadBlocklist.mockRejectedValue(new Error('unavailable'));
+    getOne.mockResolvedValue(null);
+    await expect(handler(event('banned@example.com', { bcsc: true }))).resolves.toBeDefined();
+    expect(stored()).not.toHaveProperty('reviewFlag');
+    expect(putItem).toHaveBeenCalledTimes(1);
   });
 });

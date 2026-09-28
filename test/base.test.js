@@ -16,7 +16,8 @@ describe('Base Layer Tests', () => {
         data: { items: [1, 2, 3] },
         msg: 'Success',
         error: null,
-        context: null
+        context: null,
+        serverTime: expect.any(Number)
       });
     });
 
@@ -28,7 +29,8 @@ describe('Base Layer Tests', () => {
         data: [],
         msg: 'Error',
         error: { error: 'error' },
-        context: null
+        context: null,
+        serverTime: expect.any(Number)
       });
     });
 
@@ -38,6 +40,21 @@ describe('Base Layer Tests', () => {
       const body = JSON.parse(response.body);
       expect(body.other1).toBe(1);
       expect(body.other2).toBe(2);
+    });
+
+    it('should carry server time close to now', () => {
+      // The client corrects its own clock against this, so a stale or absent
+      // value would silently reintroduce the skew it exists to remove.
+      const before = Date.now();
+      const body = JSON.parse(sendResponse(200, {}, 'Success', null, null).body);
+      expect(typeof body.serverTime).toBe('number');
+      expect(body.serverTime).toBeGreaterThanOrEqual(before);
+      expect(body.serverTime).toBeLessThanOrEqual(Date.now());
+    });
+
+    it('should carry server time on an error response too', () => {
+      const body = JSON.parse(sendResponse(400, [], 'Error', { error: 'e' }, null).body);
+      expect(typeof body.serverTime).toBe('number');
     });
 
     it('should include CORS headers', () => {

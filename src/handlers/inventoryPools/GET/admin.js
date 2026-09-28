@@ -1,9 +1,9 @@
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 const { fetchInventoryPoolsOnDate, fetchInventoryPoolsForDateRange } = require("../methods");
 const { countCheckedInBookingsByDate } = require("../../bookings/methods");
 
 exports.handler = async (event, context) => {
-  logger.info("GET InventoryPool by Product on Date", event);
+  logger.info("GET InventoryPool by Product on Date", requestIdentity(event));
 
   if (event.httpMethod === 'OPTIONS') {
     return {

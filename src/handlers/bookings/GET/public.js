@@ -1,6 +1,6 @@
 // Public GET handlers for bookings. This is used to get bookings for the logged-in userId. userId can only see their own bookings, but they can filter by various parameters.
 
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent, requestIdentity } = require("/opt/base");
 const { getBookingsByUserId, getBookingByBookingId } = require("../methods");
 
 /**
@@ -42,6 +42,7 @@ async function generateQRCodeForBooking(bookingId, booking) {
 
 exports.handler = async (event, context) => {
   logger.info('Bookings GET Activated', {
+    ...requestIdentity(event),
     bookingId: event?.pathParameters?.bookingId || event?.queryStringParameters?.bookingId || null,
   });
 

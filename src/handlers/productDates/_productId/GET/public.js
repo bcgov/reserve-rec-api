@@ -1,13 +1,13 @@
 
 const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../../configs");
-const { logger, sendResponse, Exception } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 /**
  * Fetches available ProductDates from a public user perspective. This means that discovery rules will ALWAYS be applied to the query, and only ProductDates that are discoverable to the user will be returned.
  */
 
 exports.handler = async (event, context) => {
-  logger.info("GET Product Dates - Public Handler", event);
+  logger.info("GET Product Dates - Public Handler", requestIdentity(event));
    // Allow CORS
   if (event.httpMethod === "OPTIONS") {
     return sendResponse(200, {}, "Success", null, context);

@@ -1,6 +1,6 @@
 // Await Worldline Notification push
 const querystring = require('querystring');
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
 const { updateTransactionForPayment } = require("../../transactions/methods");
 const { batchTransactData, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
 const { quickApiUpdateHandler } = require("../../../common/data-utils");
@@ -16,7 +16,7 @@ const { BOOKING_UPDATE_CONFIG } = require("../../bookings/configs");
 const { sendReceiptEmail, getRegionBranding } = require("../../../../lib/handlers/emailDispatch/utils");
 
 exports.handler = async (event, context) => {
-  logger.info("Worldline Notification POST:", event);
+  logger.info("Worldline Notification POST:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === 'OPTIONS') {

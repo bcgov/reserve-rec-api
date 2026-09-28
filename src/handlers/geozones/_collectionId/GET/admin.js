@@ -2,7 +2,7 @@ const {
   getGeozonesByCollectionId,
   getGeozonesByGeozoneId,
 } = require("../../methods");
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../../configs");
 
 /**
@@ -10,7 +10,7 @@ const { ALLOWED_FILTERS } = require("../../configs");
  * Fetch geozones
  */
 exports.handler = async (event, context) => {
-  logger.info("GET geozones", event);
+  logger.info("GET geozones", requestIdentity(event));
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);

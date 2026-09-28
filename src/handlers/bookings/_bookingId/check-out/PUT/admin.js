@@ -1,6 +1,7 @@
 /**
  */
 const {
+  requestIdentity,
   calculatePartySize,
   checkAuthContext,
   Exception,
@@ -21,7 +22,7 @@ const {
 } = require("../../../methods");
 
 exports.handler = async (event, context) => {
-  logger.info("Bookings Check-Out PUT:", event);
+  logger.info("Bookings Check-Out PUT:", requestIdentity(event));
 
   // Allow CORS
   if (event.httpMethod === "OPTIONS") {

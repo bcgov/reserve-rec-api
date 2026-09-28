@@ -2,7 +2,7 @@ const {
   getAllCollections,
   getCollectionByCollectionId,
 } = require("../methods");
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../configs");
 
 /**
@@ -11,7 +11,7 @@ const { ALLOWED_FILTERS } = require("../configs");
  * Fetch collections
  */
 exports.handler = async (event, context) => {
-  logger.info("GET collections", event);
+  logger.info("GET collections", requestIdentity(event));
 
   if (event?.httpMethod === "OPTIONS") {
     return sendResponse(200, null, "Success", null, context);

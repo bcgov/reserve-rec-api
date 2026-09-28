@@ -1,4 +1,4 @@
-const { logger, sendResponse } = require("/opt/base");
+const { requestIdentity, logger, sendResponse } = require("/opt/base");
 const { marshall, REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -13,7 +13,7 @@ const { marshall, REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt
  *
  */
 exports.handler = async (event, context) => {
-  logger.info("DELETE relationship", event);
+  logger.info("DELETE relationship", requestIdentity(event));
   try {
     const pk1 = event?.pathParameters?.pk1;
     const sk1 = event?.pathParameters?.sk1;

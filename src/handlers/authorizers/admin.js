@@ -150,7 +150,7 @@ exports.handler = async function (event, context, callback) {
 
       // User hasn't been assigned a group in Cognito (yet)
       if (payload?.["cognito:groups"].some(group => group === 'unauthorized' || group.length === 0)) {
-        console.log("Deny, user is in unauthorized group");
+        console.log(`Deny, user ${sub} is in unauthorized group`);
         return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
       } else if (payload?.["cognito:groups"].some(group => {
         // Any users that have been manually added to the SuperAdmin group in Cognito are granted everything
@@ -180,10 +180,30 @@ exports.handler = async function (event, context, callback) {
       const userData = await getOne(`${USER_ID_PARTITION}::${sub}`, 'base');
       logger.debug(`userData: ${JSON.stringify(userData)}`);
 
-      // If no permissions, user's sub still needs to be added to database
+      // The sub has no permissions record yet. Denying outright takes a 403 on
+      // the first call the app makes, so it renders nothing and the user cannot
+      // be told why. Allow GET /users/me alone — it returns an empty permission
+      // set, which the app can read as "pending access". Every other route stays
+      // denied: this grants no data.
       if (!userData || !userData.permissions) {
-        console.log("Deny, no permissions found for user - please add user sub to database with appropriate permissions");
-        return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
+        console.log(`No permissions found for user ${sub} - allowing GET /users/me only; add the sub to the database to grant access`);
+        return {
+          principalId: sub,
+          policyDocument: {
+            Version: '2012-10-17',
+            Statement: [{
+              Action: 'execute-api:Invoke',
+              Effect: 'Allow',
+              Resource: [`${arnPrefix}:${apiId}/${process.env.STAGE_NAME || '*'}/GET/users/me`]
+            }]
+          },
+          context: {
+            isAuthenticated: 'true',
+            permissions: JSON.stringify({}),
+            userId: sub,
+            username: payload.username || '',
+          }
+        };
       }
 
       // Get permissions as { bcparks_7: 'limited', bcparks_363: 'staff' } etc.
