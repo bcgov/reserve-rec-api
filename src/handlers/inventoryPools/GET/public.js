@@ -95,6 +95,9 @@ exports.handler = async (event, context) => {
       if (typeof pool?.availability === 'number') {
         entry.available = (entry.available ?? 0) + pool.availability;
       }
+      if (pool?.closureStatus) {
+        entry.closureStatus = pool.closureStatus;
+      }
     }
 
     const response = date
