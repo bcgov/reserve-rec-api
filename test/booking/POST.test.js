@@ -4,8 +4,8 @@ jest.mock("/opt/base", () => ({
   requestIdentity: jest.fn(() => ({})),
   Exception: jest.fn(function (message, data) {
     this.message = message;
-    this.code = data.code;
-    this.data = data;
+    this.code = data?.code || null;
+    this.data = data?.data || null;
   }),
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
   sendResponse: jest.fn((status, data, message, error, context) => ({
@@ -31,6 +31,16 @@ jest.mock("/opt/dynamodb", () => ({
   TABLE_NAME: "TestTable",
   batchTransactData: jest.fn(),
   isTransactionConflict: jest.requireActual("/opt/dynamodb").isTransactionConflict,
+}));
+
+jest.mock("../../src/handlers/waiting-room/utils/token", () => ({
+  parseAdmissionCookie: jest.fn(),
+  validateToken: jest.fn(),
+}));
+jest.mock("../../src/handlers/waiting-room/utils/secrets", () => ({ getHmacSigningKey: jest.fn() }));
+jest.mock("../../src/handlers/waiting-room/utils/dynamodb", () => ({
+  getQueueMeta: jest.fn(),
+  buildQueueId: jest.fn(() => "queue-1"),
 }));
 
 const { handler } = require("../../src/handlers/bookings/POST/public");
@@ -167,8 +177,19 @@ describe("Bookings POST handler", () => {
     };
     const eventNames = () => [...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]
       .map(([msg]) => msg).filter((msg) => typeof msg === "string" && msg.startsWith("event="));
-    const duplicate = (status) => Object.assign(new Error(`You already have a ${status} booking`), {
-      code: 409, data: { existingBookingId: "b-1", status },
+    const refused = (refusal, code, data = {}) => Object.assign(new Error(`refused: ${refusal}`), {
+      code, data: { ...data, refusal },
+    });
+    const duplicate = (status) => refused(status === "confirmed" ? "has_booking" : "has_hold", 409,
+      { existingBookingId: "b-1", status });
+
+    it("counts a success as hold_created alone", async () => {
+      createBooking.mockResolvedValue([{ booking: "data" }]);
+      batchTransactData.mockResolvedValue({ result: "ok" });
+      formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
+      const result = await handler(event, context);
+      expect(result.status).toBe(200);
+      expect(eventNames()).toEqual(["event=hold_created"]);
     });
 
     it("counts a refusal over a confirmed booking apart from failures", async () => {
@@ -205,6 +226,110 @@ describe("Bookings POST handler", () => {
       expect(result.status).toBe(409);
       expect(result.message).toBe("This pass is in high demand right now. Please try again.");
       expect(eventNames()).toEqual(["event=hold_conflict"]);
+    });
+
+    describe("counts invalid requests as hold_refused_invalid", () => {
+      const { getRequestClaimsFromEvent } = require("/opt/base");
+      const withBody = (body) => ({ body: JSON.stringify({ ...JSON.parse(event.body), ...body }) });
+      const cases = [
+        ["a missing body", { body: null }],
+        ["a body that is not JSON", { body: "{" }],
+        ["a missing parameter", withBody({ productId: undefined })],
+        ["a zero quantity", withBody({ quantity: 0 })],
+        ["a quantity that is not a number", withBody({ quantity: "two" })],
+        ["a negative quantity", withBody({ quantity: -1 })],
+      ];
+
+      it.each(cases)("%s", async (_, request) => {
+        const result = await handler(request, context);
+        expect(result.status).toBe(400);
+        expect(result.data).toEqual({ refusal: "invalid" });
+        expect(createBooking).not.toHaveBeenCalled();
+        expect(eventNames()).toEqual(["event=hold_refused_invalid"]);
+      });
+
+      it("a request that is not signed in", async () => {
+        getRequestClaimsFromEvent.mockReturnValueOnce(null);
+        const result = await handler(event, context);
+        expect(result.status).toBe(401);
+        expect(result.data).toEqual({ refusal: "invalid" });
+        expect(eventNames()).toEqual(["event=hold_refused_invalid"]);
+      });
+    });
+
+    it.each([
+      ["window", 400],
+      ["invalid", 400],
+      ["state", 400],
+      ["not_found", 404],
+      ["unverified_email", 403],
+    ])("counts the %s refusal from createBooking as its own event", async (refusal, code) => {
+      createBooking.mockRejectedValue(refused(refusal, code));
+      const result = await handler(event, context);
+      expect(result.status).toBe(code);
+      expect(eventNames()).toEqual([`event=hold_refused_${refusal}`]);
+    });
+
+    it.each([
+      ["bookingDate::c::a::i::p::2024-01-01", "Error initializing the booking dates."],
+      ["booking::c::a::i::p", "Error creating the booking."],
+    ])("counts a failed condition on %s as hold_conflict", async (pk, message) => {
+      createBooking.mockResolvedValue([{ data: { Put: { Item: { pk: { S: pk } } } } }]);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(event, context);
+      expect(result.status).toBe(400);
+      expect(result.message).toBe(message);
+      expect(eventNames()).toEqual(["event=hold_conflict"]);
+    });
+
+    it("counts a failed inventory condition as sold out", async () => {
+      createBooking.mockResolvedValue([
+        { data: { Put: { Item: { pk: { S: "booking::c::a::i::p" } } } } },
+        { data: { Update: { Key: { pk: { S: "inventoryPool::c::a::i::p::2024-01-01" } } } } },
+      ]);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "None" }, { Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(event, context);
+      expect(result.message).toBe("Booking item no longer available.");
+      expect(eventNames()).toEqual(["event=hold_refused_sold_out"]);
+    });
+
+    describe("with the waiting room open", () => {
+      const { parseAdmissionCookie } = require("../../src/handlers/waiting-room/utils/token");
+      const { getHmacSigningKey } = require("../../src/handlers/waiting-room/utils/secrets");
+      const { getQueueMeta } = require("../../src/handlers/waiting-room/utils/dynamodb");
+
+      beforeEach(() => {
+        process.env.WAITING_ROOM_TABLE_NAME = "waiting-room";
+        process.env.HMAC_SIGNING_KEY_ARN = "hmac-key";
+        getQueueMeta.mockResolvedValue({ queueStatus: "open" });
+      });
+
+      afterEach(() => {
+        delete process.env.WAITING_ROOM_TABLE_NAME;
+        delete process.env.HMAC_SIGNING_KEY_ARN;
+      });
+
+      it("counts a request without admission as a waiting-room refusal", async () => {
+        parseAdmissionCookie.mockReturnValue(null);
+        const result = await handler(event, context);
+        expect(result.status).toBe(403);
+        expect(result.data).toMatchObject({ waitingRoom: true, refusal: "waiting_room" });
+        expect(eventNames()).toEqual(["event=hold_refused_waiting_room"]);
+      });
+
+      it("still counts a failure to read the signing key as hold_failed", async () => {
+        parseAdmissionCookie.mockReturnValue("token");
+        getHmacSigningKey.mockRejectedValue(new Error("secrets unavailable"));
+        const result = await handler(event, context);
+        expect(result.status).toBe(500);
+        expect(eventNames()).toEqual(["event=hold_failed"]);
+      });
     });
 
     it("still counts any other error as hold_failed", async () => {

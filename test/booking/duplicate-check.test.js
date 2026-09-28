@@ -4,7 +4,7 @@ jest.mock('/opt/base', () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;
-    this.data = data;
+    this.data = data?.data || null;
   }),
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
@@ -46,8 +46,9 @@ jest.mock('../../src/handlers/bookings/configs', () => ({
   BOOKING_UPDATE_CONFIG: {},
 }));
 
-const { runQuery } = require('/opt/dynamodb');
-const { findUserActiveBookingForProductOnDate } = require('../../src/handlers/bookings/methods');
+const { runQuery, getOne } = require('/opt/dynamodb');
+const { fetchProductDates } = require('../../src/handlers/productDates/methods');
+const { findUserActiveBookingForProductOnDate, createBooking } = require('../../src/handlers/bookings/methods');
 
 describe('findUserActiveBookingForProductOnDate', () => {
   const userId = 'cog-sub-123';
@@ -90,5 +91,42 @@ describe('findUserActiveBookingForProductOnDate', () => {
     expect(await findUserActiveBookingForProductOnDate(userId, null, startDate)).toBeNull();
     expect(await findUserActiveBookingForProductOnDate(userId, productPk, null)).toBeNull();
     expect(runQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('createBooking refusals', () => {
+  const props = () => ({
+    collectionId: 'col-1', activityType: 'dayuse', activityId: '1', productId: '3',
+    startDate: '2026-06-15', invQuantity: 1, userId: 'cog-sub-123',
+  });
+
+  it.each([
+    ['confirmed', 'has_booking'],
+    ['in progress', 'has_hold'],
+  ])('tags a %s duplicate as %s', async (status, refusal) => {
+    runQuery.mockResolvedValue({ items: [{ bookingId: 'b-1', status, pk: 'booking::col-1::dayuse::1::3' }] });
+    await expect(createBooking(props())).rejects.toMatchObject({
+      code: 409,
+      data: { existingBookingId: 'b-1', status, refusal },
+    });
+  });
+
+  it('tags a missing property as invalid', async () => {
+    await expect(createBooking({ ...props(), productId: undefined })).rejects.toMatchObject({
+      code: 400, data: { refusal: 'invalid' },
+    });
+  });
+
+  it('tags a product that does not exist as not_found', async () => {
+    runQuery.mockResolvedValue({ items: [] });
+    getOne.mockResolvedValue(null);
+    await expect(createBooking(props())).rejects.toMatchObject({ code: 404, data: { refusal: 'not_found' } });
+  });
+
+  it('tags a product without dates as not_found', async () => {
+    runQuery.mockResolvedValue({ items: [] });
+    getOne.mockResolvedValue({ productId: '3' });
+    fetchProductDates.mockResolvedValue([]);
+    await expect(createBooking(props())).rejects.toMatchObject({ code: 404, data: { refusal: 'not_found' } });
   });
 });

@@ -5,7 +5,7 @@ jest.mock("/opt/base", () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;
-    this.data = data;
+    this.data = data?.data || null;
   }),
   logger: {
     info: jest.fn(),

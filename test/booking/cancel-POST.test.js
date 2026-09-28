@@ -5,7 +5,7 @@ jest.mock("/opt/base", () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;
-    this.data = data;
+    this.data = data?.data || null;
   }),
   logger: {
     info: jest.fn(),
@@ -250,5 +250,73 @@ describe("Bookings Cancel POST handler", () => {
 
     expect(result.status).toBe(400);
     expect(result.message).not.toBe("Booking is already cancelled");
+  });
+
+  describe("outcome events", () => {
+    const { logger } = require("/opt/base");
+    const eventNames = () => [...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]
+      .map(([msg]) => msg).filter((msg) => typeof msg === "string" && msg.startsWith("event="));
+
+    it.each([
+      ["already cancelled", { status: "cancelled" }, 409],
+      ["already checked in", { checkedInTime: 1 }, 409],
+      ["not in a cancellable status", { status: "expired" }, 409],
+      ["past checkout", { reservationContext: { checkOutTime: 1 } }, 400],
+    ])("counts a booking %s as cancel_refused_state", async (_, overrides, status) => {
+      getBookingByBookingId.mockResolvedValue({ ...okBooking, ...overrides });
+      const result = await handler(makeEvent(), {});
+      expect(result.status).toBe(status);
+      expect(eventNames()).toEqual(["event=cancel_refused_state"]);
+    });
+
+    it("counts losing a cancel race as cancel_refused_state", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      await handler(makeEvent(), {});
+      expect(eventNames()).toEqual(["event=cancel_refused_state"]);
+    });
+
+    it("counts cancelling another account's booking as cancel_refused_owner", async () => {
+      getBookingByBookingId.mockResolvedValue({ ...okBooking, userId: "someone-else" });
+      const result = await handler(makeEvent(), {});
+      expect(result.status).toBe(403);
+      expect(eventNames()).toEqual(["event=cancel_refused_owner"]);
+    });
+
+    it("counts a booking that does not exist as cancel_refused_not_found", async () => {
+      getBookingByBookingId.mockRejectedValue(Object.assign(new Error("Booking not found (BookingID: booking-123)"), {
+        code: 400, data: { refusal: "not_found" },
+      }));
+      const result = await handler(makeEvent(), {});
+      expect(result.status).toBe(400);
+      expect(eventNames()).toEqual(["event=cancel_refused_not_found"]);
+    });
+
+    it.each([
+      ["no signed-in user", { ...makeEvent(), headers: {} }, 401],
+      ["a missing booking id", { ...makeEvent(), pathParameters: {} }, 400],
+      ["a body that is not JSON", { ...makeEvent(), body: "{" }, 400],
+    ])("counts %s as cancel_refused_invalid", async (_, request, status) => {
+      const result = await handler(request, {});
+      expect(result.status).toBe(status);
+      expect(getBookingByBookingId).not.toHaveBeenCalled();
+      expect(eventNames()).toEqual(["event=cancel_refused_invalid"]);
+    });
+
+    it("counts a fault as cancel_failed", async () => {
+      getBookingByBookingId.mockRejectedValue(new Error("DynamoDB unavailable"));
+      await handler(makeEvent(), {});
+      expect(eventNames()).toEqual(["event=cancel_failed"]);
+    });
+
+    it("logs no outcome event on success", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      const result = await handler(makeEvent(), {});
+      expect(result.status).toBe(200);
+      expect(eventNames()).toEqual([]);
+    });
   });
 });

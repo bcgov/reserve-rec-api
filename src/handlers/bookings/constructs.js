@@ -350,6 +350,7 @@ class PublicBookingsConstruct extends LambdaConstruct {
       {
         transDataBasicReadWrite: true,
         basicRead: true,
+        logRetention: EVENT_LOG_RETENTION,
       }
     );
 
