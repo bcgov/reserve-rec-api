@@ -76,7 +76,8 @@ const INVENTORYPOOLS_API_UPDATE_CONFIG = {
 const PUBLIC_INVENTORYPOOL_PROJECTIONS = [
   "pk",
   "isOpen",
-  "availability"
+  "availability",
+  "closureStatus"
 ]
 
 
