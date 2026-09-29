@@ -169,8 +169,9 @@ exports.handler = async (event, context) => {
     // event=<name> as the first token so a metric filter can match without
     // parsing prose. Success was previously only returned, never logged, so
     // holds could not be counted.
+    const bookingItem = bookingRequestItems?.find((item) => item?.data?.Item?.schema?.S === "booking");
     logger.info("event=hold_created", {
-      bookingId: bookingRequestItems?.[0]?.Put?.Item?.bookingId?.S,
+      bookingId: bookingItem?.data?.Item?.bookingId?.S,
       userId: claims.sub,
     });
 

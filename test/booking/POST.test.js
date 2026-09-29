@@ -212,5 +212,19 @@ describe("Bookings POST handler", () => {
       await handler(event, context);
       expect(eventNames()).toEqual(["event=hold_failed"]);
     });
+
+    it("logs the booking item's bookingId, not the first (bookingDate) item's", async () => {
+      createBooking.mockResolvedValue([
+        { data: { Item: { schema: { S: "bookingDate" }, bookingId: { S: "wrong-id" } } } },
+        { data: { Item: { schema: { S: "booking" }, bookingId: { S: "booking-1" } } } },
+      ]);
+      batchTransactData.mockResolvedValue({ result: "ok" });
+      formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
+
+      await handler(event, context);
+
+      const [, payload] = logger.info.mock.calls.find(([msg]) => msg === "event=hold_created");
+      expect(payload.bookingId).toBe("booking-1");
+    });
   });
 });
