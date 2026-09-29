@@ -28,11 +28,21 @@ function normalizePhoneNumber(phoneNumber) {
 
   const parsedPhoneNumber = parsePhoneNumberFromString(trimmedPhoneNumber, 'CA');
 
-  if (!parsedPhoneNumber || !parsedPhoneNumber.isValid()) {
-    return null;
+  if (parsedPhoneNumber && parsedPhoneNumber.isValid()) {
+    return parsedPhoneNumber.number;
   }
 
-  return parsedPhoneNumber.number;
+  const digits = trimmedPhoneNumber.replace(/\D/g, '');
+
+  // No NANP number reaches 12 digits, so at that length the digits already carry a country code.
+  if (!trimmedPhoneNumber.startsWith('+') && digits.length >= 12 && digits.length <= 15) {
+    const withPlus = parsePhoneNumberFromString(`+${digits}`);
+    if (withPlus && withPlus.isValid()) {
+      return withPlus.number;
+    }
+  }
+
+  return null;
 }
 
 /**

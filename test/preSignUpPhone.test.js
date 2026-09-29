@@ -44,10 +44,10 @@ describe('PreSignUp phone check', () => {
   });
 
   it('records the shape that distinguishes a stripped + from a bad number', async () => {
-    await expect(handler(signUp({ 'custom:mobilePhone': '447911123456' }))).rejects.toThrow();
+    await expect(handler(signUp({ 'custom:mobilePhone': '44791112345' }))).rejects.toThrow();
     const [, fields] = mockLoggerInfo.mock.calls.find(([m]) => m === 'event=signup_phone_refused');
-    expect(fields).toMatchObject({ digits: 12, hasPlus: false });
-    expect(JSON.stringify(fields)).not.toContain('447911123456');
+    expect(fields).toMatchObject({ digits: 11, hasPlus: false });
+    expect(JSON.stringify(fields)).not.toContain('44791112345');
   });
 
   it('emits the refusal event, not just the phone one', async () => {
@@ -67,6 +67,10 @@ describe('PreSignUp phone check', () => {
     for (const number of ['2505550123', '(250) 555-0123', '+447911123456']) {
       await expect(handler(signUp({ 'custom:mobilePhone': number }))).resolves.toBeTruthy();
     }
+  });
+
+  it('allows an international number typed without its +', async () => {
+    await expect(handler(signUp({ 'custom:mobilePhone': '821012345678' }))).resolves.toBeTruthy();
   });
 
   it('allows a signup with no phone attributes at all', async () => {
