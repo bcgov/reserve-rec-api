@@ -385,8 +385,9 @@ function excludeDeletedItems(queryObj) {
  */
 function excludeHiddenItems(queryObj) {
   const visibleClause = "(attribute_not_exists(#isVisible) OR #isVisible = :visible)";
+  // excludeDeletedItems runs first; re-wrapping gives "((...))", which DynamoDB rejects.
   queryObj.FilterExpression = queryObj.FilterExpression
-    ? `(${queryObj.FilterExpression}) AND ${visibleClause}`
+    ? `${queryObj.FilterExpression} AND ${visibleClause}`
     : visibleClause;
   queryObj.ExpressionAttributeNames = {
     ...queryObj.ExpressionAttributeNames,
