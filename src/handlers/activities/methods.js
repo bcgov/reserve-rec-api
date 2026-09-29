@@ -88,6 +88,8 @@ async function getActivitiesByCollectionId(collectionId, filters, params = null,
     logger.info(`Activities: ${res?.items?.length} found.`);
     return res;
   } catch (error) {
+    if (error instanceof Exception) throw error;
+    logger.error(`Error getting activities: ${error}`);
     throw new Exception("Error getting activities", {
       code: 400,
       error: error,
@@ -144,6 +146,8 @@ async function getActivitiesByActivityType(
     logger.info(`Activities: ${res?.items?.length} found.`);
     return res;
   } catch (error) {
+    if (error instanceof Exception) throw error;
+    logger.error(`Error getting activities: ${error}`);
     throw new Exception("Error getting activities", {
       code: 400,
       error: error,
