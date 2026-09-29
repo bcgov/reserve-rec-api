@@ -309,7 +309,8 @@ async function getBookingsByUserId(userId, props) {
     // Enrichment returns the same result object, so the cursor survives.
     return await getGeoZoneForBooking(result);
   } catch (error) {
-    throw new Exception(`Error getting booking by userId: ${error}`);
+    logger.error(`Error getting booking by userId: ${error}`);
+    throw new Exception("Error getting booking by userId");
   }
 }
 

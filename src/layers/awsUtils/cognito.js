@@ -1,5 +1,5 @@
 const { CognitoIdentityProviderClient, ListUsersCommand, DescribeUserPoolCommand, AdminGetUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
-const { Exception } = require('/opt/base');
+const { Exception, logger } = require('/opt/base');
 
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
 
@@ -28,7 +28,8 @@ async function describeUserPool(userPoolId) {
   try {
     const response = await cognitoProviderClient.send(new DescribeUserPoolCommand(command));
   } catch (error) {
-    throw new Exception(`Failed to describe user pool: ${error}`);
+    logger.error(`Failed to describe user pool: ${error}`);
+    throw new Exception("Failed to describe user pool");
   }
 }
 
@@ -45,7 +46,8 @@ async function listUsers(userPoolId, limit, paginationToken, filter = null) {
     const response = await cognitoProviderClient.send(new ListUsersCommand(command));
     return response.Users;
   } catch (error) {
-    throw new Exception(`Failed to list users: ${error}`);
+    logger.error(`Failed to list users: ${error}`);
+    throw new Exception("Failed to list users");
   }
 }
 
@@ -58,7 +60,8 @@ async function adminGetUser(userPoolId, username) {
     const response = await cognitoProviderClient.send(new AdminGetUserCommand(command));
     return response;
   } catch (error) {
-    throw new Exception(`Failed to get user: ${error}`);
+    logger.error(`Failed to get user: ${error}`);
+    throw new Exception("Failed to get user");
   }
 }
 

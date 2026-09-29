@@ -190,7 +190,7 @@ async function getActivityByActivityId(collectionId, activityType, activityId, f
     return res;
   } catch (error) {
     logger.error(`Error getting activity: ${error}`);
-    throw new Exception(`Error getting activity ${error}`, { code: 400, error: error });
+    throw new Exception("Error getting activity", { code: 400, error: error });
   }
 }
 
