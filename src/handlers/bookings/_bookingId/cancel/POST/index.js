@@ -8,7 +8,7 @@
  * by a subscriber Lambda functions found in /bookings/cancel/subscriber and
  * transactions/refunds/subscriber.
  */
-const { requestIdentity, Exception, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
+const { requestIdentity, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData } = require("/opt/dynamodb");
 const {
   getBookingByBookingId,
@@ -17,6 +17,7 @@ const {
   sendBookingCancellationEmail,
   deleteBookingHoldMarker
 } = require("../../../methods");
+const { refused } = require("../../../refusals");
 
 exports.handler = async (event, context) => {
   logger.info("Bookings Cancel POST:", requestIdentity(event));
@@ -32,15 +33,18 @@ exports.handler = async (event, context) => {
     const userId = getRequestClaimsFromEvent(event)?.sub || null;
 
     if (!userId) {
-      throw new Exception("Unauthorized: User ID not found in request claims", { code: 401 });
+      throw refused("invalid", "Unauthorized: User ID not found in request claims", 401);
     }
 
     if (!bookingId) {
-      throw new Exception("Booking ID required in request", {
-        code: 400,
-      });
+      throw refused("invalid", "Booking ID required in request");
     }
-    const body = JSON.parse(event?.body || "{}");
+    let body;
+    try {
+      body = JSON.parse(event?.body || "{}");
+    } catch {
+      throw refused("invalid", "Body must be valid JSON");
+    }
     // Cap + sanitize the reason. DynamoDB items max out at 400KB, an admin UI
     // will eventually render this field, and CloudWatch operators will read it
     // in logs — so strip ASCII control chars (except \t, \n, \r) defensively
@@ -60,23 +64,17 @@ exports.handler = async (event, context) => {
 
     // Verify ownership
     if (booking.userId !== userId) {
-      throw new Exception(`User ${userId} does not own booking ${bookingId}`, {
-        code: 403,
-      });
+      throw refused("owner", `User ${userId} does not own booking ${bookingId}`, 403);
     }
 
     // Check if booking is already cancelled
     if (booking.status === "cancelled") {
-      throw new Exception(`Booking ${bookingId} is already cancelled`, {
-        code: 409,
-      });
+      throw refused("state", `Booking ${bookingId} is already cancelled`, 409);
     }
 
     // Check if booking is already checked-in
     if (booking.checkedInTime) {
-      throw new Exception(`Booking is already checked-in`, {
-        code: 409,
-      });
+      throw refused("state", "Booking is already checked-in", 409);
     }
 
     // Only confirmed and in-progress bookings can be cancelled. 
@@ -88,10 +86,7 @@ exports.handler = async (event, context) => {
         status: booking.status,
         allowedStatuses: ["confirmed", "in progress"],
       });
-      throw new Exception(
-        `Booking has status "${booking.status}" and cannot be cancelled`,
-        { code: 409 }
-      );
+      throw refused("state", `Booking has status "${booking.status}" and cannot be cancelled`, 409);
     }
     logger.info("Status check passed", { status: booking.status });
 
@@ -107,10 +102,7 @@ exports.handler = async (event, context) => {
 
 
     if (checkoutTime && queryTime > checkoutTime) {
-      throw new Exception(
-        `Booking cannot be cancelled after the checkout time of ${new Date(checkoutTime).toISOString()}`,
-        { code: 400 }
-      );
+      throw refused("state", `Booking cannot be cancelled after the checkout time of ${new Date(checkoutTime).toISOString()}`);
     }
 
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
@@ -180,20 +172,22 @@ exports.handler = async (event, context) => {
     
     // The flagCancelledBooking ConditionExpression rejects the second of two
     // racing cancels — surface that as a clean 400 rather than a 500.
-    if (error?.name === "TransactionCanceledException") {
-      const conditionFailed = (error.CancellationReasons || []).some(
-        (r) => r?.Code === "ConditionalCheckFailed"
-      );
-      if (conditionFailed) {
-        logger.error("TransactionCancelled due to ConditionalCheckFailed (racing cancel)");
-        return sendResponse(
-          400,
-          null,
-          "Booking is already cancelled",
-          null,
-          context
-        );
-      }
+    const racedCancel = error?.name === "TransactionCanceledException"
+      && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
+    const refusal = racedCancel ? "state" : error?.data?.refusal;
+    const outcome = {
+      bookingId: event?.pathParameters?.bookingId,
+      code: error?.code,
+      message: error?.message,
+    };
+    if (refusal) {
+      logger.info(`event=cancel_refused_${refusal}`, outcome);
+    } else {
+      logger.error("event=cancel_failed", outcome);
+    }
+
+    if (racedCancel) {
+      return sendResponse(400, null, "Booking is already cancelled", null, context);
     }
     return sendResponse(
       Number(error?.code) || 400,

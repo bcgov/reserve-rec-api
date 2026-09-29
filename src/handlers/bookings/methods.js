@@ -13,6 +13,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
+const { refused } = require("./refusals");
 const { sendConfirmationEmail, sendCancellationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
@@ -134,13 +135,10 @@ async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
  */
 function requireVerifiedEmail(identity) {
   if (identity && identity.emailVerified === false) {
-    // Logged here rather than at the call sites: both the hold and the complete
-    // path funnel into the same generic catch, so without this the refusal is
-    // indistinguishable from any other booking failure.
-    logger.warn("event=booking_refused_unverified_email", { sub: identity?.sub });
-    throw new Exception(
+    throw refused(
+      'unverified_email',
       'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
-      { code: 403 }
+      403
     );
   }
 }
@@ -433,7 +431,7 @@ async function getBookingByBookingId(
     let data = await getOneByGlobalId(bookingId, TRANSACTIONAL_DATA_TABLE_NAME);
     if (!data) {
       logger.error("getOneByGlobalId returned null/undefined!", { bookingId });
-      throw new Exception(`Booking not found (BookingID: ${bookingId})`, { code: 404 });
+      throw refused('not_found', `Booking not found (BookingID: ${bookingId})`);
     }
     
     if (fetchAccessPoints) {
@@ -448,6 +446,9 @@ async function getBookingByBookingId(
       errorCode: error?.code,
       stack: error?.stack,
     });
+    if (error?.data?.refusal) {
+      throw error;
+    }
     throw new Exception("Error getting booking by bookingId", {
       code: 400,
       error: error.message || String(error),
@@ -711,7 +712,7 @@ async function validateBookingRequest(product, productDates, props) {
 
     // Is the Product reservable?
     if (!product?.reservationPolicy?.isReservable) {
-      throw "Product is not reservable";
+      throw refused('state', "Product is not reservable");
     }
 
     // Are the min/max number of days allowed for booking respected?
@@ -720,11 +721,11 @@ async function validateBookingRequest(product, productDates, props) {
     logger.debug(`Number of days requested: ${numberOfDays}`);
 
     if (product.reservationPolicy?.minTotalDays && numberOfDays < product.reservationPolicy.minTotalDays) {
-      throw `Minimum ${product.reservationPolicy.minTotalDays} booking days required`;
+      throw refused('invalid', `Minimum ${product.reservationPolicy.minTotalDays} booking days required`);
     }
 
     if (product.reservationPolicy?.maxTotalDays && numberOfDays > product.reservationPolicy.maxTotalDays) {
-      throw `Maximum ${product.reservationPolicy.maxTotalDays} booking days allowed`;
+      throw refused('invalid', `Maximum ${product.reservationPolicy.maxTotalDays} booking days allowed`);
     }
 
     // === Calculate queryTime in the timezone of the product for accurate reservation window validation ===
@@ -743,31 +744,31 @@ async function validateBookingRequest(product, productDates, props) {
     // Vehicle parking day-use passes are one pass per booking (one vehicle).
     // The public site caps the selector at 1; enforce it server-side too (#566).
     if (product?.activitySubType === 'vehicleParking' && Number(props?.invQuantity) > 1) {
-      throw `Vehicle parking passes are limited to one pass per booking`;
+      throw refused('invalid', 'Vehicle parking passes are limited to one pass per booking');
     }
 
     for (const productDate of productDates ?? []) {
 
       // Is the ProductDate reservable?
       if (!productDate?.reservationContext?.isReservable) {
-        throw `ProductDate ${productDate.date} is not reservable`;
+        throw refused('state', `ProductDate ${productDate.date} is not reservable`);
       }
 
       // Is the queryTime within the reservation window for the ProductDate?
       const resWindow = productDate?.reservationContext?.temporalWindows?.reservationWindow;
 
       if (resWindow.open > props.queryTime || resWindow.close < props.queryTime) {
-        throw `It is outside the reservation window for ProductDate ${productDate.date}`;
+        throw refused('window', `It is outside the reservation window for ProductDate ${productDate.date}`);
       }
 
       // Is the min/max daily inventory limit respected for the ProductDate?
 
       if (productDate?.reservationContext?.maxDailyInventory < props?.invQuantity) {
-        throw `Maximum daily inventory limit exceeded for ProductDate ${productDate.date}`;
+        throw refused('invalid', `Maximum daily inventory limit exceeded for ProductDate ${productDate.date}`);
       }
 
       if (productDate?.reservationContext?.minDailyInventory > props?.invQuantity) {
-        throw `Minimum daily inventory limit not met for ProductDate ${productDate.date}`;
+        throw refused('invalid', `Minimum daily inventory limit not met for ProductDate ${productDate.date}`);
       }
 
     }
@@ -780,11 +781,12 @@ async function validateBookingRequest(product, productDates, props) {
 
   } catch (error) {
     logger.error('Error validating booking request:', error);
-    // Intentional validation failures are thrown as plain strings — surface the
-    // specific reason to the caller. Anything else is unexpected, so keep it
-    // generic to avoid leaking internals (stack/TypeError text) to the client.
-    const message = typeof error === 'string' ? error : 'Error validating booking request';
-    throw new Exception(message, {
+    if (error?.data?.refusal) {
+      throw error;
+    }
+    // Anything untagged is unexpected, so keep it generic to avoid leaking
+    // internals (stack/TypeError text) to the client.
+    throw new Exception('Error validating booking request', {
       code: 400,
       error: error,
     });
@@ -848,9 +850,11 @@ async function createBooking(props) {
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
     const duplicate = await findUserActiveBookingForProductOnDate(props.userId, productBookingPk, props.startDate);
     if (duplicate) {
-      throw new Exception(
+      throw refused(
+        duplicate.status === 'confirmed' ? 'has_booking' : 'has_hold',
         `You already have a ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
-        { code: 409, data: { existingBookingId: duplicate.bookingId, status: duplicate.status } }
+        409,
+        { existingBookingId: duplicate.bookingId, status: duplicate.status }
       );
     }
 
@@ -872,7 +876,7 @@ async function createBooking(props) {
     const product = await getOne(productPK, productId);
 
     if (!product) {
-      throw new Exception(`Product not found (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, { code: 404 });
+      throw refused('not_found', `Product not found (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, 404);
     }
 
     // === Get the relevant ProductDates ===
@@ -880,7 +884,7 @@ async function createBooking(props) {
     const productDates = await fetchProductDates(props);
 
     if (!productDates || productDates.length === 0) {
-      throw new Exception(`No ProductDates found for Product (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, { code: 404 });
+      throw refused('not_found', `No ProductDates found for Product (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, 404);
     }
 
     // === Validate the booking request against the Product and ProductDate data ===
@@ -1320,18 +1324,11 @@ function initBookingDateItem(bookingId, product, productDate, assetRef, props) {
 }
 
 async function validateBookingCreateProps(props) {
-  try {
-    const requiredProps = ["collectionId", "activityType", "activityId", "productId", "startDate", "queryTime", "invQuantity", "userId"];
-    for (const prop of requiredProps) {
-      if (!props[prop]) {
-        throw new Exception(`Missing required property: ${prop}`, { code: 400 });
-      }
+  const requiredProps = ["collectionId", "activityType", "activityId", "productId", "startDate", "queryTime", "invQuantity", "userId"];
+  for (const prop of requiredProps) {
+    if (!props[prop]) {
+      throw refused('invalid', `Missing required property: ${prop}`);
     }
-  } catch (error) {
-    throw new Exception("Error validating inventory pool check properties", {
-      code: 400,
-      error: error.message || String(error),
-    });
   }
 }
 
@@ -1424,7 +1421,7 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
     // stamp your own occupant identity on it. Server-side completions (e.g. the Worldline
     // webhook) pass no sub and are trusted — they carry no user identity to check.
     if (sub && booking.userId !== sub) {
-      throw new Exception(`Not authorized to complete this booking (BookingID: ${bookingId})`, { code: 403 });
+      throw refused('owner', `Not authorized to complete this booking (BookingID: ${bookingId})`, 403);
     }
 
     // === Validate the Booking can be completed ===
@@ -1698,28 +1695,28 @@ function validateBookingCompletion(booking, sessionId, props) {
 
     // If the booking isn't 'in progress', we shouldn't be trying to complete it - throw error;
     if (booking.status !== BOOKING_STATUS_ENUMS[0]) {
-      throw new Exception(`Booking is not '${BOOKING_STATUS_ENUMS[0]}' and cannot be completed (BookingID: ${bookingId}, Status: ${booking.status})`, { code: 400 });
+      throw refused('state', `Booking is not '${BOOKING_STATUS_ENUMS[0]}' and cannot be completed (BookingID: ${bookingId}, Status: ${booking.status})`);
     }
 
     // If the sessionId doesn't match, throw error
     if (booking.sessionId !== sessionId) {
-      throw new Exception(`Invalid session ID for booking completion (BookingID: ${bookingId})`, { code: 403 });
+      throw refused('owner', `Invalid session ID for booking completion (BookingID: ${bookingId})`, 403);
     }
 
     // If the session has expired, throw error
     if (booking.sessionExpiry < queryTime) {
-      throw new Exception(`Session has expired for booking completion (BookingID: ${bookingId})`, { code: 403 });
+      throw refused('state', `Session has expired for booking completion (BookingID: ${bookingId})`, 403);
     }
 
     // If the reservation window has closed, throw error
     const resWindow = booking.reservationContext?.temporalWindows?.reservationWindow;
     if (resWindow && (queryTime < resWindow.open || queryTime > resWindow.close)) {
-      throw new Exception(`It is outside the reservation window for booking completion (BookingID: ${bookingId})`, { code: 400 });
+      throw refused('state', `It is outside the reservation window for booking completion (BookingID: ${bookingId})`);
     }
 
     // If no named occupant information is provided, throw error (for now, we require named occupant information to complete the booking - this may be relaxed in the future)
     if (!props?.namedOccupant) {
-      throw new Exception(`Named occupant information is required for booking completion (BookingID: ${bookingId})`, { code: 400 });
+      throw refused('invalid', `Named occupant information is required for booking completion (BookingID: ${bookingId})`);
     }
 
     // TODO: Validate against other change, reservation, party and fee policies as needed.
