@@ -116,12 +116,12 @@ const sendResponse = function (code, data, message, error, context, other = null
 
   // All responses must include the following fields as a minimum.
   // serverTime lets clients gate the booking window on server time, not the device clock.
+  // Raw error objects and the Lambda context expose internals; only a plain message goes out.
   let body = {
     code: statusCode,
     data: data,
     msg: message,
-    error: error,
-    context: context,
+    error: typeof error === "string" ? error : null,
     serverTime: Date.now()
   };
 

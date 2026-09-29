@@ -151,10 +151,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify({ 
-        error: err.message,
-        errorType: err.constructor.name
-      })
+      body: JSON.stringify({ error: 'server_error' })
     };
   }
 };
