@@ -37,6 +37,16 @@ describe('normalizePhoneNumber', () => {
     // rather than guessed at.
     expect(normalizePhoneNumber('44791112345')).toBeNull();
   });
+
+  it('reads 12 or more digits without a + as already carrying a country code', () => {
+    expect(normalizePhoneNumber('821012345678')).toBe('+821012345678');
+    expect(normalizePhoneNumber('82 10 1234 5678')).toBe('+821012345678');
+    expect(normalizePhoneNumber('447911123456')).toBe('+447911123456');
+  });
+
+  it('refuses 12 digits without a + that are not valid with one either', () => {
+    expect(normalizePhoneNumber('999123456789')).toBeNull();
+  });
 });
 
 describe('isValidPhoneNumber', () => {
