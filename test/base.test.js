@@ -4,6 +4,8 @@ const {
   Exception,
   getRequestClaimsFromEvent,
   effectiveCollectionRole,
+  getClientIp,
+  requestIdentity,
 } = require('../src/layers/base/base');
 
 describe('Base Layer Tests', () => {
@@ -16,20 +18,18 @@ describe('Base Layer Tests', () => {
         data: { items: [1, 2, 3] },
         msg: 'Success',
         error: null,
-        context: null,
         serverTime: expect.any(Number)
       });
     });
 
     it('should create an error response', () => {
-      const error = sendResponse(400, [], 'Error', { error: 'error' }, null);
+      const error = sendResponse(400, [], 'Error', { error: 'error' }, { invokedFunctionArn: 'arn' });
       expect(error.statusCode).toBe(400);
       expect(JSON.parse(error.body)).toEqual({
         code: 400,
         data: [],
         msg: 'Error',
-        error: { error: 'error' },
-        context: null,
+        error: null,
         serverTime: expect.any(Number)
       });
     });
@@ -177,6 +177,50 @@ describe('Base Layer Tests', () => {
       expect(effectiveCollectionRole(null, 'bcparks_1')).toBe('default');
       expect(effectiveCollectionRole({}, 'bcparks_1')).toBe('default');
       expect(effectiveCollectionRole({ permissions: {} }, 'bcparks_1')).toBe('default');
+    });
+  });
+
+  describe('getClientIp', () => {
+    it('strips the port from an IPv4 CloudFront-Viewer-Address', () => {
+      expect(getClientIp({ 'CloudFront-Viewer-Address': '203.0.113.7:54321' })).toBe('203.0.113.7');
+    });
+
+    it('strips the brackets and port from an IPv6 CloudFront-Viewer-Address', () => {
+      expect(getClientIp({ 'CloudFront-Viewer-Address': '[2001:db8::1]:54321' })).toBe('2001:db8::1');
+    });
+
+    it('returns the raw value when there is no port', () => {
+      expect(getClientIp({ 'CloudFront-Viewer-Address': '203.0.113.7' })).toBe('203.0.113.7');
+    });
+
+    it('returns null when the header is missing', () => {
+      expect(getClientIp({})).toBeNull();
+      expect(getClientIp(undefined)).toBeNull();
+    });
+  });
+
+  describe('requestIdentity', () => {
+    it('includes clientIp alongside the API Gateway source IP', () => {
+      const event = {
+        requestContext: {
+          requestId: 'req-1',
+          identity: { sourceIp: '10.0.0.1', userAgent: 'test-agent' },
+          httpMethod: 'POST',
+          path: '/bookings',
+        },
+        headers: { 'CloudFront-Viewer-Address': '198.51.100.9:1234' },
+      };
+      expect(requestIdentity(event)).toEqual(
+        expect.objectContaining({
+          ip: '10.0.0.1',
+          clientIp: '198.51.100.9',
+        })
+      );
+    });
+
+    it('sets clientIp to null when the header is absent', () => {
+      const event = { requestContext: {} };
+      expect(requestIdentity(event).clientIp).toBeNull();
     });
   });
 });

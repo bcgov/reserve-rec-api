@@ -1,6 +1,6 @@
 'use strict';
 
-const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require('/opt/base');
+const { Exception, logger, sendResponse, getRequestClaimsFromEvent, getClientIp } = require('/opt/base');
 const {
   buildQueueId,
   getQueueMeta,
@@ -106,7 +106,7 @@ exports.handler = async (event, context) => {
     }
 
     // Per-IP limit check
-    const clientIp = event?.headers?.['CloudFront-Viewer-Address']?.split(':')[0]
+    const clientIp = getClientIp(event?.headers)
       || event?.headers?.['X-Forwarded-For']?.split(',')[0]?.trim()
       || 'unknown';
 

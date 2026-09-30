@@ -443,26 +443,28 @@ aws ssm get-parameter --name "/reserveRecApi/dev-<name>/coreStack/config" --quer
 
 ## 📈 Event Metrics and Alarms
 
-Handlers log operational events as `event=<name>` followed by JSON metadata. `lib/helpers/event-metrics.js` turns each name into a CloudWatch metric of the same name in the `ReserveRecApi/<env>` namespace via a metric filter on the emitting Lambda's log group, and draws them on the `ReserveRecApi-<env>-events` dashboard. The full list is the comment block at the top of that file.
+Handlers log operational events as `event=<name>` followed by JSON metadata. `lib/helpers/event-metrics.js` turns each name into a CloudWatch metric of the same name in the `ReserveRecApi/<env>` namespace via a metric filter on the emitting Lambda's log group. The full list is the comment block at the top of that file.
 
 | Group | Metrics | Emitted by |
 |-------|---------|------------|
-| Bookings | `hold_created`, `hold_failed`, `booking_completed`, `booking_complete_failed`, `booking_refused_unverified_email` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`) |
+| Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `cancel_refused_*`, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
 | Signup | `signup_refused`, `account_confirmed`, `account_created` | Public identity stack (`PreSignUp`, `AccountConfirmed`, `PreTokenGeneration`) |
 | Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
 | Audit | `email_change_requested`, `email_change_request_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
 
-Four more pages read the same metrics, all from `lib/helpers/dashboards.js`: `ReserveRecApi-<env>-overview` (the API as a whole, Lambda errors and duration across every function carrying the environment prefix, both stacks' alarms), `-bookings` (the booking routes and their events), `-accounts` (Cognito's own counters beside the trigger events) and, from reserve-rec-public, `-edge` (the WAF log in us-east-1, as Insights widgets).
+Four pages read these metrics, three from `lib/helpers/dashboards.js`: `ReserveRecApi-<env>-overview` (the API as a whole with 4XX less the answers each logged as an event, a table of 4XX from the access log, Lambda errors and duration across every function carrying the environment prefix, the event alarms and the inventory-return DLQ alarm), `-bookings` (the booking routes, each route's 4XX less its refusals, the booking events, inventory), `-accounts` (Cognito's own counters beside the trigger events) and, from reserve-rec-public, `-edge` (the WAF log in us-east-1, as Insights widgets).
 
 Inventory is published every five minutes by `InventoryMetrics` in the booking workflow stack: `inventory_available` and `inventory_capacity` per `Activity` and `Product` for `Window=today` and `Window=week` (the next `inventoryMetricsHorizonDays`, default 7), plus totals with only `Window`. The bookings page draws them and the depletion rate. Every dimension value is a billed metric, so there is nothing per date or per asset.
 
-Two gauges sit beside the events on the same dashboard: `unconfirmed_users` and `estimated_users`, written hourly by `UserStatusCount` with `PutMetricData`. They are stocks rather than flows, so a metric filter would show zero between readings.
+Four gauges are drawn on the accounts page: `estimated_users`, `native_confirmed_users`, `unconfirmed_users` and `bcsc_users`, written hourly by `UserStatusCount` with `PutMetricData`. They are stocks rather than flows, so a metric filter would show zero between readings.
 
 Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm.
 
 ```json
 "eventAlarms": { "<event name>": <count> }
 ```
+
+Each booking handler's catch logs one outcome per request. A refusal is a 4xx returned on purpose: it is thrown with `refused(reason, ...)` from `src/handlers/bookings/refusals.js`, which sets `data: { refusal: '<reason>' }`, and logs `hold_refused_<reason>`, `complete_refused_<reason>` or `cancel_refused_<reason>`; a 5xx or an unexpected error logs `hold_failed`, `booking_complete_failed` or `cancel_failed`. A hold that loses a write race logs `hold_conflict`.
 
 To add an event: log it as `event=<name>` with the base layer logger, add the name to `EVENT_GROUPS`, and pass it to `addEventMetrics` where the Lambda is defined. Functions that emit events set `logRetention`, which is what lets the metric filter attach to a log group that may not exist yet.
 

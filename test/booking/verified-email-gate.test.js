@@ -9,7 +9,7 @@ jest.mock('/opt/base', () => ({
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;
-    this.data = data;
+    this.data = data?.data || null;
   }),
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
@@ -56,8 +56,9 @@ jest.mock('../../src/handlers/bookings/configs', () => ({
 }));
 
 const { getUserInfoBySub } = require('../../src/handlers/users/methods');
-const { batchTransactData } = require('/opt/dynamodb');
+const { batchTransactData, getOneByGlobalId } = require('/opt/dynamodb');
 const {
+  completeBooking,
   requireVerifiedEmail,
   releaseHoldOnRefusal,
   resolveAuthenticatedOccupantIdentity,
@@ -88,6 +89,16 @@ describe('requireVerifiedEmail', () => {
     expect(thrown).toBeTruthy();
     expect(thrown.code).toBe(403);
     expect(thrown.message).toMatch(/verify your email address/i);
+  });
+
+  it('tags the refusal and leaves the event to the handler', () => {
+    const { logger } = require('/opt/base');
+    expect(() => requireVerifiedEmail({ emailVerified: false })).toThrow(
+      expect.objectContaining({ data: { refusal: 'unverified_email' } })
+    );
+    const logged = [...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]
+      .map(([msg]) => msg);
+    expect(logged.filter((msg) => typeof msg === 'string' && msg.startsWith('event='))).toEqual([]);
   });
 
   it('tells the person how to fix it', () => {
@@ -165,5 +176,48 @@ describe('releaseHoldOnRefusal', () => {
     const refuse = () => { throw new Error('refused'); };
 
     await expect(releaseHoldOnRefusal(hold, refuse, 1, 'sub-1')).rejects.toThrow('refused');
+  });
+});
+
+describe('completeBooking refusal tags', () => {
+  const hold = () => ({
+    bookingId: 'b-1', userId: 'sub-1', status: 'in progress', sessionId: 's-1',
+    sessionExpiry: Date.now() + 60_000, pk: 'pk', sk: 'sk',
+  });
+  const complete = () => completeBooking('b-1', 's-1', { namedOccupant: {} }, { sub: 'sub-1' });
+
+  it.each([
+    ['state', 'a booking that already completed', { status: 'confirmed' }],
+    ['state', 'an expired session', { sessionExpiry: 1 }],
+    ['state', 'a closed reservation window', { reservationContext: { temporalWindows: { reservationWindow: { open: 1, close: 2 } } } }],
+    ['owner', "another account's booking", { userId: 'sub-2' }],
+    ['owner', 'a session that does not match', { sessionId: 's-2' }],
+  ])('tags %s for %s', async (refusal, _, overrides) => {
+    getOneByGlobalId.mockResolvedValue({ ...hold(), ...overrides });
+    await expect(complete()).rejects.toMatchObject({ data: { refusal } });
+  });
+
+  it('tags unverified_email for an unverified account', async () => {
+    getOneByGlobalId.mockResolvedValue(hold());
+    getUserInfoBySub.mockResolvedValue(attrs('false'));
+    await expect(complete()).rejects.toMatchObject({ code: 403, data: { refusal: 'unverified_email' } });
+  });
+
+  it('tags invalid for a missing occupant', async () => {
+    getOneByGlobalId.mockResolvedValue(hold());
+    await expect(completeBooking('b-1', 's-1', {}, { sub: 'sub-1' }))
+      .rejects.toMatchObject({ code: 400, data: { refusal: 'invalid' } });
+  });
+
+  it('tags not_found for a booking that does not exist, keeping the 400', async () => {
+    getOneByGlobalId.mockResolvedValue(null);
+    await expect(complete()).rejects.toMatchObject({
+      code: 400, message: 'Booking not found (BookingID: b-1)', data: { refusal: 'not_found' },
+    });
+  });
+
+  it('leaves a failed booking lookup untagged', async () => {
+    getOneByGlobalId.mockRejectedValue(new Error('dynamo down'));
+    await expect(complete()).rejects.toMatchObject({ code: 400, data: null });
   });
 });

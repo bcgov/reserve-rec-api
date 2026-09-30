@@ -116,12 +116,12 @@ const sendResponse = function (code, data, message, error, context, other = null
 
   // All responses must include the following fields as a minimum.
   // serverTime lets clients gate the booking window on server time, not the device clock.
+  // Raw error objects and the Lambda context expose internals; only a plain message goes out.
   let body = {
     code: statusCode,
     data: data,
     msg: message,
-    error: error,
-    context: context,
+    error: typeof error === "string" ? error : null,
     serverTime: Date.now()
   };
 
@@ -439,6 +439,19 @@ function getRequestClaimsFromEvent(event) {
 }
 
 /**
+ * Address portion of the CloudFront-Viewer-Address header ("ip:port", with an
+ * IPv6 address wrapped in brackets). Returns null when the header is absent.
+ */
+function getClientIp(headers) {
+  const raw = headers?.['CloudFront-Viewer-Address'];
+  if (!raw) return null;
+  const bracketed = raw.match(/^\[(.+)\]:\d+$/);
+  if (bracketed) return bracketed[1];
+  const lastColon = raw.lastIndexOf(':');
+  return lastColon === -1 ? raw : raw.slice(0, lastColon);
+}
+
+/**
  * Identity fields for one request, for handler entry logs. `requestId` is the
  * id the API Gateway access log also records, so the two can be joined.
  */
@@ -452,6 +465,7 @@ function requestIdentity(event) {
     userId: userId,
     authenticated: auth.isAuthenticated === 'true' || auth.isAuthenticated === true,
     ip: ctx.identity?.sourceIp || null,
+    clientIp: getClientIp(event?.headers),
     userAgent: ctx.identity?.userAgent || null,
     httpMethod: ctx.httpMethod || event?.httpMethod || null,
     path: ctx.path || event?.path || null,
@@ -539,6 +553,7 @@ module.exports = {
   effectiveCollectionRole,
   filterByRole,
   checkAuthContext,
+  getClientIp,
   getRequestClaimsFromEvent,
   isoToEpoch,
   logger,

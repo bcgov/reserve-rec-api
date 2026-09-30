@@ -74,7 +74,7 @@ describe("inventory-pools GET public", () => {
       activityId: "9",
       productId: "9",
       date: "2026-09-05",
-      projectionFields: ["pk", "isOpen", "availability"],
+      projectionFields: ["pk", "isOpen", "availability", "closureStatus"],
     });
     expect(res.data).toMatchObject({ isOpen: true, available: 80 });
   });
@@ -92,7 +92,7 @@ describe("inventory-pools GET public", () => {
       productId: "9",
       startDate: "2026-09-05",
       endDate: "2026-09-07",
-      projectionFields: ["pk", "isOpen", "availability"],
+      projectionFields: ["pk", "isOpen", "availability", "closureStatus"],
     });
     expect(res.data).toMatchObject({
       "2026-09-05": { isOpen: true, available: 80 },

@@ -10,6 +10,7 @@ jest.mock('/opt/base', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
   sendResponse: jest.fn((status, data, message, error) => ({ status, data, message, error })),
   getRequestClaimsFromEvent: jest.fn(() => ({ sub: 'test-user-123' })),
+  getClientIp: jest.requireActual('../../src/layers/base/base').getClientIp,
 }));
 
 jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({

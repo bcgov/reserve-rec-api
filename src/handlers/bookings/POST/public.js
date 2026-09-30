@@ -5,6 +5,7 @@ const { batchTransactData, isTransactionConflict } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
+const { refused } = require('../refusals');
 
 exports.handler = async (event, context) => {
   logger.info("Bookings POST Activated", requestIdentity(event));
@@ -20,9 +21,14 @@ exports.handler = async (event, context) => {
 
     // Get relevant data from the event
 
-    const body = JSON.parse(event?.body);
+    let body;
+    try {
+      body = JSON.parse(event?.body);
+    } catch {
+      throw refused("invalid", "Body must be valid JSON");
+    }
     if (!body) {
-      throw new Exception("Body is required", { code: 400 });
+      throw refused("invalid", "Body is required");
     }
 
     const collectionId = event?.pathParameters?.collectionId || event?.queryStringParameters?.collectionId || body?.collectionId;
@@ -42,7 +48,7 @@ exports.handler = async (event, context) => {
 
     // Reject unauthenticated users - authentication required for booking creation
     if (!claims || !claims.sub) {
-      throw new Exception("Authentication required to create a booking", { code: 401 });
+      throw refused("invalid", "Authentication required to create a booking", 401);
     }
 
     body['userId'] = claims.sub;
@@ -60,10 +66,11 @@ exports.handler = async (event, context) => {
     if (!quantity) missingParams.push("quantity");
 
     if (missingParams.length > 0) {
-      throw new Exception(
-        `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`,
-        { code: 400 }
-      );
+      throw refused("invalid", `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`);
+    }
+
+    if (quantity < 1) {
+      throw refused("invalid", `Invalid quantity: ${quantity}`);
     }
 
     // Waiting room enforcement — only when the table is configured
@@ -91,10 +98,7 @@ exports.handler = async (event, context) => {
         const admissionToken = parseAdmissionCookie(cookieHeader);
 
         if (!admissionToken) {
-          throw new Exception('Waiting room required for this booking', {
-            code: 403,
-            data: { waitingRoom: true, queueId },
-          });
+          throw refused('waiting_room', 'Waiting room required for this booking', 403, { waitingRoom: true, queueId });
         }
 
         let hmacKey;
@@ -108,17 +112,11 @@ exports.handler = async (event, context) => {
         const admissionPayload = validateToken(admissionToken, hmacKey);
 
         if (!admissionPayload) {
-          throw new Exception('Invalid or expired admission token', {
-            code: 403,
-            data: { waitingRoom: true, queueId },
-          });
+          throw refused('waiting_room', 'Invalid or expired admission token', 403, { waitingRoom: true, queueId });
         }
 
         if (admissionPayload.sid !== claims.sub) {
-          throw new Exception('Admission token does not match authenticated user', {
-            code: 403,
-            data: { code: 'USER_MISMATCH' },
-          });
+          throw refused('waiting_room', 'Admission token does not match authenticated user', 403, { code: 'USER_MISMATCH' });
         }
 
         // Mode 2 tokens grant site-wide access — skip facility/date lock.
@@ -127,17 +125,11 @@ exports.handler = async (event, context) => {
         const isMode2Admission = admissionPayload.fk === 'MODE2#global#1';
         if (!isMode2Admission) {
           if (admissionPayload.fk !== facilityKey) {
-            throw new Exception('Admission is locked to a different facility', {
-              code: 403,
-              data: { code: 'FACILITY_MISMATCH' },
-            });
+            throw refused('waiting_room', 'Admission is locked to a different facility', 403, { code: 'FACILITY_MISMATCH' });
           }
 
           if (admissionPayload.dk !== startDate) {
-            throw new Exception('Admission is locked to a different date', {
-              code: 403,
-              data: { code: 'DATE_MISMATCH' },
-            });
+            throw refused('waiting_room', 'Admission is locked to a different date', 403, { code: 'DATE_MISMATCH' });
           }
         }
 
@@ -169,8 +161,9 @@ exports.handler = async (event, context) => {
     // event=<name> as the first token so a metric filter can match without
     // parsing prose. Success was previously only returned, never logged, so
     // holds could not be counted.
+    const bookingItem = bookingRequestItems?.find((item) => item?.data?.Item?.schema?.S === "booking");
     logger.info("event=hold_created", {
-      bookingId: bookingRequestItems?.[0]?.Put?.Item?.bookingId?.S,
+      bookingId: bookingItem?.data?.Item?.bookingId?.S,
       userId: claims.sub,
     });
 
@@ -181,9 +174,8 @@ exports.handler = async (event, context) => {
 
     let errorMessage = '';
     let statusCode;
-    // The one-pass-per-user guard refusing a request is the rule working, not
-    // a failure, so it is counted apart from hold_failed.
-    let duplicateOf = error?.data?.existingBookingId ? error.data.status : null;
+    let refusal = error?.data?.refusal || null;
+    let lostWriteRace = isTransactionConflict(error);
     const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
 
     if (error?.name === "TransactionCanceledException" && Array.isArray(cancellationReasons)) {
@@ -200,13 +192,16 @@ exports.handler = async (event, context) => {
             // user/pass/date — same outcome as the sequential 409 guard.
             errorMessage = "You already have a booking for this pass. Cancel it before booking again.";
             statusCode = 409;
-            duplicateOf = "in progress";
+            refusal = "has_hold";
           } else if (pk.startsWith("inventoryPool::") || pk.startsWith("inventory::")) {
             errorMessage = "Booking item no longer available.";
+            refusal = "sold_out";
           } else if (pk.startsWith("bookingDate::")) {
             errorMessage = "Error initializing the booking dates.";
+            lostWriteRace = true;
           } else if (pk.startsWith("booking::")) {
             errorMessage = "Error creating the booking.";
+            lostWriteRace = true;
           } else {
             errorMessage = "Transaction condition check failed.";
           }
@@ -219,11 +214,15 @@ exports.handler = async (event, context) => {
     if (isTransactionConflict(error)) {
       errorMessage = "This pass is in high demand right now. Please try again.";
       statusCode = 409;
+    }
+
+    if (lostWriteRace) {
       logger.warn("event=hold_conflict", { message: error?.message });
-    } else if (duplicateOf === "confirmed") {
-      logger.info("event=hold_refused_has_booking", { existingBookingId: error?.data?.existingBookingId });
-    } else if (duplicateOf) {
-      logger.info("event=hold_refused_has_hold", { existingBookingId: error?.data?.existingBookingId || null });
+    } else if (refusal) {
+      logger.info(`event=hold_refused_${refusal}`, {
+        message: errorMessage || error?.message,
+        existingBookingId: error?.data?.existingBookingId,
+      });
     } else {
       logger.error("event=hold_failed", { message: errorMessage || error?.message });
     }

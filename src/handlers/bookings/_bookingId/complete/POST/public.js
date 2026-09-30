@@ -2,10 +2,11 @@
 // email. The email must go out only after the DynamoDB write succeeds —
 // otherwise a transient DB failure would leave the user with a confirmation
 // email for a booking that was never saved.
-const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, logger, sendResponse } = require("/opt/base");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
 const { enqueueSmsReminderIfNeeded } = require("../../../notifications");
 const { batchTransactData } = require("/opt/dynamodb");
+const { refused } = require("../../../refusals");
 
 
 exports.handler = async (event, context) => {
@@ -16,21 +17,26 @@ exports.handler = async (event, context) => {
   const bookingId = event.pathParameters?.bookingId;
 
   try {
-    const body = JSON.parse(event?.body);
-    const sessionId = body.sessionId;
+    let body;
+    try {
+      body = JSON.parse(event?.body);
+    } catch {
+      throw refused("invalid", "Body must be valid JSON");
+    }
+    const sessionId = body?.sessionId;
 
     if (!bookingId) {
-      throw new Exception("Booking ID is required", { code: 400 });
+      throw refused("invalid", "Booking ID is required");
     }
 
     if (!sessionId) {
-      throw new Exception("Session ID is required", { code: 400 });
+      throw refused("invalid", "Session ID is required");
     }
 
     // Custom authorizer exposes the Cognito sub flat under `userId`.
     const sub = event.requestContext?.authorizer?.userId;
     if (!sub) {
-      throw new Exception("User authentication required", { code: 401 });
+      throw refused("invalid", "User authentication required", 401);
     }
 
     const { updateRequests, emailParams, smsParams } = await completeBooking(bookingId, sessionId, body, { sub });
@@ -70,12 +76,12 @@ exports.handler = async (event, context) => {
     return sendResponse(200, { res }, "Success", null, context);
 
   } catch (error) {
-    // This catch logged nothing at all, so a failed completion was invisible.
-    logger.error("event=booking_complete_failed", {
-      bookingId,
-      code: error?.code,
-      message: error?.message,
-    });
+    const outcome = { bookingId, code: error?.code, message: error?.message };
+    if (error?.data?.refusal) {
+      logger.info(`event=complete_refused_${error.data.refusal}`, outcome);
+    } else {
+      logger.error("event=booking_complete_failed", outcome);
+    }
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,

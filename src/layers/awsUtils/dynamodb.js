@@ -1,6 +1,6 @@
 const { BatchGetItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, BatchWriteItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-const { logger } = require('/opt/base');
+const { Exception, logger } = require('/opt/base');
 
 
 const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'reference-data';
@@ -385,8 +385,9 @@ function excludeDeletedItems(queryObj) {
  */
 function excludeHiddenItems(queryObj) {
   const visibleClause = "(attribute_not_exists(#isVisible) OR #isVisible = :visible)";
+  // excludeDeletedItems runs first; re-wrapping gives "((...))", which DynamoDB rejects.
   queryObj.FilterExpression = queryObj.FilterExpression
-    ? `(${queryObj.FilterExpression}) AND ${visibleClause}`
+    ? `${queryObj.FilterExpression} AND ${visibleClause}`
     : visibleClause;
   queryObj.ExpressionAttributeNames = {
     ...queryObj.ExpressionAttributeNames,
@@ -399,7 +400,29 @@ function excludeHiddenItems(queryObj) {
   return queryObj;
 }
 
+// Callers often forward query-string values, which DynamoDB rejects as strings.
+function parsePageParams(limit, lastEvaluatedKey) {
+  if (limit != null) {
+    limit = Number(limit);
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new Exception("limit must be a positive integer", { code: 400 });
+    }
+  }
+  if (typeof lastEvaluatedKey === "string") {
+    try {
+      lastEvaluatedKey = JSON.parse(lastEvaluatedKey);
+    } catch {
+      throw new Exception("lastEvaluatedKey must be valid JSON", { code: 400 });
+    }
+  }
+  if (lastEvaluatedKey != null && (typeof lastEvaluatedKey !== "object" || Array.isArray(lastEvaluatedKey))) {
+    throw new Exception("lastEvaluatedKey must be a JSON object", { code: 400 });
+  }
+  return { limit, lastEvaluatedKey };
+}
+
 async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated = true) {
+  ({ limit, lastEvaluatedKey } = parsePageParams(limit, lastEvaluatedKey));
   let data = [];
   let pageData = {};
   let page = 0;
@@ -447,6 +470,7 @@ async function runQuery(query, limit = null, lastEvaluatedKey = null, paginated 
 }
 
 async function runScan(query, limit = null, lastEvaluatedKey = null, paginated = true) {
+  ({ limit, lastEvaluatedKey } = parsePageParams(limit, lastEvaluatedKey));
   let data = [];
   let pageData = [];
   let page = 0;
