@@ -14,6 +14,9 @@ const ASSET_DIR = path.join(__dirname, '..', 'lib', 'handlers', 'emailDispatch',
 Handlebars.registerHelper('pluralize', (count, singular, plural) => (count === 1 ? singular : plural));
 Handlebars.registerHelper('formatDate', () => 'Monday, September 7, 2026');
 Handlebars.registerHelper('formatTime', () => '7 am');
+Handlebars.registerHelper('isAMPass', function(booking, options) {
+  return options.fn(this);
+});
 
 const template = Handlebars.compile(
   fs.readFileSync(path.join(TEMPLATE_DIR, 'confirmation_bcparks_default.html'), 'utf8')
