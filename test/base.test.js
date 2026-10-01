@@ -18,20 +18,18 @@ describe('Base Layer Tests', () => {
         data: { items: [1, 2, 3] },
         msg: 'Success',
         error: null,
-        context: null,
         serverTime: expect.any(Number)
       });
     });
 
     it('should create an error response', () => {
-      const error = sendResponse(400, [], 'Error', { error: 'error' }, null);
+      const error = sendResponse(400, [], 'Error', { error: 'error' }, { invokedFunctionArn: 'arn' });
       expect(error.statusCode).toBe(400);
       expect(JSON.parse(error.body)).toEqual({
         code: 400,
         data: [],
         msg: 'Error',
-        error: { error: 'error' },
-        context: null,
+        error: null,
         serverTime: expect.any(Number)
       });
     });

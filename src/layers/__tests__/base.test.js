@@ -16,7 +16,7 @@ describe('Base Layer Tests', () => {
     test('Test sendResponse', async () => {
         // Success
         const layer = require('/opt/base');
-        const response = layer.sendResponse(200, { items: [1, 2, 3] }, 'Success', null);
+        const response = layer.sendResponse(200, { items: [1, 2, 3] }, 'Success', null, { functionName: 'f' });
         expect(response.statusCode).toBe(200);
         expect(JSON.parse(response.body)).toEqual({
             code: 200,
@@ -33,8 +33,7 @@ describe('Base Layer Tests', () => {
             code: 400,
             data: [],
             msg: 'Error',
-            error: { error: 'error' },
-            context: null,
+            error: null,
             other1: 1,
             other2: 2,
             serverTime: expect.any(Number)
@@ -63,10 +62,7 @@ describe('Base Layer Tests', () => {
 
         expect(response.statusCode).toBe(400);
         const body = JSON.parse(response.body);
-        expect(body.error).toEqual({
-            name: 'ValidationException',
-            message: 'Value provided in ExpressionAttributeValues unused in expressions: keys: {:pk}'
-        });
+        expect(body.error).toBeNull();
         expect(body.msg).toBe(awsError.message);
     });
 
