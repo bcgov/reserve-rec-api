@@ -286,6 +286,7 @@
             margin: 0 60px 20px 60px;
             font-size: 13px;
             line-height: 1.6;
+            text-align: left;
         }
 
         .footer-content {
@@ -371,7 +372,7 @@
             }
 
             .acknowledgment {
-                margin: 0 0 16px 0;
+                margin: 0 24px 16px 24px;
                 padding: 20px 16px;
             }
 
@@ -411,7 +412,7 @@
 
                     <div class="card-body">
                         <div class="cancel-banner" role="alert">
-                            <span>{{#if branding.exclamationCid}}<img src="cid:{{branding.exclamationCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}<strong class="cancel-banner-text">This booking has been cancelled</strong></span>
+                            <span>{{#if branding.exclamationCid}}<img src="cid:{{branding.exclamationCid}}" width="20" height="20" alt="" class="detail-icon" />{{/if}}<strong class="cancel-banner-text">This booking has been cancelled</strong></span>
                         </div>
                         <table class="details-table" role="presentation">
                             <tr>
@@ -486,10 +487,13 @@
                     within these territories.
                 </div>
                 <div class="footer-content">
-                    <div class="footer-logo">BC Parks</div>
-                    <div class="footer-address">PO Box 9398</div>
-                    <div class="footer-address">Victoria, BC V8W9M9</div>
-                    <div class="footer-address">Canada</div>
+                    <div>
+                        <div class="footer-logo">BC Parks</div>
+                        <div class="footer-address">PO Box 9398</div>
+                        <div class="footer-address">STN PROV GOVT</div>
+                        <div class="footer-address">Victoria, BC V8W9M9</div>
+                        <div class="footer-address">Canada</div>
+                    </div>
                     <div class="social-icons">
                         <a href="https://www.facebook.com/YourBCParks/" target="_blank" class="social-icon">{{#if branding.facebookCid}}<img src="cid:{{branding.facebookCid}}" width="32" height="32" alt="Facebook" />{{else}}FB{{/if}}</a>
                         <a href="https://www.instagram.com/yourbcparks/" target="_blank" class="social-icon">{{#if branding.instagramCid}}<img src="cid:{{branding.instagramCid}}" width="32" height="32" alt="Instagram" />{{else}}IG{{/if}}</a>
