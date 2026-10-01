@@ -1,11 +1,11 @@
 BC PARKS
 ========================================
-YOUR BOOKING HAS BEEN CANCELLED
+CANCELLATION CONFIRMATION FOR YOUR VISIT
 ========================================
 
-We've cancelled your reservation.
+Your booking has been cancelled.
 
-The details of the cancelled booking are below.
+Thanks you for cancelling your booking and allowing others to still enjoy a park visit.
 
 ----------------------------------------
 CANCELLED BOOKING
@@ -24,7 +24,7 @@ Departure: {{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}{{#if (format
 Pass type: {{booking.productName}}
 {{/if}}
 {{#if booking.invQuantity}}
-Passes:    {{booking.invQuantity}}
+{{pluralize booking.invQuantity "Pass" "Passes"}}:    {{booking.invQuantity}}
 {{/if}}
 
 Named occupant: {{customer.firstName}} {{customer.lastName}}
@@ -32,24 +32,7 @@ Named occupant: {{customer.firstName}} {{customer.lastName}}
 License plate:  {{customer.licensePlate}}
 {{/if}}
 
-Booking number: {{booking.bookingId}}
-
-----------------------------------------
-QUESTIONS ABOUT THIS CANCELLATION?
-----------------------------------------
-
-If you have any follow-up inquiries, please contact parkinfo@gov.bc.ca.
-
-----------------------------------------
-CUSTOMER SERVICE
-----------------------------------------
-
-For any inquiries about your booking, please contact a customer service representative.
-{{#if branding.contactEmail}}
-Email: {{branding.contactEmail}}
-{{/if}}
-
-Please do not reply to this message. It was sent from an unmonitored email address. This message is a service email related to your BC Parks account use.
+Confirmation number: {{booking.bookingId}}
 
 ========================================
 BC Parks
