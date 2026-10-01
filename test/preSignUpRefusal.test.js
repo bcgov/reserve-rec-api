@@ -26,11 +26,12 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
 }));
 
 const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
+const { FORM_ATTRIBUTES } = require('./helpers/preSignUpForm');
 
 const event = (email = 'someone@example.test') => ({
   userPoolId: 'pool',
   triggerSource: 'PreSignUp_SignUp',
-  request: { userAttributes: { email } },
+  request: { userAttributes: { email, ...FORM_ATTRIBUTES } },
 });
 
 describe('PreSignUp refusal', () => {
@@ -221,6 +222,63 @@ describe('PreSignUp refusal', () => {
       mockDdbSend.mockRejectedValue(new Error('DynamoDB unavailable'));
       await expect(handler(bcsc())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
       expect(logger.error).toHaveBeenCalledWith('PreSignUp refusal record failed', { error: 'DynamoDB unavailable' });
+    });
+  });
+
+  // The hosted UI's sign-up page asks for email and password only.
+  describe('incomplete sign-up', () => {
+    const hosted = (attributes = {}) => ({
+      ...event(),
+      callerContext: { clientId: 'client-1' },
+      request: { userAttributes: { email: 'someone@example.test', ...attributes } },
+    });
+    const refusals = () => require('/opt/base').logger.info.mock.calls
+      .filter(([msg]) => msg === 'event=signup_refused').map(([, fields]) => fields);
+
+    it('refuses an email-only native sign-up and points at the public site', async () => {
+      await expect(handler(hosted())).rejects.toThrow(expect.objectContaining({
+        signupRefused: true,
+        message: 'Sign up at reserve.bcparks.ca to create an account.',
+      }));
+      expect(refusals()).toEqual([{
+        reason: 'incomplete',
+        domain: 'example.test',
+        clientId: 'client-1',
+        triggerSource: 'PreSignUp_SignUp',
+      }]);
+      expect(mockDdbSend).not.toHaveBeenCalled();
+    });
+
+    it.each(Object.keys(FORM_ATTRIBUTES))('refuses a sign-up missing %s', async (attribute) => {
+      for (const value of [undefined, '', '   ']) {
+        await expect(handler(hosted({ ...FORM_ATTRIBUTES, [attribute]: value })))
+          .rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+      }
+      expect(refusals().map(({ reason }) => reason)).toEqual(['incomplete', 'incomplete', 'incomplete']);
+    });
+
+    it('accepts a full form sign-up', async () => {
+      await expect(handler(hosted(FORM_ATTRIBUTES))).resolves.toBeDefined();
+      expect(refusals()).toEqual([]);
+    });
+
+    it('accepts a BCSC sign-up with no name or phone', async () => {
+      await expect(handler({
+        ...hosted(),
+        triggerSource: 'PreSignUp_ExternalProvider',
+        userName: 'bcsc_a1b2c3d4',
+      })).resolves.toBeDefined();
+      expect(refusals()).toEqual([]);
+    });
+
+    it('leaves an admin-created user to the existing checks', async () => {
+      await expect(handler({ ...hosted(), triggerSource: 'PreSignUp_AdminCreateUser' })).resolves.toBeDefined();
+    });
+
+    it('keeps the blocklist reason on a blocked address', async () => {
+      mockRefusalReason.mockReturnValue('domain');
+      await expect(handler(hosted())).rejects.toThrow(/could not complete your registration/i);
+      expect(refusals().map(({ reason }) => reason)).toEqual(['domain']);
     });
   });
 

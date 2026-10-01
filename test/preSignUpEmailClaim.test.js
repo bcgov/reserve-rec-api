@@ -52,12 +52,13 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 
 const { logger } = require('/opt/base');
 const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
+const { FORM_ATTRIBUTES } = require('./helpers/preSignUpForm');
 
 const signUp = (email, triggerSource = 'PreSignUp_SignUp') => ({
   userPoolId: 'pool',
   triggerSource,
   callerContext: { clientId: 'client-1' },
-  request: { userAttributes: { email } },
+  request: { userAttributes: { email, ...FORM_ATTRIBUTES } },
 });
 
 // An existing account holding the mailbox under `address`.
