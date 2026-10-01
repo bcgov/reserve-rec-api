@@ -41,7 +41,7 @@ function event(email, { bcsc = false, emailVerified = 'true' } = {}) {
   return {
     userPoolId: 'pool',
     triggerSource: 'TokenGeneration_Authentication',
-    userName: bcsc ? `BCSC_${SUB}` : SUB,
+    userName: bcsc ? `bcsc_${SUB}` : SUB,
     request: { userAttributes },
   };
 }
@@ -213,5 +213,32 @@ describe('PreTokenGeneration review fields', () => {
     await expect(handler(event('banned@example.com', { bcsc: true }))).resolves.toBeDefined();
     expect(stored()).not.toHaveProperty('reviewFlag');
     expect(putItem).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PreTokenGeneration account type', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    loadBlocklist.mockResolvedValue(blocklist);
+  });
+
+  const storedStatus = () => (putItem.mock.calls[0] ?? updateItem.mock.calls[0])[0].userStatus;
+
+  it('marks a BCSC user as an external provider on first login', async () => {
+    getOne.mockResolvedValue(null);
+    await handler(event('person@example.com', { bcsc: true }));
+    expect(storedStatus()).toBe('EXTERNAL_PROVIDER');
+  });
+
+  it('corrects an existing BCSC record on its next login', async () => {
+    getOne.mockResolvedValue({ ...existing('person@example.com'), userStatus: 'CONFIRMED' });
+    await handler(event('person@example.com', { bcsc: true }));
+    expect(storedStatus()).toBe('EXTERNAL_PROVIDER');
+  });
+
+  it('marks a native user as confirmed', async () => {
+    getOne.mockResolvedValue(null);
+    await handler(event('person@example.com'));
+    expect(storedStatus()).toBe('CONFIRMED');
   });
 });
