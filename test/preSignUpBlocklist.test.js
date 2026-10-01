@@ -10,6 +10,7 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
 
 const { canonicalizeEmail } = require('/opt/emailBlocklist');
 const { refusalReason } = require('../lib/handlers/cognitoTriggers/preSignUp');
+const { FORM_ATTRIBUTES } = require('./helpers/preSignUpForm');
 
 // Synthetic, deliberately: the real list is defence data and does not belong in
 // a repository. The shapes here mirror the three kinds the seed carries.
@@ -78,7 +79,7 @@ describe('handler', () => {
   const event = (email) => ({
     userPoolId: 'pool',
     triggerSource: 'PreSignUp_SignUp',
-    request: { userAttributes: { email } },
+    request: { userAttributes: { email, ...FORM_ATTRIBUTES } },
   });
 
   beforeEach(() => {
