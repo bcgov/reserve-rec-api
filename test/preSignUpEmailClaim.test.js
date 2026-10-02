@@ -155,8 +155,9 @@ describe('PreSignUp mailbox claim', () => {
     expect(logger.error).toHaveBeenCalledWith('PreSignUp mailbox claim failed open', { error: 'slow down' });
   });
 
-  it('logs but allows a duplicate with the kill switch off, and keeps the live claim', async () => {
-    process.env.DUPLICATE_EMAIL_REFUSE = 'false';
+  it.each([['false'], ['unset']])('logs but allows a duplicate with DUPLICATE_EMAIL_REFUSE %s, and keeps the live claim', async (value) => {
+    if (value === 'unset') delete process.env.DUPLICATE_EMAIL_REFUSE;
+    else process.env.DUPLICATE_EMAIL_REFUSE = value;
     existingAccount('me@example.test');
     await expect(handler(signUp('me+1@example.test'))).resolves.toBeDefined();
     expect(logged('event=signup_duplicate')).toEqual([

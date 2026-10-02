@@ -877,7 +877,7 @@ async function createBooking(props) {
     //   )
     // }
 
-    const limits = await activeHoldLimits();
+    const limits = activeHoldLimits();
     const limitCheck = limits ? evaluateHoldLimits(userBookings, limits, props.queryTime) : null;
 
     // === Get the Product ===

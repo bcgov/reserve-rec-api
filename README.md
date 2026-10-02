@@ -353,6 +353,21 @@ yarn deploy:test
 export LOG_LEVEL=debug
 ```
 
+### Settings parameters
+
+Some settings are String parameters at `/reserveRecApi/<env>/settings/<name>`, read at deploy into a Lambda environment variable (`lib/helpers/settings-params.js`). CDK only reads them: each must exist before a deploy, or the deploy fails. A changed value takes effect at the next deploy, or at once if the environment variable on the deployed function is set to match.
+
+| Name | Values | Environment variable | Function |
+|------|--------|----------------------|----------|
+| `cancellationEmailEnabled` | `true` / `false` | `CANCELLATION_EMAIL_ENABLED` | `BookingsCancelPOST` (public) |
+| `duplicateEmailRefuse` | `true` / `false` | `DUPLICATE_EMAIL_REFUSE` | `PreSignUp` |
+| `holdLimitsEnabled` | `true` / `false` | `HOLD_LIMITS_ENABLED` | `BookingsPOST` (public) |
+| `holdLimits` | JSON object, below | `HOLD_LIMITS` | `BookingsPOST` (public) |
+
+Anything other than `true` is off. `holdLimits` takes any of the keys `removalsBeforeWait`, `holdsPerHour` and `holdsPerDay`, each an integer from 1 to 500, for example `{"removalsBeforeWait":3,"holdsPerDay":9}`. The object is the whole config: a key left out is off, and `{}` sets no limits. An invalid value turns all hold limits off and logs `event=hold_limits_config_invalid`.
+
+The local SAM API does not set the bookings variables, so cancellation email and hold limits are off there.
+
 ### 🧪 Sandbox Environments
 
 Sandbox environments allow developers to deploy fully isolated personal environments for testing. Each sandbox is completely independent from dev/test/prod and other sandboxes.
@@ -458,7 +473,7 @@ Inventory is published every five minutes by `InventoryMetrics` in the booking w
 
 Four gauges are drawn on the accounts page: `estimated_users`, `native_confirmed_users`, `unconfirmed_users` and `bcsc_users`, written hourly by `UserStatusCount` with `PutMetricData`. They are stocks rather than flows, so a metric filter would show zero between readings.
 
-Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm.
+Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm, except those in `DEFAULT_EVENT_ALARMS` (`hold_limits_config_invalid` at 1).
 
 ```json
 "eventAlarms": { "<event name>": <count> }
