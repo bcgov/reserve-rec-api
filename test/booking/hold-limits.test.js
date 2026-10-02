@@ -24,7 +24,6 @@ jest.mock('/opt/dynamodb', () => ({
   USERID_PROPERTY_NAME: 'userId',
 }));
 
-jest.mock('/opt/ssm', () => ({ getParameter: jest.fn() }));
 jest.mock('/opt/sns', () => ({ snsPublishCommand: jest.fn(), snsPublishSend: jest.fn() }), { virtual: true });
 jest.mock('../../lib/handlers/emailDispatch/utils', () => ({
   sendConfirmationEmail: jest.fn(),
@@ -54,16 +53,15 @@ jest.mock('../../src/handlers/bookings/configs', () => ({
 }));
 
 const { logger } = require('/opt/base');
-const { getParameter } = require('/opt/ssm');
 const { runQuery, getOne } = require('/opt/dynamodb');
 const { fetchProductDates } = require('../../src/handlers/productDates/methods');
 const { quickApiPutHandler } = require('../../src/common/data-utils');
 const { getUserInfoBySub } = require('../../src/handlers/users/methods');
 const {
+  activeHoldLimits,
   evaluateHoldLimits,
   holdLimitsConfig,
-  holdLimitsSwitchOn,
-  _resetHoldLimitsSwitch,
+  _resetHoldLimits,
 } = require('../../src/handlers/bookings/hold-limits');
 const { createBooking, findUserBookingsForProductOnDate } = require('../../src/handlers/bookings/methods');
 
@@ -72,7 +70,6 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 const LIMITS = { removalsBeforeWait: 3, holdsPerHour: 5, holdsPerDay: 9 };
-const PARAMETER = '/reserveRecApi/test/holdLimits/enabled';
 
 // A hold created `ago` ms before NOW with a 15 minute session.
 const hold = (ago, extra = {}) => ({
@@ -84,23 +81,20 @@ const hold = (ago, extra = {}) => ({
 // A hold removed `removedAfter` ms into its session.
 const removed = (ago, removedAfter = MIN) => hold(ago, { cancellationTime: NOW - ago + removedAfter });
 
-const setLimitEnv = (limits = LIMITS) => {
-  process.env.HOLD_REMOVALS_BEFORE_WAIT = String(limits.removalsBeforeWait);
-  process.env.HOLD_LIMIT_PER_HOUR = String(limits.holdsPerHour);
-  process.env.HOLD_LIMIT_PER_DAY = String(limits.holdsPerDay);
-  process.env.HOLD_LIMITS_ENABLED_PARAMETER = PARAMETER;
+const setLimitEnv = (limits = JSON.stringify(LIMITS), enabled = 'true') => {
+  process.env.HOLD_LIMITS_ENABLED = enabled;
+  process.env.HOLD_LIMITS = limits;
 };
 const clearLimitEnv = () => {
-  for (const name of ['HOLD_REMOVALS_BEFORE_WAIT', 'HOLD_LIMIT_PER_HOUR', 'HOLD_LIMIT_PER_DAY', 'HOLD_LIMITS_ENABLED_PARAMETER']) {
-    delete process.env[name];
-  }
+  delete process.env.HOLD_LIMITS_ENABLED;
+  delete process.env.HOLD_LIMITS;
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
-  _resetHoldLimitsSwitch();
+  _resetHoldLimits();
   clearLimitEnv();
 });
 
@@ -215,49 +209,70 @@ describe('evaluateHoldLimits', () => {
 });
 
 describe('holdLimitsConfig', () => {
-  it('is off when no limit is set', () => {
-    expect(holdLimitsConfig({})).toBeNull();
-  });
+  const config = (limits, enabled = 'true') => holdLimitsConfig({ HOLD_LIMITS_ENABLED: enabled, HOLD_LIMITS: limits });
 
   it('reads the limits from the environment', () => {
     setLimitEnv();
     expect(holdLimitsConfig()).toEqual(LIMITS);
   });
+
+  it('leaves a missing key off', () => {
+    expect(config('{"holdsPerHour":5}')).toEqual({ holdsPerHour: 5 });
+  });
+
+  it('accepts the bounds 1 and 500', () => {
+    expect(config('{"removalsBeforeWait":1,"holdsPerDay":500}')).toEqual({ removalsBeforeWait: 1, holdsPerDay: 500 });
+  });
+
+  it('is off for {}', () => {
+    expect(config('{}')).toBeNull();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['false', 'false'],
+    ['missing', undefined],
+    ['"TRUE"', 'TRUE'],
+  ])('is off when HOLD_LIMITS_ENABLED is %s', (_, enabled) => {
+    expect(holdLimitsConfig({ HOLD_LIMITS_ENABLED: enabled, HOLD_LIMITS: JSON.stringify(LIMITS) })).toBeNull();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['0', '{"holdsPerHour":0}'],
+    ['501', '{"holdsPerHour":501}'],
+    ['1.5', '{"holdsPerHour":1.5}'],
+    ['a string', '{"holdsPerHour":"3"}'],
+    ['null', '{"holdsPerHour":null}'],
+    ['an unknown key', '{"holdsPerHour":5,"holdsPerWeek":9}'],
+    ['an array', '[5]'],
+    ['a number', '5'],
+    ['JSON null', 'null'],
+    ['bad JSON', '{holdsPerHour:5'],
+    ['empty', ''],
+    ['missing', undefined],
+  ])('is off and logs once for %s', (_, limits) => {
+    expect(config(limits)).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith('event=hold_limits_config_invalid');
+  });
 });
 
-describe('holdLimitsSwitchOn', () => {
-  beforeEach(() => setLimitEnv());
-
-  it('is off when the parameter is "false"', async () => {
-    getParameter.mockResolvedValue('false');
-    expect(await holdLimitsSwitchOn()).toBe(false);
-    expect(getParameter).toHaveBeenCalledWith(PARAMETER, false);
+describe('activeHoldLimits', () => {
+  it('reads the environment once per container', () => {
+    setLimitEnv();
+    expect(activeHoldLimits()).toEqual(LIMITS);
+    setLimitEnv('{"holdsPerDay":9}');
+    expect(activeHoldLimits()).toEqual(LIMITS);
+    _resetHoldLimits();
+    expect(activeHoldLimits()).toEqual({ holdsPerDay: 9 });
   });
 
-  it('is on when the parameter is "true"', async () => {
-    getParameter.mockResolvedValue('true');
-    expect(await holdLimitsSwitchOn()).toBe(true);
-  });
-
-  it('is on when the parameter is missing, and logs the error once', async () => {
-    getParameter.mockRejectedValue(new Error('ParameterNotFound'));
-    expect(await holdLimitsSwitchOn()).toBe(true);
-    jest.setSystemTime(NOW + 2 * MIN);
-    expect(await holdLimitsSwitchOn()).toBe(true);
-    expect(getParameter).toHaveBeenCalledTimes(2);
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(expect.any(String), { parameter: PARAMETER, error: 'ParameterNotFound' });
-  });
-
-  it('caches the value for 60 s', async () => {
-    getParameter.mockResolvedValueOnce('false').mockResolvedValueOnce('true');
-    expect(await holdLimitsSwitchOn()).toBe(false);
-    jest.setSystemTime(NOW + 59 * 1000);
-    expect(await holdLimitsSwitchOn()).toBe(false);
-    expect(getParameter).toHaveBeenCalledTimes(1);
-    jest.setSystemTime(NOW + 60 * 1000);
-    expect(await holdLimitsSwitchOn()).toBe(true);
-    expect(getParameter).toHaveBeenCalledTimes(2);
+  it('logs an invalid value once', () => {
+    setLimitEnv('{"holdsPerHour":0}');
+    expect(activeHoldLimits()).toBeNull();
+    expect(activeHoldLimits()).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -324,17 +339,15 @@ describe('createBooking with hold limits', () => {
     });
   };
 
-  it('does not read the switch or add holdLimits when no limit is set', async () => {
+  it('does not add holdLimits when no limit is set', async () => {
     mockStore({ bookings: threeRemovals });
     const result = await createBooking(props());
-    expect(getParameter).not.toHaveBeenCalled();
     expect(result.holdLimits).toBeNull();
     expect(result.requestItems.length).toBeGreaterThan(0);
   });
 
   it('returns freeRemovalsLeft with the hold', async () => {
     setLimitEnv();
-    getParameter.mockResolvedValue('true');
     mockStore({ bookings: [removed(2 * MIN)] });
     const result = await createBooking(props());
     expect(result.holdLimits).toEqual({ freeRemovalsLeft: 2 });
@@ -342,7 +355,6 @@ describe('createBooking with hold limits', () => {
 
   it('refuses with 429, the code and retryAt, and carries the log fields', async () => {
     setLimitEnv();
-    getParameter.mockResolvedValue('true');
     mockStore({ bookings: threeRemovals });
     const retryAt = new Date(NOW - 6 * MIN + 15 * MIN).toISOString();
 
@@ -363,7 +375,6 @@ describe('createBooking with hold limits', () => {
 
   it('tags a cap refusal as cap', async () => {
     setLimitEnv();
-    getParameter.mockResolvedValue('true');
     mockStore({ bookings: [10, 20, 30, 40, 50].map((m) => hold(m * MIN)) });
     await expect(createBooking(props())).rejects.toMatchObject({
       code: 429,
@@ -376,7 +387,6 @@ describe('createBooking with hold limits', () => {
     ['no inventory pool', null],
   ])('answers sold out over a limit refusal when there is %s', async (_, availability) => {
     setLimitEnv();
-    getParameter.mockResolvedValue('true');
     mockStore({ bookings: threeRemovals, availability });
     await expect(createBooking(props())).rejects.toMatchObject({ data: { refusal: 'sold_out' } });
     expect(getOne).toHaveBeenCalledWith(inventoryPk, 'asset::col-1::a-1');
@@ -384,15 +394,13 @@ describe('createBooking with hold limits', () => {
 
   it('does not read inventory when no limit refuses', async () => {
     setLimitEnv();
-    getParameter.mockResolvedValue('true');
     mockStore();
     await createBooking(props());
     expect(getOne).not.toHaveBeenCalledWith(inventoryPk, expect.anything());
   });
 
-  it('creates the hold when the switch is "false"', async () => {
-    setLimitEnv();
-    getParameter.mockResolvedValue('false');
+  it('creates the hold when HOLD_LIMITS_ENABLED is "false"', async () => {
+    setLimitEnv(JSON.stringify(LIMITS), 'false');
     mockStore({ bookings: threeRemovals });
     const result = await createBooking(props());
     expect(result.holdLimits).toBeNull();
@@ -402,6 +410,5 @@ describe('createBooking with hold limits', () => {
     setLimitEnv();
     mockStore({ bookings: [...threeRemovals, { bookingId: 'b-9', status: 'in progress' }] });
     await expect(createBooking(props())).rejects.toMatchObject({ code: 409, data: { refusal: 'has_hold' } });
-    expect(getParameter).not.toHaveBeenCalled();
   });
 });

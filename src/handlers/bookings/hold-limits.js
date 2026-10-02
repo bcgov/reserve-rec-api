@@ -3,64 +3,51 @@ const { refused } = require("./refusals");
 
 // `releasedBy` on a hold the system released, so it is not counted as removed.
 const HOLD_RELEASED_BY_SYSTEM = "system";
-const SWITCH_CACHE_MS = 60 * 1000;
 const REMOVAL_GRACE_MS = 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const LIMIT_KEYS = new Set(["removalsBeforeWait", "holdsPerHour", "holdsPerDay"]);
+const MAX_LIMIT = 500;
 
-let switchCache = null;
-let switchErrorLogged = false;
+let cachedLimits;
 
-function positiveInt(value) {
-  const n = Number(value);
-  return Number.isInteger(n) && n > 0 ? n : null;
+/**
+ * Parses a HOLD_LIMITS value: an object of LIMIT_KEYS, each an integer from 1
+ * to MAX_LIMIT. Returns null when the value is not one.
+ */
+function parseHoldLimits(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const valid = Object.entries(parsed).every(([key, value]) =>
+    LIMIT_KEYS.has(key) && Number.isInteger(value) && value >= 1 && value <= MAX_LIMIT);
+  return valid ? parsed : null;
 }
 
 /**
- * Hold limits from the Lambda environment, or null when none are set.
+ * Hold limits from the Lambda environment, or null when off. A limit absent
+ * from HOLD_LIMITS is off; an invalid HOLD_LIMITS turns them all off.
  */
 function holdLimitsConfig(env = process.env) {
-  const config = {
-    removalsBeforeWait: positiveInt(env.HOLD_REMOVALS_BEFORE_WAIT),
-    holdsPerHour: positiveInt(env.HOLD_LIMIT_PER_HOUR),
-    holdsPerDay: positiveInt(env.HOLD_LIMIT_PER_DAY),
-  };
-  return Object.values(config).some(Boolean) ? config : null;
+  if (env.HOLD_LIMITS_ENABLED !== "true") return null;
+  const limits = parseHoldLimits(env.HOLD_LIMITS);
+  if (!limits) {
+    logger.error("event=hold_limits_config_invalid");
+    return null;
+  }
+  return Object.keys(limits).length ? limits : null;
 }
 
 /**
- * Reads the runtime switch parameter, cached for a minute. Only "false" turns
- * the limits off; a missing or unreadable parameter leaves them on.
+ * The limits in force, read once per container.
  */
-async function holdLimitsSwitchOn() {
-  const name = process.env.HOLD_LIMITS_ENABLED_PARAMETER;
-  if (!name) return true;
-  const now = Date.now();
-  if (switchCache && now - switchCache.readAt < SWITCH_CACHE_MS) {
-    return switchCache.on;
-  }
-  let on = true;
-  try {
-    // Required here so the other Lambdas that bundle methods.js never load it.
-    const { getParameter } = require("/opt/ssm");
-    on = String(await getParameter(name, false)).trim().toLowerCase() !== "false";
-  } catch (error) {
-    if (!switchErrorLogged) {
-      switchErrorLogged = true;
-      logger.warn("Hold limits switch unreadable, limits stay on", { parameter: name, error: error?.message });
-    }
-  }
-  switchCache = { on, readAt: now };
-  return on;
-}
-
-/**
- * The limits in force for this request, or null when off.
- */
-async function activeHoldLimits() {
-  const config = holdLimitsConfig();
-  if (!config) return null;
-  return (await holdLimitsSwitchOn()) ? config : null;
+function activeHoldLimits() {
+  if (cachedLimits === undefined) cachedLimits = holdLimitsConfig();
+  return cachedLimits;
 }
 
 function isCountingRemoval(booking, now) {
@@ -143,10 +130,9 @@ function holdLimitRefusal(evaluation, { userId, productKey, date }) {
   return error;
 }
 
-// For tests: forget the cached switch value and the logged error.
-function _resetHoldLimitsSwitch() {
-  switchCache = null;
-  switchErrorLogged = false;
+// For tests: forget the cached limits.
+function _resetHoldLimits() {
+  cachedLimits = undefined;
 }
 
 module.exports = {
@@ -156,6 +142,5 @@ module.exports = {
   evaluateHoldLimits,
   holdLimitRefusal,
   holdLimitsConfig,
-  holdLimitsSwitchOn,
-  _resetHoldLimitsSwitch,
+  _resetHoldLimits,
 };
