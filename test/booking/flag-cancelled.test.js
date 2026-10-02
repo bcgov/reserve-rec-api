@@ -111,6 +111,18 @@ describe("flagCancelledBooking", () => {
     expect(op.data.ExpressionAttributeNames["#status"]).toBe("status");
   });
 
+  it("records releasedBy when given", async () => {
+    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId, { releasedBy: "system" });
+    expect(op.data.UpdateExpression).toContain("#releasedBy = :releasedBy");
+    expect(op.data.ExpressionAttributeNames["#releasedBy"]).toBe("releasedBy");
+    expect(op.data.ExpressionAttributeValues[":releasedBy"]).toEqual({ S: "system" });
+  });
+
+  it("omits releasedBy by default", async () => {
+    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
+    expect(op.data.UpdateExpression).not.toContain("releasedBy");
+  });
+
   it("omits the status condition by default", async () => {
     const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
     expect(op.data.ConditionExpression).not.toContain(":inProgress");

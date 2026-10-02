@@ -160,6 +160,15 @@ describe('releaseHoldOnRefusal', () => {
     expect(batchTransactData).toHaveBeenCalled();
   });
 
+  it('marks the release as made by the system', async () => {
+    const refuse = () => { throw new Error('refused'); };
+
+    await expect(releaseHoldOnRefusal(hold, refuse, 1, 'sub-1')).rejects.toThrow('refused');
+    const [[update]] = batchTransactData.mock.calls[0];
+    expect(update.data.UpdateExpression).toContain('#releasedBy = :releasedBy');
+    expect(update.data.ExpressionAttributeValues[':releasedBy']).toEqual({ S: 'system' });
+  });
+
   // A completed or already-cancelled booking is not a hold to release.
   it('only releases a booking that is still holding inventory', async () => {
     const refuse = () => { throw new Error('refused'); };
