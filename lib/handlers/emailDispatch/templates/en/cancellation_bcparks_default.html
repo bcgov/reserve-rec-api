@@ -428,7 +428,7 @@
                                 <td width="50%">
                                     <span class="detail-label">Departure</span>
                                     <div class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></div>
-                                    <span class="detail-value-time">{{ formatTime booking.departureDate}}</span>
+                                    {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
                                 </td>
                                 {{/if}}
                             </tr>

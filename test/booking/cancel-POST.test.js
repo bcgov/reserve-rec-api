@@ -90,6 +90,11 @@ describe("Bookings Cancel POST handler", () => {
     });
     sendBookingCancellationEmail.mockResolvedValue({ messageId: "msg-1" });
     batchTransactData.mockResolvedValue({ MessageId: "txn-1" });
+    process.env.CANCELLATION_EMAIL_ENABLED = "true";
+  });
+
+  afterEach(() => {
+    delete process.env.CANCELLATION_EMAIL_ENABLED;
   });
 
   it("returns 200 for OPTIONS request", async () => {
@@ -143,7 +148,8 @@ describe("Bookings Cancel POST handler", () => {
       inProgress,
       expect.any(Number),
       undefined,
-      SUB
+      SUB,
+      { requireInProgress: false }
     );
     expect(batchTransactData).toHaveBeenCalled();
     expect(result.status).toBe(200);
@@ -179,7 +185,8 @@ describe("Bookings Cancel POST handler", () => {
       okBooking,
       expect.any(Number),
       undefined,
-      SUB
+      SUB,
+      { requireInProgress: false }
     );
   });
 
@@ -188,7 +195,7 @@ describe("Bookings Cancel POST handler", () => {
 
     const result = await handler(makeEvent(), {});
 
-    expect(flagCancelledBooking).toHaveBeenCalledWith(okBooking, expect.any(Number), undefined, SUB);
+    expect(flagCancelledBooking).toHaveBeenCalledWith(okBooking, expect.any(Number), undefined, SUB, { requireInProgress: false });
     expect(batchTransactData).toHaveBeenCalled();
     expect(sendBookingCancellationEmail).toHaveBeenCalledWith(
       expect.objectContaining({ booking: { bookingId: BOOKING_ID } }),
@@ -210,8 +217,21 @@ describe("Bookings Cancel POST handler", () => {
       okBooking,
       expect.any(Number),
       "Trip cancelled due to weather",
-      SUB
+      SUB,
+      { requireInProgress: false }
     );
+    expect(result.status).toBe(200);
+  });
+
+  it.each([["false"], [undefined]])("cancels without queueing an email when CANCELLATION_EMAIL_ENABLED is %s", async (value) => {
+    if (value === undefined) delete process.env.CANCELLATION_EMAIL_ENABLED;
+    else process.env.CANCELLATION_EMAIL_ENABLED = value;
+    getBookingByBookingId.mockResolvedValue(okBooking);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(batchTransactData).toHaveBeenCalled();
+    expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
     expect(result.status).toBe(200);
   });
 
@@ -252,6 +272,104 @@ describe("Bookings Cancel POST handler", () => {
     expect(result.message).not.toBe("Booking is already cancelled");
   });
 
+  describe("cart removal", () => {
+    const cartRemoval = () => makeEvent({ body: { cartRemoval: true } });
+
+    it("refuses a confirmed booking with 409 and leaves it confirmed", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      const result = await handler(cartRemoval(), {});
+      expect(result.status).toBe(409);
+      expect(result.message).toMatch(/already confirmed.*My bookings/);
+      expect(result.data).toEqual({ status: "confirmed", refusal: "state" });
+      expect(flagCancelledBooking).not.toHaveBeenCalled();
+      expect(batchTransactData).not.toHaveBeenCalled();
+      expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
+    });
+
+    it.each(["cancelled", "expired", "completed"])("refuses a %s booking with 409", async (status) => {
+      getBookingByBookingId.mockResolvedValue({ ...okBooking, status });
+      const result = await handler(cartRemoval(), {});
+      expect(result.status).toBe(409);
+      expect(result.data.status).toBe(status);
+      expect(flagCancelledBooking).not.toHaveBeenCalled();
+    });
+
+    it("removes an 'in progress' booking without an email", async () => {
+      const inProgress = { ...okBooking, status: "in progress" };
+      getBookingByBookingId.mockResolvedValue(inProgress);
+      const result = await handler(cartRemoval(), {});
+      expect(result.status).toBe(200);
+      expect(flagCancelledBooking).toHaveBeenCalledWith(
+        inProgress, expect.any(Number), undefined, SUB, { requireInProgress: true }
+      );
+      expect(batchTransactData).toHaveBeenCalled();
+      expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
+    });
+
+    it("leaves self-serve cancel of a confirmed booking unchanged", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      const result = await handler(makeEvent({ body: { reason: "Cancelled by user via self-serve" } }), {});
+      expect(result.status).toBe(200);
+      expect(flagCancelledBooking).toHaveBeenCalledWith(
+        okBooking, expect.any(Number), "Cancelled by user via self-serve", SUB, { requireInProgress: false }
+      );
+      expect(sendBookingCancellationEmail).toHaveBeenCalled();
+    });
+
+    describe("when the booking is confirmed between the read and the write", () => {
+      const conditionFailure = () => Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      });
+
+      beforeEach(() => {
+        getBookingByBookingId
+          .mockResolvedValueOnce({ ...okBooking, status: "in progress" })
+          .mockResolvedValueOnce(okBooking);
+        batchTransactData.mockRejectedValueOnce(conditionFailure());
+      });
+
+      it("re-reads the booking and returns the confirmed 409 refusal", async () => {
+        const result = await handler(cartRemoval(), {});
+        expect(result.status).toBe(409);
+        expect(result.message).toMatch(/already confirmed.*My bookings/);
+        expect(result.data).toEqual({ status: "confirmed", refusal: "state" });
+        expect(getBookingByBookingId).toHaveBeenCalledTimes(2);
+        expect(batchTransactData).toHaveBeenCalledTimes(1);
+        expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
+      });
+
+      it("counts it as cancel_refused_state", async () => {
+        const { logger } = require("/opt/base");
+        await handler(cartRemoval(), {});
+        expect(logger.info).toHaveBeenCalledWith("event=cancel_refused_state", expect.anything());
+      });
+    });
+
+    it("keeps the race 400 when the re-read booking is still in progress", async () => {
+      getBookingByBookingId.mockResolvedValue({ ...okBooking, status: "in progress" });
+      batchTransactData.mockRejectedValueOnce(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(cartRemoval(), {});
+      expect(result.status).toBe(400);
+      expect(result.message).toBe("Booking is already cancelled");
+    });
+
+    it("does not re-read on a self-serve condition failure", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      batchTransactData.mockRejectedValueOnce(Object.assign(new Error("Transaction cancelled"), {
+        name: "TransactionCanceledException",
+        CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+      }));
+      const result = await handler(makeEvent({ body: { reason: "Cancelled by user via self-serve" } }), {});
+      expect(result.status).toBe(400);
+      expect(result.message).toBe("Booking is already cancelled");
+      expect(getBookingByBookingId).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("outcome events", () => {
     const { logger } = require("/opt/base");
     const eventNames = () => [...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]
@@ -266,6 +384,13 @@ describe("Bookings Cancel POST handler", () => {
       getBookingByBookingId.mockResolvedValue({ ...okBooking, ...overrides });
       const result = await handler(makeEvent(), {});
       expect(result.status).toBe(status);
+      expect(eventNames()).toEqual(["event=cancel_refused_state"]);
+    });
+
+    it("counts a cart removal of a confirmed booking as cancel_refused_state", async () => {
+      getBookingByBookingId.mockResolvedValue(okBooking);
+      const result = await handler(makeEvent({ body: { cartRemoval: true } }), {});
+      expect(result.status).toBe(409);
       expect(eventNames()).toEqual(["event=cancel_refused_state"]);
     });
 

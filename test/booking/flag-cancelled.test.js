@@ -102,6 +102,21 @@ describe("flagCancelledBooking", () => {
     expect(op.data.ExpressionAttributeNames["#userId"]).toBe("userId");
   });
 
+  it("adds the in-progress status condition when requireInProgress is set", async () => {
+    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId, { requireInProgress: true });
+    expect(op.data.ConditionExpression).toBe(
+      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime) AND #status = :inProgress"
+    );
+    expect(op.data.ExpressionAttributeValues[":inProgress"]).toEqual({ S: "in progress" });
+    expect(op.data.ExpressionAttributeNames["#status"]).toBe("status");
+  });
+
+  it("omits the status condition by default", async () => {
+    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
+    expect(op.data.ConditionExpression).not.toContain(":inProgress");
+    expect(op.data.ExpressionAttributeValues).not.toHaveProperty(":inProgress");
+  });
+
   it("throws when userId is missing — guards against the silent-fail trap", async () => {
     await expect(flagCancelledBooking(booking, queryTime)).rejects.toThrow(
       /requires a userId/
