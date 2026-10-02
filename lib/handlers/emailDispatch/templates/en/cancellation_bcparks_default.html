@@ -146,8 +146,6 @@
         }
 
         .card-body {
-            border: 1px solid #C7C7C7;
-            border-radius: 0 0 8px 8px;
             padding: 24px;
         }
 
@@ -159,10 +157,6 @@
         .details-table td {
             vertical-align: top;
             padding-bottom: 20px;
-        }
-
-        .detail-item {
-            margin-bottom: 0;
         }
 
         .detail-label {
@@ -186,8 +180,8 @@
 
         .detail-value-time {
             font-size: 13px;
-            display: flex;
-            align-items: center;
+            color: #5c5c5c;
+            display: block;
         }
 
         .row-rule td {
@@ -196,69 +190,8 @@
             padding-bottom: 12px;
         }
 
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        .booking-number {
-            font-size: 16px;
-        }
-
         .cardless-body {
-            padding: 24px;
-        }
-
-        .horizontal-rule {
-            border: 1px solid #d9d9d9;
-            grid-column: 1 / -1;
-        }
-
-        .horizontal-rule-yellow {
-            border-top: 3px solid #FCBA19;
-            margin-bottom: 24px;
-            margin-right: 85%;
-        }
-
-        .followup-instructions {
-            font-size: 16px;
-            line-height: 25px;
-            margin-bottom: 20px;
-        }
-
-        .customer-service {
-            background-color: #C7E3FD;
-            padding: 25px 25px;
-            margin-bottom: 30px;
-        }
-
-        .customer-service h3 {
-            font-size: 19px;
-            font-weight: 700;
-            color: #003366;
-            margin-bottom: 12px;
-            line-height: 27px;
-        }
-
-        .customer-service p {
-            font-size: 16px;
-            line-height: 25px;
-            margin-bottom: 20px;
-        }
-
-        .customer-service-text {
-            font: 16px;
-            font-weight: 700;
-            color: #003366;
-            line-height: 25px;
-            padding-right: 10px;
-        }
-
-        .customer-service-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #003366;
-            font-size: 16px;
+            padding: 24px 0;
         }
 
         .disclaimer {
@@ -419,7 +352,7 @@
                                 {{#if booking.arrivalDate}}
                                 <td width="50%">
                                     <span class="detail-label">Arrival</span>
-                                    <div class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></div>
+                                    <span class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></span>
                                     <span class="detail-value-time">{{ formatTime booking.arrivalDate}}</span>
                                 </td>
                                 {{/if}}
@@ -427,7 +360,7 @@
                                 {{#if booking.departureDate}}
                                 <td width="50%">
                                     <span class="detail-label">Departure</span>
-                                    <div class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></div>
+                                    <span class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></span>
                                     {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
                                 </td>
                                 {{/if}}
@@ -436,27 +369,27 @@
                                 {{#if booking.productName}}
                                 <td width="50%">
                                     <span class="detail-label">Pass type</span>
-                                    <span class="detail-value">{{#if branding.pinCid}}<img src="cid:{{branding.pinCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.productName}}</div>
+                                    <span class="detail-value">{{#if branding.pinCid}}<img src="cid:{{branding.pinCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.productName}}</span>
                                 </td>
                                 {{/if}}
 
                                 {{#if booking.invQuantity}}
                                 <td width="50%">
-                                    <span class="detail-label">Passes</span>
-                                    <span class="detail-value">{{#if branding.ticketCid}}<img src="cid:{{branding.ticketCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.invQuantity}}</div>
+                                    <span class="detail-label">{{pluralize booking.invQuantity "Pass" "Passes"}}</span>
+                                    <span class="detail-value">{{#if branding.ticketCid}}<img src="cid:{{branding.ticketCid}}" width="14" height="14" alt="" class="detail-icon" />{{/if}}{{booking.invQuantity}}</span>
                                 </td>
                                 {{/if}}
                             </tr>
                             <tr class="row-rule">
                                 <td width="50%">
                                     <span class="detail-label">Named occupant</span>
-                                    <span class="detail-value detail-value-name">{{customer.firstName}} {{customer.lastName}}</div>
+                                    <span class="detail-value detail-value-name">{{customer.firstName}} {{customer.lastName}}</span>
                                 </td>
 
                                 {{#if customer.licensePlate}}
                                 <td width="50%">
                                     <span class="detail-label">License plate</span>
-                                    <span  class="detail-value">{{customer.licensePlate}}{{#if customer.licensePlateRegion}}, {{customer.licensePlateRegion}}{{/if}}</div>
+                                    <span  class="detail-value">{{customer.licensePlate}}{{#if customer.licensePlateRegion}}, {{customer.licensePlateRegion}}{{/if}}</span>
                                 </td>
                                 {{else}}
                                 <td width="50%"></td>
@@ -465,7 +398,7 @@
                             <tr class="row-rule">
                                 <td colspan="2">
                                     <span class="detail-label">Confirmation number</span>
-                                    <div class="detail-value detail-value-cancellation">{{booking.bookingId}}</div>
+                                    <span class="detail-value detail-value-cancellation">{{booking.bookingId}}</span>
                                 </td>
                             </tr>
                         </table>
