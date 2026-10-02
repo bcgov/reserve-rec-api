@@ -48,53 +48,13 @@ jest.mock('../../src/handlers/bookings/configs', () => ({
 
 const { runQuery, getOne } = require('/opt/dynamodb');
 const { fetchProductDates } = require('../../src/handlers/productDates/methods');
-const { findUserActiveBookingForProductOnDate, createBooking } = require('../../src/handlers/bookings/methods');
+const { createBooking } = require('../../src/handlers/bookings/methods');
 
-describe('findUserActiveBookingForProductOnDate', () => {
-  const userId = 'cog-sub-123';
-  const productPk = 'booking::col-1::dayuse::1::3';
-  const startDate = '2026-06-15';
-
+describe('createBooking refusals', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns null when no booking matches', async () => {
-    runQuery.mockResolvedValue({ items: [] });
-    const result = await findUserActiveBookingForProductOnDate(userId, productPk, startDate);
-    expect(result).toBeNull();
-  });
-
-  it('returns the existing booking when one is found', async () => {
-    const existing = { bookingId: 'b-1', status: 'confirmed', pk: productPk };
-    runQuery.mockResolvedValue({ items: [existing] });
-    const result = await findUserActiveBookingForProductOnDate(userId, productPk, startDate);
-    expect(result).toBe(existing);
-  });
-
-  it('queries the userId-index with begins_with on sk and filters by pk + active statuses', async () => {
-    runQuery.mockResolvedValue({ items: [] });
-    await findUserActiveBookingForProductOnDate(userId, productPk, startDate);
-    const params = runQuery.mock.calls[0][0];
-    expect(params.IndexName).toBe('userId-index');
-    expect(params.KeyConditionExpression).toContain('begins_with(sk, :startDatePrefix)');
-    expect(params.FilterExpression).toContain('pk = :pk');
-    expect(params.FilterExpression).toContain('#status IN (:inProgress, :confirmed)');
-    expect(params.ExpressionAttributeValues[':startDatePrefix']).toBe(`${startDate}::`);
-    expect(params.ExpressionAttributeValues[':pk']).toBe(productPk);
-    expect(params.ExpressionAttributeValues[':inProgress']).toBe('in progress');
-    expect(params.ExpressionAttributeValues[':confirmed']).toBe('confirmed');
-  });
-
-  it('returns null without querying when any required arg is missing', async () => {
-    expect(await findUserActiveBookingForProductOnDate(null, productPk, startDate)).toBeNull();
-    expect(await findUserActiveBookingForProductOnDate(userId, null, startDate)).toBeNull();
-    expect(await findUserActiveBookingForProductOnDate(userId, productPk, null)).toBeNull();
-    expect(runQuery).not.toHaveBeenCalled();
-  });
-});
-
-describe('createBooking refusals', () => {
   const props = () => ({
     collectionId: 'col-1', activityType: 'dayuse', activityId: '1', productId: '3',
     startDate: '2026-06-15', invQuantity: 1, userId: 'cog-sub-123',

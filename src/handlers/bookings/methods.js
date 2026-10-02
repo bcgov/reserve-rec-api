@@ -33,6 +33,7 @@ const { DateTime } = require("luxon");
 const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG, BOOKINGHOLD_PUT_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
+const { HOLD_HISTORY_MS, HOLD_RELEASED_BY_SYSTEM, activeHoldLimits, evaluateHoldLimits, holdLimitRefusal } = require("./hold-limits");
 
 const DEFAULT_SESSION_LENGTH = 15; // in minutes
 const DUP_PASS_TYPES = {
@@ -99,7 +100,8 @@ async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
           booking,
           queryTime,
           'Booking refused: account email not verified',
-          userId
+          userId,
+          { releasedBy: HOLD_RELEASED_BY_SYSTEM }
         );
         await batchTransactData(updateRequest);
         logger.info('Released hold after a refused booking attempt', {
@@ -315,17 +317,18 @@ async function getBookingsByUserId(userId, props) {
 }
 
 /**
- * Finds an active (in-progress or confirmed) booking owned by a user for a given
- * product on a given startDate. Used to enforce the one-pass-per-user-per-product-per-day
- * rule from issue #458. Returns the first match, or null if none.
+ * A user's bookings for a product on a startDate: every active one, plus any
+ * other created in the last 24 hours or whose session has not yet expired.
+ * Feeds the one-pass-per-user-per-product-per-day rule (issue #458) and the
+ * hold limits.
  */
-async function findUserActiveBookingForProductOnDate(userId, productBookingPk, startDate) {
-  if (!userId || !productBookingPk || !startDate) return null;
+async function findUserBookingsForProductOnDate(userId, productBookingPk, startDate, now = Date.now()) {
+  if (!userId || !productBookingPk || !startDate) return [];
   const params = {
     TableName: TRANSACTIONAL_DATA_TABLE_NAME,
     IndexName: USERID_INDEX_NAME,
     KeyConditionExpression: '#userId = :userId AND begins_with(sk, :startDatePrefix)',
-    FilterExpression: 'pk = :pk AND #status IN (:inProgress, :confirmed)',
+    FilterExpression: 'pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR sessionExpiry > :now)',
     ExpressionAttributeNames: {
       '#userId': USERID_PROPERTY_NAME,
       '#status': 'status',
@@ -336,10 +339,12 @@ async function findUserActiveBookingForProductOnDate(userId, productBookingPk, s
       ':pk': marshall(productBookingPk),
       ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
       ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
+      ':since': marshall(now - HOLD_HISTORY_MS),
+      ':now': marshall(now),
     },
   };
-  const result = await runQuery(params);
-  return result?.items?.[0] || null;
+  const result = await runQuery(params, null, null, false);
+  return result?.items || [];
 }
 
 // === Booking-hold uniqueness marker (one active hold per user/product/date, issue #458) ===
@@ -849,7 +854,8 @@ async function createBooking(props) {
     // === Block duplicate booking for the same user/product/startDate (issue #458) ===
     // One pass per user per product per day. Cancelled and expired bookings don't count.
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
-    const duplicate = await findUserActiveBookingForProductOnDate(props.userId, productBookingPk, props.startDate);
+    const userBookings = await findUserBookingsForProductOnDate(props.userId, productBookingPk, props.startDate, props.queryTime);
+    const duplicate = userBookings.find((booking) => [BOOKING_STATUS_ENUMS[0], BOOKING_STATUS_ENUMS[1]].includes(booking.status));
     if (duplicate) {
       throw refused(
         duplicate.status === 'confirmed' ? 'has_booking' : 'has_hold',
@@ -870,6 +876,9 @@ async function createBooking(props) {
     //     { code: 409, data: { conflictingBookingId: bookingConflict.bookingId, status: bookingConflict.status } }
     //   )
     // }
+
+    const limits = await activeHoldLimits();
+    const limitCheck = limits ? evaluateHoldLimits(userBookings, limits, props.queryTime) : null;
 
     // === Get the Product ===
 
@@ -924,6 +933,18 @@ async function createBooking(props) {
 
     const inventoryRequests = createInventoryRequests(assetRef, productDates, props?.invQuantity);
 
+    // Sold out takes precedence over a hold limit.
+    if (limitCheck?.refusal) {
+      if (!(await inventoryAvailable(assetRef, productDates, props?.invQuantity))) {
+        throw refused('sold_out', 'Booking item no longer available.');
+      }
+      throw holdLimitRefusal(limitCheck, {
+        userId: props.userId,
+        productKey: `${collectionId}::${activityType}::${activityId}::${productId}`,
+        date: props.startDate,
+      });
+    }
+
     // ==== Create Booking Requests ====
 
     // This will create one BookingDate item per day of the booking, plus one Booking item that represents the overall Booking.
@@ -935,7 +956,10 @@ async function createBooking(props) {
     // unaffected. (issue #458)
     const holdMarkerRequest = await buildBookingHoldMarkerRequest(props);
 
-    return bookingDateRequests.concat(bookingRequest).concat(inventoryRequests).concat([holdMarkerRequest]);
+    return {
+      requestItems: bookingDateRequests.concat(bookingRequest).concat(inventoryRequests).concat([holdMarkerRequest]),
+      holdLimits: limitCheck?.freeRemovalsLeft != null ? { freeRemovalsLeft: limitCheck.freeRemovalsLeft } : null,
+    };
 
   } catch (error) {
     logger.error('Error creating booking:', error);
@@ -944,6 +968,22 @@ async function createBooking(props) {
 }
 
 
+function inventoryPoolKey(assetRef, productDate) {
+  return {
+    pk: `inventoryPool::${productDate.collectionId}::${productDate.activityType}::${productDate.activityId}::${productDate.productId}::${productDate.date}`,
+    sk: [assetRef.primaryKey.pk, assetRef.primaryKey.sk].join("::"),
+  };
+}
+
+// Whether every day's InventoryPool can cover the quantity, as its update condition would.
+async function inventoryAvailable(assetRef, productDates, invQuantity) {
+  const pools = await Promise.all(productDates.map((productDate) => {
+    const { pk, sk } = inventoryPoolKey(assetRef, productDate);
+    return getOne(pk, sk);
+  }));
+  return pools.every((pool) => pool && Number(pool.availability) >= Number(invQuantity));
+}
+
 function createInventoryRequests(assetRef, productDates, invQuantity) {
   try {
     const numericQuantity = Number(invQuantity);
@@ -951,26 +991,21 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
       throw new Exception(`Invalid inventory quantity: ${invQuantity}`, { code: 400 });
     }
 
-    // Get the InventoryPool SK by assetRef
-    const inventorySK = [assetRef.primaryKey.pk, assetRef.primaryKey.sk].join("::");
-
     // Iterate through the dates and generate InventoryPool PUT requests for each day against the specified Asset.
 
     const inventoryRequests = [];
 
     for (const productDate of productDates) {
 
-      // Get the InventoryPool PK from the relevant properties
-
-      const inventoryPK = `inventoryPool::${productDate.collectionId}::${productDate.activityType}::${productDate.activityId}::${productDate.productId}::${productDate.date}`;
+      const { pk, sk } = inventoryPoolKey(assetRef, productDate);
 
       const inventoryRequest = {
         action: 'Update',
         data: {
           TableName: REFERENCE_DATA_TABLE_NAME,
           Key: {
-            pk: marshall(inventoryPK),
-            sk: marshall(inventorySK)
+            pk: marshall(pk),
+            sk: marshall(sk)
           },
           UpdateExpression: "ADD #availability :decrement",
           ExpressionAttributeNames: {
@@ -2609,7 +2644,7 @@ async function getBookingDatesByBookingId(bookingId) {
   }
 }
 
-async function flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress = false } = {}) {
+async function flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress = false, releasedBy = null } = {}) {
   if (!userId || typeof userId !== "string") {
     // userId is part of the ConditionExpression — without it the comparison
     // would resolve against the literal string "undefined" and silently fail
@@ -2641,6 +2676,12 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
       expressionAttributeNames["#cancellationReason"] = "cancellationReason";
       expressionAttributeValues[":cancellationReason"] = { S: String(reason) };
       updateExpression += ", #cancellationReason = :cancellationReason";
+    }
+
+    if (releasedBy) {
+      expressionAttributeNames["#releasedBy"] = "releasedBy";
+      expressionAttributeValues[":releasedBy"] = { S: String(releasedBy) };
+      updateExpression += ", #releasedBy = :releasedBy";
     }
 
     let conditionExpression = "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)";
@@ -2975,7 +3016,7 @@ module.exports = {
   createBooking,
   fetchAllActivities,
   fetchBookingsWithPagination,
-  findUserActiveBookingForProductOnDate,
+  findUserBookingsForProductOnDate,
   buildBookingHoldMarkerKey,
   buildBookingHoldMarkerRequest,
   deleteBookingHoldMarker,

@@ -81,7 +81,7 @@ describe("Bookings POST handler", () => {
     };
     const event = { body: JSON.stringify(body) };
 
-    createBooking.mockResolvedValue([{ booking: "data" }]);
+    createBooking.mockResolvedValue({ requestItems: [{ booking: "data" }] });
     batchTransactData.mockResolvedValue({ result: "ok" });
     formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
 
@@ -125,7 +125,7 @@ describe("Bookings POST handler", () => {
       },
     };
 
-    createBooking.mockResolvedValue([{ booking: "data2" }]);
+    createBooking.mockResolvedValue({ requestItems: [{ booking: "data2" }] });
     batchTransactData.mockResolvedValue({ result: "ok2" });
     formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-2" });
 
@@ -184,7 +184,7 @@ describe("Bookings POST handler", () => {
       { existingBookingId: "b-1", status });
 
     it("counts a success as hold_created alone", async () => {
-      createBooking.mockResolvedValue([{ booking: "data" }]);
+      createBooking.mockResolvedValue({ requestItems: [{ booking: "data" }] });
       batchTransactData.mockResolvedValue({ result: "ok" });
       formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
       const result = await handler(event, context);
@@ -206,7 +206,7 @@ describe("Bookings POST handler", () => {
     });
 
     it("counts losing the hold-marker race as a refusal over an open hold", async () => {
-      createBooking.mockResolvedValue([{ data: { Put: { Item: { pk: { S: "bookinghold::u::c::a::i::p" } } } } }]);
+      createBooking.mockResolvedValue({ requestItems: [{ data: { Put: { Item: { pk: { S: "bookinghold::u::c::a::i::p" } } } } }] });
       batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
         name: "TransactionCanceledException",
         CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
@@ -217,7 +217,7 @@ describe("Bookings POST handler", () => {
     });
 
     it("answers a write race on inventory with a 409 and counts it as a conflict", async () => {
-      createBooking.mockResolvedValue([{ data: {} }]);
+      createBooking.mockResolvedValue({ requestItems: [{ data: {} }] });
       batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
         name: "TransactionCanceledException",
         CancellationReasons: [{ Code: "None" }, { Code: "None" }, { Code: "TransactionConflict" }, { Code: "None" }],
@@ -274,7 +274,7 @@ describe("Bookings POST handler", () => {
       ["bookingDate::c::a::i::p::2024-01-01", "Error initializing the booking dates."],
       ["booking::c::a::i::p", "Error creating the booking."],
     ])("counts a failed condition on %s as hold_conflict", async (pk, message) => {
-      createBooking.mockResolvedValue([{ data: { Put: { Item: { pk: { S: pk } } } } }]);
+      createBooking.mockResolvedValue({ requestItems: [{ data: { Put: { Item: { pk: { S: pk } } } } }] });
       batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
         name: "TransactionCanceledException",
         CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
@@ -286,10 +286,10 @@ describe("Bookings POST handler", () => {
     });
 
     it("counts a failed inventory condition as sold out", async () => {
-      createBooking.mockResolvedValue([
+      createBooking.mockResolvedValue({ requestItems: [
         { data: { Put: { Item: { pk: { S: "booking::c::a::i::p" } } } } },
         { data: { Update: { Key: { pk: { S: "inventoryPool::c::a::i::p::2024-01-01" } } } } },
-      ]);
+      ] });
       batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {
         name: "TransactionCanceledException",
         CancellationReasons: [{ Code: "None" }, { Code: "ConditionalCheckFailed" }],
@@ -332,6 +332,47 @@ describe("Bookings POST handler", () => {
       });
     });
 
+    describe("hold limit refusals", () => {
+      const retryAt = "2026-06-10T18:09:00.000Z";
+      const logFields = {
+        userSub: "test-user-123", productKey: "bcparks_123::backcountry::id1::product-1", date: "2024-01-01",
+        removedCount: 3, holdsLastHour: 4, holdsLastDay: 6, retryAt,
+      };
+      const limitRefusal = (refusal, code) => Object.assign(refused(refusal, 429, { code, retryAt }), {
+        message: "Try later", logFields,
+      });
+
+      it.each([
+        ["cooldown", "HOLD_COOLDOWN"],
+        ["cap", "HOLD_CAP"],
+      ])("logs event=hold_refused_%s with the limit fields", async (refusal, code) => {
+        createBooking.mockRejectedValue(limitRefusal(refusal, code));
+        const result = await handler(event, context);
+        expect(result.status).toBe(429);
+        expect(eventNames()).toEqual([`event=hold_refused_${refusal}`]);
+        const [, payload] = logger.info.mock.calls.find(([msg]) => msg === `event=hold_refused_${refusal}`);
+        expect(payload).toEqual(logFields);
+      });
+
+      it("answers 429 with msg, code and retryAt in the body", async () => {
+        const { sendResponse } = require("/opt/base");
+        sendResponse.mockImplementationOnce(jest.requireActual("../../src/layers/base/base.js").sendResponse);
+        createBooking.mockRejectedValue(limitRefusal("cooldown", "HOLD_COOLDOWN"));
+        const result = await handler(event, context);
+        expect(result.statusCode).toBe(429);
+        expect(JSON.parse(result.body)).toMatchObject({ msg: "Try later", code: "HOLD_COOLDOWN", retryAt });
+      });
+    });
+
+    it("adds holdLimits to the hold response", async () => {
+      createBooking.mockResolvedValue({ requestItems: [{ booking: "data" }], holdLimits: { freeRemovalsLeft: 2 } });
+      batchTransactData.mockResolvedValue({ result: "ok" });
+      formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
+      const result = await handler(event, context);
+      expect(result.status).toBe(200);
+      expect(result.data).toEqual({ bookingId: "booking-1", holdLimits: { freeRemovalsLeft: 2 } });
+    });
+
     it("still counts any other error as hold_failed", async () => {
       createBooking.mockRejectedValue(new Error("DB error"));
       await handler(event, context);
@@ -339,10 +380,10 @@ describe("Bookings POST handler", () => {
     });
 
     it("logs the booking item's bookingId, not the first (bookingDate) item's", async () => {
-      createBooking.mockResolvedValue([
+      createBooking.mockResolvedValue({ requestItems: [
         { data: { Item: { schema: { S: "bookingDate" }, bookingId: { S: "wrong-id" } } } },
         { data: { Item: { schema: { S: "booking" }, bookingId: { S: "booking-1" } } } },
-      ]);
+      ] });
       batchTransactData.mockResolvedValue({ result: "ok" });
       formatBookingResponsePublic.mockReturnValue({ bookingId: "booking-1" });
 
