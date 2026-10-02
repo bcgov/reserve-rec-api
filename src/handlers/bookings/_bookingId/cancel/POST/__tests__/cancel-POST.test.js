@@ -99,6 +99,7 @@ describe("Bookings Cancel handler", () => {
     sendBookingCancellationEmail.mockResolvedValue({});
     deleteBookingHoldMarker.mockReturnValue({ action: "Delete", data: { Key: {} } });
     batchTransactData.mockResolvedValue({});
+    process.env.CANCELLATION_EMAIL_ENABLED = 'true';
 
     // Mock current time to 12pm on June 11, 2026
     jest.useFakeTimers();
@@ -107,6 +108,7 @@ describe("Bookings Cancel handler", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    delete process.env.CANCELLATION_EMAIL_ENABLED;
   });
 
   it("returns 200 for OPTIONS request", async () => {
