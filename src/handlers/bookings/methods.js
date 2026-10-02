@@ -2609,7 +2609,7 @@ async function getBookingDatesByBookingId(bookingId) {
   }
 }
 
-async function flagCancelledBooking(booking, queryTime, reason, userId) {
+async function flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress = false } = {}) {
   if (!userId || typeof userId !== "string") {
     // userId is part of the ConditionExpression — without it the comparison
     // would resolve against the literal string "undefined" and silently fail
@@ -2643,6 +2643,12 @@ async function flagCancelledBooking(booking, queryTime, reason, userId) {
       updateExpression += ", #cancellationReason = :cancellationReason";
     }
 
+    let conditionExpression = "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)";
+    if (requireInProgress) {
+      expressionAttributeValues[":inProgress"] = { S: BOOKING_STATUS_ENUMS[0] };
+      conditionExpression += " AND #status = :inProgress";
+    }
+
     const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       Key: {
@@ -2658,7 +2664,7 @@ async function flagCancelledBooking(booking, queryTime, reason, userId) {
       //   - attribute_not_exists(#cancellationTime): only the first racing
       //     cancel wins; the loser gets ConditionalCheckFailed and we return
       //     400 "already cancelled" instead of sending a second email.
-      ConditionExpression: "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)",
+      ConditionExpression: conditionExpression,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
     };
