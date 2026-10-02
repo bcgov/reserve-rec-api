@@ -184,6 +184,7 @@ exports.handler = async function (event, context) {
 
           // checkOutTime needed to calculate statuses (Active, Expired, etc.)
           reservationContext: {
+            checkInTime: booking?.reservationContext?.checkInTime,
             checkOutTime: booking?.reservationContext?.checkOutTime
           },
 
