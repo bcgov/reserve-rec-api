@@ -135,6 +135,8 @@ exports.handler = async (event, context) => {
     // TODO: honestly, these should be separated from one endpoint eventually
     if (booking.status === 'in progress') {
       logger.info('Item removed from cart, not queueing cancellation email')
+    } else if (process.env.CANCELLATION_EMAIL_ENABLED !== 'true') {
+      logger.info('Cancellation email disabled, not queueing', { bookingId })
     } else {
       // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
       // can't roll back a successful cancellation.

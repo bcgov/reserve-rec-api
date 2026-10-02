@@ -90,6 +90,11 @@ describe("Bookings Cancel POST handler", () => {
     });
     sendBookingCancellationEmail.mockResolvedValue({ messageId: "msg-1" });
     batchTransactData.mockResolvedValue({ MessageId: "txn-1" });
+    process.env.CANCELLATION_EMAIL_ENABLED = "true";
+  });
+
+  afterEach(() => {
+    delete process.env.CANCELLATION_EMAIL_ENABLED;
   });
 
   it("returns 200 for OPTIONS request", async () => {
@@ -212,6 +217,18 @@ describe("Bookings Cancel POST handler", () => {
       "Trip cancelled due to weather",
       SUB
     );
+    expect(result.status).toBe(200);
+  });
+
+  it.each([["false"], [undefined]])("cancels without queueing an email when CANCELLATION_EMAIL_ENABLED is %s", async (value) => {
+    if (value === undefined) delete process.env.CANCELLATION_EMAIL_ENABLED;
+    else process.env.CANCELLATION_EMAIL_ENABLED = value;
+    getBookingByBookingId.mockResolvedValue(okBooking);
+
+    const result = await handler(makeEvent(), {});
+
+    expect(batchTransactData).toHaveBeenCalled();
+    expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
     expect(result.status).toBe(200);
   });
 
