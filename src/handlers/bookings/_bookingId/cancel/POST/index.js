@@ -19,6 +19,18 @@ const {
 } = require("../../../methods");
 const { refused } = require("../../../refusals");
 
+function cartRemovalRefusal(status) {
+  const message = status === "confirmed"
+    ? "This booking is already confirmed. Manage it from My bookings."
+    : `Booking has status "${status}" and cannot be removed from the cart`;
+  return refused("state", message, 409, { status });
+}
+
+function isConditionFailure(error) {
+  return error?.name === "TransactionCanceledException"
+    && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
+}
+
 exports.handler = async (event, context) => {
   logger.info("Bookings Cancel POST:", requestIdentity(event));
 
@@ -67,6 +79,11 @@ exports.handler = async (event, context) => {
       throw refused("owner", `User ${userId} does not own booking ${bookingId}`, 403);
     }
 
+    const cartRemoval = body?.cartRemoval === true;
+    if (cartRemoval && booking.status !== "in progress") {
+      throw cartRemovalRefusal(booking.status);
+    }
+
     // Check if booking is already cancelled
     if (booking.status === "cancelled") {
       throw refused("state", `Booking ${bookingId} is already cancelled`, 409);
@@ -108,11 +125,18 @@ exports.handler = async (event, context) => {
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
     // the expired-booking scraper returns inventory on its next run. When
     // refunds land, this is where the cancellation event will be published.
-    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId);
+    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress: cartRemoval });
 
     // batchTransactData returns boolean true on success — we don't surface any
     // identifier from it. Just await for the side effect.
-    await batchTransactData(updateRequest);
+    try {
+      await batchTransactData(updateRequest);
+    } catch (writeError) {
+      if (!cartRemoval || !isConditionFailure(writeError)) throw writeError;
+      const current = await getBookingByBookingId(bookingId);
+      if (current?.status === "in progress") throw writeError;
+      throw cartRemovalRefusal(current?.status);
+    }
 
     logger.info(`Booking ${bookingId} cancelled.`);
 
@@ -174,8 +198,7 @@ exports.handler = async (event, context) => {
     
     // The flagCancelledBooking ConditionExpression rejects the second of two
     // racing cancels — surface that as a clean 400 rather than a 500.
-    const racedCancel = error?.name === "TransactionCanceledException"
-      && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
+    const racedCancel = isConditionFailure(error);
     const refusal = racedCancel ? "state" : error?.data?.refusal;
     const outcome = {
       bookingId: event?.pathParameters?.bookingId,
