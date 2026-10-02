@@ -351,7 +351,7 @@
                                 {{#if booking.arrivalDate}}
                                 <td width="50%">
                                     <span class="detail-label">Arrival</span>
-                                    <span class="detail-value">{{formatDate booking.arrivalDate 'EEEE MMMM d, yyyy'}}<br></span>
+                                    <span class="detail-value">{{formatDate booking.arrivalDate 'EEEE, MMMM d, yyyy'}}<br></span>
                                     <span class="detail-value-time">{{ formatTime booking.arrivalDate}}</span>
                                 </td>
                                 {{/if}}
@@ -359,7 +359,7 @@
                                 {{#if booking.departureDate}}
                                 <td width="50%">
                                     <span class="detail-label">Departure</span>
-                                    <span class="detail-value">{{formatDate booking.departureDate 'EEEE MMMM d, yyyy'}}<br></span>
+                                    <span class="detail-value">{{formatDate booking.departureDate 'EEEE, MMMM d, yyyy'}}<br></span>
                                     {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
                                 </td>
                                 {{/if}}
