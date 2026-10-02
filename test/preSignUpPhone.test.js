@@ -14,11 +14,12 @@ jest.mock('/opt/emailBlocklist', () => ({
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
 
 const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
+const { FORM_ATTRIBUTES } = require('./helpers/preSignUpForm');
 
 const signUp = (attributes) => ({
   userPoolId: 'pool',
   triggerSource: 'PreSignUp_SignUp',
-  request: { userAttributes: { email: 'someone@example.com', ...attributes } },
+  request: { userAttributes: { email: 'someone@example.com', ...FORM_ATTRIBUTES, ...attributes } },
 });
 
 describe('PreSignUp phone check', () => {
@@ -73,9 +74,17 @@ describe('PreSignUp phone check', () => {
     await expect(handler(signUp({ 'custom:mobilePhone': '821012345678' }))).resolves.toBeTruthy();
   });
 
-  it('allows a signup with no phone attributes at all', async () => {
+  it('allows a signup with no home number', async () => {
+    await expect(handler(signUp({ 'custom:secondaryNumber': '' }))).resolves.toBeTruthy();
+  });
+
+  it('allows a BCSC sign-up with no phone attributes at all', async () => {
     // BCSC accounts arrive without one and add it in account settings.
-    await expect(handler(signUp({}))).resolves.toBeTruthy();
-    await expect(handler(signUp({ 'custom:mobilePhone': '' }))).resolves.toBeTruthy();
+    await expect(handler({
+      ...signUp({}),
+      triggerSource: 'PreSignUp_ExternalProvider',
+      userName: 'bcsc_a1b2c3d4',
+      request: { userAttributes: { email: 'someone@example.com' } },
+    })).resolves.toBeTruthy();
   });
 });
