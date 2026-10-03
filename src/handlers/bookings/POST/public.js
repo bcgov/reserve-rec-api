@@ -137,7 +137,7 @@ exports.handler = async (event, context) => {
       }
     }
 
-    bookingRequestItems = await createBooking({
+    const created = await createBooking({
       ...body,
       collectionId,
       activityType,
@@ -148,10 +148,14 @@ exports.handler = async (event, context) => {
       invQuantity: quantity,
       userId: claims.sub,
     });
+    bookingRequestItems = created.requestItems;
 
-    const res = await batchTransactData(bookingRequestItems);
+    await batchTransactData(bookingRequestItems);
 
     const response = formatBookingResponsePublic(bookingRequestItems);
+    if (created.holdLimits && response && typeof response === "object") {
+      response.holdLimits = created.holdLimits;
+    }
 
     // Note: the confirmation SMS is dispatched at booking completion, not here.
     // At create time the booking is not yet confirmed and the FE has not sent
@@ -219,7 +223,7 @@ exports.handler = async (event, context) => {
     if (lostWriteRace) {
       logger.warn("event=hold_conflict", { message: error?.message });
     } else if (refusal) {
-      logger.info(`event=hold_refused_${refusal}`, {
+      logger.info(`event=hold_refused_${refusal}`, error?.logFields || {
         message: errorMessage || error?.message,
         existingBookingId: error?.data?.existingBookingId,
       });
@@ -234,12 +238,16 @@ exports.handler = async (event, context) => {
       cancellationReasons: cancellationReasons || null,
     };
 
+    // Hold limit refusals also carry code and retryAt at the top of the body.
+    const retryFields = error?.data?.retryAt ? { code: error.data.code, retryAt: error.data.retryAt } : null;
+
     return sendResponse(
       Number(error?.code) || statusCode || 400,
       error?.data || null,
       errorMessage || error?.message,
       safeError,
-      context
+      context,
+      retryFields
     );
   }
 };

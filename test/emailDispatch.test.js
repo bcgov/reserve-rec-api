@@ -1,3 +1,5 @@
+const Handlebars = require('handlebars');
+
 /**
  * Test suite for email dispatch system
  */
@@ -41,15 +43,10 @@ jest.mock('@aws-sdk/client-s3', () => ({
   GetObjectCommand: jest.fn()
 }));
 
-jest.mock('handlebars', () => ({
-  compile: jest.fn((template) => {
-    return (data) => `Compiled: ${template}`;
-  }),
-  registerHelper: jest.fn()
-}), { virtual: true });
-
 // Import modules after mocking
 const { validateEmailPayload, createEmailPayload } = require('../lib/handlers/emailDispatch/schema');
+const { TemplateEngine: NonStubbedTemplateEngine } = require('../lib/handlers/emailDispatch/templateEngine');
+
 
 // Note: Skipping utils and templateEngine imports due to module-level AWS SDK client instantiation
 // These modules create AWS SDK clients at import time, which causes issues with Jest mocks
@@ -391,4 +388,41 @@ describe('CI/CD Template Sync', () => {
     expect(templateSyncRequirements.environments).toContain('prod');
   });
 
+});
+
+describe('isAMPass helper', () => {
+  beforeAll(() => {
+    new NonStubbedTemplateEngine();
+  });
+  it('should render departure times if AM Pass (booking.productId === 1)', () => {
+    const template = Handlebars.compile(`
+      {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
+    `);
+
+    const html = template({
+      booking: {
+        productId: '1',
+        departureDate: '2026-01-01T20:00:00z'
+      },
+    });
+
+    expect(html).toContain('detail-value-time');
+    expect(html).toContain('12 pm');
+  });
+
+  it('should not render departure times if PM or Day Pass (booking.productId !-- 1)', () => {
+    const template = Handlebars.compile(`
+      {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
+    `);
+
+    const html = template({
+      booking: {
+        productId: '2',
+        departureDate: '2026-01-01T01:00:00z'
+      },
+    });
+
+    expect(html).not.toContain('detail-value-time');
+    expect(html).not.toContain('5 pm');
+  });
 });

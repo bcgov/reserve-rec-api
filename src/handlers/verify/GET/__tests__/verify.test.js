@@ -106,9 +106,9 @@ jest.mock('/opt/base', () => {
 });
 
 // Mock the QR code helper
-const { generateQRURL } = require('../lib/handlers/emailDispatch/qrCodeHelper');
-jest.mock('../lib/handlers/emailDispatch/qrCodeHelper', () => {
-  const actual = jest.requireActual('../lib/handlers/emailDispatch/qrCodeHelper');
+const { generateQRURL } = require('../../../../../lib/handlers/emailDispatch/qrCodeHelper');
+jest.mock('../../../../../lib/handlers/emailDispatch/qrCodeHelper', () => {
+  const actual = jest.requireActual('../../../../../lib/handlers/emailDispatch/qrCodeHelper');
   return {
     validateHash: actual.validateHash,
     generateQRURL: actual.generateQRURL,
@@ -117,11 +117,11 @@ jest.mock('../lib/handlers/emailDispatch/qrCodeHelper', () => {
 
 // Mock the bookings methods
 const mockGetBookingByBookingId = jest.fn();
-jest.mock('../src/handlers/bookings/methods', () => ({
+jest.mock('../../../bookings/methods', () => ({
   getBookingByBookingId: mockGetBookingByBookingId,
 }));
 
-const { handler } = require('../src/handlers/verify/GET/admin');
+const { handler } = require('../admin');
 const { sendResponse, writeAuditLog } = require('/opt/base');
 
 describe('Verify Endpoint', () => {
@@ -405,7 +405,7 @@ describe('Verify Endpoint', () => {
       );
     });
 
-    it('should return checkOutTime and checkedInTime for status calculation', async () => {
+    it('should return checkOutTime and checkInTime, and a separate checkedInTime for status calculation', async () => {
       const bookingId = 'BOOK-INPROGRESS-123';
       const url = generateQRURL(bookingId);
       const hash = url.split('/').pop();
@@ -414,7 +414,11 @@ describe('Verify Endpoint', () => {
         bookingId: bookingId,
         status: 'in progress',
         checkedInTime: '2025-12-20T18:00:00.000Z',
-        reservationContext: { checkOutTime: '2025-12-22T11:00:00.000Z', internalNote: 'secret' },
+        reservationContext: {
+          checkInTime: '2025-12-20T15:00:00.000Z',
+          checkOutTime: '2025-12-22T11:00:00.000Z',
+          internalNote: 'secret',
+        },
         startDate: '2025-12-20',
         endDate: '2025-12-22',
       });
@@ -433,7 +437,10 @@ describe('Verify Endpoint', () => {
         expect.objectContaining({
           status: 'in progress',
           checkedInTime: '2025-12-20T18:00:00.000Z',
-          reservationContext: { checkOutTime: '2025-12-22T11:00:00.000Z' },
+          reservationContext: {
+            checkInTime: '2025-12-20T15:00:00.000Z',
+            checkOutTime: '2025-12-22T11:00:00.000Z',
+          },
         }),
         'Success',
         null,
