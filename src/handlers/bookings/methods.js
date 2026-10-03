@@ -859,7 +859,7 @@ async function createBooking(props) {
     if (duplicate) {
       throw refused(
         duplicate.status === 'confirmed' ? 'has_booking' : 'has_hold',
-        `You already have a ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
+        `You already have ${duplicate.status === 'in progress' ? 'an' : 'a'} ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
         409,
         { existingBookingId: duplicate.bookingId, status: duplicate.status }
       );
