@@ -1699,6 +1699,7 @@ async function generateEmailParams(booking) {
         activityType: booking.activityType ? booking.activityType.charAt(0).toUpperCase() + booking.activityType.slice(1) : 'Activity',
         activityTypeLabel,
         productName,
+        productId,
         cancellationUrl,
         namedOccupant: booking.namedOccupant || {},
       },
