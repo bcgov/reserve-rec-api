@@ -401,7 +401,7 @@ describe('isAMPass helper', () => {
 
     const html = template({
       booking: {
-        productDisplayName: 'Cheakamus Day-use Pass - AM',
+        productName: 'Cheakamus Day-use Pass - AM',
         departureDate: '2026-01-01T20:00:00z'
       },
     });
@@ -411,16 +411,16 @@ describe('isAMPass helper', () => {
   });
 
   it.each([
-    {productDisplayName: 'Cheakamus Day-use Pass - PM'},
-    {productDisplayName: 'Joffre Lakes Day-use Pass - All day'}
-  ])('should not render departure times if PM or Day Pass', ({productDisplayName}) => {
+    {productName: 'Cheakamus Day-use Pass - PM'},
+    {productName: 'Joffre Lakes Day-use Pass - All day'}
+  ])('should not render departure times if PM or Day Pass', ({productName}) => {
     const template = Handlebars.compile(`
       {{#isAMPass booking}}<span class="detail-value-time">{{ formatTime booking.departureDate}}</span>{{/isAMPass}}
     `);
 
     const html = template({
       booking: {
-        productDisplayName: productDisplayName,
+        productName: productName,
         departureDate: '2026-01-01T01:00:00z'
       },
     });
