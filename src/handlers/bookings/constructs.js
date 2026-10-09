@@ -21,6 +21,9 @@ const defaults = {
     bookingsCancelPOSTFunction: {
       name: 'BookingsCancelPOST',
     },
+    bookingsRemovePOSTFunction: {
+      name: 'BookingsRemovePOST',
+    },
     bookingsSearchPOSTFunction: {
       name: 'bookingsSearchPOST',
     },
@@ -362,14 +365,38 @@ class PublicBookingsConstruct extends LambdaConstruct {
       ],
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
+    
+    // POST /bookings/{bookingId}/remove Lambda function
+    this.bookingsRemovePostFunction = this.generateBasicLambdaFn(
+      scope,
+      'bookingsRemovePOSTFunction',
+      'src/handlers/bookings/_bookingId/remove/POST',
+      'public.handler',
+      {
+        transDataBasicReadWrite: true,
+        basicRead: true,
+        logRetention: EVENT_LOG_RETENTION,
+      }
+    );
+
+    // Remove handler also needs Cognito ListUsers — same getUserInfoBySub path.
+    this.bookingsRemovePostFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
+    }));
 
     // Child action resources under /bookings/{bookingId}
     this.bookingsByBookingIdCompleteResource = this.bookingsByBookingIdResource.addResource('complete');
     this.bookingsByBookingIdCancelResource = this.bookingsByBookingIdResource.addResource('cancel');
+    this.bookingsByBookingIdRemoveResource = this.bookingsByBookingIdResource.addResource('remove');
 
     this.addCorsPreflightForResources([
       this.bookingsByBookingIdCompleteResource,
-      this.bookingsByBookingIdCancelResource
+      this.bookingsByBookingIdCancelResource,
+      this.bookingsByBookingIdRemoveResource
     ]);
 
     // POST /bookings/{bookingId}/complete
@@ -380,6 +407,12 @@ class PublicBookingsConstruct extends LambdaConstruct {
 
     // POST /bookings/{bookingId}/cancel
     this.bookingsByBookingIdCancelResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsCancelPostFunction), {
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
+    });
+    
+    // POST /bookings/{bookingId}/cancel
+    this.bookingsByBookingIdRemoveResource.addMethod('POST', new apigw.LambdaIntegration(this.bookingsRemovePostFunction), {
       authorizationType: apigw.AuthorizationType.CUSTOM,
       authorizer: this.resolveAuthorizer(),
     });
@@ -403,7 +436,8 @@ class PublicBookingsConstruct extends LambdaConstruct {
     // Add permissions to write functions
     const writeFunctions = [
       this.bookingsPostFunction,
-      this.bookingsCancelPostFunction
+      this.bookingsCancelPostFunction,
+      this.bookingsRemovePostFunction
     ];
 
     for (const func of writeFunctions) {

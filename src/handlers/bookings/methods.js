@@ -3006,6 +3006,13 @@ async function getGeoZoneForBooking(bookings) {
   }
 }
 
+function cartRemovalRefusal(status) {
+  const message = status === "confirmed"
+    ? "This booking is already confirmed. Manage it from My bookings."
+    : `Booking has status "${status}" and cannot be removed from the cart`;
+  return refused("state", message, 409, { status });
+}
+
 
 module.exports = {
   allBookingsSortAndPaginate,
@@ -3013,6 +3020,7 @@ module.exports = {
   calculateBookingFees,
   calculateDateRange,
   cancelBooking,
+  cartRemovalRefusal,
   completeBooking,
   createBooking,
   fetchAllActivities,

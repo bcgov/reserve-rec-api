@@ -737,6 +737,11 @@ async function batchTransactData(data, action = 'Put') {
   return true;
 }
 
+function isConditionFailure(error) {
+  return error?.name === "TransactionCanceledException"
+    && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
+}
+
 module.exports = {
   AUDIT_TABLE_NAME,
   AWS_REGION,
@@ -767,6 +772,7 @@ module.exports = {
   incrementCounter,
   getOneByGlobalId,
   getByGSI,
+  isConditionFailure,
   isTransactionConflict,
   parallelizedBatchGetData,
   putItem,

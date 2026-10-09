@@ -9,7 +9,7 @@
  * transactions/refunds/subscriber.
  */
 const { requestIdentity, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
-const { batchTransactData } = require("/opt/dynamodb");
+const { batchTransactData, isConditionFailure } = require("/opt/dynamodb");
 const {
   getBookingByBookingId,
   flagCancelledBooking,
@@ -18,18 +18,6 @@ const {
   deleteBookingHoldMarker
 } = require("../../../methods");
 const { refused } = require("../../../refusals");
-
-function cartRemovalRefusal(status) {
-  const message = status === "confirmed"
-    ? "This booking is already confirmed. Manage it from My bookings."
-    : `Booking has status "${status}" and cannot be removed from the cart`;
-  return refused("state", message, 409, { status });
-}
-
-function isConditionFailure(error) {
-  return error?.name === "TransactionCanceledException"
-    && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
-}
 
 exports.handler = async (event, context) => {
   logger.info("Bookings Cancel POST:", requestIdentity(event));
@@ -79,9 +67,8 @@ exports.handler = async (event, context) => {
       throw refused("owner", `User ${userId} does not own booking ${bookingId}`, 403);
     }
 
-    const cartRemoval = body?.cartRemoval === true;
-    if (cartRemoval && booking.status !== "in progress") {
-      throw cartRemovalRefusal(booking.status);
+    if (booking.status === "in progress") {
+      throw refused("state", `Booking ${bookingId} is in progress`, 409);
     }
 
     // Check if booking is already cancelled
@@ -94,18 +81,16 @@ exports.handler = async (event, context) => {
       throw refused("state", "Booking is already checked-in", 409);
     }
 
-    // Only confirmed and in-progress bookings can be cancelled. 
-    // In-progress bookings can be cancelled by the user during the reservation flow.
-    // Abandoned 'in progress' sessions without user action are reaped by the expired-booking scraper.
-    if (booking.status !== 'confirmed' && booking.status !== 'in progress') {
+    // Only confirmed bookings can be cancelled.
+    if (booking.status !== 'confirmed') {
       logger.error("Status check failed", {
         bookingId,
         status: booking.status,
-        allowedStatuses: ["confirmed", "in progress"],
+        allowedStatuses: ["confirmed"],
       });
       throw refused("state", `Booking has status "${booking.status}" and cannot be cancelled`, 409);
     }
-    logger.info("Status check passed", { status: booking.status });
+    logger.info("Cancel: status check passed", { status: booking.status });
 
     // TODO: Add cancellation window validation when policy infrastructure is implemented
     // Should check booking.reservationPolicySnapshot.temporalWindows.cancellationWindow
@@ -117,7 +102,6 @@ exports.handler = async (event, context) => {
 
     const checkoutTime = booking?.reservationContext?.checkOutTime;
 
-
     if (checkoutTime && queryTime > checkoutTime) {
       throw refused("state", `Booking cannot be cancelled after the checkout time of ${new Date(checkoutTime).toISOString()}`);
     }
@@ -125,17 +109,15 @@ exports.handler = async (event, context) => {
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
     // the expired-booking scraper returns inventory on its next run. When
     // refunds land, this is where the cancellation event will be published.
-    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress: cartRemoval });
+    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress: false });
 
     // batchTransactData returns boolean true on success — we don't surface any
     // identifier from it. Just await for the side effect.
     try {
       await batchTransactData(updateRequest);
     } catch (writeError) {
-      if (!cartRemoval || !isConditionFailure(writeError)) throw writeError;
-      const current = await getBookingByBookingId(bookingId);
-      if (current?.status === "in progress") throw writeError;
-      throw cartRemovalRefusal(current?.status);
+      if (!isConditionFailure(writeError)) throw writeError;
+      return refused("state", "Could not cancel booking", 409, { writeError });
     }
 
     logger.info(`Booking ${bookingId} cancelled.`);
@@ -152,18 +134,11 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // Check if the item is a cancellation or a remove from cart.
-    // Bookings that are still "in progress" that are hitting the cancel endpoint 
-    // are simply items being removed from the cart. Items that are "confirmed" are
-    // bookings that have been completed and are being cancelled (and need email confirmation)
-    // TODO: honestly, these should be separated from one endpoint eventually
-    if (booking.status === 'in progress') {
-      logger.info('Item removed from cart, not queueing cancellation email')
-    } else if (process.env.CANCELLATION_EMAIL_ENABLED !== 'true') {
+    // Queue the cancellation email if enabled
+    if (process.env.CANCELLATION_EMAIL_ENABLED !== 'true') {
       logger.info('Cancellation email disabled, not queueing', { bookingId })
     } else {
-      // Queue the cancellation email. Fire-and-forget so a Cognito/SQS hiccup
-      // can't roll back a successful cancellation.
+      // Fire-and-forget so a Cognito/SQS hiccup can't roll back a successful cancellation.
       try {
         const emailParams = await generateEmailParams(booking);
         await sendBookingCancellationEmail(emailParams, userId);

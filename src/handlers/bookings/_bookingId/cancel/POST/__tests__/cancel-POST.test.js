@@ -38,6 +38,10 @@ jest.mock("/opt/dynamodb", () => ({
   batchTransactData: jest.fn(),
   batchWriteData: jest.fn(),
   marshall: jest.fn((value) => value),
+  isConditionFailure: jest.fn((error) =>
+    error?.name === "TransactionCanceledException"
+    && (error.CancellationReasons || []).some((reason) => reason?.Code === "ConditionalCheckFailed")
+  ),
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
@@ -60,7 +64,7 @@ const {
   sendBookingCancellationEmail,
   deleteBookingHoldMarker,
 } = require("../../../../../bookings/methods");
-const { batchTransactData } = require("/opt/dynamodb");
+const { batchTransactData, isConditionFailure } = require("/opt/dynamodb");
 
 function makeToken(sub) {
   const base64Payload = Buffer.from(JSON.stringify({ sub })).toString("base64");
@@ -99,6 +103,10 @@ describe("Bookings Cancel handler", () => {
     sendBookingCancellationEmail.mockResolvedValue({});
     deleteBookingHoldMarker.mockReturnValue({ action: "Delete", data: { Key: {} } });
     batchTransactData.mockResolvedValue({});
+    isConditionFailure.mockImplementation((error) =>
+      error?.name === "TransactionCanceledException"
+      && (error.CancellationReasons || []).some((reason) => reason?.Code === "ConditionalCheckFailed")
+    );
     process.env.CANCELLATION_EMAIL_ENABLED = 'true';
 
     // Mock current time to 12pm on June 11, 2026
@@ -162,7 +170,7 @@ describe("Bookings Cancel handler", () => {
     expect(result.message).toContain("is already checked-in");
   });
 
-  it("returns 409 when booking status isn't confirmed or in-progress", async () => {
+  it("returns 409 when booking status isn't confirmed", async () => {
     getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: 'something' });
     const event = makeEvent({});
     const result = await handler(event, {});
@@ -170,15 +178,14 @@ describe("Bookings Cancel handler", () => {
     expect(result.message).toContain("Booking has status \"something\" and cannot be cancelled");
   });
 
-  it("allows in-progress bookings to be cancelled", async () => {
+  it("rejects in-progress bookings because they must be removed from the cart", async () => {
     getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: 'in progress' });
     const event = makeEvent({});
     const result = await handler(event, {});
-    expect(result.status).toBe(200);
-    expect(result.message).toBe("Success");
-    expect(flagCancelledBooking).toHaveBeenCalledTimes(1);
-    // Once for the cancel write, once for the hold-marker delete.
-    expect(batchTransactData).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe(409);
+    expect(result.message).toContain("is in progress");
+    expect(flagCancelledBooking).not.toHaveBeenCalled();
+    expect(batchTransactData).not.toHaveBeenCalled();
   });
 
   it("rejects cancellations after checkout time", async () => {
