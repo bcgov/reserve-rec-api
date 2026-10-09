@@ -33,7 +33,7 @@ const { DateTime } = require("luxon");
 const { BOOKING_PUT_CONFIG, BOOKINGDATES_PUT_CONFIG, BOOKING_UPDATE_CONFIG, BOOKINGHOLD_PUT_CONFIG } = require("./configs");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { getUserInfoByUserName, getUserInfoBySub } = require("../users/methods");
-const { HOLD_HISTORY_MS, HOLD_RELEASED_BY_SYSTEM, activeHoldLimits, evaluateHoldLimits, holdLimitRefusal } = require("./hold-limits");
+const { HOLD_RELEASED_BY_SYSTEM, activeHoldLimits, evaluateHoldLimits, holdHistoryMs, holdLimitRefusal } = require("./hold-limits");
 
 const DEFAULT_SESSION_LENGTH = 15; // in minutes
 const DUP_PASS_TYPES = {
@@ -318,17 +318,18 @@ async function getBookingsByUserId(userId, props) {
 
 /**
  * A user's bookings for a product on a startDate: every active one, plus any
- * other created in the last 24 hours or whose session has not yet expired.
+ * other created or cancelled within `historyMs`, or whose session has not yet
+ * expired.
  * Feeds the one-pass-per-user-per-product-per-day rule (issue #458) and the
  * hold limits.
  */
-async function findUserBookingsForProductOnDate(userId, productBookingPk, startDate, now = Date.now()) {
+async function findUserBookingsForProductOnDate(userId, productBookingPk, startDate, now = Date.now(), historyMs = holdHistoryMs(null)) {
   if (!userId || !productBookingPk || !startDate) return [];
   const params = {
     TableName: TRANSACTIONAL_DATA_TABLE_NAME,
     IndexName: USERID_INDEX_NAME,
     KeyConditionExpression: '#userId = :userId AND begins_with(sk, :startDatePrefix)',
-    FilterExpression: 'pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR sessionExpiry > :now)',
+    FilterExpression: 'pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR cancellationTime > :since OR sessionExpiry > :now)',
     ExpressionAttributeNames: {
       '#userId': USERID_PROPERTY_NAME,
       '#status': 'status',
@@ -339,7 +340,7 @@ async function findUserBookingsForProductOnDate(userId, productBookingPk, startD
       ':pk': marshall(productBookingPk),
       ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
       ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
-      ':since': marshall(now - HOLD_HISTORY_MS),
+      ':since': marshall(now - historyMs),
       ':now': marshall(now),
     },
   };
@@ -854,7 +855,8 @@ async function createBooking(props) {
     // === Block duplicate booking for the same user/product/startDate (issue #458) ===
     // One pass per user per product per day. Cancelled and expired bookings don't count.
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
-    const userBookings = await findUserBookingsForProductOnDate(props.userId, productBookingPk, props.startDate, props.queryTime);
+    const limits = activeHoldLimits();
+    const userBookings = await findUserBookingsForProductOnDate(props.userId, productBookingPk, props.startDate, props.queryTime, holdHistoryMs(limits));
     const duplicate = userBookings.find((booking) => [BOOKING_STATUS_ENUMS[0], BOOKING_STATUS_ENUMS[1]].includes(booking.status));
     if (duplicate) {
       throw refused(
@@ -877,7 +879,6 @@ async function createBooking(props) {
     //   )
     // }
 
-    const limits = activeHoldLimits();
     const limitCheck = limits ? evaluateHoldLimits(userBookings, limits, props.queryTime) : null;
 
     // === Get the Product ===

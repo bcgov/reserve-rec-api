@@ -60,6 +60,7 @@ const { getUserInfoBySub } = require('../../src/handlers/users/methods');
 const {
   activeHoldLimits,
   evaluateHoldLimits,
+  holdHistoryMs,
   holdLimitsConfig,
   _resetHoldLimits,
 } = require('../../src/handlers/bookings/hold-limits');
@@ -151,6 +152,61 @@ describe('evaluateHoldLimits', () => {
     });
   });
 
+  describe('rebooks', () => {
+    const REBOOK = { rebooksBeforeWait: 2, rebookWaitHours: 6 };
+    // A booking completed and then cancelled `ago` ms before NOW.
+    const rebooked = (ago, extra = {}) => hold(ago + 10 * MIN, {
+      bookingCompletionTime: NOW - ago - 5 * MIN,
+      cancellationTime: NOW - ago,
+      ...extra,
+    });
+
+    it('counts completed bookings cancelled within the wait and refuses at rebooksBeforeWait', () => {
+      const one = evaluateHoldLimits([rebooked(HOUR)], REBOOK, NOW);
+      expect(one.rebookCount).toBe(1);
+      expect(one.refusal).toBeNull();
+
+      const two = evaluateHoldLimits([rebooked(HOUR), rebooked(3 * HOUR)], REBOOK, NOW);
+      expect(two.rebookCount).toBe(2);
+      expect(two.refusal).toEqual({ code: 'HOLD_REBOOK_WAIT', retryAt: NOW - 3 * HOUR + 6 * HOUR });
+    });
+
+    it('stops counting a rebook once the wait has passed', () => {
+      const result = evaluateHoldLimits([rebooked(HOUR), rebooked(6 * HOUR)], REBOOK, NOW);
+      expect(result.rebookCount).toBe(1);
+      expect(result.refusal).toBeNull();
+    });
+
+    it('waits 24 hours when rebookWaitHours is not set', () => {
+      const result = evaluateHoldLimits([rebooked(HOUR), rebooked(23 * HOUR)], { rebooksBeforeWait: 2 }, NOW);
+      expect(result.refusal).toEqual({ code: 'HOLD_REBOOK_WAIT', retryAt: NOW - 23 * HOUR + DAY });
+    });
+
+    it('does not count a removed hold, a timer expiry or a system release', () => {
+      const bookings = [
+        removed(2 * MIN),
+        hold(3 * MIN, { status: 'TIMED_OUT' }),
+        rebooked(HOUR, { releasedBy: 'system' }),
+      ];
+      expect(evaluateHoldLimits(bookings, REBOOK, NOW).rebookCount).toBe(0);
+    });
+
+    it('skips the rebook wait when rebooksBeforeWait is not set', () => {
+      const result = evaluateHoldLimits([rebooked(HOUR), rebooked(2 * HOUR)], { rebookWaitHours: 6 }, NOW);
+      expect(result.refusal).toBeNull();
+    });
+  });
+
+  describe('holdHistoryMs', () => {
+    it('reaches back 24 hours, or the rebook wait when it is longer', () => {
+      expect(holdHistoryMs(null)).toBe(DAY);
+      expect(holdHistoryMs(LIMITS)).toBe(DAY);
+      expect(holdHistoryMs({ rebooksBeforeWait: 2, rebookWaitHours: 6 })).toBe(DAY);
+      expect(holdHistoryMs({ rebooksBeforeWait: 2, rebookWaitHours: 72 })).toBe(72 * HOUR);
+      expect(holdHistoryMs({ rebookWaitHours: 72 })).toBe(DAY);
+    });
+  });
+
   describe('caps', () => {
     it('refuses at holdsPerHour holds in the last hour, any status', () => {
       const holds = [
@@ -220,6 +276,10 @@ describe('holdLimitsConfig', () => {
     expect(config('{"holdsPerHour":5}')).toEqual({ holdsPerHour: 5 });
   });
 
+  it('reads the rebook keys', () => {
+    expect(config('{"rebooksBeforeWait":3,"rebookWaitHours":24}')).toEqual({ rebooksBeforeWait: 3, rebookWaitHours: 24 });
+  });
+
   it('accepts the bounds 1 and 500', () => {
     expect(config('{"removalsBeforeWait":1,"holdsPerDay":500}')).toEqual({ removalsBeforeWait: 1, holdsPerDay: 500 });
   });
@@ -279,6 +339,12 @@ describe('activeHoldLimits', () => {
 describe('findUserBookingsForProductOnDate', () => {
   const productPk = 'booking::col-1::dayuse::1::3';
 
+  it('reaches back as far as historyMs for created and cancelled bookings', async () => {
+    runQuery.mockResolvedValue({ items: [] });
+    await findUserBookingsForProductOnDate('sub-1', productPk, '2026-06-15', NOW, 72 * HOUR);
+    expect(runQuery.mock.calls[0][0].ExpressionAttributeValues[':since']).toBe(NOW - 72 * HOUR);
+  });
+
   it('queries the userId-index for the product and date, active or in the window', async () => {
     runQuery.mockResolvedValue({ items: [{ bookingId: 'b-1' }] });
     const items = await findUserBookingsForProductOnDate('sub-1', productPk, '2026-06-15', NOW);
@@ -288,7 +354,8 @@ describe('findUserBookingsForProductOnDate', () => {
     expect(params.IndexName).toBe('userId-index');
     expect(params.KeyConditionExpression).toBe('#userId = :userId AND begins_with(sk, :startDatePrefix)');
     expect(params.FilterExpression)
-      .toBe('pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR sessionExpiry > :now)');
+      .toBe('pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since '
+        + 'OR cancellationTime > :since OR sessionExpiry > :now)');
     expect(params.ExpressionAttributeValues).toMatchObject({
       ':startDatePrefix': '2026-06-15::',
       ':pk': productPk,
@@ -367,6 +434,7 @@ describe('createBooking with hold limits', () => {
       productKey: 'col-1::dayuse::1::3',
       date: '2026-06-15',
       removedCount: 3,
+      rebookCount: 0,
       holdsLastHour: 3,
       holdsLastDay: 3,
       retryAt,
@@ -380,6 +448,17 @@ describe('createBooking with hold limits', () => {
       code: 429,
       data: { code: 'HOLD_CAP', refusal: 'cap', retryAt: new Date(NOW - 50 * MIN + HOUR).toISOString() },
     });
+  });
+
+  it('refuses a rebook with its own code and reaches back the rebook wait', async () => {
+    setLimitEnv('{"rebooksBeforeWait":2,"rebookWaitHours":48}');
+    const cancelledBooking = (ago) => hold(ago + 10 * MIN, { bookingCompletionTime: NOW - ago - 5 * MIN, cancellationTime: NOW - ago });
+    mockStore({ bookings: [cancelledBooking(HOUR), cancelledBooking(30 * HOUR)] });
+    await expect(createBooking(props())).rejects.toMatchObject({
+      code: 429,
+      data: { code: 'HOLD_REBOOK_WAIT', refusal: 'rebook_wait', retryAt: new Date(NOW - 30 * HOUR + 48 * HOUR).toISOString() },
+    });
+    expect(runQuery.mock.calls[0][0].ExpressionAttributeValues[':since']).toBe(NOW - 48 * HOUR);
   });
 
   it.each([
