@@ -119,17 +119,21 @@ TABLE_NAME="ReserveRecApi-${SANDBOX_NAME_CAP}-ReferenceDataStack-ReferenceDataTa
 # Admin config item (only if admin frontend is deployed)
 if [ "$SKIP_ADMIN" = "false" ]; then
   echo "  Creating admin config..."
-  aws dynamodb put-item --region "${REGION}" --table-name "${TABLE_NAME}" --item '{
-    "pk": {"S": "config"},
-    "sk": {"S": "admin"},
-    "ENVIRONMENT": {"S": "'"${DEPLOYMENT_NAME}"'"},
-    "API_LOCATION": {"S": "'"${ADMIN_API_URL}"'"},
-    "ADMIN_USER_POOL_ID": {"S": "'"${ADMIN_USER_POOL_ID}"'"},
-    "ADMIN_USER_POOL_CLIENT_ID": {"S": "'"${ADMIN_USER_POOL_CLIENT_ID}"'"},
-    "ADMIN_IDENTITY_POOL_ID": {"S": "'"${ADMIN_IDENTITY_POOL_ID}"'"},
-    "ADMIN_USER_POOL_DOMAIN_URL": {"S": "'"${ADMIN_USER_POOL_DOMAIN_URL}"'"},
-    "COGNITO_REDIRECT_URI": {"S": "https://'"${ADMIN_CLOUDFRONT}"'"}
-  }'
+  # update-item, not put-item: keeps fields the stacks write (WEBSOCKET_URL from adminRealtimeStack)
+  ADMIN_FIELDS=$(jq -n \
+    --arg ENVIRONMENT "${DEPLOYMENT_NAME}" \
+    --arg API_LOCATION "${ADMIN_API_URL}" \
+    --arg ADMIN_USER_POOL_ID "${ADMIN_USER_POOL_ID}" \
+    --arg ADMIN_USER_POOL_CLIENT_ID "${ADMIN_USER_POOL_CLIENT_ID}" \
+    --arg ADMIN_IDENTITY_POOL_ID "${ADMIN_IDENTITY_POOL_ID}" \
+    --arg ADMIN_USER_POOL_DOMAIN_URL "${ADMIN_USER_POOL_DOMAIN_URL}" \
+    --arg COGNITO_REDIRECT_URI "https://${ADMIN_CLOUDFRONT}" \
+    '$ARGS.named')
+  aws dynamodb update-item --region "${REGION}" --table-name "${TABLE_NAME}" \
+    --key '{"pk": {"S": "config"}, "sk": {"S": "admin"}}' \
+    --update-expression "$(jq -r '"SET " + (keys_unsorted | map("#\(.) = :\(.)") | join(", "))' <<<"${ADMIN_FIELDS}")" \
+    --expression-attribute-names "$(jq -c 'keys_unsorted | map({("#" + .): .}) | add' <<<"${ADMIN_FIELDS}")" \
+    --expression-attribute-values "$(jq -c 'with_entries({key: (":" + .key), value: {S: .value}})' <<<"${ADMIN_FIELDS}")"
   echo "    Done."
 else
   echo "  Skipping admin config (admin frontend not deployed)."
