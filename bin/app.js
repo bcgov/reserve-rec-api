@@ -11,6 +11,7 @@ const { createTransactionalDataStack } = require('../lib/transactional-data-stac
 const { createBookingWorkflowStack } = require('../lib/booking-workflow-stack/booking-workflow-stack.js');
 const { createEmailDispatchStack } = require('../lib/email-dispatch-stack/email-dispatch-stack.js');
 const { createWaitingRoomStack } = require('../lib/waiting-room-stack/waiting-room-stack.js');
+const { ADMIN_REALTIME_STACK_KEY, createAdminRealtimeStack } = require('../lib/admin-realtime-stack/admin-realtime-stack.js');
 
 /**
  * Main CDK Project class that orchestrates the creation and management of all CDK stacks
@@ -322,6 +323,7 @@ class CDKProject {
     const waitingRoomStack = await this.addStack('waitingRoomStack', createWaitingRoomStack);
     const adminApiStack = await this.addStack('adminApiStack', createAdminApiStack);
     const publicApiStack = await this.addStack('publicApiStack', createPublicApiStack);
+    const adminRealtimeStack = await this.addStack(ADMIN_REALTIME_STACK_KEY, createAdminRealtimeStack);
 
     const dep = (from, to) => { if (from && to) from.addDependency(to); };
 
@@ -345,6 +347,10 @@ class CDKProject {
     dep(publicIdentityStack, coreStack);
     dep(waitingRoomStack, coreStack);
     dep(waitingRoomStack, publicIdentityStack);
+    dep(adminRealtimeStack, coreStack);
+    dep(adminRealtimeStack, adminIdentityStack);
+    dep(adminRealtimeStack, transactionalDataStack);
+    dep(adminRealtimeStack, referenceDataStack);
     // roleAggregatorStack.addDependency(adminIdentityStack);
     // roleAggregatorStack.addDependency(publicIdentityStack);
     // roleAggregatorStack.addDependency(openSearchStack);
@@ -372,6 +378,9 @@ class CDKProject {
       return this.stacks[stackKey];
     } catch (error) {
       this.progress.failedStacks.push(stackKey);
+      if (error.fatal) {
+        throw error;
+      }
       if (this.context?.FAIL_FAST === 'true') {
         throw new Error(`Error creating stack ${stackKey}: ${error}`);
       } else {
@@ -544,18 +553,23 @@ class CDKProject {
  * @async
  * @returns {Promise<void>} Resolves when the project build completes
  */
-async function run() {
-  const project = new CDKProject();
+async function run(project = new CDKProject()) {
   try {
     await project.buildProject();
     // await updateAppConfigItems(project);
   } catch (error) {
     logger.error('Error during CDK application synthesis:', error);
+    if (error.fatal) {
+      process.exitCode = 1;
+    }
   }
 }
 
-run();
+if (require.main === module) {
+  run();
+}
 
 module.exports = {
   CDKProject,
+  run,
 };

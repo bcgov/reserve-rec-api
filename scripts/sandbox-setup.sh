@@ -29,6 +29,7 @@ STACKS=(
   "adminApiStack"
   "publicApiStack"
   "waitingRoomStack"
+  "adminRealtimeStack"
   "publicIdentityIntegrationStack"
 )
 

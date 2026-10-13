@@ -2,7 +2,8 @@
 
 const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken, queryAndGenerateResources } = require('./methods');
 const { logger } = require('/opt/base');
-const { getOne, USER_ID_PARTITION, batchGetData } = require('/opt/dynamodb');
+const { getOne, batchGetData } = require('/opt/dynamodb');
+const { resolveAdminPermissions } = require('./admin-permissions');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 /**
@@ -148,14 +149,14 @@ exports.handler = async function (event, context, callback) {
       const sub = payload.sub;
       logger.debug(`sub: ${sub}`);
 
+      const { unauthorized, isSuperAdmin, permissions } = await resolveAdminPermissions(payload);
+
       // User hasn't been assigned a group in Cognito (yet)
-      if (payload?.["cognito:groups"].some(group => group === 'unauthorized' || group.length === 0)) {
+      if (unauthorized) {
         console.log(`Deny, user ${sub} is in unauthorized group`);
         return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
-      } else if (payload?.["cognito:groups"].some(group => {
+      } else if (isSuperAdmin) {
         // Any users that have been manually added to the SuperAdmin group in Cognito are granted everything
-        return group.endsWith('-AdminIdentityStack-SuperAdminGroup');
-      })) {
         return {
           principalId: sub,
           policyDocument: {
@@ -176,16 +177,12 @@ exports.handler = async function (event, context, callback) {
         };
       }
 
-      // Grab the user's groups and the available staff.
-      const userData = await getOne(`${USER_ID_PARTITION}::${sub}`, 'base');
-      logger.debug(`userData: ${JSON.stringify(userData)}`);
-
       // The sub has no permissions record yet. Denying outright takes a 403 on
       // the first call the app makes, so it renders nothing and the user cannot
       // be told why. Allow GET /users/me alone — it returns an empty permission
       // set, which the app can read as "pending access". Every other route stays
       // denied: this grants no data.
-      if (!userData || !userData.permissions) {
+      if (!permissions) {
         console.log(`No permissions found for user ${sub} - allowing GET /users/me only; add the sub to the database to grant access`);
         return {
           principalId: sub,
@@ -206,9 +203,7 @@ exports.handler = async function (event, context, callback) {
         };
       }
 
-      // Get permissions as { bcparks_7: 'limited', bcparks_363: 'staff' } etc.
-      const permissions = userData.permissions
-
+      // permissions is { bcparks_7: 'limited', bcparks_363: 'staff' } etc.
       const allowedARNs = new Set();
       const stage = process.env.STAGE_NAME || '*';
       const basePath = `${arnPrefix}:${apiId}/${stage}`;
