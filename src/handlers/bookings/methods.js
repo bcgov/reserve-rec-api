@@ -330,7 +330,7 @@ async function findUserBookingsForProductOnDate(userId, productBookingPk, startD
     TableName: TRANSACTIONAL_DATA_TABLE_NAME,
     IndexName: USERID_INDEX_NAME,
     KeyConditionExpression: '#userId = :userId AND begins_with(sk, :startDatePrefix)',
-    FilterExpression: 'pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR cancellationTime > :since OR sessionExpiry > :now)',
+    FilterExpression: 'pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since OR cancellationTime > :since OR removalTime > :since OR sessionExpiry > :now)',
     ExpressionAttributeNames: {
       '#userId': USERID_PROPERTY_NAME,
       '#status': 'status',
@@ -2651,17 +2651,18 @@ async function getBookingDatesByBookingId(bookingId) {
   }
 }
 
-async function flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress = false, releasedBy = null } = {}) {
+async function flagCancelledBooking(booking, queryTime, reason, userId, { releasedBy = null } = {}) {
   if (!userId || typeof userId !== "string") {
     // userId is part of the ConditionExpression — without it the comparison
     // would resolve against the literal string "undefined" and silently fail
     // every cancellation. Fail loudly instead.
     throw new Error("flagCancelledBooking requires a userId");
   }
+
   try {
 
-    // The presence of `cancellationTime` is the single race-guard marker for
-    // a cancelled booking. Nothing else in the codebase should set this
+    // The presence of `cancellationTime` or `removalTime` are the race-guards marker for
+    // a cancelled booking or removed booking. Nothing else in the codebase should set this
     // attribute — if you find yourself wanting to, route through this
     // function or update the ConditionExpression below.
     const expressionAttributeNames = {
@@ -2672,30 +2673,30 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
       "#pk": "pk",
     };
     const expressionAttributeValues = {
-      ":status": { S: BOOKING_STATUS_ENUMS[2] },
+      ":status": { S: BOOKING_STATUS_ENUMS[2] }, // "cancelled"
+      ":isConfirmed": { S: BOOKING_STATUS_ENUMS[1] }, // ensure the booking is confirmed
       ":cancelledAt": { N: queryTime.toString() },
       ":isPending": { S: 'PENDING' },
       ":userId": { S: userId },
     };
     let updateExpression = "SET #status = :status, #cancellationTime = :cancelledAt, #isPending = :isPending";
-
+    
+    
     if (reason) {
       expressionAttributeNames["#cancellationReason"] = "cancellationReason";
       expressionAttributeValues[":cancellationReason"] = { S: String(reason) };
       updateExpression += ", #cancellationReason = :cancellationReason";
     }
-
+    
     if (releasedBy) {
       expressionAttributeNames["#releasedBy"] = "releasedBy";
       expressionAttributeValues[":releasedBy"] = { S: String(releasedBy) };
       updateExpression += ", #releasedBy = :releasedBy";
     }
-
-    let conditionExpression = "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)";
-    if (requireInProgress) {
-      expressionAttributeValues[":inProgress"] = { S: BOOKING_STATUS_ENUMS[0] };
-      conditionExpression += " AND #status = :inProgress";
-    }
+    
+    // Ensure that the booking is "confirmed" (:isConfirmed) in order to cancel
+    let conditionExpression = 
+      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime) AND #status = :isConfirmed";
 
     const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
@@ -2731,6 +2732,79 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
   }
 }
 
+async function flagRemovedBooking(booking, queryTime, userId, { releasedBy = null } = {}) {
+  if (!userId || typeof userId !== "string") {
+    // userId is part of the ConditionExpression — without it the comparison
+    // would resolve against the literal string "undefined" and silently fail
+    // every removal. Fail loudly instead.
+    throw new Error("flagRemovedBooking requires a userId");
+  }
+
+  try {
+    // The presence of `cancellationTime` or `removalTime` are the race-guards marker for
+    // a cancelled booking or removed booking. Nothing else in the codebase should set this
+    // attribute — if you find yourself wanting to, route through this
+    // function or update the ConditionExpression below.
+    const expressionAttributeNames = {
+      "#status": "status",
+      "#removalTime": "removalTime",
+      "#isPending": "isPending",
+      "#userId": "userId",
+      "#pk": "pk",
+    };
+    const expressionAttributeValues = {
+      ":status": { S: 'TIMED_OUT' }, // TODO: change to "expired" eventually?
+      ":inProgress": { S: BOOKING_STATUS_ENUMS[0] }, // make 
+      ":removedAt": { N: queryTime.toString() },
+      ":isPending": { S: 'PENDING' },
+      ":userId": { S: userId },
+    };
+    let updateExpression = "SET #status = :status, #removalTime = :removedAt, #isPending = :isPending";
+
+    if (releasedBy) {
+      expressionAttributeNames["#releasedBy"] = "releasedBy";
+      expressionAttributeValues[":releasedBy"] = { S: String(releasedBy) };
+      updateExpression += ", #releasedBy = :releasedBy";
+    }
+
+    // Ensure that the booking is "in progress" (:inProgress) in order to remove
+    let conditionExpression = 
+      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#removalTime) AND #status = :inProgress";
+
+    const updateItem = {
+      TableName: TRANSACTIONAL_DATA_TABLE_NAME,
+      Key: {
+        pk: { S: booking.pk },
+        sk: { S: booking.sk },
+      },
+      UpdateExpression: updateExpression,
+      // Race guard combining three invariants:
+      //   - attribute_exists(#pk): the booking row must still exist (a
+      //     concurrent delete shouldn't upsert a phantom removed tombstone).
+      //   - #userId = :userId: ownership must hold atomically with the write,
+      //     not just at the earlier read-time pre-check.
+      //   - attribute_not_exists(#removalTime): only the first racing
+      //     remove wins; the loser gets ConditionalCheckFailed and we return
+      //     400 "already cancelled" (removed) instead of sending a second email.
+      ConditionExpression: conditionExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
+    };
+
+    // return update formatted for batchTransactData
+    return [
+      {
+        data: updateItem,
+        action: 'Update'
+      }
+    ];
+
+  } catch (error) {
+    logger.error(`Error flagging removed booking ${booking.bookingId}.`);
+    throw error;
+  }
+}
+
 /**
  * Send booking confirmation email to SQS queue. Looks up the recipient by
  * the user's immutable Cognito `sub` (not username or session email) so the
@@ -2746,7 +2820,7 @@ async function sendBookingConfirmationEmail(emailParams, sub, identity = null) {
   try {
     if (!emailParams?.booking) {
       logger.warn('Cannot send confirmation email - missing email params', { sub });
-      return null;
+      return null
     }
 
     if (!sub) {
@@ -3027,41 +3101,41 @@ function cartRemovalRefusal(status) {
 module.exports = {
   allBookingsSortAndPaginate,
   buildActivityFilters,
+  buildBookingHoldMarkerKey,
+  buildBookingHoldMarkerRequest,
   calculateBookingFees,
   calculateDateRange,
   cancelBooking,
   cartRemovalRefusal,
   completeBooking,
+  countCheckedInBookingsByDate,
   createBooking,
+  deleteBookingHoldMarker,
   fetchAllActivities,
   fetchBookingsWithPagination,
-  findUserBookingsForProductOnDate,
-  buildBookingHoldMarkerKey,
-  buildBookingHoldMarkerRequest,
-  deleteBookingHoldMarker,
-  findUserActiveBookingsOnDate,
   findBookingConflict,
+  findUserBookingsForProductOnDate,
+  findUserActiveBookingsOnDate,
   flagCancelledBooking,
+  flagRemovedBooking,
   formatBookingResponsePublic,
   generateEmailParams,
-  countCheckedInBookingsByDate,
   getBookingsByActivityDetails,
   getBookingByBookingId,
   getBookingsByUserId,
   getBookingDatesByBookingId,
   getExpiredBookings,
+  getGeoZoneForBooking,
   initInventoryPoolCheckRequest,
   refundPublishCommand,
-  sanitizeString,
   releaseHoldOnRefusal,
   requireVerifiedEmail,
   resolveAuthenticatedOccupantIdentity,
+  sanitizeString,
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail,
   validateAdminRequirements,
   validateBookingRequest,
   validateDateRange,
   validateCollectionAccess,
-  getGeoZoneForBooking
-
 };

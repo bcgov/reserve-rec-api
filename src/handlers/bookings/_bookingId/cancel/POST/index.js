@@ -109,7 +109,7 @@ exports.handler = async (event, context) => {
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
     // the expired-booking scraper returns inventory on its next run. When
     // refunds land, this is where the cancellation event will be published.
-    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId, { requireInProgress: false });
+    const updateRequest = await flagCancelledBooking(booking, queryTime, reason, userId);
 
     // batchTransactData returns boolean true on success — we don't surface any
     // identifier from it. Just await for the side effect.

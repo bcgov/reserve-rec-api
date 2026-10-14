@@ -6,7 +6,7 @@ const { batchTransactData, isConditionFailure } = require("/opt/dynamodb");
 const {
   cartRemovalRefusal,
   getBookingByBookingId,
-  flagCancelledBooking,
+  flagRemovedBooking,
   deleteBookingHoldMarker
 } = require("../../../methods");
 const { refused } = require("../../../refusals");
@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
     // the expired-booking scraper returns inventory on its next run.
     const removalTime = Date.now();
-    const updateRequest = await flagCancelledBooking(booking, removalTime, undefined, userId, { requireInProgress: true });
+    const updateRequest = await flagRemovedBooking(booking, removalTime, userId);
 
     // batchTransactData returns boolean true on success — we don't surface any
     // identifier from it. Just await for the side effect.

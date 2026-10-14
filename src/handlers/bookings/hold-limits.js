@@ -52,19 +52,20 @@ function activeHoldLimits() {
 }
 
 function isCountingRemoval(booking, now) {
-  const cancelledAt = Number(booking?.cancellationTime);
+  const removalTimestamp = booking?.removalTime ?? booking?.cancellationTime;
+  const removalAt = Number(removalTimestamp);
   const expiry = Number(booking?.sessionExpiry);
-  if (!booking?.cancellationTime || booking?.bookingCompletionTime) return false;
+  if (removalTimestamp == null || booking?.bookingCompletionTime) return false;
   if (booking?.releasedBy === HOLD_RELEASED_BY_SYSTEM) return false;
-  return expiry > now && cancelledAt < expiry - REMOVAL_GRACE_MS;
+  return Number.isFinite(removalAt) && expiry > now && removalAt < expiry - REMOVAL_GRACE_MS;
 }
 
 // A booking completed and then cancelled by its owner, counted for the rebook wait.
 function isCountingRebook(booking, now, waitMs) {
-  const cancelledAt = Number(booking?.cancellationTime);
-  if (!booking?.cancellationTime || !booking?.bookingCompletionTime) return false;
+  const cancellationAt = Number(booking?.cancellationTime);
+  if (!booking?.cancellationTime || !booking?.bookingCompletionTime || booking?.removalTime) return false;
   if (booking?.releasedBy === HOLD_RELEASED_BY_SYSTEM) return false;
-  return cancelledAt > now - waitMs;
+  return Number.isFinite(cancellationAt) && cancellationAt > now - waitMs;
 }
 
 function rebookWaitMs(limits) {

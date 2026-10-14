@@ -80,7 +80,7 @@ const hold = (ago, extra = {}) => ({
   ...extra,
 });
 // A hold removed `removedAfter` ms into its session.
-const removed = (ago, removedAfter = MIN) => hold(ago, { cancellationTime: NOW - ago + removedAfter });
+const removed = (ago, removedAfter = MIN) => hold(ago, { status: 'TIMED_OUT', removalTime: NOW - ago + removedAfter });
 
 const setLimitEnv = (limits = JSON.stringify(LIMITS), enabled = 'true') => {
   process.env.HOLD_LIMITS_ENABLED = enabled;
@@ -355,7 +355,7 @@ describe('findUserBookingsForProductOnDate', () => {
     expect(params.KeyConditionExpression).toBe('#userId = :userId AND begins_with(sk, :startDatePrefix)');
     expect(params.FilterExpression)
       .toBe('pk = :pk AND (#status IN (:inProgress, :confirmed) OR sessionInitTime > :since '
-        + 'OR cancellationTime > :since OR sessionExpiry > :now)');
+        + 'OR cancellationTime > :since OR removalTime > :since OR sessionExpiry > :now)');
     expect(params.ExpressionAttributeValues).toMatchObject({
       ':startDatePrefix': '2026-06-15::',
       ':pk': productPk,

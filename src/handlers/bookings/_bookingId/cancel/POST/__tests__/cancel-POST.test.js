@@ -210,8 +210,7 @@ describe("Bookings Cancel handler", () => {
       expect.objectContaining({ bookingId: BOOKING_ID }),
       expect.any(Number),
       expect.stringContaining("This is a"),
-      MOCK_USER_ID,
-      { requireInProgress: false },
+      MOCK_USER_ID
     );
     const [, , reason] = flagCancelledBooking.mock.calls[0];
     expect(reason).not.toMatch(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/);

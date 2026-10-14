@@ -49,7 +49,7 @@ jest.mock("../../../../../bookings/methods", () => ({
     return error;
   }),
   getBookingByBookingId: jest.fn(),
-  flagCancelledBooking: jest.fn(),
+  flagRemovedBooking: jest.fn(),
   deleteBookingHoldMarker: jest.fn(),
 }));
 
@@ -60,7 +60,7 @@ const { handler } = require("../public");
 const {
   cartRemovalRefusal,
   getBookingByBookingId,
-  flagCancelledBooking,
+  flagRemovedBooking,
   deleteBookingHoldMarker,
 } = require("../../../../../bookings/methods");
 const { batchTransactData } = require("/opt/dynamodb");
@@ -86,7 +86,7 @@ describe("Bookings Remove handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getBookingByBookingId.mockResolvedValue({ ...inProgressBooking });
-    flagCancelledBooking.mockResolvedValue([]);
+    flagRemovedBooking.mockResolvedValue([]);
     deleteBookingHoldMarker.mockReturnValue({ action: "Delete", data: { Key: {} } });
     batchTransactData.mockResolvedValue(true);
   });
@@ -98,12 +98,10 @@ describe("Bookings Remove handler", () => {
     expect(result.status).toBe(200);
     expect(result.message).toBe("Success");
     expect(result.data).toEqual({ message: "Booking removed", bookingId: BOOKING_ID });
-    expect(flagCancelledBooking).toHaveBeenCalledWith(
+    expect(flagRemovedBooking).toHaveBeenCalledWith(
       expect.objectContaining({ bookingId: BOOKING_ID, status: "in progress" }),
       expect.any(Number),
-      undefined,
-      USER_ID,
-      { requireInProgress: true },
+      USER_ID
     );
     expect(batchTransactData).toHaveBeenCalledTimes(2);
     expect(deleteBookingHoldMarker).toHaveBeenCalledWith(inProgressBooking);
@@ -116,7 +114,7 @@ describe("Bookings Remove handler", () => {
 
     expect(result.status).toBe(409);
     expect(cartRemovalRefusal).not.toHaveBeenCalled();
-    expect(flagCancelledBooking).not.toHaveBeenCalled();
+    expect(flagRemovedBooking).not.toHaveBeenCalled();
     expect(batchTransactData).not.toHaveBeenCalled();
   });
 });
