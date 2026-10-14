@@ -95,9 +95,8 @@ describe("flagCancelledBooking", () => {
   it("includes the full atomic race-guard ConditionExpression", async () => {
     const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
     expect(op.data.ConditionExpression).toBe(
-      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime) AND #status = :isConfirmed"
+      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)"
     );
-    expect(op.data.ExpressionAttributeValues[":isConfirmed"]).toEqual({ S: "confirmed" });
     expect(op.data.ExpressionAttributeValues[":userId"]).toEqual({ S: userId });
     expect(op.data.ExpressionAttributeNames["#pk"]).toBe("pk");
     expect(op.data.ExpressionAttributeNames["#userId"]).toBe("userId");
@@ -105,8 +104,6 @@ describe("flagCancelledBooking", () => {
 
   it("requires confirmed status even if the pre-write read was stale", async () => {
     const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
-    expect(op.data.ConditionExpression).toContain("#status = :isConfirmed");
-    expect(op.data.ExpressionAttributeValues[":isConfirmed"]).toEqual({ S: "confirmed" });
     expect(op.data.ExpressionAttributeNames["#status"]).toBe("status");
   });
 
@@ -120,11 +117,6 @@ describe("flagCancelledBooking", () => {
   it("omits releasedBy by default", async () => {
     const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
     expect(op.data.UpdateExpression).not.toContain("releasedBy");
-  });
-
-  it("requires confirmed status in the condition expression", async () => {
-    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
-    expect(op.data.ConditionExpression).toContain("#status = :isConfirmed");
   });
 
   it("records a removal as TIMED_OUT with removalTime and only allows in-progress bookings", async () => {

@@ -2674,7 +2674,6 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { releas
     };
     const expressionAttributeValues = {
       ":status": { S: BOOKING_STATUS_ENUMS[2] }, // "cancelled"
-      ":isConfirmed": { S: BOOKING_STATUS_ENUMS[1] }, // ensure the booking is confirmed
       ":cancelledAt": { N: queryTime.toString() },
       ":isPending": { S: 'PENDING' },
       ":userId": { S: userId },
@@ -2694,9 +2693,7 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { releas
       updateExpression += ", #releasedBy = :releasedBy";
     }
     
-    // Ensure that the booking is "confirmed" (:isConfirmed) in order to cancel
-    let conditionExpression = 
-      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime) AND #status = :isConfirmed";
+    let conditionExpression = "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)";
 
     const updateItem = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
