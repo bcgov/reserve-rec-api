@@ -5,7 +5,7 @@ const { Template } = require('aws-cdk-lib/assertions');
 const lambda = require('aws-cdk-lib/aws-lambda');
 const logs = require('aws-cdk-lib/aws-logs');
 const { addOverviewDashboard, addBookingsDashboard, addAccountsDashboard } = require('../lib/helpers/dashboards');
-const { EVENT_GROUPS, addEventMetrics } = require('../lib/helpers/event-metrics');
+const { EVENT_GROUPS, addEventMetrics, renameLegacyEvents } = require('../lib/helpers/event-metrics');
 
 const NAMESPACE = 'ReserveRecApi/test';
 const API = { name: 'test-public-api', stage: 'api' };
@@ -155,20 +155,47 @@ describe('accounts dashboard', () => {
 });
 
 describe('addEventMetrics', () => {
+  const eventFunction = (stack) => new lambda.Function(stack, 'Fn', {
+    runtime: lambda.Runtime.NODEJS_20_X,
+    handler: 'index.handler',
+    code: lambda.Code.fromInline('exports.handler = async () => {};'),
+    logRetention: logs.RetentionDays.ONE_DAY,
+  });
+  const alarms = (template) => Object.values(template.findResources('AWS::CloudWatch::Alarm')).map((r) => r.Properties);
+
   it('adds one filter per event on the function log group', () => {
     const template = synth((stack) => {
-      const fn = new lambda.Function(stack, 'Cancel', {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: 'index.handler',
-        code: lambda.Code.fromInline('exports.handler = async () => {};'),
-        logRetention: logs.RetentionDays.ONE_DAY,
-      });
-      addEventMetrics(fn, NAMESPACE, ['cancel_refused_state', 'cancel_failed']);
+      addEventMetrics(eventFunction(stack), NAMESPACE, ['cancel_refused_state', 'cancel_failed']);
     });
     const filters = Object.values(template.findResources('AWS::Logs::MetricFilter')).map((r) => r.Properties);
     expect(filters.map((f) => [f.FilterPattern, f.MetricTransformations[0].MetricName])).toEqual([
       ['"event=cancel_refused_state"', 'cancel_refused_state'],
       ['"event=cancel_failed"', 'cancel_failed'],
     ]);
+  });
+
+  it('alarms on a renamed event when eventAlarms still uses its old name', () => {
+    const template = synth((stack) => {
+      addEventMetrics(eventFunction(stack), NAMESPACE, ['attribute_update_failed'], { email_change_request_failed: 1 });
+    });
+    expect(alarms(template).map((a) => [a.AlarmName, a.Threshold])).toEqual([
+      ['ReserveRecApi-test-attribute_update_failed', 1],
+    ]);
+  });
+
+  it('prefers the current name over the old one', () => {
+    expect(renameLegacyEvents({ email_change_request_failed: 5, attribute_update_failed: 2, hold_failed: 3 }))
+      .toEqual({ attribute_update_failed: 2, hold_failed: 3 });
+    expect(renameLegacyEvents(null)).toEqual({});
+  });
+
+  it('says where to look when admin_attributes_updated fires', () => {
+    const template = synth((stack) => {
+      addEventMetrics(eventFunction(stack), NAMESPACE, ['admin_attributes_updated', 'attributes_deleted'],
+        { admin_attributes_updated: 1, attributes_deleted: 2 });
+    });
+    const [admin, deleted] = alarms(template);
+    expect(admin.AlarmDescription).toMatch(/^admin_attributes_updated logged 1 or more times in 5 minutes\. .*bulk scripts.*principalArn/);
+    expect(deleted.AlarmDescription).toBe('attributes_deleted logged 2 or more times in 5 minutes');
   });
 });
