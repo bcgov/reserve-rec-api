@@ -465,7 +465,7 @@ Handlers log operational events as `event=<name>` followed by JSON metadata. `li
 | Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `cancel_refused_*`, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
 | Signup | `signup_refused`, `account_confirmed`, `account_created` | Public identity stack (`PreSignUp`, `AccountConfirmed`, `PreTokenGeneration`) |
 | Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
-| Audit | `email_change_requested`, `email_change_request_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
+| Audit | `email_change_requested`, `attribute_update_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
 
 Four pages read these metrics, three from `lib/helpers/dashboards.js`: `ReserveRecApi-<env>-overview` (the API as a whole with 4XX less the answers each logged as an event, a table of 4XX from the access log, Lambda errors and duration across every function carrying the environment prefix, the event alarms and the inventory-return DLQ alarm), `-bookings` (the booking routes, each route's 4XX less its refusals, the booking events, inventory), `-accounts` (Cognito's own counters beside the trigger events) and, from reserve-rec-public, `-edge` (the WAF log in us-east-1, as Insights widgets).
 
@@ -473,7 +473,7 @@ Inventory is published every five minutes by `InventoryMetrics` in the booking w
 
 Four gauges are drawn on the accounts page: `estimated_users`, `native_confirmed_users`, `unconfirmed_users` and `bcsc_users`, written hourly by `UserStatusCount` with `PutMetricData`. They are stocks rather than flows, so a metric filter would show zero between readings.
 
-Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm, except those in `DEFAULT_EVENT_ALARMS` (`hold_limits_config_invalid` at 1).
+Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` for the bookings metrics, `publicIdentityStack` for the rest) takes an `eventAlarms` object mapping an event name to the count per 5 minutes that trips its alarm; a metric with no entry has no alarm, except those in `DEFAULT_EVENT_ALARMS` (`hold_limits_config_invalid` at 1). A key naming a renamed event (`RENAMED_EVENTS`, e.g. `email_change_request_failed`, now `attribute_update_failed`) applies to the new name.
 
 ```json
 "eventAlarms": { "<event name>": <count> }

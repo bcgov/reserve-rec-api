@@ -87,14 +87,14 @@ describe('cognitoAudit handler', () => {
       expect(logger.info).not.toHaveBeenCalled();
     });
 
-    it('logs a failed request with its error code', async () => {
+    it('logs a failed update with its error code only', async () => {
       await handler(userCall('UpdateUserAttributes', { userAttributes: HIDDEN }, {
         errorCode: 'AliasExistsException',
         errorMessage: 'An account with the email already exists.',
         responseElements: null,
       }));
       expect(logger.info).toHaveBeenCalledTimes(1);
-      expect(logger.info).toHaveBeenCalledWith('event=email_change_request_failed', { sub: SUB, errorCode: 'AliasExistsException' });
+      expect(logger.info).toHaveBeenCalledWith('event=attribute_update_failed', { sub: SUB, errorCode: 'AliasExistsException' });
       expect(logged()).not.toContain('already exists');
     });
   });
