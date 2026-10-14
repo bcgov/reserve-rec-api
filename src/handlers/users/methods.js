@@ -26,19 +26,37 @@ const SUB_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  * username-based lookup whenever the caller has the sub in hand — sub is the
  * stable identity, username/email can be changed by the user.
  *
- * Uses ListUsers with a sub filter so it works regardless of how the user pool
- * is configured (some pools use sub as Username, some don't).
+ * Uses AdminGetUser (120 RPS, adjustable) rather than ListUsers (30 RPS,
+ * fixed), which throttled at the 07:00 release. The Username is the token's
+ * `username` when the caller has it, else the sub, which Cognito accepts for
+ * native and BCSC users alike. ListUsers by sub is the fallback when
+ * AdminGetUser finds nobody.
+ *
+ * Returns the ListUsers shape (`Attributes`) whichever call answered. A Cognito
+ * throttle is rethrown as the layer's 503 Exception.
  */
-async function getUserInfoBySub(sub, userPoolId = 'public') {
+async function getUserInfoBySub(sub, userPoolId = 'public', username = null) {
   if (!sub || !SUB_PATTERN.test(sub)) {
     throw new Error('Invalid sub format');
   }
   try {
     const resolvedPoolId = await resolveUserPoolId(userPoolId);
+    try {
+      const user = await adminGetUser(resolvedPoolId, username || sub);
+      const attributes = user?.UserAttributes || [];
+      // The username is a hint; the answer must still be the account the sub names.
+      if (attributes.find(a => a.Name === 'sub')?.Value === sub) {
+        return { ...user, Attributes: attributes };
+      }
+      logger.warn('AdminGetUser returned a different sub; looking up by sub', { sub });
+    } catch (error) {
+      if (error?.cause?.name !== 'UserNotFoundException') throw error;
+    }
     const users = await listUsers(resolvedPoolId, 1, undefined, `sub = "${sub}"`);
     return users?.[0] || null;
   } catch (error) {
     logger.error('Error fetching user info from Cognito by sub:', error);
+    if (error?.code === 503) throw error;
     throw new Error('Error fetching user info');
   }
 }

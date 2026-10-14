@@ -42,6 +42,18 @@ describe('Base Layer Tests', () => {
       expect(body.other2).toBe(2);
     });
 
+    it('should send Retry-After, readable cross-origin, on a 503 that carries a hint', () => {
+      const response = sendResponse(503, { retryAfter: 2 }, 'Busy', null, null);
+      expect(response.headers['Retry-After']).toBe('2');
+      expect(response.headers['Access-Control-Expose-Headers']).toBe('Retry-After');
+      expect(JSON.parse(response.body).data).toEqual({ retryAfter: 2 });
+    });
+
+    it('should not send Retry-After on other statuses', () => {
+      const response = sendResponse(400, { retryAfter: 2 }, 'Refused', null, null);
+      expect(response.headers['Retry-After']).toBeUndefined();
+    });
+
     it('should carry server time close to now', () => {
       // The client corrects its own clock against this, so a stale or absent
       // value would silently reintroduce the skew it exists to remove.

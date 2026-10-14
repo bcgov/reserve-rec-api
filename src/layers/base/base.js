@@ -135,6 +135,12 @@ const sendResponse = function (code, data, message, error, context, other = null
     "Access-Control-Allow-Credentials": true
   };
 
+  // A 503 from a throttled dependency tells the client when to come back.
+  if (statusCode === 503 && data?.retryAfter) {
+    headers["Retry-After"] = String(data.retryAfter);
+    headers["Access-Control-Expose-Headers"] = "Retry-After";
+  }
+
   // If other fields are present, add them to body
   if (other) {
     body = Object.assign(body, other);

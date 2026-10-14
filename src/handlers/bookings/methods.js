@@ -53,11 +53,12 @@ const DUP_PASS_TYPES = {
  * from the request body. Identity (name + contact) lives in Cognito.
  *
  * @param {string} sub - Cognito sub of the authenticated user
- * @returns {Promise<{firstName:string,lastName:string,email:string,mobilePhone:string}|null>}
+ * @param {string} [username] - Cognito username from the same token, saves a lookup by sub
+ * @returns {Promise<{firstName:string,lastName:string,email:string,mobilePhone:string,emailVerified:boolean}|null>}
  */
-async function resolveAuthenticatedOccupantIdentity(sub) {
+async function resolveAuthenticatedOccupantIdentity(sub, username) {
   if (!sub) return null;  try {
-    const userInfo = await getUserInfoBySub(sub, 'public');
+    const userInfo = await getUserInfoBySub(sub, 'public', username);
     const attrs = userInfo?.Attributes || [];
     const get = (n) => attrs.find(a => a.Name === n)?.Value || '';
     return {
@@ -1044,6 +1045,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       endDate,
       queryTime,
       userId,
+      cognitoUsername,
     } = props;
 
     // === Generate Secure IDs ===
@@ -1063,7 +1065,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
     // Cognito profile keyed by `userId` (the authenticated sub), not from the
     // request body — clients must not be able to put another user's identity
     // on a booking (Ref #480). Address fields stay from props.
-    const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId);
+    const ownerIdentity = await resolveAuthenticatedOccupantIdentity(userId, cognitoUsername);
     requireVerifiedEmail(ownerIdentity);
 
     // The pass sub-type (e.g. 'trailUse') lives on the activity - products
@@ -1434,7 +1436,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
+async function completeBooking(bookingId, sessionId, props, { sub, username } = {}) {
   try {
 
     // === get queryTime ===
@@ -1483,8 +1485,9 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
     // Server-side webhook completions (e.g. Worldline) pass no sub — in that
     // case leave namedOccupant + booking-context alone (createBooking already
     // wrote them when the booking was first created). Ref #480.
+    let ownerIdentity = null;
     if (sub) {
-      const ownerIdentity = await resolveAuthenticatedOccupantIdentity(sub);
+      ownerIdentity = await resolveAuthenticatedOccupantIdentity(sub, username);
       // A refusal here is final — this account will not be allowed to complete
       // this booking on a retry — so the hold is released rather than left to
       // occupy inventory until it expires. Validation failures (a missing
@@ -1589,11 +1592,13 @@ async function completeBooking(bookingId, sessionId, props, { sub } = {}) {
     // dispatch in that order. We intentionally do NOT send the email/SMS here:
     // the SQS enqueue must happen *after* batchTransactData succeeds, otherwise
     // a failed DynamoDB write would leave the user with a confirmation for a
-    // booking that was never saved.
+    // booking that was never saved. ownerIdentity goes to the email so it does
+    // not look the account up a second time.
     return {
       updateRequests: bookingUpdateRequest,
       emailParams,
       smsParams,
+      ownerIdentity,
     };
 
 
@@ -2733,9 +2738,10 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
  *
  * @param {object} emailParams - Structured email params from generateEmailParams
  * @param {string} sub - Cognito sub of the booking owner (from request claims)
+ * @param {object} [identity] - the owner's identity already resolved by completeBooking
  * @returns {Promise<Object|null>} SQS response, or null if the email was skipped
  */
-async function sendBookingConfirmationEmail(emailParams, sub) {
+async function sendBookingConfirmationEmail(emailParams, sub, identity = null) {
   const bookingId = emailParams?.booking?.bookingId;
   try {
     if (!emailParams?.booking) {
@@ -2748,10 +2754,9 @@ async function sendBookingConfirmationEmail(emailParams, sub) {
       return null;
     }
 
-    const userInfo = await getUserInfoBySub(sub, 'public');
-    const attrs = userInfo?.Attributes || [];
-    const accountEmail = attrs.find(attr => attr.Name === 'email')?.Value;
-    const emailVerified = attrs.find(attr => attr.Name === 'email_verified')?.Value === 'true';
+    const recipient = identity || await resolveAuthenticatedOccupantIdentity(sub);
+    const accountEmail = recipient?.email;
+    const emailVerified = recipient?.emailVerified === true;
 
     if (!accountEmail) {
       logger.warn('Cannot send confirmation email - no email address on Cognito user', {
@@ -2797,8 +2802,12 @@ async function sendBookingConfirmationEmail(emailParams, sub) {
     return result;
 
   } catch (error) {
-    logger.error('Failed to queue booking confirmation email', {
+    // The booking is already written, so this email is lost unless resent:
+    // counted on its own so the unsent ones can be found.
+    logger.error('event=confirmation_email_unsent', {
       bookingId,
+      sub,
+      transient: error?.code === 503,
       error: error.message,
       // The schema-validation Exception attaches a `data.errors` array;
       // log it so the per-field reason isn't swallowed by the generic

@@ -60,9 +60,9 @@ jest.mock("@aws-sdk/util-dynamodb", () => ({
   unmarshall: jest.fn((x) => x),
 }));
 
-const { sendBookingCancellationEmail } = require("../../src/handlers/bookings/methods");
+const { sendBookingCancellationEmail, sendBookingConfirmationEmail } = require("../../src/handlers/bookings/methods");
 const { getUserInfoBySub } = require("../../src/handlers/users/methods");
-const { sendCancellationEmail } = require("../../lib/handlers/emailDispatch/utils");
+const { sendCancellationEmail, sendConfirmationEmail } = require("../../lib/handlers/emailDispatch/utils");
 const { logger } = require("/opt/base");
 
 const SUB = "11111111-2222-3333-4444-555555555555";
@@ -157,5 +157,66 @@ describe("sendBookingCancellationEmail", () => {
       expect.objectContaining({ bookingId: "BK-1" })
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("sendBookingConfirmationEmail", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sendConfirmationEmail.mockResolvedValue({ messageId: "msg-2" });
+  });
+
+  it("sends to the identity completeBooking resolved without looking the account up again", async () => {
+    const result = await sendBookingConfirmationEmail(baseEmailParams, SUB, {
+      email: "jane@example.com",
+      emailVerified: true,
+    });
+
+    expect(getUserInfoBySub).not.toHaveBeenCalled();
+    expect(sendConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "jane@example.com" }));
+    expect(result).toEqual({ messageId: "msg-2" });
+  });
+
+  it("looks the account up by sub when no identity is passed", async () => {
+    getUserInfoBySub.mockResolvedValue(cognitoUser());
+
+    await sendBookingConfirmationEmail(baseEmailParams, SUB);
+
+    expect(getUserInfoBySub).toHaveBeenCalledWith(SUB, "public", undefined);
+    expect(sendConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "jane@example.com" }));
+  });
+
+  it("does not send to an unverified identity", async () => {
+    const result = await sendBookingConfirmationEmail(baseEmailParams, SUB, {
+      email: "jane@example.com",
+      emailVerified: false,
+    });
+
+    expect(sendConfirmationEmail).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("counts an email lost to a Cognito throttle as unsent and transient", async () => {
+    getUserInfoBySub.mockRejectedValue(Object.assign(new Error("busy"), { code: 503 }));
+
+    const result = await sendBookingConfirmationEmail(baseEmailParams, SUB);
+
+    expect(sendConfirmationEmail).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      "event=confirmation_email_unsent",
+      expect.objectContaining({ bookingId: "BK-1", sub: SUB, transient: true })
+    );
+    expect(result).toBeNull();
+  });
+
+  it("counts a failed enqueue as unsent but not transient", async () => {
+    sendConfirmationEmail.mockRejectedValue(new Error("Invalid email payload"));
+
+    await sendBookingConfirmationEmail(baseEmailParams, SUB, { email: "jane@example.com", emailVerified: true });
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "event=confirmation_email_unsent",
+      expect.objectContaining({ bookingId: "BK-1", transient: false })
+    );
   });
 });
