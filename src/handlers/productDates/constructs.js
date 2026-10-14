@@ -149,8 +149,10 @@ class PublicProductDatesConstruct extends LambdaConstruct {
     );
 
     // GET /product-dates/{collectionId}/{activityType}/{activityId}/{productId}
+    // Guests are refused in the handler
     this.productDatesByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.productDatesGetByDatesFunction), {
-      authorizationType: apigw.AuthorizationType.NONE,
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
     });
   }
 }
