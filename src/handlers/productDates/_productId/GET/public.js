@@ -7,7 +7,8 @@ const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base"
  */
 
 exports.handler = async (event, context) => {
-  logger.info("GET Product Dates - Public Handler", requestIdentity(event));
+  const identity = requestIdentity(event);
+  logger.info("GET Product Dates - Public Handler", identity);
    // Allow CORS
   if (event.httpMethod === "OPTIONS") {
     return sendResponse(200, {}, "Success", null, context);
@@ -15,6 +16,9 @@ exports.handler = async (event, context) => {
 
   
   try {
+    if (!identity.authenticated) {
+      throw new Exception("Unauthorized", { code: 401 });
+    }
 
     const collectionId = event?.pathParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType;
