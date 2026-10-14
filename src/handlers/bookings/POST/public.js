@@ -147,6 +147,7 @@ exports.handler = async (event, context) => {
       endDate,
       invQuantity: quantity,
       userId: claims.sub,
+      cognitoUsername: claims.username,
     });
     bookingRequestItems = created.requestItems;
 

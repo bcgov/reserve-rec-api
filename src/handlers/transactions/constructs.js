@@ -96,9 +96,20 @@ class AdminTransactionsConstruct extends LambdaConstruct {
       'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
+        // completeBooking reads the public pool id from the reference config.
+        basicRead: true,
         transDataBasicReadWrite: true,
       }
     );
+
+    // completeBooking resolves the booking owner's identity from Cognito.
+    this.transactionsAdminPostFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"],
+    }));
 
     // POST /transactions
     this.transactionsAdminResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsAdminPostFunction), {
@@ -271,9 +282,20 @@ class PublicTransactionsConstruct extends LambdaConstruct {
       'src/handlers/transactions/_bookingId/POST',
       handlerName,
       {
+        // completeBooking reads the public pool id from the reference config.
+        basicRead: true,
         transDataBasicReadWrite: true,
       }
     );
+
+    // completeBooking resolves the booking owner's identity from Cognito.
+    this.transactionsPublicPostFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: ["*"],
+    }));
 
     // POST /transactions
     this.transactionsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicPostFunction), {

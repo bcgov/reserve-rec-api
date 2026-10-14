@@ -114,6 +114,31 @@ describe("POST complete booking — error path", () => {
     });
   });
 
+  it("answers a Cognito throttle with a 503 and a retry hint, not a 400", async () => {
+    // The shape the Cognito layer raises for TooManyRequestsException.
+    mockCompleteBooking.mockRejectedValue(Object.assign(new Error("The service is busy. Please try again in a moment."), {
+      code: 503, data: { retryAfter: 2 },
+    }));
+
+    const res = await handler(event(), {});
+
+    expect(res.status).toBe(503);
+    expect(res.data).toEqual({ retryAfter: 2 });
+  });
+
+  it("hands the identity completeBooking resolved to the confirmation email", async () => {
+    const { sendBookingConfirmationEmail } = require("../../../../methods");
+    const ownerIdentity = { email: "jane@example.com", emailVerified: true };
+    mockCompleteBooking.mockResolvedValue({ updateRequests: [], emailParams: { booking: {} }, smsParams: {}, ownerIdentity });
+    const request = event();
+    request.requestContext.authorizer.username = "jane";
+
+    await handler(request, {});
+
+    expect(mockCompleteBooking).toHaveBeenCalledWith("b-1", "s-1", { sessionId: "s-1" }, { sub: "sub-1", username: "jane" });
+    expect(sendBookingConfirmationEmail).toHaveBeenCalledWith({ booking: {} }, "sub-1", ownerIdentity);
+  });
+
   it("still answers when the body is not JSON", async () => {
     const res = await handler({ ...event(), body: "{" }, {});
     expect(res.status).toBe(400);

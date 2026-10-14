@@ -212,6 +212,14 @@ describe('completeBooking refusal tags', () => {
     await expect(complete()).rejects.toMatchObject({ code: 403, data: { refusal: 'unverified_email' } });
   });
 
+  // A throttle is not a refusal: the caller should retry and keep their hold.
+  it('raises a Cognito throttle as the 503 and keeps the hold', async () => {
+    getOneByGlobalId.mockResolvedValue(hold());
+    getUserInfoBySub.mockRejectedValue(Object.assign(new Error('busy'), { code: 503, data: { retryAfter: 2 } }));
+    await expect(complete()).rejects.toMatchObject({ code: 503, data: { retryAfter: 2 } });
+    expect(batchTransactData).not.toHaveBeenCalled();
+  });
+
   it('tags invalid for a missing occupant', async () => {
     getOneByGlobalId.mockResolvedValue(hold());
     await expect(completeBooking('b-1', 's-1', {}, { sub: 'sub-1' }))

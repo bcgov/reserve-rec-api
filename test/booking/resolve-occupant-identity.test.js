@@ -81,9 +81,9 @@ describe("resolveAuthenticatedOccupantIdentity", () => {
       email_verified: "true",
     }));
 
-    const id = await resolveAuthenticatedOccupantIdentity(SUB);
+    const id = await resolveAuthenticatedOccupantIdentity(SUB, "jane");
 
-    expect(getUserInfoBySub).toHaveBeenCalledWith(SUB, "public");
+    expect(getUserInfoBySub).toHaveBeenCalledWith(SUB, "public", "jane");
     expect(id).toEqual({
       firstName: "Jane",
       lastName: "Doe",

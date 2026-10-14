@@ -29,12 +29,13 @@ exports.handler = async (event, context) => {
       throw new Exception("User authentication required", { code: 401 });
     }
 
-    const { updateRequests, emailParams, smsParams } = await completeBooking(bookingId, sessionId, body, { sub });
+    const username = event.requestContext?.authorizer?.username;
+    const { updateRequests, emailParams, smsParams, ownerIdentity } = await completeBooking(bookingId, sessionId, body, { sub, username });
 
     const res = await batchTransactData(updateRequests);
 
     try {
-      await sendBookingConfirmationEmail(emailParams, sub);
+      await sendBookingConfirmationEmail(emailParams, sub, ownerIdentity);
     } catch (emailError) {
       logger.error("Booking completed but confirmation email send failed", {
         bookingId,

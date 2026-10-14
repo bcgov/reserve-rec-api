@@ -39,14 +39,15 @@ exports.handler = async (event, context) => {
       throw refused("invalid", "User authentication required", 401);
     }
 
-    const { updateRequests, emailParams, smsParams } = await completeBooking(bookingId, sessionId, body, { sub });
+    const username = event.requestContext?.authorizer?.username;
+    const { updateRequests, emailParams, smsParams, ownerIdentity } = await completeBooking(bookingId, sessionId, body, { sub, username });
 
     const res = await batchTransactData(updateRequests);
 
     // Booking is durable — now queue the notifications. Failures here are
     // logged but do not roll back the booking; the user has a confirmed booking.
     try {
-      await sendBookingConfirmationEmail(emailParams, sub);
+      await sendBookingConfirmationEmail(emailParams, sub, ownerIdentity);
     } catch (emailError) {
       logger.error("Booking completed but confirmation email send failed", {
         bookingId,
