@@ -259,6 +259,16 @@ describe("Method: processTokenTransaction", () => {
     expect(batchTransactData).toHaveBeenCalledTimes(1);
   });
 
+  it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
+    const { completeBooking } = require("../../bookings/methods");
+    completeBooking.mockRejectedValueOnce({ code: 503, data: { retryAfter: 2 } });
+
+    const err = await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID).catch((e) => e);
+    expect(err.code).toBe(500);
+    expect(err.data).not.toHaveProperty("retryAfter");
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
   it("throws a 403 Exception if the user does not own the booking", async () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,

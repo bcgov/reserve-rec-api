@@ -462,7 +462,7 @@ Handlers log operational events as `event=<name>` followed by JSON metadata. `li
 
 | Group | Metrics | Emitted by |
 |-------|---------|------------|
-| Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `cancel_refused_*`, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
+| Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `confirmation_email_unsent`, `cancel_refused_*`, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
 | Signup | `signup_refused`, `account_confirmed`, `account_created` | Public identity stack (`PreSignUp`, `AccountConfirmed`, `PreTokenGeneration`) |
 | Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
 | Audit | `email_change_requested`, `email_change_request_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |

@@ -216,6 +216,28 @@ describe("Bookings POST handler", () => {
       expect(eventNames()).toEqual(["event=hold_refused_has_hold"]);
     });
 
+    it("answers a Cognito throttle with a 503 and a retry hint, counted as a failure", async () => {
+      // The shape the Cognito layer raises for TooManyRequestsException.
+      createBooking.mockRejectedValue(Object.assign(new Error("The service is busy. Please try again in a moment."), {
+        code: 503, data: { retryAfter: 2 },
+      }));
+      const result = await handler(event, context);
+      expect(result.status).toBe(503);
+      expect(result.data).toEqual({ retryAfter: 2 });
+      expect(eventNames()).toEqual(["event=hold_failed"]);
+    });
+
+    it("passes the token's username so the owner lookup can skip the sub search", async () => {
+      const { getRequestClaimsFromEvent } = require("/opt/base");
+      getRequestClaimsFromEvent.mockReturnValueOnce({ sub: "test-user-123", username: "jane" });
+      createBooking.mockResolvedValue({ requestItems: [{ booking: "data" }] });
+      batchTransactData.mockResolvedValue({ result: "ok" });
+      await handler(event, context);
+      expect(createBooking).toHaveBeenCalledWith(expect.objectContaining({
+        userId: "test-user-123", cognitoUsername: "jane",
+      }));
+    });
+
     it("answers a write race on inventory with a 409 and counts it as a conflict", async () => {
       createBooking.mockResolvedValue({ requestItems: [{ data: {} }] });
       batchTransactData.mockRejectedValue(Object.assign(new Error("Transaction cancelled"), {

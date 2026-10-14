@@ -951,12 +951,29 @@ async function processTokenTransaction(body, userId, adminId) {
     }
 
     // Handle standard successful write and complete booking
-    const { updateRequests, emailParams } = await completeBooking(
-      body.bookingId,
-      body.sessionId,
-      { clientTransactionId: clientTransactionId, queryTime: Date.now() },
-      { sub: userId },
-    );
+    let completion;
+    try {
+      completion = await completeBooking(
+        body.bookingId,
+        body.sessionId,
+        { clientTransactionId: clientTransactionId, queryTime: Date.now() },
+        { sub: userId },
+      );
+    } catch (completeErr) {
+      // The card is already charged: a retryable 503 would invite a second charge.
+      if (completeErr?.code === 503) {
+        logger.error("Payment taken but booking not finalized", {
+          bookingId: body?.bookingId,
+          clientTransactionId,
+        });
+        throw new Exception("Payment received but the booking could not be finalized", {
+          code: 500,
+          data: { bookingId: body?.bookingId, clientTransactionId },
+        });
+      }
+      throw completeErr;
+    }
+    const { updateRequests, emailParams, ownerIdentity } = completion;
 
     const putItemsBooking = await quickApiUpdateHandler(
       TRANSACTIONAL_DATA_TABLE_NAME,
@@ -971,7 +988,7 @@ async function processTokenTransaction(body, userId, adminId) {
 
     // Side effects (emails)
     if (emailParams) {
-      sendBookingConfirmationEmail(emailParams, userId).catch((emailErr) => {
+      sendBookingConfirmationEmail(emailParams, userId, ownerIdentity).catch((emailErr) => {
         logger.error(
           "Asynchronous booking confirmation email trigger failed:",
           emailErr,
