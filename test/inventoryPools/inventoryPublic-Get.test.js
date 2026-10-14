@@ -5,7 +5,7 @@
  * Tests for retrieving inventory pool data (isOpen and availability)
  */
 jest.mock("/opt/base", () => ({
-  requestIdentity: jest.fn(() => ({})),
+  requestIdentity: jest.fn(() => ({ authenticated: true })),
   Exception: jest.fn(function (message, data) {
     this.message = message;
     this.code = data?.code;
@@ -20,6 +20,7 @@ jest.mock("../../src/handlers/inventoryPools/methods", () => ({
 }));
 
 const { handler } = require("../../src/handlers/inventoryPools/GET/public");
+const { requestIdentity } = require("/opt/base");
 const { fetchInventoryPoolsForDateRange, fetchInventoryPoolsOnDate } = require("../../src/handlers/inventoryPools/methods");
 
 const POOLS = [
@@ -62,6 +63,15 @@ beforeEach(() => {
 });
 
 describe("inventory-pools GET public", () => {
+  it("refuses a signed-out caller", async () => {
+    requestIdentity.mockReturnValueOnce({ authenticated: false });
+
+    const res = await handler(event({ date: "2026-09-05" }), {});
+
+    expect(res.status).toBe(401);
+    expect(fetchInventoryPoolsOnDate).not.toHaveBeenCalled();
+  });
+
   it("retrieves inventory pool data for a single date", async () => {
     fetchInventoryPoolsOnDate.mockResolvedValue([POOLS[0]]);
 

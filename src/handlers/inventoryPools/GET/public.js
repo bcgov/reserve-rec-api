@@ -8,7 +8,8 @@ const { PUBLIC_INVENTORYPOOL_PROJECTIONS } = require("../configs");
  * Returns only isOpen and available fields (see PUBLIC_INVENTORYPOOL_PROJECTIONS).
  */
 exports.handler = async (event, context) => {
-  logger.info("GET InventoryPool by Product on Date (public)", requestIdentity(event));
+  const identity = requestIdentity(event);
+  logger.info("GET InventoryPool by Product on Date (public)", identity);
 
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -23,6 +24,10 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    if (!identity.authenticated) {
+      throw new Exception("Unauthorized", { code: 401 });
+    }
+
     const collectionId = event?.pathParameters?.collectionId;
     const activityType = event?.pathParameters?.activityType;
     const activityId = event?.pathParameters?.activityId;

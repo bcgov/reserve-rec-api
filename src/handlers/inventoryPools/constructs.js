@@ -51,9 +51,10 @@ class PublicInventoryPoolsConstruct extends LambdaConstruct {
     );
 
     // GET /inventoryPools/{collectionId}/{activityType}/{activityId}/{productId}?date=YYYY-MM-DD
-    // Public access, no authorization required
+    // Guests are refused in the handler
     this.inventoryPoolsByProductResource.addMethod('GET', new apigw.LambdaIntegration(this.inventoryPoolsGetByProductFunction), {
-      authorizationType: apigw.AuthorizationType.NONE,
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
     });
 
     // Grant permissions
