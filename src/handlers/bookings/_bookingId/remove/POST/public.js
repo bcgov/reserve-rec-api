@@ -6,7 +6,7 @@ const { batchTransactData, isConditionFailure } = require("/opt/dynamodb");
 const {
   cartRemovalRefusal,
   getBookingByBookingId,
-  flagCancelledBooking,
+  flagRemovedBooking,
   deleteBookingHoldMarker
 } = require("../../../methods");
 const { refused } = require("../../../refusals");
@@ -48,7 +48,7 @@ exports.handler = async (event, context) => {
         status: booking.status,
         allowedStatuses: ["in progress"],
       });
-      throw refused("state", `Booking has status "${booking.status}" and cannot be removed`, 409);
+      throw refused("state", `Booking does not have the "in progress" status and cannot be removed`, 409);
     }
 
     logger.info("Removal: status check passed", { status: booking.status });
@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
     // No refund pipeline yet — flip the booking to cancelled + set isPending so
     // the expired-booking scraper returns inventory on its next run.
     const removalTime = Date.now();
-    const updateRequest = await flagCancelledBooking(booking, removalTime, undefined, userId, { requireInProgress: true });
+    const updateRequest = await flagRemovedBooking(booking, removalTime, userId);
 
     // batchTransactData returns boolean true on success — we don't surface any
     // identifier from it. Just await for the side effect.
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
       context
     );
   } catch (error) {
-    logger.error("Error during cancellation", {
+    logger.error("Error during booking removal", {
       bookingId: event?.pathParameters?.bookingId,
       errorName: error?.name,
       errorCode: error?.code,
@@ -103,28 +103,28 @@ exports.handler = async (event, context) => {
       cancellationReasons: error?.CancellationReasons,
     });
     
-    // The flagCancelledBooking ConditionExpression rejects the second of two
-    // racing cancels — surface that as a clean 400 rather than a 500.
-    const racedCancel = isConditionFailure(error);
-    const refusal = racedCancel ? "state" : error?.data?.refusal;
+    // The flagRemovedBooking ConditionExpression prevents a concurrent state
+    // change from removing a booking that is no longer in progress.
+    const racedRemoval = isConditionFailure(error);
+    const refusal = racedRemoval ? "state" : error?.data?.refusal;
     const outcome = {
       bookingId: event?.pathParameters?.bookingId,
       code: error?.code,
       message: error?.message,
     };
     if (refusal) {
-      logger.info(`event=cancel_refused_${refusal}`, outcome);
+      logger.info(`event=remove_refused_${refusal}`, outcome);
     } else {
-      logger.error("event=cancel_failed", outcome);
+      logger.error("event=remove_failed", outcome);
     }
 
-    if (racedCancel) {
-      return sendResponse(400, null, "Booking is already cancelled", null, context);
+    if (racedRemoval) {
+      return sendResponse(409, null, "Booking could not be removed because its status changed", null, context);
     }
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error cancelling booking",
+      error?.message || "Error removing booking",
       error?.error || error,
       context
     );

@@ -210,8 +210,7 @@ describe("Bookings Cancel handler", () => {
       expect.objectContaining({ bookingId: BOOKING_ID }),
       expect.any(Number),
       expect.stringContaining("This is a"),
-      MOCK_USER_ID,
-      { requireInProgress: false },
+      MOCK_USER_ID
     );
     const [, , reason] = flagCancelledBooking.mock.calls[0];
     expect(reason).not.toMatch(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/);
@@ -231,6 +230,20 @@ describe("Bookings Cancel handler", () => {
 
     expect(result.status).toBe(400);
     expect(result.message).toBe("Booking is already cancelled");
+  });
+
+  it("returns 409 when the cancellation transaction condition fails", async () => {
+    batchTransactData.mockRejectedValue({
+      name: "TransactionCanceledException",
+      CancellationReasons: [{ Code: "ConditionalCheckFailed" }],
+    });
+
+    const result = await handler(makeEvent({}), {});
+
+    expect(result.status).toBe(409);
+    expect(result.message).toBe("Could not cancel booking");
+    expect(deleteBookingHoldMarker).not.toHaveBeenCalled();
+    expect(sendBookingCancellationEmail).not.toHaveBeenCalled();
   });
 
   it("succeeds and queues the cancellation email", async () => {
