@@ -37,6 +37,7 @@ const KNOWN = new Set(Object.values(EVENT_GROUPS).flat());
 const HOLD_EXPECTED = [...EVENT_GROUPS.bookings.filter((n) => n.startsWith('hold_refused_')), 'hold_conflict'];
 const COMPLETE_REFUSALS = EVENT_GROUPS.bookings.filter((n) => n.startsWith('complete_refused_'));
 const CANCEL_REFUSALS = EVENT_GROUPS.bookings.filter((n) => n.startsWith('cancel_refused_'));
+const REMOVE_REFUSALS = EVENT_GROUPS.bookings.filter((n) => n.startsWith('remove_refused_'));
 
 describe('overview dashboard', () => {
   const widgets = dashboard(synth((stack) => addOverviewDashboard(stack, 'Overview', NAMESPACE, API,
@@ -46,7 +47,7 @@ describe('overview dashboard', () => {
     const [unexplained] = expressions(widget(widgets, 'API errors'));
     expect(unexplained.label).toBe('unexplained 4XX');
     expect(unexplained.expression).toBe(
-      ['total', ...[...HOLD_EXPECTED, ...COMPLETE_REFUSALS, ...CANCEL_REFUSALS].map((n) => `FILL(${n}, 0)`)].join(' - '));
+      ['total', ...[...HOLD_EXPECTED, ...COMPLETE_REFUSALS, ...CANCEL_REFUSALS, ...REMOVE_REFUSALS].map((n) => `FILL(${n}, 0)`)].join(' - '));
   });
 
   it('tables 4XX from the access log by route, status and message', () => {
@@ -62,7 +63,7 @@ describe('overview dashboard', () => {
 
   it('sums refusals per route and leaves out the phone subset', () => {
     const refusals = widget(widgets, 'Refusals');
-    expect(labels(refusals)).toEqual(['hold refusals', 'complete refusals', 'cancel refusals', 'signup_refused',
+    expect(labels(refusals)).toEqual(['hold refusals', 'complete refusals', 'cancel refusals', 'remove refusals', 'signup_refused',
       'email_change_refused (detection only, flag off)']);
     expect(eventNames(refusals)).not.toContain('signup_phone_refused');
   });
@@ -78,11 +79,14 @@ describe('overview dashboard', () => {
       'complete_refused_state', 'complete_refused_owner', 'complete_refused_unverified_email']);
     expect(CANCEL_REFUSALS).toEqual(['cancel_refused_state', 'cancel_refused_owner', 'cancel_refused_invalid',
       'cancel_refused_not_found']);
+    expect(REMOVE_REFUSALS).toEqual(['remove_refused_state', 'remove_refused_owner', 'remove_refused_invalid',
+      'remove_refused_not_found']);
     const byLabel = Object.fromEntries(expressions(widget(widgets, 'Refusals')).map((e) => [e.label, e.expression]));
     expect(byLabel).toEqual({
       'hold refusals': HOLD_EXPECTED.filter((n) => n !== 'hold_conflict').map((n) => `FILL(${n}, 0)`).join(' + '),
       'complete refusals': COMPLETE_REFUSALS.map((n) => `FILL(${n}, 0)`).join(' + '),
       'cancel refusals': CANCEL_REFUSALS.map((n) => `FILL(${n}, 0)`).join(' + '),
+      'remove refusals': REMOVE_REFUSALS.map((n) => `FILL(${n}, 0)`).join(' + '),
     });
   });
 
@@ -116,6 +120,8 @@ describe('bookings dashboard', () => {
         ['completeTotal', ...COMPLETE_REFUSALS.map((n) => `FILL(${n}, 0)`)].join(' - '),
       'POST /bookings/{bookingId}/cancel 4XX unexplained':
         ['cancelTotal', ...CANCEL_REFUSALS.map((n) => `FILL(${n}, 0)`)].join(' - '),
+      'POST /bookings/{bookingId}/remove 4XX unexplained':
+        ['removeTotal', ...REMOVE_REFUSALS.map((n) => `FILL(${n}, 0)`)].join(' - '),
     });
     expect(labels(errors)).toEqual(expect.arrayContaining([
       'GET /bookings 4XX', 'GET /bookings/{bookingId} 4XX', 'POST /bookings 5XX', 'GET /bookings/{bookingId} 5XX',

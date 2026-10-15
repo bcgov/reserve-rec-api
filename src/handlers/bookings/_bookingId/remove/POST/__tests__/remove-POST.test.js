@@ -57,6 +57,7 @@ const BOOKING_ID = "booking-123";
 const USER_ID = "user-123";
 
 const { handler } = require("../public");
+const { logger } = require("/opt/base");
 const {
   cartRemovalRefusal,
   getBookingByBookingId,
@@ -116,5 +117,6 @@ describe("Bookings Remove handler", () => {
     expect(cartRemovalRefusal).not.toHaveBeenCalled();
     expect(flagRemovedBooking).not.toHaveBeenCalled();
     expect(batchTransactData).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith("event=remove_refused_state", expect.any(Object));
   });
 });

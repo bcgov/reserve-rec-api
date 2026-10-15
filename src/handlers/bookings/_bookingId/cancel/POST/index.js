@@ -117,7 +117,7 @@ exports.handler = async (event, context) => {
       await batchTransactData(updateRequest);
     } catch (writeError) {
       if (!isConditionFailure(writeError)) throw writeError;
-      return refused("state", "Could not cancel booking", 409, { writeError });
+      throw refused("state", "Could not cancel booking", 409, { writeError });
     }
 
     logger.info(`Booking ${bookingId} cancelled.`);
