@@ -53,7 +53,7 @@ jest.mock("@aws-sdk/util-dynamodb", () => ({
   unmarshall: jest.fn((x) => x),
 }));
 
-const { flagCancelledBooking } = require("../../src/handlers/bookings/methods");
+const { flagCancelledBooking, flagRemovedBooking } = require("../../src/handlers/bookings/methods");
 
 const booking = { pk: "booking::1", sk: "1", bookingId: "BK-1" };
 const queryTime = 1700000000000;
@@ -102,12 +102,8 @@ describe("flagCancelledBooking", () => {
     expect(op.data.ExpressionAttributeNames["#userId"]).toBe("userId");
   });
 
-  it("adds the in-progress status condition when requireInProgress is set", async () => {
-    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId, { requireInProgress: true });
-    expect(op.data.ConditionExpression).toBe(
-      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime) AND #status = :inProgress"
-    );
-    expect(op.data.ExpressionAttributeValues[":inProgress"]).toEqual({ S: "in progress" });
+  it("requires confirmed status even if the pre-write read was stale", async () => {
+    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
     expect(op.data.ExpressionAttributeNames["#status"]).toBe("status");
   });
 
@@ -123,10 +119,25 @@ describe("flagCancelledBooking", () => {
     expect(op.data.UpdateExpression).not.toContain("releasedBy");
   });
 
-  it("omits the status condition by default", async () => {
-    const [op] = await flagCancelledBooking(booking, queryTime, undefined, userId);
-    expect(op.data.ConditionExpression).not.toContain(":inProgress");
-    expect(op.data.ExpressionAttributeValues).not.toHaveProperty(":inProgress");
+  it("records a removal as TIMED_OUT with removalTime and only allows in-progress bookings", async () => {
+    const [op] = await flagRemovedBooking(booking, queryTime, userId);
+
+    expect(op.data.UpdateExpression).toBe("SET #status = :status, #removalTime = :removedAt, #isPending = :isPending");
+    expect(op.data.ExpressionAttributeNames["#removalTime"]).toBe("removalTime");
+    expect(op.data.ExpressionAttributeValues[":status"]).toEqual({ S: "TIMED_OUT" });
+    expect(op.data.ExpressionAttributeValues[":removedAt"]).toEqual({ N: String(queryTime) });
+    expect(op.data.ConditionExpression).toBe(
+      "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#removalTime) AND #status = :inProgress"
+    );
+    expect(op.data.ExpressionAttributeValues[":inProgress"]).toEqual({ S: "in progress" });
+  });
+
+  it("does not write cancellationTime for a removed booking", async () => {
+    const [op] = await flagRemovedBooking(booking, queryTime, userId);
+
+    expect(op.data.UpdateExpression).not.toContain("cancellationTime");
+    expect(op.data.ExpressionAttributeNames).not.toHaveProperty("#cancellationTime");
+    expect(op.data.ExpressionAttributeValues).not.toHaveProperty(":cancelledAt");
   });
 
   it("throws when userId is missing — guards against the silent-fail trap", async () => {

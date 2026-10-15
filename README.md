@@ -462,7 +462,7 @@ Handlers log operational events as `event=<name>` followed by JSON metadata. `li
 
 | Group | Metrics | Emitted by |
 |-------|---------|------------|
-| Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `confirmation_email_unsent`, `cancel_refused_*`, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
+| Bookings | `hold_created`, `hold_failed`, `hold_conflict`, `hold_refused_*`, `booking_completed`, `booking_complete_failed`, `complete_refused_*`, `confirmation_email_unsent`, `cancel_refused_*`, `remove_refused_*, `cancel_failed` | Public API stack (`BookingsPOST`, `BookingsCompletePOST`, `BookingsCancelPOST`) |
 | Signup | `signup_refused`, `account_confirmed`, `account_created` | Public identity stack (`PreSignUp`, `AccountConfirmed`, `PreTokenGeneration`) |
 | Email change | `email_changed`, `email_change_refused`, `email_change_observed`, `email_change_vetoed` | Public identity stack (`PreTokenGeneration`, `CustomMessage`) |
 | Audit | `email_change_requested`, `attribute_update_failed`, `email_change_verified`, `attribute_verified`, `admin_attributes_updated`, `attributes_deleted` | Public identity stack (`CognitoAudit`) |
@@ -479,7 +479,7 @@ Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` fo
 "eventAlarms": { "<event name>": <count> }
 ```
 
-Each booking handler's catch logs one outcome per request. A refusal is a 4xx returned on purpose: it is thrown with `refused(reason, ...)` from `src/handlers/bookings/refusals.js`, which sets `data: { refusal: '<reason>' }`, and logs `hold_refused_<reason>`, `complete_refused_<reason>` or `cancel_refused_<reason>`; a 5xx or an unexpected error logs `hold_failed`, `booking_complete_failed` or `cancel_failed`. A hold that loses a write race logs `hold_conflict`.
+Each booking handler's catch logs one outcome per request. A refusal is a 4xx returned on purpose: it is thrown with `refused(reason, ...)` from `src/handlers/bookings/refusals.js`, which sets `data: { refusal: '<reason>' }`, and logs `hold_refused_<reason>`, `complete_refused_<reason>`, `cancel_refused_<reason>`, or `remove_refused_<reason>`; a 5xx or an unexpected error logs `hold_failed`, `booking_complete_failed` or `cancel_failed`. A hold that loses a write race logs `hold_conflict`.
 
 To add an event: log it as `event=<name>` with the base layer logger, add the name to `EVENT_GROUPS`, and pass it to `addEventMetrics` where the Lambda is defined. Functions that emit events set `logRetention`, which is what lets the metric filter attach to a log group that may not exist yet.
 
