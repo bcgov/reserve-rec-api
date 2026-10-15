@@ -2751,7 +2751,7 @@ async function flagRemovedBooking(booking, queryTime, userId, { releasedBy = nul
     };
     const expressionAttributeValues = {
       ":status": { S: 'TIMED_OUT' }, // TODO: change to "expired" eventually?
-      ":inProgress": { S: BOOKING_STATUS_ENUMS[0] }, // make sure it's an in progress booking
+      ":inProgress": { S: BOOKING_STATUSES.IN_PROGRESS }, // make sure it's an in progress booking
       ":removedAt": { N: queryTime.toString() },
       ":isPending": { S: 'PENDING' },
       ":userId": { S: userId },
