@@ -24,7 +24,7 @@ const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
   DEFAULT_TAX_PERCENT,
-  BOOKING_STATUS_ENUMS,
+  BOOKING_STATUSES,
 } = require("../../common/data-constants");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../productDates/configs");
 const { fetchProductDates } = require("../productDates/methods");
@@ -96,7 +96,7 @@ async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
     check();
   } catch (refusal) {
     try {
-      if (booking && booking.status === 'in progress') {
+      if (booking && booking.status === BOOKING_STATUSES.IN_PROGRESS) {
         const updateRequest = await flagCancelledBooking(
           booking,
           queryTime,
@@ -339,8 +339,8 @@ async function findUserBookingsForProductOnDate(userId, productBookingPk, startD
       ':userId': marshall(userId),
       ':startDatePrefix': marshall(`${startDate}::`),
       ':pk': marshall(productBookingPk),
-      ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
-      ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
+      ':inProgress': marshall(BOOKING_STATUSES.IN_PROGRESS),
+      ':confirmed': marshall(BOOKING_STATUSES.CONFIRMED),
       ':since': marshall(now - historyMs),
       ':now': marshall(now),
     },
@@ -421,8 +421,8 @@ async function findUserActiveBookingsOnDate(userId, startDate) {
     ExpressionAttributeValues: {
       ':userId': marshall(userId),
       ':startDatePrefix': marshall(`${startDate}::`),
-      ':inProgress': marshall(BOOKING_STATUS_ENUMS[0]),
-      ':confirmed': marshall(BOOKING_STATUS_ENUMS[1]),
+      ':inProgress': marshall(BOOKING_STATUSES.IN_PROGRESS),
+      ':confirmed': marshall(BOOKING_STATUSES.CONFIRMED),
     },
   };
   const result = await runQuery(params);
@@ -858,11 +858,11 @@ async function createBooking(props) {
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
     const limits = activeHoldLimits();
     const userBookings = await findUserBookingsForProductOnDate(props.userId, productBookingPk, props.startDate, props.queryTime, holdHistoryMs(limits));
-    const duplicate = userBookings.find((booking) => [BOOKING_STATUS_ENUMS[0], BOOKING_STATUS_ENUMS[1]].includes(booking.status));
+    const duplicate = userBookings.find((booking) => [BOOKING_STATUSES.IN_PROGRESS, BOOKING_STATUSES.CONFIRMED].includes(booking.status));
     if (duplicate) {
       throw refused(
         duplicate.status === 'confirmed' ? 'has_booking' : 'has_hold',
-        `You already have ${duplicate.status === 'in progress' ? 'an' : 'a'} ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
+        `You already have ${duplicate.status === BOOKING_STATUSES.IN_PROGRESS ? 'an' : 'a'} ${duplicate.status} booking for this pass on ${props.startDate}. Cancel it before booking again.`,
         409,
         { existingBookingId: duplicate.bookingId, status: duplicate.status }
       );
@@ -1103,7 +1103,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       productDisplayName: product?.displayName,
       facilityDisplayName: sanitizeString(props?.facilityDisplayName, 200),
       geozoneDisplayName: sanitizeString(props?.geozoneDisplayName, 200),
-      status: BOOKING_STATUS_ENUMS[0],
+      status: BOOKING_STATUSES.IN_PROGRESS,
       isPending: 'PENDING', // For expiry sparse GSI1
       timezone: product.timezone,
       asset: assetRef?.primaryKey,
@@ -1474,7 +1474,7 @@ async function completeBooking(bookingId, sessionId, props, { sub, username } = 
     let updatedBookingItem = {
       // === Server-controlled fields ===
       bookingCompletionTime: queryTime,
-      status: BOOKING_STATUS_ENUMS[1],
+      status: BOOKING_STATUSES.CONFIRMED,
       // Remove pending state from GSI1
       isPending: { action: 'remove' },
     };
@@ -1564,7 +1564,7 @@ async function completeBooking(bookingId, sessionId, props, { sub, username } = 
     bookingUpdateRequest[0].data.ConditionExpression =
       "attribute_exists(isPending) AND #status = :inProgress";
     bookingUpdateRequest[0].data.ExpressionAttributeValues[":inProgress"] =
-      marshall(BOOKING_STATUS_ENUMS[0]);
+      marshall(BOOKING_STATUSES.IN_PROGRESS);
 
     // Merge updated fields with original booking for email params generation
     const completeBookingForEmail = {
@@ -1737,8 +1737,8 @@ function validateBookingCompletion(booking, sessionId, props) {
     const bookingId = booking.bookingId;
 
     // If the booking isn't 'in progress', we shouldn't be trying to complete it - throw error;
-    if (booking.status !== BOOKING_STATUS_ENUMS[0]) {
-      throw refused('state', `Booking is not '${BOOKING_STATUS_ENUMS[0]}' and cannot be completed (BookingID: ${bookingId}, Status: ${booking.status})`);
+    if (booking.status !== BOOKING_STATUSES.IN_PROGRESS) {
+      throw refused('state', `Booking is not '${BOOKING_STATUSES.IN_PROGRESS}' and cannot be completed (BookingID: ${bookingId}, Status: ${booking.status})`);
     }
 
     // If the sessionId doesn't match, throw error
@@ -2672,7 +2672,7 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
       "#pk": "pk",
     };
     const expressionAttributeValues = {
-      ":status": { S: BOOKING_STATUS_ENUMS[2] },
+      ":status": { S: BOOKING_STATUSES.CANCELLED },
       ":cancelledAt": { N: queryTime.toString() },
       ":isPending": { S: 'PENDING' },
       ":userId": { S: userId },
@@ -2693,7 +2693,7 @@ async function flagCancelledBooking(booking, queryTime, reason, userId, { requir
 
     let conditionExpression = "attribute_exists(#pk) AND #userId = :userId AND attribute_not_exists(#cancellationTime)";
     if (requireInProgress) {
-      expressionAttributeValues[":inProgress"] = { S: BOOKING_STATUS_ENUMS[0] };
+      expressionAttributeValues[":inProgress"] = { S: BOOKING_STATUSES.IN_PROGRESS };
       conditionExpression += " AND #status = :inProgress";
     }
 
