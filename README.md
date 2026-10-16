@@ -494,11 +494,12 @@ node src/scripts/tools/cognito/emailBlocklist.js --env dev list
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add address someone@example.com --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add domain example.com --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add pattern '^sample[0-9]{4,}@' --reason "..."
+node src/scripts/tools/cognito/emailBlocklist.js --env dev add phone '+1 250 555 0100' --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev remove address someone@example.com
 node src/scripts/tools/cognito/emailBlocklist.js --env dev import list.json --reason "..."
 ```
 
-Entry kinds: `address` (exact, canonical), `domain` (the domain and its subdomains), `pattern` (case-insensitive regular expression against the canonical address). A warm Lambda re-reads the list every five minutes. The list is defence data: it is never committed here, and a failure to read it fails open so an outage never takes signup down.
+Entry kinds: `address` (exact, canonical), `domain` (the domain and its subdomains), `pattern` (case-insensitive regular expression against the canonical address), `phone` (stored as E.164, matched against the sign-up's mobile and secondary numbers; refused as `phone_blocklist`). A warm Lambda re-reads the list every five minutes. The list is defence data: it is never committed here, and a failure to read it fails open so an outage never takes signup down.
 
 ## 🏗️ CDKProject Architecture
 

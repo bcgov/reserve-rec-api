@@ -9,7 +9,8 @@ const mockLoadBlocklist = jest.fn();
 const mockRefusalReason = jest.fn();
 const mockCanonicalizeEmail = jest.fn();
 jest.mock('/opt/emailBlocklist', () => ({
-  KINDS: jest.requireActual('/opt/emailBlocklist').KINDS,
+  BLOCKLIST_REASONS: jest.requireActual('/opt/emailBlocklist').BLOCKLIST_REASONS,
+  phoneRefusalReason: jest.requireActual('/opt/emailBlocklist').phoneRefusalReason,
   loadBlocklist: (...args) => mockLoadBlocklist(...args),
   refusalReason: (...args) => mockRefusalReason(...args),
   emailDomain: (email) => String(email).split('@')[1] || null,
@@ -251,6 +252,34 @@ describe('PreSignUp refusal', () => {
         reason: { S: 'domain' },
         expiresAt: record.expiresAt,
       })));
+    });
+
+    const listing = (...phones) => mockLoadBlocklist.mockResolvedValue({
+      addresses: new Set(), domains: [], patterns: [], phones: new Set(phones),
+    });
+    const refusedReasons = () => require('/opt/base').logger.info.mock.calls
+      .filter(([msg]) => msg === 'event=signup_refused').map(([, fields]) => fields.reason);
+
+    it('refuses a listed mobile number as phone_blocklist and counts it', async () => {
+      listing('+12505550100');
+      await expect(handler(native())).rejects.toThrow(/could not complete your registration/i);
+
+      expect(refusedReasons()).toEqual(['phone_blocklist']);
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record).toMatchObject({ reason: { S: 'phone_blocklist' }, counted: { BOOL: true }, phone: { S: '+12505550100' } });
+      expect(links.map(({ pk }) => pk.S)).toEqual(['link#phone#+12505550100', 'link#address#1 example st|v0v0v0']);
+    });
+
+    it('refuses a listed secondary number', async () => {
+      listing('+12505550109');
+      await expect(handler(native({ 'custom:secondaryNumber': '250.555.0109' })))
+        .rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+      expect(refusedReasons()).toEqual(['phone_blocklist']);
+    });
+
+    it('allows a phone that is not listed', async () => {
+      listing('+12505550109');
+      await expect(handler(native())).resolves.toBeDefined();
     });
 
     it('marks a phone refusal so it never links', async () => {

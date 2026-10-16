@@ -5,7 +5,8 @@ jest.mock('/opt/base', () => ({
   logger: { debug: jest.fn(), info: mockLoggerInfo, error: jest.fn() },
 }));
 jest.mock('/opt/emailBlocklist', () => ({
-  KINDS: jest.requireActual('/opt/emailBlocklist').KINDS,
+  BLOCKLIST_REASONS: jest.requireActual('/opt/emailBlocklist').BLOCKLIST_REASONS,
+  phoneRefusalReason: jest.requireActual('/opt/emailBlocklist').phoneRefusalReason,
   loadBlocklist: jest.fn().mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] }),
   refusalReason: jest.fn().mockReturnValue(null),
   // The mailbox claim is covered in preSignUpEmailClaim.test.js.
