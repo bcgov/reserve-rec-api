@@ -38,15 +38,16 @@ function linkKeys({ phones = [], streetAddress, postalCode } = {}) {
 }
 
 /**
- * First link that counts: a banned account at any age, or a refusal inside
- * the window. Banned beats refusal, then phone beats address.
+ * The phone link that counts, if any: a banned account at any age, or a
+ * refusal inside the window, banned first. An address link only adds to a
+ * phone match (matchedOn 'phone+address'); on its own it returns null.
  * @param {string} tableName
  * @param {ReturnType<typeof linkKeys>} keys
  * @param {number} [now] epoch ms
- * @returns {Promise<{source: string, matchedOn: string, ref: string}|null>}
+ * @returns {Promise<{source: string, matchedOn: 'phone'|'phone+address', ref: string}|null>}
  */
 async function findLink(tableName, keys, now = Date.now()) {
-  if (!keys.length) return null;
+  if (!keys.some(({ matchedOn }) => matchedOn === 'phone')) return null;
   // Required lazily so PreSignUp, which only writes links, does not load it.
   const { runQuery } = require('/opt/dynamodb');
   const cutoff = new Date(now - LINK_WINDOW_MS).toISOString();
@@ -55,12 +56,16 @@ async function findLink(tableName, keys, now = Date.now()) {
     KeyConditionExpression: 'pk = :pk',
     ExpressionAttributeValues: { ':pk': { S: pk } },
   }, null, null, false)));
+  const counts = (item, source) => item.source === source && (source === 'banned' || String(item.sk) >= cutoff);
+  const hits = (kind, source) => results
+    .filter((_, i) => keys[i].matchedOn === kind)
+    .flatMap(({ items }) => items.filter((item) => counts(item, source)));
 
   for (const source of LINK_SOURCES) {
-    for (const [i, { items }] of results.entries()) {
-      const hit = items.find((item) => item.source === source && (source === 'banned' || String(item.sk) >= cutoff));
-      if (hit) return { source, matchedOn: keys[i].matchedOn, ref: hit.ref };
-    }
+    const [hit] = hits('phone', source);
+    if (!hit) continue;
+    const address = LINK_SOURCES.some((s) => hits('address', s).length);
+    return { source, matchedOn: address ? 'phone+address' : 'phone', ref: hit.ref };
   }
   return null;
 }

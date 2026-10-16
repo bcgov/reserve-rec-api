@@ -79,11 +79,25 @@ describe('PreTokenGeneration linked review', () => {
       .toEqual([PHONE_PK, 'link#phone#+12505550109', ADDRESS_PK]);
   });
 
-  it('puts a new native account matching a banned address into review', async () => {
+  it('leaves review unset on an address match alone', async () => {
     links({ [ADDRESS_PK]: [{ sk: '2020-01-01T00:00:00.000Z#sub-9', source: 'banned', ref: 'sub-9' }] });
     await handler(event());
 
-    expect(created().review).toMatchObject({ state: 'pending', source: 'banned', matchedOn: 'address', linkedTo: 'sub-9' });
+    expect(created()).toMatchObject({ pk: 'user', sk: SUB });
+    expect(created()).not.toHaveProperty('review');
+    expect(logger.info).not.toHaveBeenCalledWith('event=account_flagged', expect.anything());
+  });
+
+  it('records an address that also matches a phone match', async () => {
+    links({
+      [PHONE_PK]: [{ sk: `${RECENT}#r-1`, source: 'refusal', ref: 'r-1' }],
+      [ADDRESS_PK]: [{ sk: '2020-01-01T00:00:00.000Z#sub-9', source: 'banned', ref: 'sub-9' }],
+    });
+    await handler(event());
+
+    expect(created().review).toEqual({
+      state: 'pending', source: 'refusal', matchedOn: 'phone+address', linkedTo: 'r-1', at: '2026-06-01T00:00:00.000Z',
+    });
   });
 
   it('queries the refusal table', async () => {

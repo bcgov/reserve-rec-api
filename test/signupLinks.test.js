@@ -72,16 +72,50 @@ describe('findLink', () => {
   });
 
   it('matches a banned account at any age', async () => {
-    table({ [addressPk]: [{ sk: `${iso(NOW - 900 * DAY)}#sub-1`, source: 'banned', ref: 'sub-1' }] });
-    await expect(findLink('refusals', keys, NOW)).resolves.toEqual({ source: 'banned', matchedOn: 'address', ref: 'sub-1' });
+    table({ [phonePk]: [{ sk: `${iso(NOW - 900 * DAY)}#sub-1`, source: 'banned', ref: 'sub-1' }] });
+    await expect(findLink('refusals', keys, NOW)).resolves.toEqual({ source: 'banned', matchedOn: 'phone', ref: 'sub-1' });
   });
 
   it('prefers a banned account over a refusal', async () => {
     table({
+      [phonePk]: [
+        { sk: `${iso(NOW - DAY)}#r-1`, source: 'refusal', ref: 'r-1' },
+        { sk: `${iso(NOW - DAY)}#sub-1`, source: 'banned', ref: 'sub-1' },
+      ],
+    });
+    await expect(findLink('refusals', keys, NOW)).resolves.toMatchObject({ source: 'banned', ref: 'sub-1' });
+  });
+
+  it('returns null for an address match on its own', async () => {
+    table({
+      [addressPk]: [
+        { sk: `${iso(NOW - DAY)}#r-1`, source: 'refusal', ref: 'r-1' },
+        { sk: `${iso(NOW - DAY)}#sub-1`, source: 'banned', ref: 'sub-1' },
+      ],
+    });
+    await expect(findLink('refusals', keys, NOW)).resolves.toBeNull();
+  });
+
+  it('records an address that also matches, keeping the phone match', async () => {
+    table({
       [phonePk]: [{ sk: `${iso(NOW - DAY)}#r-1`, source: 'refusal', ref: 'r-1' }],
       [addressPk]: [{ sk: `${iso(NOW - DAY)}#sub-1`, source: 'banned', ref: 'sub-1' }],
     });
-    await expect(findLink('refusals', keys, NOW)).resolves.toMatchObject({ source: 'banned', ref: 'sub-1' });
+    await expect(findLink('refusals', keys, NOW)).resolves.toEqual({ source: 'refusal', matchedOn: 'phone+address', ref: 'r-1' });
+  });
+
+  it('does not add an address refusal older than 90 days', async () => {
+    table({
+      [phonePk]: [{ sk: `${iso(NOW - DAY)}#r-1`, source: 'refusal', ref: 'r-1' }],
+      [addressPk]: [{ sk: `${iso(NOW - 91 * DAY)}#r-2`, source: 'refusal', ref: 'r-2' }],
+    });
+    await expect(findLink('refusals', keys, NOW)).resolves.toMatchObject({ matchedOn: 'phone' });
+  });
+
+  it('does not query when there is no phone to match on', async () => {
+    const addressOnly = linkKeys({ streetAddress: '1 Example St', postalCode: 'V0V 0V0' });
+    await expect(findLink('refusals', addressOnly, NOW)).resolves.toBeNull();
+    expect(mockRunQuery).not.toHaveBeenCalled();
   });
 
   it('ignores an item with any other source', async () => {
