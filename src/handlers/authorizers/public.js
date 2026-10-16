@@ -3,7 +3,71 @@
 const { logger } = require('/opt/base');
 const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken, handleContextAndAPIKey } = require('./methods');
 const { getOne } = require('/opt/dynamodb');
+const { adminGetUser } = require('/opt/cognito');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
+
+// Signed-in reads that also require an enabled account with a verified email.
+const AVAILABILITY_RESOURCES = ['inventoryPools', 'product-dates'];
+const ACCOUNT_STATUS_TTL_MS = 5 * 60 * 1000;
+const THROTTLE_ERRORS = ['TooManyRequestsException', 'ThrottlingException'];
+const ACCOUNT_STATUS_CACHE_MAX = 5000;
+const accountStatusCache = new Map();
+
+function isAvailabilityRead(methodArn) {
+  const [, , method, resource] = (methodArn || '').split(':').slice(5).join(':').split('/');
+  return method === 'GET' && AVAILABILITY_RESOURCES.includes(resource);
+}
+
+function isBcsc(identities) {
+  try {
+    const parsed = JSON.parse(identities || '[]');
+    return Array.isArray(parsed) && parsed.some((id) => id.providerName === 'BCSC');
+  } catch {
+    return false;
+  }
+}
+
+// Cognito resets email_verified on every BCSC login, so BCSC accounts count as verified.
+function accountActive(user, sub) {
+  const attrs = user?.UserAttributes || [];
+  const get = (name) => attrs.find((a) => a.Name === name)?.Value;
+  if (get('sub') !== sub || user.Enabled === false) return false;
+  return get('email_verified') === 'true' || isBcsc(get('identities'));
+}
+
+function isThrottled(error) {
+  return THROTTLE_ERRORS.includes(error?.cause?.name) || THROTTLE_ERRORS.includes(error?.name);
+}
+
+/**
+ * Whether the token's account exists, is enabled and has a verified email.
+ * Answers are cached by sub for ACCOUNT_STATUS_TTL_MS. When Cognito throttles
+ * the lookup the account is let through (not cached); any other Cognito error
+ * except a missing user is thrown and not cached.
+ */
+async function isAccountActive(userPoolId, payload) {
+  const now = Date.now();
+  const cached = accountStatusCache.get(payload.sub);
+  if (cached && cached.expires > now) return cached.active;
+
+  let active;
+  try {
+    active = accountActive(await adminGetUser(userPoolId, payload.username || payload.sub), payload.sub);
+  } catch (error) {
+    if (isThrottled(error)) {
+      logger.warn('Account status check throttled; allowing', { sub: payload.sub });
+      return true;
+    }
+    if (error?.cause?.name !== 'UserNotFoundException') throw error;
+    active = false;
+  }
+  accountStatusCache.delete(payload.sub);
+  if (accountStatusCache.size >= ACCOUNT_STATUS_CACHE_MAX) {
+    accountStatusCache.delete(accountStatusCache.keys().next().value);
+  }
+  accountStatusCache.set(payload.sub, { active, expires: now + ACCOUNT_STATUS_TTL_MS });
+  return active;
+}
 
 /**
  * Parses the bcparks-admission cookie value from a Cookie header string.
@@ -214,6 +278,20 @@ exports.handler = async function (event, context, callback) {
         logger.error("❌ Error during token parsing:");
         logger.error(`Parse error: ${parseError.message}`);
         logger.debug(`Parse error stack: ${parseError.stack}`);
+      }
+    }
+
+    if (isAuthenticated && isAvailabilityRead(normalizedEvent.methodArn)) {
+      let active = false;
+      try {
+        active = await isAccountActive(config.PUBLIC_USER_POOL_ID, payload);
+      } catch (error) {
+        logger.error('Account status lookup failed', { sub: payload?.sub, error: error?.message });
+      }
+      if (!active) {
+        logger.info('event=availability_denied', { sub: payload?.sub });
+        payload = null;
+        isAuthenticated = false;
       }
     }
 

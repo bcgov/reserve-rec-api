@@ -4,11 +4,13 @@
 
 const { NodejsFunction } = require("aws-cdk-lib/aws-lambda-nodejs");
 const apigw = require('aws-cdk-lib/aws-apigateway');
-const { Duration } = require('aws-cdk-lib');
+const iam = require('aws-cdk-lib/aws-iam');
+const { Duration, Stack } = require('aws-cdk-lib');
 const { Code, Runtime } = require('aws-cdk-lib/aws-lambda');
 const { buildDist } = require('../../scripts/tools/bundling/yarnBundler');
 const { Construct } = require('constructs');
 const path = require('path');
+const { EVENT_LOG_RETENTION, addEventMetrics, eventMetricNamespace } = require('../../../lib/helpers/event-metrics');
 
 class AdminAuthorizerConstruct extends Construct {
   constructor(scope, id, props) {
@@ -82,7 +84,18 @@ class PublicAuthorizerConstruct extends Construct {
       description: props?.description || `Public Authorizer function for ${scope.getAppName()}-${scope.getDeploymentName()} environment`,
       timeout: Duration.seconds(10),
       layers: props?.layers,
+      logRetention: EVENT_LOG_RETENTION,
     });
+
+    // Availability reads check the caller's account with AdminGetUser.
+    const userPoolId = props?.environment?.PUBLIC_USER_POOL_ID;
+    this.publicAuthorizerFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminGetUser'],
+      resources: [userPoolId
+        ? Stack.of(this).formatArn({ service: 'cognito-idp', resource: 'userpool', resourceName: userPoolId })
+        : '*'],
+    }));
+    addEventMetrics(this.publicAuthorizerFunction, eventMetricNamespace(scope.getDeploymentName()), ['availability_denied']);
 
     const requestAuthorizerId = scope.createScopedId(id, 'RequestAuthorizer');
     this.publicRequestAuthorizer = new apigw.RequestAuthorizer(this, requestAuthorizerId, {
