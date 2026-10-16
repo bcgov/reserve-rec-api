@@ -87,21 +87,20 @@ async function resolveAuthenticatedOccupantIdentity(sub, username) {
  * logged and the original refusal is still raised.
  *
  * @param {Object} booking - the held booking
- * @param {Function} check - throws or rejects to refuse
+ * @param {Function} check - throws to refuse
  * @param {number} queryTime
  * @param {string} userId
- * @param {string} note - cancellation reason stored on the released hold
  */
-async function releaseHoldOnRefusal(booking, check, queryTime, userId, note) {
+async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
   try {
-    await check();
+    check();
   } catch (refusal) {
     try {
       if (booking && booking.status === BOOKING_STATUSES.IN_PROGRESS) {
         const updateRequest = await flagCancelledBooking(
           booking,
           queryTime,
-          note,
+          'Booking refused: account email not verified',
           userId,
           { releasedBy: HOLD_RELEASED_BY_SYSTEM }
         );
@@ -1518,12 +1517,9 @@ async function completeBooking(bookingId, sessionId, props, { sub, username, pay
       // occupy inventory until it expires. Validation failures (a missing
       // occupant name, say) deliberately do NOT release: the caller can fix
       // those and complete the same hold.
-      await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub,
-        'Booking refused: account email not verified');
+      await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub);
       // Once payment has started the charge stands, so the booking must complete.
-      if (!paymentStarted) {
-        await releaseHoldOnRefusal(booking, () => requireReviewClear(sub), queryTime, sub, 'Booking refused');
-      }
+      if (!paymentStarted) await requireReviewClear(sub);
       updatedBookingItem.namedOccupant = ownerIdentity
         ? {
           firstName: ownerIdentity.firstName,

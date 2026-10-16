@@ -126,15 +126,21 @@ describe('completeBooking review gate', () => {
     getOne.mockResolvedValue(user({ state: 'pending' }));
   });
 
-  it('refuses with the generic failure and releases the hold', async () => {
+  it('refuses with the generic failure and leaves the hold untouched', async () => {
+    const booking = hold();
+    getOneByGlobalId.mockResolvedValue(booking);
+    const before = structuredClone(booking);
+
     await expect(completeBooking('b-1', 's-1', { namedOccupant: {} }, { sub: 'sub-1' }))
       .rejects.toMatchObject({ code: 400, message: GENERIC_FAILURE_MESSAGE, data: null, logRefusal: 'hold_gate' });
 
-    const [[update]] = batchTransactData.mock.calls[0];
-    expect(update.data.ExpressionAttributeValues[':cancellationReason']).toEqual({ S: 'Booking refused' });
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(booking).toEqual(before);
+    expect(booking).not.toHaveProperty('cancellationReason');
+    expect(booking).not.toHaveProperty('releasedBy');
   });
 
-  it('keeps the verified-email note on its own release', async () => {
+  it('still releases the hold for an unverified account, with its note', async () => {
     getUserInfoBySub.mockResolvedValue({ Attributes: [{ Name: 'email_verified', Value: 'false' }] });
     await expect(completeBooking('b-1', 's-1', { namedOccupant: {} }, { sub: 'sub-1' })).rejects.toMatchObject({ code: 403 });
 
