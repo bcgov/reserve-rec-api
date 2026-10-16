@@ -73,10 +73,11 @@ describe('overview dashboard', () => {
       'hold_refused_has_booking', 'hold_refused_has_hold', 'hold_refused_invalid', 'hold_refused_state',
       'hold_refused_not_found', 'hold_refused_window', 'hold_refused_sold_out', 'hold_refused_waiting_room',
       'hold_refused_unverified_email', 'hold_refused_cooldown', 'hold_refused_cap', 'hold_refused_rebook_wait',
-      'hold_conflict',
+      'hold_refused_hold_gate', 'hold_conflict',
     ]);
     expect(COMPLETE_REFUSALS).toEqual(['complete_refused_invalid', 'complete_refused_not_found',
-      'complete_refused_state', 'complete_refused_owner', 'complete_refused_unverified_email']);
+      'complete_refused_state', 'complete_refused_owner', 'complete_refused_unverified_email',
+      'complete_refused_hold_gate']);
     expect(CANCEL_REFUSALS).toEqual(['cancel_refused_state', 'cancel_refused_owner', 'cancel_refused_invalid',
       'cancel_refused_not_found']);
     expect(REMOVE_REFUSALS).toEqual(['remove_refused_state', 'remove_refused_owner', 'remove_refused_invalid',

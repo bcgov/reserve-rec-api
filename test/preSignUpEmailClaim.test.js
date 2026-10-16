@@ -18,6 +18,8 @@ jest.mock('/opt/dynamodb', () => ({
 // so the tests exercise the conditions rather than a scripted reply.
 const mockClaims = new Map();
 const mockDdbSend = jest.fn(async ({ input }) => {
+  // Refusal records go to their own table and are covered in preSignUpRefusal.test.js.
+  if (input.TableName !== 'claims') return {};
   const existing = mockClaims.get(input.Item.pk.S);
   const holds = input.ConditionExpression.split(' OR ').some((term) => (
     term === 'attribute_not_exists(pk)'
@@ -170,6 +172,6 @@ describe('PreSignUp mailbox claim', () => {
   it('refuses a blocked address on the blocklist before any claim is written', async () => {
     await expect(handler(signUp(BANNED))).rejects.toEqual(refused);
     expect(logged('event=signup_refused')).toEqual([expect.objectContaining({ reason: 'address' })]);
-    expect(mockDdbSend).not.toHaveBeenCalled();
+    expect(mockDdbSend.mock.calls.filter(([{ input }]) => input.TableName === 'claims')).toEqual([]);
   });
 });

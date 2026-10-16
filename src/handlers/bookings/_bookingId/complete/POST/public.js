@@ -2,11 +2,11 @@
 // email. The email must go out only after the DynamoDB write succeeds —
 // otherwise a transient DB failure would leave the user with a confirmation
 // email for a booking that was never saved.
-const { requestIdentity, logger, sendResponse } = require("/opt/base");
+const { Exception, requestIdentity, logger, sendResponse } = require("/opt/base");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../../methods");
 const { enqueueSmsReminderIfNeeded } = require("../../../notifications");
 const { batchTransactData } = require("/opt/dynamodb");
-const { refused } = require("../../../refusals");
+const { GENERIC_FAILURE_MESSAGE, refused } = require("../../../refusals");
 
 
 exports.handler = async (event, context) => {
@@ -78,15 +78,18 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     const outcome = { bookingId, code: error?.code, message: error?.message };
-    if (error?.data?.refusal) {
-      logger.info(`event=complete_refused_${error.data.refusal}`, outcome);
+    const refusal = error?.data?.refusal || error?.logRefusal;
+    if (refusal) {
+      logger.info(`event=complete_refused_${refusal}`, outcome);
     } else {
       logger.error("event=booking_complete_failed", outcome);
     }
+    // An unexpected fault's own text is internal; the caller gets the generic failure.
+    const unexpected = !(error instanceof Exception) && !Number(error?.code);
     return sendResponse(
       Number(error?.code) || 400,
       error?.data || null,
-      error?.message || "Error",
+      unexpected ? GENERIC_FAILURE_MESSAGE : error?.message || "Error",
       error?.error || error,
       context
     );

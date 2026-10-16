@@ -13,7 +13,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
-const { refused } = require("./refusals");
+const { genericRefusal, refused } = require("./refusals");
 const { sendConfirmationEmail, sendCancellationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
@@ -87,20 +87,21 @@ async function resolveAuthenticatedOccupantIdentity(sub, username) {
  * logged and the original refusal is still raised.
  *
  * @param {Object} booking - the held booking
- * @param {Function} check - throws to refuse
+ * @param {Function} check - throws or rejects to refuse
  * @param {number} queryTime
  * @param {string} userId
+ * @param {string} note - cancellation reason stored on the released hold
  */
-async function releaseHoldOnRefusal(booking, check, queryTime, userId) {
+async function releaseHoldOnRefusal(booking, check, queryTime, userId, note) {
   try {
-    check();
+    await check();
   } catch (refusal) {
     try {
       if (booking && booking.status === BOOKING_STATUSES.IN_PROGRESS) {
         const updateRequest = await flagCancelledBooking(
           booking,
           queryTime,
-          'Booking refused: account email not verified',
+          note,
           userId,
           { releasedBy: HOLD_RELEASED_BY_SYSTEM }
         );
@@ -143,6 +144,31 @@ function requireVerifiedEmail(identity) {
       'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
       403
     );
+  }
+}
+
+const REVIEW_REFUSED_STATES = new Set(['pending', 'rejected']);
+
+/**
+ * A pass may not be held or secured by an account whose review state is
+ * pending or rejected. The state is written to the user record outside this
+ * API.
+ *
+ * Fails open: a lookup fault must not take booking down with it.
+ *
+ * @param {string} userId - Cognito sub
+ * @throws {Exception} the generic failure, tagged `hold_gate` for the log only
+ */
+async function requireReviewClear(userId) {
+  let user;
+  try {
+    user = await getOne('user', userId, TRANSACTIONAL_DATA_TABLE_NAME);
+  } catch (error) {
+    logger.error('Review state lookup failed open', { error: error?.message });
+    return;
+  }
+  if (REVIEW_REFUSED_STATES.has(user?.review?.state)) {
+    throw genericRefusal('hold_gate');
   }
 }
 
@@ -853,6 +879,9 @@ async function createBooking(props) {
 
     await validateBookingCreateProps(props);
 
+    // Before any inventory read, so a refused hold costs nothing downstream.
+    await requireReviewClear(props.userId);
+
     // === Block duplicate booking for the same user/product/startDate (issue #458) ===
     // One pass per user per product per day. Cancelled and expired bookings don't count.
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
@@ -1436,7 +1465,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, { sub, username } = {}) {
+async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false } = {}) {
   try {
 
     // === get queryTime ===
@@ -1493,7 +1522,12 @@ async function completeBooking(bookingId, sessionId, props, { sub, username } = 
       // occupy inventory until it expires. Validation failures (a missing
       // occupant name, say) deliberately do NOT release: the caller can fix
       // those and complete the same hold.
-      await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub);
+      await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub,
+        'Booking refused: account email not verified');
+      // Once payment has started the charge stands, so the booking must complete.
+      if (!paymentStarted) {
+        await releaseHoldOnRefusal(booking, () => requireReviewClear(sub), queryTime, sub, 'Booking refused');
+      }
       updatedBookingItem.namedOccupant = ownerIdentity
         ? {
           firstName: ownerIdentity.firstName,
@@ -3126,6 +3160,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   releaseHoldOnRefusal,
+  requireReviewClear,
   requireVerifiedEmail,
   resolveAuthenticatedOccupantIdentity,
   sanitizeString,

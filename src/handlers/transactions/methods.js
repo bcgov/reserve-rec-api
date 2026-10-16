@@ -958,7 +958,7 @@ async function processTokenTransaction(body, userId, adminId) {
         body.bookingId,
         body.sessionId,
         { clientTransactionId: clientTransactionId, queryTime: Date.now() },
-        { sub: userId },
+        { sub: userId, paymentStarted: true },
       );
     } catch (completeErr) {
       // The card is already charged: a retryable 503 would invite a second charge.

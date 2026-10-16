@@ -259,6 +259,18 @@ describe("Method: processTokenTransaction", () => {
     expect(batchTransactData).toHaveBeenCalledTimes(1);
   });
 
+  it("completes the booking as paid", async () => {
+    const { completeBooking } = require("../../bookings/methods");
+    await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID);
+
+    expect(completeBooking).toHaveBeenCalledWith(
+      MOCK_BOOKING_ID,
+      expect.anything(),
+      expect.any(Object),
+      { sub: MOCK_USER_ID, paymentStarted: true },
+    );
+  });
+
   it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
     const { completeBooking } = require("../../bookings/methods");
     completeBooking.mockRejectedValueOnce({ code: 503, data: { retryAfter: 2 } });
