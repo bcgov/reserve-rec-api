@@ -544,15 +544,30 @@ async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
   await getDynamoDBClient().send(new PutItemCommand(putObj));
 }
 
+/**
+ * SET each attribute of `obj` other than pk and sk on an existing item.
+ * Attributes it does not name are left as stored.
+ */
 async function updateItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
-  let putObj = {
+  const { pk, sk, ...fields } = obj;
+  const names = {};
+  const values = {};
+  const sets = Object.keys(fields).map((key, i) => {
+    names[`#f${i}`] = key;
+    values[`:f${i}`] = fields[key];
+    return `#f${i} = :f${i}`;
+  });
+  const updateObj = {
     TableName: tableName,
-    Item: marshall(obj),
+    Key: marshall({ pk, sk }),
+    UpdateExpression: `SET ${sets.join(', ')}`,
     ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: marshall(values),
   };
 
-  logger.debug(`Updating item:`, putObj);
-  await getDynamoDBClient().send(new PutItemCommand(putObj));
+  logger.debug(`Updating item:`, updateObj);
+  await getDynamoDBClient().send(new UpdateItemCommand(updateObj));
 }
 
 /**

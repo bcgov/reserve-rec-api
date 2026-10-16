@@ -94,12 +94,12 @@ describe('PreTokenGeneration linked review', () => {
     expect(updateItem.mock.calls[0][0]).not.toHaveProperty('review');
   });
 
-  it('keeps a review written outside the trigger on later logins', async () => {
+  it('does not write review on a later login', async () => {
     const review = { state: 'rejected', source: 'refusal', matchedOn: 'phone', at: RECENT };
     getOne.mockResolvedValue({ pk: 'user', sk: SUB, email: 'person@example.test', createdAt: RECENT, review });
     await handler(event());
 
-    expect(updateItem.mock.calls[0][0].review).toEqual(review);
+    expect(updateItem.mock.calls[0][0]).not.toHaveProperty('review');
   });
 
   it('does not check a BCSC account', async () => {
