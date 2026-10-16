@@ -43,6 +43,13 @@ const notFound = () => {
   return error;
 };
 
+const throttled = (shape) => {
+  const error = new Error('Failed to get user');
+  if (shape === 'cause') Object.defineProperty(error, 'cause', { value: { name: 'TooManyRequestsException' } });
+  else error.name = 'ThrottlingException';
+  return error;
+};
+
 // A fresh module per test, so the account status cache starts empty.
 function loadHandler() {
   let handler;
@@ -127,17 +134,17 @@ describe('public authorizer, account status on availability reads', () => {
     expect(res.context).toMatchObject(GUEST);
   });
 
-  it('caches the answer by sub for 60 seconds', async () => {
+  it('caches the answer by sub for 5 minutes', async () => {
     const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
     mockAdminGetUser.mockResolvedValue(cognitoUser());
     await handler(event());
-    now.mockReturnValue(1_059_000);
+    now.mockReturnValue(1_299_000);
     const cached = await handler(event());
     expect(cached.context).toMatchObject(SIGNED_IN);
     expect(mockAdminGetUser).toHaveBeenCalledTimes(1);
 
     mockAdminGetUser.mockResolvedValue(cognitoUser({ enabled: false }));
-    now.mockReturnValue(1_060_001);
+    now.mockReturnValue(1_300_001);
     const expired = await handler(event());
     expect(expired.context).toMatchObject(GUEST);
     expect(mockAdminGetUser).toHaveBeenCalledTimes(2);
@@ -148,6 +155,17 @@ describe('public authorizer, account status on availability reads', () => {
     mockAdminGetUser.mockRejectedValueOnce(new Error('Failed to get user')).mockResolvedValue(cognitoUser());
     expect((await handler(event())).context).toMatchObject(GUEST);
     expect((await handler(event())).context).toMatchObject(SIGNED_IN);
+    expect(mockAdminGetUser).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['cause', 'name'])('keeps the caller signed in when Cognito throttles (%s), without caching', async (shape) => {
+    mockAdminGetUser.mockRejectedValueOnce(throttled(shape)).mockResolvedValue(cognitoUser({ enabled: false }));
+    const res = await handler(event());
+    expect(res.context).toMatchObject(SIGNED_IN);
+    expect(mockLogger.warn).toHaveBeenCalledWith('Account status check throttled; allowing', { sub: SUB });
+    expect(deniedLines()).toHaveLength(0);
+
+    expect((await handler(event())).context).toMatchObject(GUEST);
     expect(mockAdminGetUser).toHaveBeenCalledTimes(2);
   });
 

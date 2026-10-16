@@ -8,7 +8,8 @@ const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 // Signed-in reads that also require an enabled account with a verified email.
 const AVAILABILITY_RESOURCES = ['inventoryPools', 'product-dates'];
-const ACCOUNT_STATUS_TTL_MS = 60 * 1000;
+const ACCOUNT_STATUS_TTL_MS = 5 * 60 * 1000;
+const THROTTLE_ERRORS = ['TooManyRequestsException', 'ThrottlingException'];
 const ACCOUNT_STATUS_CACHE_MAX = 5000;
 const accountStatusCache = new Map();
 
@@ -34,10 +35,15 @@ function accountActive(user, sub) {
   return get('email_verified') === 'true' || isBcsc(get('identities'));
 }
 
+function isThrottled(error) {
+  return THROTTLE_ERRORS.includes(error?.cause?.name) || THROTTLE_ERRORS.includes(error?.name);
+}
+
 /**
  * Whether the token's account exists, is enabled and has a verified email.
- * Answers are cached by sub for ACCOUNT_STATUS_TTL_MS; a Cognito error other
- * than a missing user is thrown and not cached.
+ * Answers are cached by sub for ACCOUNT_STATUS_TTL_MS. When Cognito throttles
+ * the lookup the account is let through (not cached); any other Cognito error
+ * except a missing user is thrown and not cached.
  */
 async function isAccountActive(userPoolId, payload) {
   const now = Date.now();
@@ -48,6 +54,10 @@ async function isAccountActive(userPoolId, payload) {
   try {
     active = accountActive(await adminGetUser(userPoolId, payload.username || payload.sub), payload.sub);
   } catch (error) {
+    if (isThrottled(error)) {
+      logger.warn('Account status check throttled; allowing', { sub: payload.sub });
+      return true;
+    }
     if (error?.cause?.name !== 'UserNotFoundException') throw error;
     active = false;
   }
