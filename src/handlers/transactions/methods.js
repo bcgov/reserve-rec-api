@@ -31,6 +31,7 @@ const {
   completeBooking,
   sendBookingConfirmationEmail,
 } = require("../bookings/methods");
+const { BOOKING_STATUSES } = require("../../common/data-constants");
 
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
@@ -126,7 +127,7 @@ async function updateTransactionForPayment(
     logger.info("transactionRecord: ", transactionRecord);
 
     // If the transaction isn't 'in progress', we cannot alter it.
-    if (transactionRecord.status !== "in progress") {
+    if (transactionRecord.status !== BOOKING_STATUSES.IN_PROGRESS) {
       throw new Exception(`Transaction cannot be altered at this state.`, {
         code: 400,
       });

@@ -18,6 +18,7 @@ const {
   deleteBookingHoldMarker
 } = require("../../../methods");
 const { refused } = require("../../../refusals");
+const { BOOKING_STATUSES } = require("../../../../../common/data-constants");
 
 exports.handler = async (event, context) => {
   logger.info("Bookings Cancel POST:", requestIdentity(event));
@@ -67,7 +68,7 @@ exports.handler = async (event, context) => {
       throw refused("owner", `User ${userId} does not own booking ${bookingId}`, 403);
     }
 
-    if (booking.status === "in progress") {
+    if (booking.status === BOOKING_STATUSES.IN_PROGRESS) {
       throw refused("state", `Booking ${bookingId} is in progress`, 409);
     }
 

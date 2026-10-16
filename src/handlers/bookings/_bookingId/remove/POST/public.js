@@ -3,6 +3,8 @@
  */
 const { requestIdentity, logger, sendResponse, getRequestClaimsFromEvent } = require("/opt/base");
 const { batchTransactData, isConditionFailure } = require("/opt/dynamodb");
+const { BOOKING_STATUSES } = require("../../../../../common/data-constants");
+
 const {
   cartRemovalRefusal,
   getBookingByBookingId,
@@ -42,11 +44,11 @@ exports.handler = async (event, context) => {
     // Only in-progress bookings can be removed. 
     // In-progress bookings can be removed by the user during the reservation flow.
     // Abandoned 'in progress' sessions without user action are reaped by the expired-booking scraper.
-    if (booking.status !== 'in progress') {
+    if (booking.status !== BOOKING_STATUSES.IN_PROGRESS) {
       logger.error("Status check failed", {
         bookingId,
         status: booking.status,
-        allowedStatuses: ["in progress"],
+        allowedStatuses: [BOOKING_STATUSES.IN_PROGRESS],
       });
       throw refused("state", `Booking does not have the "in progress" status and cannot be removed`, 409);
     }

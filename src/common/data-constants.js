@@ -85,12 +85,16 @@ const RATE_CLASS_ENUMS = [
     'SSCFE'
 ];
 
-const BOOKING_STATUS_ENUMS = [
-    'in progress',
-    'confirmed',
-    'cancelled',
-    'expired'
-]
+
+/** @enum {string} */
+const BOOKING_STATUSES = {
+  IN_PROGRESS: 'in progress',
+  CONFIRMED: 'confirmed',
+  CANCELLED: 'cancelled',
+  EXPIRED: 'expired'
+}
+
+const BOOKING_STATUS_ENUMS = Object.values(BOOKING_STATUSES);
 
 const TRANSACTION_STATUS_ENUMS = [
   'in progress',
@@ -149,6 +153,7 @@ module.exports = {
   TRANSACTION_STATUS_ENUMS,
   INVENTORY_STATUS_ENUMS,
   ALLOWED_FILTERS,
+  BOOKING_STATUSES,
   BOOKING_STATUS_ENUMS,
   SUB_ACTIVITY_TYPE_ENUMS,
   ACTIVITY_TYPE_ENUMS,
