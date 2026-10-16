@@ -68,6 +68,17 @@ describe('PreTokenGeneration linked review', () => {
     expect(logger.info).toHaveBeenCalledWith('event=account_flagged', { sub: SUB, source: 'refusal', matchedOn: 'phone' });
   });
 
+  it('matches on the secondary number too', async () => {
+    const secondary = event();
+    secondary.request.userAttributes['custom:secondaryNumber'] = '250-555-0109';
+    links({ 'link#phone#+12505550109': [{ sk: `${RECENT}#r-2`, source: 'refusal', ref: 'r-2' }] });
+    await handler(secondary);
+
+    expect(created().review).toMatchObject({ state: 'pending', matchedOn: 'phone', linkedTo: 'r-2' });
+    expect(runQuery.mock.calls.map(([q]) => q.ExpressionAttributeValues[':pk'].S))
+      .toEqual([PHONE_PK, 'link#phone#+12505550109', ADDRESS_PK]);
+  });
+
   it('puts a new native account matching a banned address into review', async () => {
     links({ [ADDRESS_PK]: [{ sk: '2020-01-01T00:00:00.000Z#sub-9', source: 'banned', ref: 'sub-9' }] });
     await handler(event());

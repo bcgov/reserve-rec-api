@@ -84,7 +84,6 @@ exports.handler = async (event, context) => {
     } else {
       logger.error("event=booking_complete_failed", outcome);
     }
-    // An unexpected fault's own text is internal; the caller gets the generic failure.
     const unexpected = !(error instanceof Exception) && !Number(error?.code);
     return sendResponse(
       Number(error?.code) || 400,

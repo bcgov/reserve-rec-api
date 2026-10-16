@@ -150,14 +150,11 @@ function requireVerifiedEmail(identity) {
 const REVIEW_REFUSED_STATES = new Set(['pending', 'rejected']);
 
 /**
- * A pass may not be held or secured by an account whose review state is
- * pending or rejected. The state is written to the user record outside this
- * API.
- *
- * Fails open: a lookup fault must not take booking down with it.
+ * Refuses an account whose user record has review.state 'pending' or
+ * 'rejected'. A lookup fault is logged and the request is allowed.
  *
  * @param {string} userId - Cognito sub
- * @throws {Exception} the generic failure, tagged `hold_gate` for the log only
+ * @throws {Exception} genericRefusal('hold_gate')
  */
 async function requireReviewClear(userId) {
   let user;
@@ -879,7 +876,6 @@ async function createBooking(props) {
 
     await validateBookingCreateProps(props);
 
-    // Before any inventory read, so a refused hold costs nothing downstream.
     await requireReviewClear(props.userId);
 
     // === Block duplicate booking for the same user/product/startDate (issue #458) ===

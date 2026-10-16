@@ -26,13 +26,12 @@ function normalizeAddress({ streetAddress, postalCode } = {}) {
 }
 
 /**
- * @param {{phone?: string, streetAddress?: string, postalCode?: string}} fields
- * @returns {{matchedOn: 'phone'|'address', value: string, pk: string}[]}
+ * @param {{phones?: string[], streetAddress?: string, postalCode?: string}} fields
+ * @returns {{matchedOn: 'phone'|'address', value: string, pk: string}[]} one per distinct number, then the address
  */
-function linkKeys({ phone, streetAddress, postalCode } = {}) {
-  const keys = [];
-  const e164 = normalizePhoneNumber(phone);
-  if (e164) keys.push({ matchedOn: 'phone', value: e164, pk: `link#phone#${e164}` });
+function linkKeys({ phones = [], streetAddress, postalCode } = {}) {
+  const numbers = new Set(phones.map(normalizePhoneNumber).filter(Boolean));
+  const keys = [...numbers].map((e164) => ({ matchedOn: 'phone', value: e164, pk: `link#phone#${e164}` }));
   const address = normalizeAddress({ streetAddress, postalCode });
   if (address) keys.push({ matchedOn: 'address', value: address, pk: `link#address#${address}` });
   return keys;

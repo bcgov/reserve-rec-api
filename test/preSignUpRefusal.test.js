@@ -240,7 +240,7 @@ describe('PreSignUp refusal', () => {
         counted: { BOOL: true },
         givenName: { S: FORM_ATTRIBUTES.given_name },
         familyName: { S: FORM_ATTRIBUTES.family_name },
-        phone: { S: '+12505550100' },
+        phones: { SS: ['+12505550100'] },
         address: { S: '1 example st|v0v0v0' },
         expiresAt: { N: expect.any(String) },
       });
@@ -266,15 +266,30 @@ describe('PreSignUp refusal', () => {
 
       expect(refusedReasons()).toEqual(['phone_blocklist']);
       const [record, ...links] = writes().map(({ Item }) => Item);
-      expect(record).toMatchObject({ reason: { S: 'phone_blocklist' }, counted: { BOOL: true }, phone: { S: '+12505550100' } });
+      expect(record).toMatchObject({ reason: { S: 'phone_blocklist' }, counted: { BOOL: true }, phones: { SS: ['+12505550100'] } });
       expect(links.map(({ pk }) => pk.S)).toEqual(['link#phone#+12505550100', 'link#address#1 example st|v0v0v0']);
     });
 
-    it('refuses a listed secondary number', async () => {
+    it('refuses a listed secondary number and links it', async () => {
       listing('+12505550109');
       await expect(handler(native({ 'custom:secondaryNumber': '250.555.0109' })))
         .rejects.toThrow(expect.objectContaining({ signupRefused: true }));
       expect(refusedReasons()).toEqual(['phone_blocklist']);
+
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record.phones).toEqual({ SS: ['+12505550100', '+12505550109'] });
+      expect(links.map(({ pk }) => pk.S)).toEqual([
+        'link#phone#+12505550100', 'link#phone#+12505550109', 'link#address#1 example st|v0v0v0',
+      ]);
+    });
+
+    it('links a number given in both fields once', async () => {
+      listing('+12505550100');
+      await handler(native({ 'custom:secondaryNumber': '+1 250 555 0100' })).catch(() => {});
+
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record.phones).toEqual({ SS: ['+12505550100'] });
+      expect(links.filter(({ pk }) => pk.S.startsWith('link#phone#'))).toHaveLength(1);
     });
 
     it('allows a phone that is not listed', async () => {

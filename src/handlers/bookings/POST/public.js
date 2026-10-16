@@ -232,7 +232,6 @@ exports.handler = async (event, context) => {
       logger.error("event=hold_failed", { message: errorMessage || error?.message });
     }
 
-    // An unexpected fault's own text is internal; the caller gets the generic failure.
     const unexpected = !(error instanceof Exception) && !Number(error?.code);
     const message = errorMessage || (unexpected ? GENERIC_FAILURE_MESSAGE : error?.message);
     const safeError = {

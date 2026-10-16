@@ -29,23 +29,28 @@ describe('normalizeAddress', () => {
 
 describe('linkKeys', () => {
   it('keys a phone by its E.164 form', () => {
-    expect(linkKeys({ phone: '(250) 555-0100' })).toEqual([
+    expect(linkKeys({ phones: ['(250) 555-0100'] })).toEqual([
       { matchedOn: 'phone', value: '+12505550100', pk: 'link#phone#+12505550100' },
     ]);
   });
 
-  it('skips a phone that does not resolve', () => {
-    expect(linkKeys({ phone: '123' })).toEqual([]);
+  it('keys each distinct number once', () => {
+    expect(linkKeys({ phones: ['250 555 0100', '+12505550100', '250.555.0109', undefined] }).map((k) => k.pk))
+      .toEqual(['link#phone#+12505550100', 'link#phone#+12505550109']);
   });
 
-  it('keys an address after the phone', () => {
-    expect(linkKeys({ phone: '+12505550100', streetAddress: '1 Example St', postalCode: 'V0V 0V0' }).map((k) => k.pk))
+  it('skips a phone that does not resolve', () => {
+    expect(linkKeys({ phones: ['123'] })).toEqual([]);
+  });
+
+  it('keys an address after the phones', () => {
+    expect(linkKeys({ phones: ['+12505550100'], streetAddress: '1 Example St', postalCode: 'V0V 0V0' }).map((k) => k.pk))
       .toEqual(['link#phone#+12505550100', 'link#address#1 example st|v0v0v0']);
   });
 });
 
 describe('findLink', () => {
-  const keys = linkKeys({ phone: '+12505550100', streetAddress: '1 Example St', postalCode: 'V0V 0V0' });
+  const keys = linkKeys({ phones: ['+12505550100'], streetAddress: '1 Example St', postalCode: 'V0V 0V0' });
   const [phonePk, addressPk] = keys.map((k) => k.pk);
 
   beforeEach(() => mockRunQuery.mockReset());

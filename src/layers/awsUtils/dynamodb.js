@@ -550,6 +550,7 @@ async function putItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
  */
 async function updateItem(obj, tableName = REFERENCE_DATA_TABLE_NAME) {
   const { pk, sk, ...fields } = obj;
+  if (!Object.keys(fields).length) throw new Error('updateItem needs at least one attribute besides pk and sk');
   const names = {};
   const values = {};
   const sets = Object.keys(fields).map((key, i) => {
