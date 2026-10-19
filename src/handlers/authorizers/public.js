@@ -9,6 +9,7 @@ const { CognitoJwtVerifier } = require('aws-jwt-verify');
 // Signed-in reads that also require an enabled account with a verified email.
 const AVAILABILITY_RESOURCES = ['inventoryPools', 'product-dates'];
 const ACCOUNT_STATUS_TTL_MS = 5 * 60 * 1000;
+const INACTIVE_STATUS_TTL_MS = 30 * 1000;
 const THROTTLE_ERRORS = ['TooManyRequestsException', 'ThrottlingException'];
 const ACCOUNT_STATUS_CACHE_MAX = 5000;
 const accountStatusCache = new Map();
@@ -41,7 +42,8 @@ function isThrottled(error) {
 
 /**
  * Whether the token's account exists, is enabled and has a verified email.
- * Answers are cached by sub for ACCOUNT_STATUS_TTL_MS. When Cognito throttles
+ * Active answers are cached by sub for ACCOUNT_STATUS_TTL_MS, inactive ones
+ * for INACTIVE_STATUS_TTL_MS. When Cognito throttles
  * the lookup the account is let through (not cached); any other Cognito error
  * except a missing user is thrown and not cached.
  */
@@ -65,7 +67,7 @@ async function isAccountActive(userPoolId, payload) {
   if (accountStatusCache.size >= ACCOUNT_STATUS_CACHE_MAX) {
     accountStatusCache.delete(accountStatusCache.keys().next().value);
   }
-  accountStatusCache.set(payload.sub, { active, expires: now + ACCOUNT_STATUS_TTL_MS });
+  accountStatusCache.set(payload.sub, { active, expires: now + (active ? ACCOUNT_STATUS_TTL_MS : INACTIVE_STATUS_TTL_MS) });
   return active;
 }
 
