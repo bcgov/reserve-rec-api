@@ -73,9 +73,9 @@ async function validateToken(verifier, token) {
     const payload = await verifier.verify(token);
     logger.info("Token is valid.");
     return payload;
-  } catch {
-    logger.info("Token is invalid");
-    throw 'Token is invalid.';
+  } catch (error) {
+    logger.info(`Token is invalid: ${error?.name}: ${error?.message}`);
+    throw error;
   }
 }
 
