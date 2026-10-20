@@ -30,6 +30,7 @@ module.exports = {
     '^/opt/locations/methods$': '<rootDir>/src/layers/dataUtils/locations/methods.js',
     '^/opt/opensearch$': '<rootDir>/src/layers/awsUtils/opensearch.js',
     '^/opt/phone$': '<rootDir>/src/layers/base/phone.js',
+    '^/opt/signupLinks$': '<rootDir>/src/layers/base/signupLinks.js',
     '^/opt/resources/configs$': '<rootDir>/src/layers/dataUtils/resources/configs.js',
     '^/opt/ssm$': '<rootDir>/src/layers/awsUtils/ssm.js',
     '^/opt/resources/methods$': '<rootDir>/src/layers/dataUtils/resources/methods.js',

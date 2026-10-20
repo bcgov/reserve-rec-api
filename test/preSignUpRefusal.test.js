@@ -9,6 +9,8 @@ const mockLoadBlocklist = jest.fn();
 const mockRefusalReason = jest.fn();
 const mockCanonicalizeEmail = jest.fn();
 jest.mock('/opt/emailBlocklist', () => ({
+  BLOCKLIST_REASONS: jest.requireActual('/opt/emailBlocklist').BLOCKLIST_REASONS,
+  phoneRefusalReason: jest.requireActual('/opt/emailBlocklist').phoneRefusalReason,
   loadBlocklist: (...args) => mockLoadBlocklist(...args),
   refusalReason: (...args) => mockRefusalReason(...args),
   emailDomain: (email) => String(email).split('@')[1] || null,
@@ -16,7 +18,10 @@ jest.mock('/opt/emailBlocklist', () => ({
 }));
 
 const mockIsValidPhoneNumber = jest.fn();
-jest.mock('/opt/phone', () => ({ isValidPhoneNumber: (...args) => mockIsValidPhoneNumber(...args) }));
+jest.mock('/opt/phone', () => ({
+  isValidPhoneNumber: (...args) => mockIsValidPhoneNumber(...args),
+  normalizePhoneNumber: jest.requireActual('/opt/phone').normalizePhoneNumber,
+}));
 
 process.env.REFUSAL_TABLE_NAME = 'refusals';
 const mockDdbSend = jest.fn();
@@ -198,6 +203,7 @@ describe('PreSignUp refusal', () => {
         familyName: { S: 'User' },
         email: { S: 'someone@blocked.test' },
         reason: { S: 'phone' },
+        counted: { BOOL: false },
         expiresAt: { N: expect.any(String) },
       });
       const ttl = Number(Item.expiresAt.N) - before;
@@ -205,10 +211,107 @@ describe('PreSignUp refusal', () => {
       expect(ttl).toBeLessThan(90 * 86400 + 60);
     });
 
-    it('records nothing for a native refusal', async () => {
-      mockRefusalReason.mockReturnValue('address');
-      await expect(handler(event('someone@blocked.test'))).rejects.toThrow();
-      expect(mockDdbSend).not.toHaveBeenCalled();
+    const native = (attributes = {}) => ({
+      ...event('Some.One+tag@Blocked.test'),
+      userName: 'native-user-1',
+      request: {
+        userAttributes: {
+          email: 'Some.One+tag@Blocked.test',
+          ...FORM_ATTRIBUTES,
+          'custom:mobilePhone': '250 555 0100',
+          'custom:streetAddress': '1 Example St.',
+          'custom:postalCode': 'v0v 0v0',
+          ...attributes,
+        },
+      },
+    });
+
+    it('records a native blocklist refusal with its phone, address and link items', async () => {
+      mockRefusalReason.mockReturnValue('domain');
+      mockCanonicalizeEmail.mockReturnValue('someone@blocked.test');
+      await expect(handler(native())).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record).toEqual({
+        pk: { S: 'native-user-1' },
+        sk: { S: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) },
+        email: { S: 'someone@blocked.test' },
+        reason: { S: 'domain' },
+        counted: { BOOL: true },
+        givenName: { S: FORM_ATTRIBUTES.given_name },
+        familyName: { S: FORM_ATTRIBUTES.family_name },
+        phones: { SS: ['+12505550100'] },
+        address: { S: '1 example st|v0v0v0' },
+        expiresAt: { N: expect.any(String) },
+      });
+      expect(links).toEqual(['link#phone#+12505550100', 'link#address#1 example st|v0v0v0'].map((pk) => ({
+        pk: { S: pk },
+        sk: { S: `${record.sk.S}#native-user-1` },
+        source: { S: 'refusal' },
+        ref: { S: 'native-user-1' },
+        reason: { S: 'domain' },
+        expiresAt: record.expiresAt,
+      })));
+    });
+
+    const listing = (...phones) => mockLoadBlocklist.mockResolvedValue({
+      addresses: new Set(), domains: [], patterns: [], phones: new Set(phones),
+    });
+    const refusedReasons = () => require('/opt/base').logger.info.mock.calls
+      .filter(([msg]) => msg === 'event=signup_refused').map(([, fields]) => fields.reason);
+
+    it('refuses a listed mobile number as phone_blocklist and counts it', async () => {
+      listing('+12505550100');
+      await expect(handler(native())).rejects.toThrow(/could not complete your registration/i);
+
+      expect(refusedReasons()).toEqual(['phone_blocklist']);
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record).toMatchObject({ reason: { S: 'phone_blocklist' }, counted: { BOOL: true }, phones: { SS: ['+12505550100'] } });
+      expect(links.map(({ pk }) => pk.S)).toEqual(['link#phone#+12505550100', 'link#address#1 example st|v0v0v0']);
+    });
+
+    it('refuses a listed secondary number and links it', async () => {
+      listing('+12505550109');
+      await expect(handler(native({ 'custom:secondaryNumber': '250.555.0109' })))
+        .rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+      expect(refusedReasons()).toEqual(['phone_blocklist']);
+
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record.phones).toEqual({ SS: ['+12505550100', '+12505550109'] });
+      expect(links.map(({ pk }) => pk.S)).toEqual([
+        'link#phone#+12505550100', 'link#phone#+12505550109', 'link#address#1 example st|v0v0v0',
+      ]);
+    });
+
+    it('links a number given in both fields once', async () => {
+      listing('+12505550100');
+      await handler(native({ 'custom:secondaryNumber': '+1 250 555 0100' })).catch(() => {});
+
+      const [record, ...links] = writes().map(({ Item }) => Item);
+      expect(record.phones).toEqual({ SS: ['+12505550100'] });
+      expect(links.filter(({ pk }) => pk.S.startsWith('link#phone#'))).toHaveLength(1);
+    });
+
+    it('allows a phone that is not listed', async () => {
+      listing('+12505550109');
+      await expect(handler(native())).resolves.toBeDefined();
+    });
+
+    it('marks a phone refusal so it never links', async () => {
+      mockIsValidPhoneNumber.mockReturnValue(false);
+      await expect(handler(native())).rejects.toThrow(/area code/);
+
+      const items = writes().map(({ Item }) => Item);
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({ reason: { S: 'phone' }, counted: { BOOL: false } });
+    });
+
+    it('writes no link items for an incomplete sign-up', async () => {
+      await expect(handler(native({ given_name: '' }))).rejects.toThrow(expect.objectContaining({ signupRefused: true }));
+
+      const items = writes().map(({ Item }) => Item);
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({ reason: { S: 'incomplete' }, counted: { BOOL: false } });
     });
 
     it('records nothing for an allowed BCSC sign-in', async () => {
@@ -246,7 +349,7 @@ describe('PreSignUp refusal', () => {
         clientId: 'client-1',
         triggerSource: 'PreSignUp_SignUp',
       }]);
-      expect(mockDdbSend).not.toHaveBeenCalled();
+      expect(mockDdbSend).toHaveBeenCalledTimes(1);
     });
 
     it.each(Object.keys(FORM_ATTRIBUTES))('refuses a sign-up missing %s', async (attribute) => {

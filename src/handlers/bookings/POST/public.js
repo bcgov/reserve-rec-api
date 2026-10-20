@@ -5,7 +5,7 @@ const { batchTransactData, isTransactionConflict } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
 const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
-const { refused } = require('../refusals');
+const { GENERIC_FAILURE_MESSAGE, refused } = require('../refusals');
 
 exports.handler = async (event, context) => {
   logger.info("Bookings POST Activated", requestIdentity(event));
@@ -179,7 +179,7 @@ exports.handler = async (event, context) => {
 
     let errorMessage = '';
     let statusCode;
-    let refusal = error?.data?.refusal || null;
+    let refusal = error?.data?.refusal || error?.logRefusal || null;
     let lostWriteRace = isTransactionConflict(error);
     const cancellationReasons = error?.CancellationReasons || error?.cancellationReasons;
 
@@ -232,9 +232,11 @@ exports.handler = async (event, context) => {
       logger.error("event=hold_failed", { message: errorMessage || error?.message });
     }
 
+    const unexpected = !(error instanceof Exception) && !Number(error?.code);
+    const message = errorMessage || (unexpected ? GENERIC_FAILURE_MESSAGE : error?.message);
     const safeError = {
       name: error?.name,
-      message: errorMessage || error?.message,
+      message,
       code: error?.code,
       cancellationReasons: cancellationReasons || null,
     };
@@ -245,7 +247,7 @@ exports.handler = async (event, context) => {
     return sendResponse(
       Number(error?.code) || statusCode || 400,
       error?.data || null,
-      errorMessage || error?.message,
+      message,
       safeError,
       context,
       retryFields

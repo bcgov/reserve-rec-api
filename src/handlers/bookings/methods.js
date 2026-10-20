@@ -13,7 +13,7 @@ const {
 } = require("/opt/dynamodb");
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
-const { refused } = require("./refusals");
+const { genericRefusal, refused } = require("./refusals");
 const { sendConfirmationEmail, sendCancellationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
@@ -143,6 +143,28 @@ function requireVerifiedEmail(identity) {
       'Verify your email address before booking. Check your inbox for the verification code, or request a new one from your account settings.',
       403
     );
+  }
+}
+
+const REVIEW_REFUSED_STATES = new Set(['pending', 'rejected']);
+
+/**
+ * Refuses an account whose user record has review.state 'pending' or
+ * 'rejected'. A lookup fault is logged and the request is allowed.
+ *
+ * @param {string} userId - Cognito sub
+ * @throws {Exception} genericRefusal('hold_gate')
+ */
+async function requireReviewClear(userId) {
+  let user;
+  try {
+    user = await getOne('user', userId, TRANSACTIONAL_DATA_TABLE_NAME);
+  } catch (error) {
+    logger.error('Review state lookup failed open', { error: error?.message });
+    return;
+  }
+  if (REVIEW_REFUSED_STATES.has(user?.review?.state)) {
+    throw genericRefusal('hold_gate');
   }
 }
 
@@ -853,6 +875,8 @@ async function createBooking(props) {
 
     await validateBookingCreateProps(props);
 
+    await requireReviewClear(props.userId);
+
     // === Block duplicate booking for the same user/product/startDate (issue #458) ===
     // One pass per user per product per day. Cancelled and expired bookings don't count.
     const productBookingPk = `booking::${collectionId}::${activityType}::${activityId}::${productId}`;
@@ -1436,7 +1460,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, { sub, username } = {}) {
+async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false } = {}) {
   try {
 
     // === get queryTime ===
@@ -1494,6 +1518,8 @@ async function completeBooking(bookingId, sessionId, props, { sub, username } = 
       // occupant name, say) deliberately do NOT release: the caller can fix
       // those and complete the same hold.
       await releaseHoldOnRefusal(booking, () => requireVerifiedEmail(ownerIdentity), queryTime, sub);
+      // Once payment has started the charge stands, so the booking must complete.
+      if (!paymentStarted) await requireReviewClear(sub);
       updatedBookingItem.namedOccupant = ownerIdentity
         ? {
           firstName: ownerIdentity.firstName,
@@ -3126,6 +3152,7 @@ module.exports = {
   initInventoryPoolCheckRequest,
   refundPublishCommand,
   releaseHoldOnRefusal,
+  requireReviewClear,
   requireVerifiedEmail,
   resolveAuthenticatedOccupantIdentity,
   sanitizeString,
