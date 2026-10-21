@@ -7,6 +7,8 @@ const {
   domainMatches,
   itemsToLists,
   loadBlocklist,
+  phoneRefusalReason,
+  refusalReason,
   toItem,
 } = require('/opt/emailBlocklist');
 
@@ -99,6 +101,14 @@ describe('toItem', () => {
     });
   });
 
+  it('keys a phone by its E.164 form', () => {
+    const item = toItem('phone', '(250) 555-0101', { reason: 'r', addedBy: 'me', addedAt: 't' });
+    expect(item).toEqual({
+      pk: BLOCKLIST_PK, sk: 'phone#+12505550101', kind: 'phone', value: '+12505550101',
+      reason: 'r', addedBy: 'me', addedAt: 't',
+    });
+  });
+
   it('lowercases a domain', () => {
     expect(toItem('domain', ' Blocked.Example ').sk).toBe('domain#blocked.example');
   });
@@ -107,6 +117,7 @@ describe('toItem', () => {
     expect(() => toItem('address', 'not-an-address')).toThrow(/not an email/);
     expect(() => toItem('domain', 'nodot')).toThrow(/not a domain/);
     expect(() => toItem('pattern', '[unclosed')).toThrow();
+    expect(() => toItem('phone', '123')).toThrow(/not a phone number/);
     expect(() => toItem('ip', '1.2.3.4')).toThrow(/unknown blocklist kind/);
   });
 });
@@ -150,6 +161,17 @@ describe('loadBlocklist', () => {
     expect(list.domains).toEqual(['blocked.example']);   // deduplicated
   });
 
+  it('loads phone entries in E.164, whatever form they were stored in', async () => {
+    const { load, runQuery } = fresh();
+    runQuery.mockResolvedValue({ items: [
+      toItem('phone', '+1 250 555 0101'),
+      { kind: 'phone', value: '2505550102' },
+      { kind: 'phone', value: 'not a number' },
+    ] });
+    const list = await load('t');
+    expect(list.phones).toEqual(new Set(['+12505550101', '+12505550102']));
+  });
+
   it('caches across calls', async () => {
     const { load, runQuery } = fresh();
     runQuery.mockResolvedValue({ items });
@@ -167,7 +189,28 @@ describe('loadBlocklist', () => {
 
 describe('itemsToLists', () => {
   it('is the inverse of toItem, in the shape the parameter used', () => {
-    expect(itemsToLists([toItem('address', 'a@example.com'), toItem('domain', 'd.example'), toItem('pattern', 'x')]))
-      .toEqual({ addresses: ['a@example.com'], domains: ['d.example'], patterns: ['x'] });
+    expect(itemsToLists([
+      toItem('address', 'a@example.com'), toItem('domain', 'd.example'), toItem('pattern', 'x'), toItem('phone', '+12505550101'),
+    ])).toEqual({ addresses: ['a@example.com'], domains: ['d.example'], patterns: ['x'], phones: ['+12505550101'] });
+  });
+});
+
+describe('phoneRefusalReason', () => {
+  const list = { phones: new Set(['+12505550101']) };
+
+  it('refuses a listed phone in any written form', () => {
+    expect(phoneRefusalReason('250-555-0101', list)).toBe('phone_blocklist');
+    expect(phoneRefusalReason('+1 (250) 555 0101', list)).toBe('phone_blocklist');
+  });
+
+  it('allows an unlisted, unparseable or missing phone', () => {
+    expect(phoneRefusalReason('+12505550102', list)).toBeNull();
+    expect(phoneRefusalReason('123', list)).toBeNull();
+    expect(phoneRefusalReason(undefined, list)).toBeNull();
+    expect(phoneRefusalReason('+12505550101', { addresses: new Set() })).toBeNull();
+  });
+
+  it('is not an email rule', () => {
+    expect(refusalReason('person@example.com', { addresses: new Set(), domains: [], patterns: [], ...list })).toBeNull();
   });
 });

@@ -188,17 +188,19 @@ describe('PreTokenGeneration review fields', () => {
     expect(stored()).not.toHaveProperty('reviewFlag');
   });
 
-  it('keeps review fields across logins', async () => {
+  const reviewKeys = () => Object.keys(stored()).filter((key) => key.startsWith('review'));
+
+  it('leaves stored review fields alone across logins', async () => {
     getOne.mockResolvedValue({ ...existing('banned@example.com'), ...flagged, reviewedBy: 'admin' });
     await handler(event('banned@example.com', { bcsc: true }));
     expect(loadBlocklist).not.toHaveBeenCalled();
-    expect(stored()).toMatchObject({ ...flagged, reviewedBy: 'admin' });
+    expect(reviewKeys()).toEqual([]);
   });
 
-  it('keeps a cleared reviewFlag while the address is unchanged', async () => {
+  it('leaves a cleared reviewFlag alone while the address is unchanged', async () => {
     getOne.mockResolvedValue({ ...existing('banned@example.com'), ...flagged, reviewFlag: false });
     await handler(event('banned@example.com', { bcsc: true }));
-    expect(stored().reviewFlag).toBe(false);
+    expect(reviewKeys()).toEqual([]);
   });
 
   it('sets reviewFlag again after an address change', async () => {

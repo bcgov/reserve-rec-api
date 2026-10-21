@@ -5,6 +5,8 @@ jest.mock('/opt/base', () => ({
   logger: { debug: jest.fn(), info: mockLoggerInfo, error: jest.fn() },
 }));
 jest.mock('/opt/emailBlocklist', () => ({
+  BLOCKLIST_REASONS: jest.requireActual('/opt/emailBlocklist').BLOCKLIST_REASONS,
+  phoneRefusalReason: jest.requireActual('/opt/emailBlocklist').phoneRefusalReason,
   loadBlocklist: jest.fn().mockResolvedValue({ addresses: new Set(), domains: [], patterns: [] }),
   refusalReason: jest.fn().mockReturnValue(null),
   // The mailbox claim is covered in preSignUpEmailClaim.test.js.
@@ -12,6 +14,10 @@ jest.mock('/opt/emailBlocklist', () => ({
   emailDomain: (email) => String(email).split('@')[1] || null,
 }));
 jest.mock('/opt/dynamodb', () => ({ runQuery: jest.fn() }));
+jest.mock('@aws-sdk/client-dynamodb', () => ({
+  ...jest.requireActual('@aws-sdk/client-dynamodb'),
+  DynamoDBClient: jest.fn(() => ({ send: jest.fn().mockResolvedValue({}) })),
+}));
 
 const { handler } = require('../lib/handlers/cognitoTriggers/preSignUp');
 const { FORM_ATTRIBUTES } = require('./helpers/preSignUpForm');

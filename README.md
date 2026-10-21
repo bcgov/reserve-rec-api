@@ -479,7 +479,7 @@ Alarms are configuration, not code. Each stack's SSM config (`publicApiStack` fo
 "eventAlarms": { "<event name>": <count> }
 ```
 
-Each booking handler's catch logs one outcome per request. A refusal is a 4xx returned on purpose: it is thrown with `refused(reason, ...)` from `src/handlers/bookings/refusals.js`, which sets `data: { refusal: '<reason>' }`, and logs `hold_refused_<reason>`, `complete_refused_<reason>`, `cancel_refused_<reason>`, or `remove_refused_<reason>`; a 5xx or an unexpected error logs `hold_failed`, `booking_complete_failed` or `cancel_failed`. A hold that loses a write race logs `hold_conflict`.
+Each booking handler's catch logs one outcome per request. A refusal is a 4xx returned on purpose: it is thrown with `refused(reason, ...)` from `src/handlers/bookings/refusals.js`, which sets `data: { refusal: '<reason>' }`, and logs `hold_refused_<reason>`, `complete_refused_<reason>`, `cancel_refused_<reason>`, or `remove_refused_<reason>`; a 5xx or an unexpected error logs `hold_failed`, `booking_complete_failed` or `cancel_failed`. A hold that loses a write race logs `hold_conflict`. `genericRefusal(reason)` logs the same event names, does not return the reason, and answers 400 with `GENERIC_FAILURE_MESSAGE`.
 
 To add an event: log it as `event=<name>` with the base layer logger, add the name to `EVENT_GROUPS`, and pass it to `addEventMetrics` where the Lambda is defined. Functions that emit events set `logRetention`, which is what lets the metric filter attach to a log group that may not exist yet.
 
@@ -494,11 +494,12 @@ node src/scripts/tools/cognito/emailBlocklist.js --env dev list
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add address someone@example.com --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add domain example.com --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev add pattern '^sample[0-9]{4,}@' --reason "..."
+node src/scripts/tools/cognito/emailBlocklist.js --env dev add phone '+1 250 555 0100' --reason "..."
 node src/scripts/tools/cognito/emailBlocklist.js --env dev remove address someone@example.com
 node src/scripts/tools/cognito/emailBlocklist.js --env dev import list.json --reason "..."
 ```
 
-Entry kinds: `address` (exact, canonical), `domain` (the domain and its subdomains), `pattern` (case-insensitive regular expression against the canonical address). A warm Lambda re-reads the list every five minutes. The list is defence data: it is never committed here, and a failure to read it fails open so an outage never takes signup down.
+Entry kinds: `address` (exact, canonical), `domain` (the domain and its subdomains), `pattern` (case-insensitive regular expression against the canonical address), `phone` (stored as E.164, matched against the sign-up's mobile and secondary numbers; refused as `phone_blocklist`). A warm Lambda re-reads the list every five minutes. The list is defence data: it is never committed here, and a failure to read it fails open so an outage never takes signup down.
 
 ## 🏗️ CDKProject Architecture
 

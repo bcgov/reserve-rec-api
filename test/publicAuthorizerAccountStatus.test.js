@@ -151,6 +151,32 @@ describe('public authorizer, account status on availability reads', () => {
     now.mockRestore();
   });
 
+  it('looks an inactive account up again after 30 seconds', async () => {
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    mockAdminGetUser.mockResolvedValue(cognitoUser({ emailVerified: 'false' }));
+    expect((await handler(event())).context).toMatchObject(GUEST);
+
+    mockAdminGetUser.mockResolvedValue(cognitoUser());
+    now.mockReturnValue(1_029_000);
+    expect((await handler(event())).context).toMatchObject(GUEST);
+    expect(mockAdminGetUser).toHaveBeenCalledTimes(1);
+
+    now.mockReturnValue(1_030_001);
+    expect((await handler(event())).context).toMatchObject(SIGNED_IN);
+    expect(mockAdminGetUser).toHaveBeenCalledTimes(2);
+    now.mockRestore();
+  });
+
+  it('keeps serving an active answer from cache past 30 seconds', async () => {
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    mockAdminGetUser.mockResolvedValue(cognitoUser());
+    await handler(event());
+    now.mockReturnValue(1_031_000);
+    expect((await handler(event())).context).toMatchObject(SIGNED_IN);
+    expect(mockAdminGetUser).toHaveBeenCalledTimes(1);
+    now.mockRestore();
+  });
+
   it('does not cache a Cognito error', async () => {
     mockAdminGetUser.mockRejectedValueOnce(new Error('Failed to get user')).mockResolvedValue(cognitoUser());
     expect((await handler(event())).context).toMatchObject(GUEST);

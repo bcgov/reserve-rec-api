@@ -12,7 +12,7 @@
  *   node src/scripts/tools/cognito/emailBlocklist.js --env dev import list.json --reason "seeded from SSM"
  *
  * `import` takes a JSON file of the shape:
- *   { "addresses": [...], "domains": [...], "patterns": [...] }
+ *   { "addresses": [...], "domains": [...], "patterns": [...], "phones": [...] }
  *
  * The list is defence data. Keep it out of the repository and out of tickets.
  */
@@ -23,7 +23,7 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { BLOCKLIST_PK, KINDS, toItem } = require('../../../layers/base/emailBlocklist');
 
 const REGION = 'ca-central-1';
-const PLURAL = { address: 'addresses', domain: 'domains', pattern: 'patterns' };
+const PLURAL = { address: 'addresses', domain: 'domains', pattern: 'patterns', phone: 'phones' };
 
 function usage(msg) {
   if (msg) console.error(msg);
@@ -92,7 +92,7 @@ async function main() {
     }
     case 'add': {
       const [kind, value] = args;
-      if (!kind || !value) usage('add <address|domain|pattern> <value>');
+      if (!kind || !value) usage('add <address|domain|pattern|phone> <value>');
       if (!opts.reason) usage('--reason is required for add');
       const item = toItem(kind, value, meta);
       await client.send(new PutItemCommand({ TableName: opts.table, Item: marshall(item) }));
@@ -101,7 +101,7 @@ async function main() {
     }
     case 'remove': {
       const [kind, value] = args;
-      if (!kind || !value) usage('remove <address|domain|pattern> <value>');
+      if (!kind || !value) usage('remove <address|domain|pattern|phone> <value>');
       const { sk } = toItem(kind, value);
       await client.send(new DeleteItemCommand({ TableName: opts.table, Key: marshall({ pk: BLOCKLIST_PK, sk }) }));
       console.log(`removed ${sk}`);

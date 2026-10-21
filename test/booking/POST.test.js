@@ -164,7 +164,7 @@ describe("Bookings POST handler", () => {
 
     const result = await handler(event, context);
     expect(result.status).toBe(400);
-    expect(result.message).toBe("DB error");
+    expect(result.message).toBe("Failed to create booking. Please try again.");
   });
 
   describe("event logging", () => {

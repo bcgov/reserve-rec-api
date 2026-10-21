@@ -22,6 +22,8 @@
  * write of a JSON blob. SSM was the first home and hit its 8KB ceiling.
  */
 
+const { normalizePhoneNumber } = require('./phone');
+
 // Subaddressing: the part after '+' is routing, not identity. Applied to every
 // provider, which is what DUP's expressions did in production. The alternative,
 // refusing any address containing '+', refuses real people — plus-tagging is a
@@ -86,12 +88,16 @@ function domainMatches(domain, blocked) {
 
 // One partition holds the whole list; the sort key is `<kind>#<value>`.
 const BLOCKLIST_PK = 'signup';
-const KINDS = ['address', 'domain', 'pattern'];
+const KINDS = ['address', 'domain', 'pattern', 'phone'];
+
+// 'phone' is the format check's reason, so a listed phone records as 'phone_blocklist'.
+const PHONE_BLOCKLIST_REASON = 'phone_blocklist';
+const BLOCKLIST_REASONS = ['address', 'domain', 'pattern', PHONE_BLOCKLIST_REASON];
 
 /**
  * Build the DynamoDB item for one entry. Addresses are canonicalised here so
  * the key is the form the lookup produces; an entry stored raw never matches.
- * @param {'address'|'domain'|'pattern'} kind
+ * @param {'address'|'domain'|'pattern'|'phone'} kind
  * @param {string} value
  * @param {{reason?: string, addedBy?: string, addedAt?: string}} [meta]
  */
@@ -104,6 +110,9 @@ function toItem(kind, value, meta = {}) {
   } else if (kind === 'domain') {
     key = String(value).trim().toLowerCase();
     if (!key || !key.includes('.')) throw new Error(`not a domain: ${value}`);
+  } else if (kind === 'phone') {
+    key = normalizePhoneNumber(value);
+    if (!key) throw new Error(`not a phone number: ${value}`);
   } else {
     key = String(value);
     new RegExp(key, 'i');   // throws on an invalid expression before it is stored
@@ -121,7 +130,7 @@ function toItem(kind, value, meta = {}) {
 
 /** Empty list, the shape every consumer expects. */
 function emptyBlocklist() {
-  return { addresses: new Set(), domains: [], patterns: [] };
+  return { addresses: new Set(), domains: [], patterns: [], phones: new Set() };
 }
 
 /**
@@ -129,7 +138,7 @@ function emptyBlocklist() {
  * trusted: one written in raw form would sit in the list forever without ever
  * matching anything.
  */
-function addEntries(list, { addresses = [], domains = [], patterns = [] }) {
+function addEntries(list, { addresses = [], domains = [], patterns = [], phones = [] }) {
   for (const a of addresses) {
     const c = canonicalizeEmail(a);
     if (c) list.addresses.add(c);
@@ -139,16 +148,21 @@ function addEntries(list, { addresses = [], domains = [], patterns = [] }) {
     if (c && !list.domains.includes(c)) list.domains.push(c);
   }
   for (const p of patterns) list.patterns.push(new RegExp(p, 'i'));
+  for (const n of phones) {
+    const e164 = normalizePhoneNumber(n);
+    if (e164) list.phones.add(e164);
+  }
   return list;
 }
 
 /** DynamoDB items → the list shape the CLI imports and refusalReason reads. */
 function itemsToLists(items) {
-  const lists = { addresses: [], domains: [], patterns: [] };
+  const lists = { addresses: [], domains: [], patterns: [], phones: [] };
   for (const item of items) {
     if (item.kind === 'address') lists.addresses.push(item.value);
     else if (item.kind === 'domain') lists.domains.push(item.value);
     else if (item.kind === 'pattern') lists.patterns.push(item.value);
+    else if (item.kind === 'phone') lists.phones.push(item.value);
   }
   return lists;
 }
@@ -162,7 +176,7 @@ let cachedAt = 0;
 
 /**
  * @param {string} tableName
- * @returns {Promise<{addresses: Set<string>, domains: string[], patterns: RegExp[]}>}
+ * @returns {Promise<{addresses: Set<string>, domains: string[], patterns: RegExp[], phones: Set<string>}>}
  */
 async function loadBlocklist(tableName) {
   if (cached && Date.now() - cachedAt < CACHE_TTL_MS) return cached;
@@ -201,14 +215,25 @@ function refusalReason(email, blocklist) {
   return null;
 }
 
+/**
+ * @param {string} phone - as typed
+ * @returns {'phone_blocklist'|null}
+ */
+function phoneRefusalReason(phone, blocklist) {
+  const e164 = normalizePhoneNumber(phone);
+  return e164 && blocklist.phones?.has(e164) ? PHONE_BLOCKLIST_REASON : null;
+}
+
 module.exports = {
   BLOCKLIST_PK,
+  BLOCKLIST_REASONS,
   KINDS,
   canonicalizeEmail,
   domainMatches,
   emailDomain,
   itemsToLists,
   loadBlocklist,
+  phoneRefusalReason,
   refusalReason,
   toItem,
 };
