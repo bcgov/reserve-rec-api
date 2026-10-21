@@ -12,7 +12,7 @@ class AdminConfigLambdas extends LambdaConstruct {
     logger.debug('Building Configuration Lambdas');
 
     this.configGetFunction = new NodejsFunction(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'admin.handler',
       code: lambda.Code.fromAsset('src/handlers/config/GET'),
       layers: props?.layers || [],
@@ -45,7 +45,7 @@ class PublicConfigLambdas extends LambdaConstruct {
     logger.debug('Building Configuration Lambdas');
 
     this.configGetFunction = new NodejsFunction(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'public.handler',
       code: lambda.Code.fromAsset('src/handlers/config/GET'),
       layers: props?.layers || [],

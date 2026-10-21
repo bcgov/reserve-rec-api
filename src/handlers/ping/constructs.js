@@ -15,7 +15,7 @@ class PingApiConstruct extends Construct {
     }
 
     this.testLambdaFunction = new lambda.Function(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('src/handlers/ping'),
       layers: props?.layers || [],

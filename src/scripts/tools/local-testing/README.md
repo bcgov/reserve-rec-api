@@ -141,7 +141,7 @@ Description: SAM template for AdminApiStack-Local-AdminApi
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Timeout: 30
     Environment:
       Variables:
@@ -164,7 +164,7 @@ Resources:
     Properties:
       CodeUri: ./asset.4104d53e2570fd9626fd960ef6121cb2eb81d945456b197ddc4f14a9bd6ff474
       Handler: index.handler
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
       Layers:
         - !Ref CoreStackLocalBaseLayerD9CF244D
       Events:
@@ -180,7 +180,7 @@ Resources:
     Properties:
       ContentUri: ./asset.70e06c47cecb94e8e68ab0ac71dfdf81c9c7f692a57c2f07ba66d82dc058bd45
       CompatibleRuntimes:
-        - nodejs20.x
+        - nodejs22.x
       Description: Base layer for Lambda functions in ReserveRecApi - local environment
       LicenseInfo: Apache-2.0
 ```

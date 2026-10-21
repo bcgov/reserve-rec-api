@@ -20,7 +20,7 @@ function activitiesSetup(scope, props) {
   const activitiesGetByCollectionId = new NodejsFunction(scope, 'ActivitiesGetByCollectionId', {
     code: lambda.Code.fromAsset('lib/handlers/activities'),
     handler: '_collectionId/GET/index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });
@@ -30,7 +30,7 @@ function activitiesSetup(scope, props) {
   const activitiesPostByCollectionId = new NodejsFunction(scope, 'ActivitiesPostByCollectionId', {
     code: lambda.Code.fromAsset('lib/handlers/activities'),
     handler: '_collectionId/POST/index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });
@@ -40,7 +40,7 @@ function activitiesSetup(scope, props) {
   const activitiesPutByCollectionTypeId = new NodejsFunction(scope, 'ActivitiesPutByCollectionTypeId', {
     code: lambda.Code.fromAsset('lib/handlers/activities'),
     handler: '_collectionId/PUT/index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });
@@ -50,7 +50,7 @@ function activitiesSetup(scope, props) {
   const activitiesDeleteByCollectionTypeId = new NodejsFunction(scope, 'ActivitiesDeleteByCollectionTypeId', {
     code: lambda.Code.fromAsset('lib/handlers/activities'),
     handler: '_collectionId/DELETE/index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });

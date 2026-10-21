@@ -16,7 +16,7 @@ function searchSetup(scope, props) {
   const searchPostFunction = new NodejsFunction(scope, 'SearchPost', {
     code: lambda.Code.fromAsset('lib/handlers/search/POST'),
     handler: 'index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });

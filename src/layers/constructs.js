@@ -20,7 +20,7 @@ class BaseLayerConstruct extends Construct {
       layerName: id,
       code: lambda.Code.fromAsset(this.baseLayerEntry, {
         bundling: {
-          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [],
           local: {
             tryBundle(outputDir) {
@@ -32,7 +32,7 @@ class BaseLayerConstruct extends Construct {
           }
         }
       }),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
       description: `Base layer for Lambda functions in ${scope.getAppName()} - ${scope.getDeploymentName()} environment`,
       removalPolicy: RemovalPolicy.DESTROY,
       license: 'Apache-2.0',
@@ -56,7 +56,7 @@ class AwsUtilsLayerConstruct extends Construct {
       layerName: id,
       code: lambda.Code.fromAsset(this.awsUtilsLayerEntry, {
         bundling: {
-          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
           command: [],
           local: {
             tryBundle(outputDir) {
@@ -68,7 +68,7 @@ class AwsUtilsLayerConstruct extends Construct {
           }
         }
       }),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
       description: `AWS Utils layer for Lambda functions in ${scope.getAppName()} - ${scope.getDeploymentName()} environment`,
       removalPolicy: RemovalPolicy.DESTROY,
       license: 'Apache-2.0',
