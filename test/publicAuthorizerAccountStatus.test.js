@@ -3,7 +3,13 @@
 // token is, as a guest.
 
 const mockLogger = { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
-jest.mock('/opt/base', () => ({ logger: mockLogger }));
+jest.mock('/opt/base', () => ({
+  logger: mockLogger,
+  getClientIp: jest.requireActual('../src/layers/base/base').getClientIp,
+}));
+
+const mockCheckNetworks = jest.fn();
+jest.mock('../src/handlers/authorizers/tokenNetworks', () => ({ checkNetworks: (...args) => mockCheckNetworks(...args) }));
 
 jest.mock('/opt/dynamodb', () => ({ getOne: jest.fn() }));
 
@@ -20,10 +26,12 @@ const ARN_PREFIX = 'arn:aws:execute-api:ca-central-1:123456789012:abc123/api';
 const INVENTORY_ARN = `${ARN_PREFIX}/GET/inventoryPools/bcparks_1/dayuse/1/1`;
 const PRODUCT_DATES_ARN = `${ARN_PREFIX}/GET/product-dates/bcparks_1/dayuse/1/1`;
 
+const VIEWER_IP = '2001:db8::5';
+
 const event = (methodArn = INVENTORY_ARN, authorization = 'Bearer token') => ({
   type: 'REQUEST',
   methodArn,
-  headers: authorization ? { Authorization: authorization } : {},
+  headers: { 'x-viewer-ip': VIEWER_IP, ...(authorization ? { Authorization: authorization } : {}) },
   requestContext: {},
 });
 
@@ -72,6 +80,7 @@ describe('public authorizer, account status on availability reads', () => {
     process.env.PUBLIC_USER_POOL_ID = 'ca-central-1_test';
     process.env.PUBLIC_USER_POOL_CLIENT_ID = 'client-test';
     mockVerify.mockResolvedValue({ sub: SUB, username: 'someone', email: 'a@example.com' });
+    mockCheckNetworks.mockResolvedValue({ over: false });
     handler = loadHandler();
   });
 
@@ -205,5 +214,63 @@ describe('public authorizer, account status on availability reads', () => {
     const res = await handler(event(INVENTORY_ARN, null));
     expect(res.context).toMatchObject(GUEST);
     expect(mockAdminGetUser).not.toHaveBeenCalled();
+  });
+});
+
+describe('public authorizer, network spread on availability reads', () => {
+  let handler;
+  const spreadLines = () => mockLogger.info.mock.calls.filter(([msg]) => msg === 'event=token_network_spread');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.PUBLIC_USER_POOL_ID = 'ca-central-1_test';
+    process.env.PUBLIC_USER_POOL_CLIENT_ID = 'client-test';
+    delete process.env.TOKEN_NETWORK_ENFORCE;
+    mockVerify.mockResolvedValue({ sub: SUB, username: 'someone' });
+    mockAdminGetUser.mockResolvedValue(cognitoUser());
+    mockCheckNetworks.mockResolvedValue({ over: false, networks: 1 });
+    handler = loadHandler();
+  });
+
+  afterAll(() => {
+    delete process.env.TOKEN_NETWORK_ENFORCE;
+  });
+
+  it('checks the token subject against the viewer IP', async () => {
+    const res = await handler(event());
+    expect(res.context).toMatchObject(SIGNED_IN);
+    expect(mockCheckNetworks).toHaveBeenCalledWith({ sub: SUB, ip: VIEWER_IP });
+    expect(spreadLines()).toHaveLength(0);
+  });
+
+  it('logs an over-limit reader but keeps it signed in when enforcement is off', async () => {
+    mockCheckNetworks.mockResolvedValue({ over: true, networks: 2 });
+    const res = await handler(event());
+    expect(res.context).toMatchObject(SIGNED_IN);
+    expect(spreadLines()).toEqual([['event=token_network_spread', { sub: SUB, networks: 2 }]]);
+  });
+
+  it('answers an over-limit reader as a guest when enforcement is on', async () => {
+    process.env.TOKEN_NETWORK_ENFORCE = 'true';
+    mockCheckNetworks.mockResolvedValue({ over: true, networks: 2 });
+    const spread = await handler(event());
+
+    mockVerify.mockRejectedValueOnce(new Error('expired'));
+    const invalidToken = await handler(event());
+
+    expect(spread).toEqual(invalidToken);
+    expect(spread.context).toMatchObject(GUEST);
+    expect(spreadLines()).toEqual([['event=token_network_spread', { sub: SUB, networks: 2 }]]);
+  });
+
+  it('does not check an inactive account', async () => {
+    mockAdminGetUser.mockResolvedValue(cognitoUser({ enabled: false }));
+    await handler(event());
+    expect(mockCheckNetworks).not.toHaveBeenCalled();
+  });
+
+  it('does not check other routes', async () => {
+    await handler(event(`${ARN_PREFIX}/GET/bookings`));
+    expect(mockCheckNetworks).not.toHaveBeenCalled();
   });
 });

@@ -444,12 +444,18 @@ function getRequestClaimsFromEvent(event) {
   }
 }
 
-/**
- * Address portion of the CloudFront-Viewer-Address header ("ip:port", with an
- * IPv6 address wrapped in brackets). Returns null when the header is absent.
- */
+function getHeaderValue(headers, name) {
+  const lower = name.toLowerCase();
+  const key = Object.keys(headers || {}).find((k) => k.toLowerCase() === lower);
+  return key === undefined ? undefined : headers[key];
+}
+
+// x-viewer-ip when set, else the address from CloudFront-Viewer-Address ("ip:port",
+// IPv6 bracketed). Header names match case-insensitively; null when neither is set.
 function getClientIp(headers) {
-  const raw = headers?.['CloudFront-Viewer-Address'];
+  const viewerIp = getHeaderValue(headers, 'x-viewer-ip')?.trim();
+  if (viewerIp) return viewerIp;
+  const raw = getHeaderValue(headers, 'CloudFront-Viewer-Address');
   if (!raw) return null;
   const bracketed = raw.match(/^\[(.+)\]:\d+$/);
   if (bracketed) return bracketed[1];

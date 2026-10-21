@@ -5,7 +5,8 @@
 const { NodejsFunction } = require("aws-cdk-lib/aws-lambda-nodejs");
 const apigw = require('aws-cdk-lib/aws-apigateway');
 const iam = require('aws-cdk-lib/aws-iam');
-const { Duration, Stack } = require('aws-cdk-lib');
+const dynamodb = require('aws-cdk-lib/aws-dynamodb');
+const { Duration, RemovalPolicy, Stack } = require('aws-cdk-lib');
 const { Code, Runtime } = require('aws-cdk-lib/aws-lambda');
 const { buildDist } = require('../../scripts/tools/bundling/yarnBundler');
 const { Construct } = require('constructs');
@@ -62,6 +63,16 @@ class PublicAuthorizerConstruct extends Construct {
     const constructId = scope.createScopedId(id);
     super(scope, constructId, props);
 
+    // One item per token subject and client network, expired by TTL.
+    this.tokenNetworksTable = new dynamodb.Table(this, scope.createScopedId(id, 'TokenNetworksTable'), {
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expiresAt',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    const environment = { ...props?.environment, TOKEN_NETWORKS_TABLE: this.tokenNetworksTable.tableName };
+
     // Create the Authorizer Lambda function
     const functionId = scope.createScopedId(id, 'Function');
     const authFunctionEntry = path.join(__dirname, '');
@@ -79,7 +90,7 @@ class PublicAuthorizerConstruct extends Construct {
       }),
       handler: 'public.handler',
       runtime: Runtime.NODEJS_20_X,
-      environment: props?.environment,
+      environment,
       functionName: `${scope.getAppName()}-${scope.getDeploymentName()}-${constructId}`.slice(0, 64),
       description: props?.description || `Public Authorizer function for ${scope.getAppName()}-${scope.getDeploymentName()} environment`,
       timeout: Duration.seconds(10),
@@ -95,7 +106,8 @@ class PublicAuthorizerConstruct extends Construct {
         ? Stack.of(this).formatArn({ service: 'cognito-idp', resource: 'userpool', resourceName: userPoolId })
         : '*'],
     }));
-    addEventMetrics(this.publicAuthorizerFunction, eventMetricNamespace(scope.getDeploymentName()), ['availability_denied']);
+    this.tokenNetworksTable.grantReadWriteData(this.publicAuthorizerFunction);
+    addEventMetrics(this.publicAuthorizerFunction, eventMetricNamespace(scope.getDeploymentName()), ['availability_denied', 'token_network_spread', 'viewer_ip_missing']);
 
     const requestAuthorizerId = scope.createScopedId(id, 'RequestAuthorizer');
     this.publicRequestAuthorizer = new apigw.RequestAuthorizer(this, requestAuthorizerId, {
