@@ -1,10 +1,11 @@
 // Authorizer for public API access
 
-const { logger } = require('/opt/base');
+const { logger, getClientIp } = require('/opt/base');
 const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken, handleContextAndAPIKey } = require('./methods');
 const { getOne } = require('/opt/dynamodb');
 const { adminGetUser } = require('/opt/cognito');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
+const { checkNetworks } = require('./tokenNetworks');
 
 // Signed-in reads that also require an enabled account with a verified email.
 const AVAILABILITY_RESOURCES = ['inventoryPools', 'product-dates'];
@@ -294,6 +295,15 @@ exports.handler = async function (event, context, callback) {
         logger.info('event=availability_denied', { sub: payload?.sub });
         payload = null;
         isAuthenticated = false;
+      } else {
+        const { over, networks } = await checkNetworks({ sub: payload.sub, ip: getClientIp(normalizedEvent.headers) });
+        if (over) {
+          logger.info('event=token_network_spread', { sub: payload.sub, networks });
+          if (process.env.TOKEN_NETWORK_ENFORCE === 'true') {
+            payload = null;
+            isAuthenticated = false;
+          }
+        }
       }
     }
 

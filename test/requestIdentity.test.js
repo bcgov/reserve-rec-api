@@ -33,6 +33,27 @@ describe('requestIdentity', () => {
     expect(requestIdentity(withViewerAddress).clientIp).toBe('198.51.100.9');
   });
 
+  const withHeaders = (headers) => ({ ...event({ userId: 'sub-123', isAuthenticated: 'true' }), headers });
+
+  it('prefers the x-viewer-ip header over CloudFront-Viewer-Address', () => {
+    const id = requestIdentity(withHeaders({
+      'x-viewer-ip': '2001:db8::7',
+      'CloudFront-Viewer-Address': '198.51.100.9:1234',
+    }));
+    expect(id.clientIp).toBe('2001:db8::7');
+  });
+
+  it('matches header names case-insensitively', () => {
+    expect(requestIdentity(withHeaders({ 'X-Viewer-IP': '203.0.113.5' })).clientIp).toBe('203.0.113.5');
+    expect(requestIdentity(withHeaders({ 'cloudfront-viewer-address': '[2001:db8::1]:443' })).clientIp)
+      .toBe('2001:db8::1');
+  });
+
+  it('falls back to CloudFront-Viewer-Address when x-viewer-ip is empty', () => {
+    const id = requestIdentity(withHeaders({ 'x-viewer-ip': '', 'CloudFront-Viewer-Address': '198.51.100.9:1234' }));
+    expect(id.clientIp).toBe('198.51.100.9');
+  });
+
   it('reports a guest as having no userId', () => {
     const id = requestIdentity(event({ userId: 'guest', isAuthenticated: 'false' }));
     expect(id.userId).toBeNull();
