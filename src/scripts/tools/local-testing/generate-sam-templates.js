@@ -821,7 +821,7 @@ class SAMTemplateGenerator {
             Description: `SAM template for ${apiInfo.properties.Name || apiInfo.resourceId}`,
             Globals: {
                 Function: {
-                    Runtime: 'nodejs20.x',
+                    Runtime: 'nodejs22.x',
                     Timeout: 30,
                     Environment: {
                         Variables: this.getLayerRequiredEnvironmentVariables()
@@ -1077,7 +1077,7 @@ class SAMTemplateGenerator {
                         Type: 'AWS::Serverless::LayerVersion',
                         Properties: {
                             ContentUri: sourceContentUri,
-                            CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x'],
+                            CompatibleRuntimes: ['nodejs22.x'],
                             Description: `${layerResourceId} for local development`
                         }
                     };

@@ -27,7 +27,7 @@ class DynamoStreamConstruct extends Construct {
       description: props?.description || `DynamoDB Stream processor for ${scope.getAppName()} - ${scope.getDeploymentName()} environment`,
       code: lambda.Code.fromAsset('src/handlers/dynamoStream'),
       handler: handlerName,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       environment: props?.environment,
       role: props?.role,
       layers: props?.layers || [],

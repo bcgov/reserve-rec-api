@@ -200,7 +200,7 @@ describe('AdminRealtimeStack', () => {
     ]);
     for (const file of Object.values(files)) {
       const { props } = fnByFile(template, files, file);
-      expect(props.Runtime).toBe('nodejs20.x');
+      expect(props.Runtime).toBe('nodejs22.x');
       expect(props.Layers).toHaveLength(2);
       expect(props.Environment.Variables.LOG_LEVEL).toBe('info');
     }
@@ -378,7 +378,7 @@ describe('AdminRealtimeStack', () => {
   });
 
   const dummyFn = (scopeConstruct) => new lambda.Function(scopeConstruct, 'Dummy', {
-    runtime: lambda.Runtime.NODEJS_20_X, handler: 'index.handler', code: lambda.Code.fromInline('x'),
+    runtime: lambda.Runtime.NODEJS_22_X, handler: 'index.handler', code: lambda.Code.fromInline('x'),
   });
   const policyStatements = (t, fnId) => {
     const role = t.toJSON().Resources[fnId].Properties.Role['Fn::GetAtt'][0];

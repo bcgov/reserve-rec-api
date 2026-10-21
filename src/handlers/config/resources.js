@@ -16,7 +16,7 @@ function configSetup(scope, props) {
   const configGetFunction = new NodejsFunction(scope, 'ConfigGet', {
     code: lambda.Code.fromAsset('lib/handlers/config/GET'),
     handler: 'index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });

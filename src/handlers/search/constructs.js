@@ -16,7 +16,7 @@ class AdminSearchLambda extends LambdaConstruct {
     }
 
     this.searchFunction = new lambda.Function(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'admin.handler',
       code: lambda.Code.fromAsset('src/handlers/search/POST'),
       layers: this.resolveLayers(),
@@ -65,7 +65,7 @@ class PublicSearchLambda extends LambdaConstruct {
     }
 
     this.searchFunction = new lambda.Function(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'admin.handler',
       code: lambda.Code.fromAsset('src/handlers/search/POST'),
       layers: this.resolveLayers(),
