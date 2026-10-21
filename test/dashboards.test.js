@@ -163,7 +163,7 @@ describe('accounts dashboard', () => {
 
 describe('addEventMetrics', () => {
   const eventFunction = (stack) => new lambda.Function(stack, 'Fn', {
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     handler: 'index.handler',
     code: lambda.Code.fromInline('exports.handler = async () => {};'),
     logRetention: logs.RetentionDays.ONE_DAY,

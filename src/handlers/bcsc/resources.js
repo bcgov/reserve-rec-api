@@ -12,7 +12,7 @@ function bcscSetup(scope, props) {
   const bcscGetFunction = new NodejsFunction(scope, 'BcscGetFunction', {
     code: lambda.Code.fromAsset('lib/handlers/bcsc/GET'),
     handler: 'index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     layers: props.layers,
     timeout: cdk.Duration.minutes(3), // Add timeout - increasing for decryption
     memorySize: 768, // Also consider increasing memory for RSA key generation
@@ -35,7 +35,7 @@ function bcscSetup(scope, props) {
   const bcscPostFunction = new NodejsFunction(scope, 'BcscPostFunction', {
     code: lambda.Code.fromAsset('lib/handlers/bcsc/POST'),
     handler: 'index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
     timeout: cdk.Duration.minutes(2), // Add timeout for POST as well

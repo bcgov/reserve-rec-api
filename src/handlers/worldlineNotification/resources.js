@@ -15,7 +15,7 @@ function worldlineNotificationSetup(scope, props) {
   const worldlineNotificationPost = new NodejsFunction(scope, "WLineNotePost", {
       code: lambda.Code.fromAsset("lib/handlers"),
       handler: "worldlineNotification/POST/index.handler",
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       environment: props.env,
       layers: props.layers,
     }

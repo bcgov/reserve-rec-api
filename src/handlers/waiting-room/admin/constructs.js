@@ -8,7 +8,7 @@ const apigw = require('aws-cdk-lib/aws-apigateway');
 const { Duration, Stack } = require('aws-cdk-lib');
 const path = require('path');
 
-const DEFAULT_NODE_RUNTIME = lambda.Runtime.NODEJS_20_X;
+const DEFAULT_NODE_RUNTIME = lambda.Runtime.NODEJS_22_X;
 
 const defaults = {
   resources: {

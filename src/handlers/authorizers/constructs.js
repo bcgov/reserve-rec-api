@@ -24,7 +24,7 @@ class AdminAuthorizerConstruct extends Construct {
     this.adminAuthorizerFunction = new NodejsFunction(this, functionId, {
       code: Code.fromAsset(authFunctionEntry, {
         bundling: {
-          image: Runtime.NODEJS_20_X.bundlingImage,
+          image: Runtime.NODEJS_22_X.bundlingImage,
           command: [],
           local: {
             tryBundle(outputDir) {
@@ -34,7 +34,7 @@ class AdminAuthorizerConstruct extends Construct {
         }
       }),
       handler: 'admin.handler',
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       environment: props?.environment,
       functionName: `${scope.getAppName()}-${scope.getDeploymentName()}-${constructId}`.slice(0, 64),
       description: props?.description || `Admin Authorizer function for ${scope.getAppName()}-${scope.getDeploymentName()} environment`,
@@ -79,7 +79,7 @@ class PublicAuthorizerConstruct extends Construct {
     this.publicAuthorizerFunction = new NodejsFunction(this, functionId, {
       code: Code.fromAsset(authFunctionEntry, {
         bundling: {
-          image: Runtime.NODEJS_20_X.bundlingImage,
+          image: Runtime.NODEJS_22_X.bundlingImage,
           command: [],
           local: {
             tryBundle(outputDir) {
@@ -89,7 +89,7 @@ class PublicAuthorizerConstruct extends Construct {
         }
       }),
       handler: 'public.handler',
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       environment,
       functionName: `${scope.getAppName()}-${scope.getDeploymentName()}-${constructId}`.slice(0, 64),
       description: props?.description || `Public Authorizer function for ${scope.getAppName()}-${scope.getDeploymentName()} environment`,

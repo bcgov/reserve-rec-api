@@ -20,7 +20,7 @@ function productsSetup(scope, props) {
   const productsGetMethod = new NodejsFunction(scope, 'ProductsGetByPartition', {
     code: lambda.Code.fromAsset('lib/handlers'),
     handler: 'products/_byPartition/GET/index.handler',
-    runtime: lambda.Runtime.NODEJS_20_X,
+    runtime: lambda.Runtime.NODEJS_22_X,
     environment: props.env,
     layers: props.layers,
   });

@@ -26,7 +26,7 @@ class BCSCConstruct extends Construct {
 
     // BCSC GET Handler
     this.bcscGetHandler = new lambda.Function(this, 'BCSCGetHandler', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, 'GET')),
       layers: layers,
@@ -41,7 +41,7 @@ class BCSCConstruct extends Construct {
 
     // BCSC POST Handler
     this.bcscPostHandler = new lambda.Function(this, 'BCSCPostHandler', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, 'POST')),
       layers: layers,
