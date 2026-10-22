@@ -80,4 +80,16 @@ describe('PreTokenGeneration user write', () => {
     const [update] = mockSent.filter((c) => c instanceof UpdateItemCommand);
     expect(update.input.ConditionExpression).toBe('attribute_exists(pk) AND attribute_exists(sk)');
   });
+
+  it('stores the country from custom:country, falling back to the BCSC address', async () => {
+    const native = event();
+    native.request.userAttributes['custom:country'] = 'United States of America';
+    await handler(native);
+    expect(mockStore.get(KEY).country).toBe('United States of America');
+
+    const bcsc = event();
+    bcsc.request.userAttributes.address = JSON.stringify({ region: 'BC', country: 'CA' });
+    await handler(bcsc);
+    expect(mockStore.get(KEY).country).toBe('CA');
+  });
 });
