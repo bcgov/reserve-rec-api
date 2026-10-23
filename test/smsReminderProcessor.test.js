@@ -88,3 +88,53 @@ describe('smsReminderProcessor destination countries', () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('smsReminderProcessor send rate', () => {
+  const settled = (promise) => {
+    let done = false;
+    promise.then(() => { done = true; });
+    return () => done;
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    process.env.SMS_MIN_SEND_INTERVAL_MS = '2000';
+    mockSend.mockResolvedValue({ MessageId: 'm1' });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    delete process.env.SMS_MIN_SEND_INTERVAL_MS;
+  });
+
+  test('holds a one-part message for the send interval', async () => {
+    const isDone = settled(handler({ Records: [record()] }));
+    await jest.advanceTimersByTimeAsync(1999);
+    expect(isDone()).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(isDone()).toBe(true);
+  });
+
+  test('holds a two-part message for twice the interval', async () => {
+    const isDone = settled(handler({ Records: [record({ messageBody: 'x'.repeat(200) })] }));
+    await jest.advanceTimersByTimeAsync(3999);
+    expect(isDone()).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(isDone()).toBe(true);
+  });
+
+  test('counts a non-ASCII message in UCS-2 parts', async () => {
+    const isDone = settled(handler({ Records: [record({ messageBody: 'é'.repeat(71) })] }));
+    await jest.advanceTimersByTimeAsync(3999);
+    expect(isDone()).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(isDone()).toBe(true);
+  });
+
+  test('does not wait for a skipped number', async () => {
+    process.env.SMS_SKIP_COUNTRIES = 'US';
+    const isDone = settled(handler({ Records: [record({ mobilePhone: '+12125550123' })] }));
+    await jest.advanceTimersByTimeAsync(0);
+    expect(isDone()).toBe(true);
+  });
+});
