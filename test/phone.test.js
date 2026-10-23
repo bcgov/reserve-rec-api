@@ -1,4 +1,4 @@
-const { normalizePhoneNumber, isValidPhoneNumber } = require('/opt/phone');
+const { normalizePhoneNumber, phoneNumberCountry, isValidPhoneNumber } = require('/opt/phone');
 
 describe('normalizePhoneNumber', () => {
   it('reads a bare 10-digit number as NANP', () => {
@@ -53,5 +53,22 @@ describe('isValidPhoneNumber', () => {
   it('agrees with the normalizer', () => {
     expect(isValidPhoneNumber('2505550123')).toBe(true);
     expect(isValidPhoneNumber('586588')).toBe(false);
+  });
+});
+
+describe('phoneNumberCountry', () => {
+  it('tells Canadian and US numbers apart within +1', () => {
+    expect(phoneNumberCountry('2505550123')).toBe('CA');
+    expect(phoneNumberCountry('+1 212 555 0123')).toBe('US');
+  });
+
+  it('reads the country from other calling codes', () => {
+    expect(phoneNumberCountry('+447400123456')).toBe('GB');
+    expect(phoneNumberCountry('+8613812345678')).toBe('CN');
+  });
+
+  it('returns null for a number that does not resolve', () => {
+    expect(phoneNumberCountry('586588')).toBeNull();
+    expect(phoneNumberCountry('')).toBeNull();
   });
 });

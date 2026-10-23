@@ -20,6 +20,8 @@ const sdkError = (name) => Object.assign(new Error(`${name} raised`), { name });
 beforeEach(() => {
   mockSend.mockReset();
   logger.error.mockClear();
+  logger.info.mockClear();
+  delete process.env.SMS_SKIP_COUNTRIES;
 });
 
 describe('smsReminderProcessor error handling', () => {
@@ -52,5 +54,37 @@ describe('smsReminderProcessor error handling', () => {
     mockSend.mockRejectedValueOnce(sdkError('ConflictException')).mockResolvedValueOnce({ MessageId: 'm2' });
     await handler({ Records: [record({ bookingId: 'b1' }), record({ bookingId: 'b2' })] });
     expect(mockSend).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('smsReminderProcessor destination countries', () => {
+  beforeEach(() => {
+    process.env.SMS_SKIP_COUNTRIES = 'US, GB,cn';
+    mockSend.mockResolvedValue({ MessageId: 'm1' });
+  });
+
+  test.each([
+    ['US', '+12125550123'],
+    ['GB', '+447400123456'],
+    ['CN', '+8613812345678'],
+  ])('skips a %s number without calling AWS', async (country, mobilePhone) => {
+    await expect(handler({ Records: [record({ mobilePhone })] })).resolves.toMatchObject({ statusCode: 200 });
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      'SMS reminder skipped: no sender for destination country',
+      { bookingId: 'b1', country },
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test('still sends to a Canadian number', async () => {
+    await handler({ Records: [record()] });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+  });
+
+  test('sends to every country when no skip list is set', async () => {
+    delete process.env.SMS_SKIP_COUNTRIES;
+    await handler({ Records: [record({ mobilePhone: '+12125550123' })] });
+    expect(mockSend).toHaveBeenCalledTimes(1);
   });
 });

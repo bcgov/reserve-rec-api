@@ -47,6 +47,15 @@ function normalizePhoneNumber(phoneNumber) {
 
 /**
  * @param {string} phoneNumber
+ * @returns {string|null} ISO 3166 country code, e.g. 'CA' or 'US', or null if it cannot be resolved
+ */
+function phoneNumberCountry(phoneNumber) {
+  const normalized = normalizePhoneNumber(phoneNumber);
+  return normalized ? parsePhoneNumberFromString(normalized)?.country || null : null;
+}
+
+/**
+ * @param {string} phoneNumber
  * @returns {boolean} true when the number resolves to E.164
  */
 function isValidPhoneNumber(phoneNumber) {
@@ -55,5 +64,6 @@ function isValidPhoneNumber(phoneNumber) {
 
 module.exports = {
   normalizePhoneNumber,
+  phoneNumberCountry,
   isValidPhoneNumber,
 };
