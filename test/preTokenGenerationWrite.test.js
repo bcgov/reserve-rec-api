@@ -90,6 +90,6 @@ describe('PreTokenGeneration user write', () => {
     const bcsc = event();
     bcsc.request.userAttributes.address = JSON.stringify({ region: 'BC', country: 'CA' });
     await handler(bcsc);
-    expect(mockStore.get(KEY).country).toBe('CA');
+    expect(mockStore.get(KEY).country).toBe('Canada');
   });
 });
