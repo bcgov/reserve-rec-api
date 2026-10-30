@@ -233,6 +233,15 @@ describe("writeAuditLog", () => {
 
     await expect(base.writeAuditLog("u", "e", "OP", undefined, marshall, write, "audit")).resolves.toBeUndefined();
   });
+
+  it("rethrows a write failure when the caller requires a durable audit record", async () => {
+    const error = new Error("down");
+    const write = jest.fn().mockRejectedValue(error);
+
+    await expect(
+      base.writeAuditLog("u", "e", "OP", undefined, marshall, write, "audit", true),
+    ).rejects.toBe(error);
+  });
 });
 
 describe("calculatePartySize", () => {

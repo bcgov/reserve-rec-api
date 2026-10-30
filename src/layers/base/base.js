@@ -533,7 +533,7 @@ const calculatePartySize = function(partyInformation) {
  * @param {Function} batchWriteFn - Batch write function from dynamodb layer
  * @param {string} auditTableName - Name of the audit table
  */
-async function writeAuditLog(user, entityId, operation, metadata = {}, marshallFn, batchWriteFn, auditTableName) {
+async function writeAuditLog(user, entityId, operation, metadata = {}, marshallFn, batchWriteFn, auditTableName, failOnError = false) {
   try {
     const timestamp = new Date().toISOString();
 
@@ -553,8 +553,8 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
     await batchWriteFn([auditRecord], 25, auditTableName);
     logger.debug('Audit log written', { user, entityId, operation });
   } catch (error) {
-    // Log error but don't fail the request
     logger.error('Failed to write audit log', { error: error.message, user, entityId, operation });
+    if (failOnError) throw error;
   }
 }
 

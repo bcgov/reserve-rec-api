@@ -82,6 +82,78 @@ describe('settings in the synthesized dev templates', () => {
     expect(ssmSource(env.DUPLICATE_EMAIL_REFUSE, identity)).toBe('/reserveRecApi/dev/settings/duplicateEmailRefuse');
   });
 
+  it('grants the migration trigger required DynamoDB and Cognito permissions', () => {
+    const identity = template(/^ReserveRecApi-Dev-PublicIdentityStack\.template\.json$/);
+    const accountConfirmedFunction = Object.values(identity.Resources).find((resource) => (
+      resource.Type === 'AWS::Lambda::Function'
+      && typeof resource.Properties.FunctionName === 'string'
+      && resource.Properties.FunctionName.endsWith('-AccountConfirmed')
+    ));
+    expect(accountConfirmedFunction).toBeDefined();
+    const roleReference = accountConfirmedFunction.Properties.Role;
+    const roleId = roleReference.Ref || roleReference['Fn::GetAtt']?.[0];
+    const role = identity.Resources[roleId];
+    const inlineStatements = (role.Properties.Policies || [])
+      .flatMap((policy) => policy.PolicyDocument.Statement);
+    const attachedStatements = Object.values(identity.Resources)
+      .filter((resource) => resource.Type === 'AWS::IAM::Policy'
+        && resource.Properties.Roles?.some((role) => role.Ref === roleId))
+      .flatMap((resource) => resource.Properties.PolicyDocument.Statement);
+    const actions = [...inlineStatements, ...attachedStatements]
+      .flatMap((statement) => Array.isArray(statement.Action) ? statement.Action : [statement.Action]);
+
+    expect(actions).toEqual(expect.arrayContaining([
+      'dynamodb:GetItem',
+      'dynamodb:UpdateItem',
+      'dynamodb:TransactWriteItems',
+      'dynamodb:BatchWriteItem',
+      'cognito-idp:AdminDeleteUser',
+      'cognito-idp:AdminDeleteUserAttributes',
+      'cognito-idp:AdminGetUser',
+      'cognito-idp:AdminUpdateUserAttributes',
+    ]));
+  });
+
+  it('grants the public migration endpoint transactional access without API authorization', () => {
+    const migrationTemplate = Object.values(templates).find((candidate) => (
+      Object.values(candidate.Resources || {}).some((resource) => (
+        resource.Type === 'AWS::Lambda::Function'
+        && typeof resource.Properties.FunctionName === 'string'
+        && resource.Properties.FunctionName.endsWith('-MigrateMigIdPUT')
+      ))
+    ));
+    expect(migrationTemplate).toBeDefined();
+
+    const migrationFunctionEntry = Object.entries(migrationTemplate.Resources).find(([, resource]) => (
+      resource.Type === 'AWS::Lambda::Function'
+      && resource.Properties.FunctionName.endsWith('-MigrateMigIdPUT')
+    ));
+    const [functionId, migrationFunction] = migrationFunctionEntry;
+    const roleReference = migrationFunction.Properties.Role;
+    const roleId = roleReference.Ref || roleReference['Fn::GetAtt']?.[0];
+    const role = migrationTemplate.Resources[roleId];
+    const inlineStatements = (role.Properties.Policies || [])
+      .flatMap((policy) => policy.PolicyDocument.Statement);
+    const attachedStatements = Object.values(migrationTemplate.Resources)
+      .filter((resource) => resource.Type === 'AWS::IAM::Policy'
+        && resource.Properties.Roles?.some((roleRef) => roleRef.Ref === roleId))
+      .flatMap((resource) => resource.Properties.PolicyDocument.Statement);
+    const actions = [...inlineStatements, ...attachedStatements]
+      .flatMap((statement) => Array.isArray(statement.Action) ? statement.Action : [statement.Action]);
+
+    expect(actions).toEqual(expect.arrayContaining([
+      'dynamodb:GetItem',
+      'dynamodb:UpdateItem',
+      'dynamodb:TransactWriteItems',
+    ]));
+    expect(Object.values(migrationTemplate.Resources).some((resource) => (
+      resource.Type === 'AWS::ApiGateway::Method'
+      && resource.Properties.HttpMethod === 'PUT'
+      && resource.Properties.AuthorizationType === 'NONE'
+      && JSON.stringify(resource.Properties.Integration).includes(functionId)
+    ))).toBe(true);
+  });
+
   describe('public bookings functions', () => {
     let parent;
     let nested;
