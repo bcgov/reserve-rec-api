@@ -1,10 +1,11 @@
 const { BatchGetItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, GetItemCommand, DeleteItemCommand, UpdateItemCommand, BatchWriteItemCommand, TransactWriteItemsCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-const { Exception, logger } = require('/opt/base');
+const { Exception, logger, writeAuditLog } = require('/opt/base');
 
 
 const REFERENCE_DATA_TABLE_NAME = process.env.REFERENCE_DATA_TABLE_NAME || 'reference-data';
 const TRANSACTIONAL_DATA_TABLE_NAME = process.env.TRANSACTIONAL_DATA_TABLE_NAME || 'transactional-data';
+const TRANS_TABLE = TRANSACTIONAL_DATA_TABLE_NAME;
 const GLOBALID_INDEX_NAME = process.env.GLOBALID_INDEX_NAME || 'globalId-index';
 const GLOBALID_PROPERTY_NAME = process.env.GLOBALID_PROPERTY_NAME || 'globalId';
 const SPARSE_GSI1_NAME = process.env.SPARSE_GSI1_NAME || 'sparse-index-1';
@@ -12,6 +13,7 @@ const USERID_INDEX_NAME = process.env.USERID_INDEX_NAME || 'userId-index';
 const ENTITY_RELATIONSHIP_INDEX = process.env.ENTITY_RELATIONSHIP_INDEX || 'entityRelationship-index';
 const USERID_PROPERTY_NAME = process.env.USERID_PROPERTY_NAME || 'userId';
 const AUDIT_TABLE_NAME = process.env.AUDIT_TABLE_NAME || 'audit';
+const AUDIT_TABLE = AUDIT_TABLE_NAME;
 const PUBSUB_TABLE_NAME = process.env.PUBSUB_TABLE_NAME || 'pubsub';
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
 const DYNAMODB_ENDPOINT_URL = process.env.DYNAMODB_ENDPOINT_URL || 'http://localhost:8000';
@@ -243,7 +245,7 @@ async function resetCounter(pk, skType) {
   }
 }
 async function getOneByGlobalId(globalId, tableName = REFERENCE_DATA_TABLE_NAME, globalIdAttributeName = GLOBALID_PROPERTY_NAME, indexName = GLOBALID_INDEX_NAME) {
-  logger.info(`getItem by index: { ${globalIdAttributeName}: ${globalId}, indexName: ${indexName} }`);
+  logger.info(`getItem by index: { globalIdAttributeName: ${globalIdAttributeName}, indexName: ${indexName} }`);
 
   // GetItem operation is not supported on GSIs, so we need to use Query instead.
   const params = {
@@ -267,7 +269,7 @@ async function getOneByGlobalId(globalId, tableName = REFERENCE_DATA_TABLE_NAME,
 
 /**
  * Generic function to get items by a GSI with optional sort key condition.
- * @param {string} gsiName - The name of the GSI partition key attribute.
+ * @param {string} gsiProperty - The name of the GSI partition key attribute.
  * @param {string} gsiValue - The value of the GSI partition key to query.
  * @param {string} tableName - The name of the DynamoDB table (default is REFERENCE_DATA_TABLE_NAME).
  * @param {string} indexName - The name of the GSI index to use.
@@ -767,6 +769,225 @@ function isConditionFailure(error) {
     && (error.CancellationReasons || []).some((r) => r?.Code === "ConditionalCheckFailed");
 }
 
+
+/**
+ * Migrate accounts between sub IDs. Takes the old sub ID from Cognito and uses it to find
+ * all items with that userId. Replaces any items where the userId sub is used in the pk/sk,
+ * and updates all items otherwise.
+
+ * @param {string} oldUuid old sub ID from Cognito
+ * @param {string} newUuid new sub ID from Cognito
+ * @returns {Promise<Function>} A callback that rolls the migration back if a later stage fails.
+ */
+async function migrateAccounts(oldUuid, newUuid) {
+  if (!oldUuid || !newUuid || oldUuid === newUuid) {
+    throw new Error('Migration requires distinct old and new account IDs');
+  }
+
+  logger.info('event=migration_started', { oldUuid, newUuid });
+
+  // get all items associated with a userId
+  const response = await getByGSI('userId', oldUuid, TRANS_TABLE, USERID_INDEX_NAME, null, false);
+  const rawItems = response?.items || [];
+
+  const items = rawItems.map((item) => (item.pk?.S ? unmarshall(item) : item));
+  const changes = [];
+
+  for (const item of items) {
+    const newItem = { ...item };
+
+    // Update root user fields
+    if (newItem.userId) newItem.userId = newUuid;
+    if (newItem.gsipk) newItem.gsipk = newUuid;
+
+    if (newItem.pk?.includes(oldUuid)) newItem.pk = newItem.pk.replace(oldUuid, newUuid);
+    if (newItem.sk?.includes(oldUuid)) newItem.sk = newItem.sk.replace(oldUuid, newUuid);
+
+    const keyChanged = newItem.pk !== item.pk || newItem.sk !== item.sk;
+    const operations = [];
+    if (keyChanged) {
+      // If the oldUuid is part of the pk or sk, then we need to
+      // make a new item and delete the old one
+      operations.push({
+        Put: {
+          TableName: TRANS_TABLE,
+          Item: marshall(newItem, { removeUndefinedValues: true }),
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      });
+      operations.push({
+        Delete: {
+          TableName: TRANS_TABLE,
+          Key: marshall({ pk: item.pk, sk: item.sk }),
+          ConditionExpression: '#userId = :oldUserId',
+          ExpressionAttributeNames: { '#userId': 'userId' },
+          ExpressionAttributeValues: { ':oldUserId': marshall(oldUuid) },
+        },
+      });
+    } else {
+      // If the oldUuid is NOT part of the pk or sk, then we can just update it
+      operations.push({
+        Put: {
+          TableName: TRANS_TABLE,
+          Item: marshall(newItem, { removeUndefinedValues: true }),
+          ConditionExpression: '#userId = :oldUserId',
+          ExpressionAttributeNames: { '#userId': 'userId' },
+          ExpressionAttributeValues: { ':oldUserId': marshall(oldUuid) },
+        },
+      });
+    }
+    changes.push({ original: item, migrated: newItem, keyChanged, operations });
+  }
+
+  const auditMetadata = {
+    oldSub: oldUuid,
+    newSub: newUuid,
+    changedBy: 'cognito',
+    migratedItemCount: items.length,
+  };
+  await writeAuditLog(
+    'cognito',
+    newUuid,
+    'ACCOUNT_MIGRATION_STARTED',
+    auditMetadata,
+    marshall,
+    batchWriteData,
+    AUDIT_TABLE,
+    true,
+  );
+
+  // Track all chunks of data updates, to be used in case of errors
+  const appliedChunks = [];
+  let currentChunk = [];
+  let operationCount = 0;
+  const rollbackMigration = async (migrationError) => {
+    const rollbackErrors = [];
+
+    for (const chunk of [...appliedChunks].reverse()) {
+      const rollbackItems = [];
+      for (const operation of chunk) {
+        if (operation.Put?.ConditionExpression === 'attribute_not_exists(pk)') {
+          rollbackItems.push({
+            Delete: {
+              TableName: TRANS_TABLE,
+              Key: {
+                pk: operation.Put.Item.pk,
+                sk: operation.Put.Item.sk,
+              },
+              ConditionExpression: '#userId = :newUserId',
+              ExpressionAttributeNames: { '#userId': 'userId' },
+              ExpressionAttributeValues: { ':newUserId': marshall(newUuid) },
+            },
+          });
+        } else if (operation.Delete) {
+          const original = changes.find((change) => (
+            change.original.pk === operation.Delete.Key.pk.S
+            && change.original.sk === operation.Delete.Key.sk.S
+          ));
+          if (original) {
+            rollbackItems.push({
+              Put: {
+                TableName: TRANS_TABLE,
+                Item: marshall(original.original, { removeUndefinedValues: true }),
+                ConditionExpression: 'attribute_not_exists(pk)',
+              },
+            });
+          }
+        } else if (operation.Put) {
+          const migrated = unmarshall(operation.Put.Item);
+          const original = changes.find((change) => (
+            change.migrated.pk === migrated.pk && change.migrated.sk === migrated.sk
+          ));
+          if (original) {
+            rollbackItems.push({
+              Put: {
+                TableName: TRANS_TABLE,
+                Item: marshall(original.original, { removeUndefinedValues: true }),
+              },
+            });
+          }
+        }
+      }
+
+      try {
+        for (let i = 0; i < rollbackItems.length; i += TRANSACTION_MAX_SIZE) {
+          await getDynamoDBClient().send(new TransactWriteItemsCommand({
+            TransactItems: rollbackItems.slice(i, i + TRANSACTION_MAX_SIZE),
+          }));
+        }
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+    }
+
+    try {
+      await writeAuditLog(
+        'cognito',
+        newUuid,
+        'ACCOUNT_MIGRATION_FAILED',
+        {
+          ...auditMetadata,
+          error: migrationError?.name || 'MigrationError',
+          rollbackSucceeded: rollbackErrors.length === 0,
+        },
+        marshall,
+        batchWriteData,
+        AUDIT_TABLE,
+        true,
+      );
+    } catch (auditError) {
+      rollbackErrors.push(auditError);
+    }
+
+    if (rollbackErrors.length) {
+      throw new AggregateError([migrationError, ...rollbackErrors], 'Migration failed and one or more recovery steps failed');
+    }
+  };
+
+  try {
+    for (const change of changes) {
+      if (operationCount + change.operations.length > TRANSACTION_MAX_SIZE && currentChunk.length) {
+        await getDynamoDBClient().send(new TransactWriteItemsCommand({ TransactItems: currentChunk }));
+        appliedChunks.push(currentChunk);
+        currentChunk = [];
+        operationCount = 0;
+      }
+      currentChunk.push(...change.operations);
+      operationCount += change.operations.length;
+    }
+    if (currentChunk.length) {
+      await getDynamoDBClient().send(new TransactWriteItemsCommand({ TransactItems: currentChunk }));
+      appliedChunks.push(currentChunk);
+    }
+
+    await writeAuditLog(
+      'cognito',
+      newUuid,
+      'ACCOUNT_MIGRATION_COMPLETED',
+      auditMetadata,
+      marshall,
+      batchWriteData,
+      AUDIT_TABLE,
+      true,
+    );
+  } catch (migrationError) {
+    await rollbackMigration(migrationError);
+    throw migrationError;
+  }
+
+  if (!items.length) {
+    logger.info('event=migration_skipped', { reason: 'no_records_found', oldUuid });
+  }
+
+  logger.info('event=migration_completed', {
+    oldUuid,
+    newUuid,
+    migratedItems: items.length,
+  });
+
+  return rollbackMigration;
+}
+
 module.exports = {
   AUDIT_TABLE_NAME,
   AWS_REGION,
@@ -806,4 +1027,5 @@ module.exports = {
   runScan,
   marshall,
   unmarshall,
+  migrateAccounts,
 };
