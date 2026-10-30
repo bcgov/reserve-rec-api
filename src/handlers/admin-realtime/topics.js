@@ -1,8 +1,5 @@
 // CDK synth imports this file for `filters`, so nothing from /opt may load at the top level.
 
-// A topic's minTier outside this map ('superadmin') admits superadmins only.
-const TIER_RANK = { limited: 1, staff: 2 };
-
 const isSuperAdmin = (permissions) => permissions?.superadmin === 'superadmin';
 const staffAddedEnabled = () => process.env.REALTIME_STAFF_ADDED_ENABLED === 'true';
 
@@ -93,9 +90,8 @@ const TOPICS = { customers };
 function canSubscribe(topic, permissions) {
   if (!Object.hasOwn(TOPICS, topic)) return false;
   if (isSuperAdmin(permissions)) return true;
-  const min = TIER_RANK[TOPICS[topic].minTier];
-  if (!min) return false;
-  return Object.values(permissions ?? {}).some((tier) => (TIER_RANK[tier] ?? 0) >= min);
+  const { meetsTier } = require('/opt/base');
+  return Object.values(permissions ?? {}).some((tier) => meetsTier(tier, TOPICS[topic].minTier));
 }
 
 module.exports = { TOPICS, canSubscribe };

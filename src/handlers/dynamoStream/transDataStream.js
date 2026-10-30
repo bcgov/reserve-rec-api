@@ -116,8 +116,9 @@ exports.handler = async function (event, context) {
     // await sendToAllConnections();
     return sendResponse(200, [], `Transactional Data Stream processing complete.`, null, context);
   } catch (e) {
-    logger.error(JSON.stringify(e));
-    return sendResponse(500, [], 'Error processing Transactional Data stream.', e?.message, context);
+    logger.error(`Error processing Transactional Data stream: ${e?.message || e}`);
+    // Rethrow so the event source mapping retries the batch.
+    throw e;
   }
 };
 

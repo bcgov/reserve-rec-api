@@ -627,6 +627,9 @@ function batchGetDataPromise(groupName, keys, tableName = REFERENCE_DATA_TABLE_N
 }
 
 
+const UNPROCESSED_RETRY_ATTEMPTS = 3;
+const UNPROCESSED_BASE_DELAY_MS = 50;
+
 async function batchWriteData(dataToInsert, chunkSize, tableName = REFERENCE_DATA_TABLE_NAME) {
   logger.debug(JSON.stringify(dataToInsert));
 
@@ -645,17 +648,23 @@ async function batchWriteData(dataToInsert, chunkSize, tableName = REFERENCE_DAT
 
     logger.debug(JSON.stringify(writeRequests));
 
-    const params = {
-      RequestItems: {
-        [tableName]: writeRequests
-      }
-    };
-
     try {
-      logger.info(JSON.stringify(params));
-      const command = new BatchWriteItemCommand(params);
-      const data = await getDynamoDBClient().send(command);
-      logger.info(`BatchWriteItem response for chunk ${index}: ${data}`);
+      let pending = writeRequests;
+      for (let attempt = 0; ; attempt++) {
+        const params = { RequestItems: { [tableName]: pending } };
+        logger.info(JSON.stringify(params));
+        const data = await getDynamoDBClient().send(new BatchWriteItemCommand(params));
+        logger.info(`BatchWriteItem response for chunk ${index}: ${data}`);
+        pending = data?.UnprocessedItems?.[tableName] || [];
+        if (pending.length === 0) {
+          break;
+        }
+        if (attempt === UNPROCESSED_RETRY_ATTEMPTS) {
+          throw new Error(`${pending.length} unprocessed items`);
+        }
+        // Resend only what DynamoDB throttled, with exponential backoff.
+        await new Promise(resolve => setTimeout(resolve, UNPROCESSED_BASE_DELAY_MS * 2 ** attempt));
+      }
     } catch (err) {
       console.log('err:', err);
       throw new Error(`Error batch writing items in chunk ${index}: ${err}`);

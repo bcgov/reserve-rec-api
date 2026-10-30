@@ -232,6 +232,18 @@ describe('canSubscribe', () => {
     expect(canSubscribe('customers', { bcparks_2: 'staff' })).toBe(false);
   });
 
+  it('refuses a superadmin value held without the superadmin key', () => {
+    expect(canSubscribe('customers', { bcparks_1: 'superadmin' })).toBe(false);
+    const superadminOnly = { source: null, minTier: 'superadmin', audience: () => true };
+    let added;
+    jest.isolateModules(() => {
+      added = require('../../src/handlers/admin-realtime/topics');
+      added.TOPICS.restricted = superadminOnly;
+    });
+    expect(added.canSubscribe('restricted', { bcparks_1: 'superadmin' })).toBe(false);
+    expect(added.canSubscribe('restricted', { superadmin: 'superadmin' })).toBe(true);
+  });
+
   it('applies the staff flag to customers only, not to other topics', () => {
     let added;
     jest.isolateModules(() => {

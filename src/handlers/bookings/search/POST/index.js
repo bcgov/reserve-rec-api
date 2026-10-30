@@ -11,6 +11,7 @@ const {
   handleCORS,
   checkAuthContext,
   effectiveCollectionRole,
+  meetsTier,
   calculatePartySize,
 } = require("/opt/base");
 // Lambda function entry point
@@ -79,7 +80,7 @@ exports.handler = async function (event, context) {
     if (userIds && !isSuperAdmin) {
       const permissions = authContext?.permissions || {};
       const permittedCollectionIds = Object.keys(permissions)
-        .filter((collectionId) => ['limited', 'staff'].includes(permissions[collectionId]));
+        .filter((collectionId) => meetsTier(permissions[collectionId], 'limited'));
       query.query.bool = query.query.bool || {};
       query.query.bool.filter = query.query.bool.filter || [];
       query.query.bool.filter.push({ terms: { collectionId: permittedCollectionIds } });
@@ -151,7 +152,7 @@ exports.handler = async function (event, context) {
           hit._source.collectionId,
         );
         // For now, return for both limited and staff (TODO: this may change later)
-        return role === "limited" || role === "staff";
+        return meetsTier(role, "limited");
       });
 
       // We also want to remove unneeded data attributes from the item (phone, address)
