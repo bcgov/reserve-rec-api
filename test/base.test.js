@@ -4,8 +4,11 @@ const {
   Exception,
   getRequestClaimsFromEvent,
   effectiveCollectionRole,
+  filterByRole,
+  checkAuthContext,
   getClientIp,
   requestIdentity,
+  meetsTier,
 } = require('../src/layers/base/base');
 
 describe('Base Layer Tests', () => {
@@ -169,6 +172,11 @@ describe('Base Layer Tests', () => {
   });
 
   describe('effectiveCollectionRole', () => {
+    it('treats a collection value other than limited or staff as default', () => {
+      expect(effectiveCollectionRole({ permissions: { bcparks_1: 'superadmin' } }, 'bcparks_1')).toBe('default');
+      expect(effectiveCollectionRole({ permissions: { bcparks_1: 'constructor' } }, 'bcparks_1')).toBe('default');
+    });
+
     it('returns superadmin when permissions has the superadmin marker', () => {
       const ctx = { permissions: { superadmin: 'superadmin', 'bcparks_1': 'staff' } };
       expect(effectiveCollectionRole(ctx, 'bcparks_1')).toBe('superadmin');
@@ -189,6 +197,110 @@ describe('Base Layer Tests', () => {
       expect(effectiveCollectionRole(null, 'bcparks_1')).toBe('default');
       expect(effectiveCollectionRole({}, 'bcparks_1')).toBe('default');
       expect(effectiveCollectionRole({ permissions: {} }, 'bcparks_1')).toBe('default');
+    });
+  });
+
+  describe('filterByRole', () => {
+    const FILTERS = { default: ['adminNotes', 'version'], staff: ['adminNotes'] };
+    const row = { id: 1, adminNotes: 'n', version: 2 };
+
+    it('filters each item of a paginated list result', () => {
+      const res = { items: [row, row], lastEvaluatedKey: { pk: 'x' } };
+      expect(filterByRole(res, 'default', FILTERS)).toEqual({
+        items: [{ id: 1 }, { id: 1 }],
+        lastEvaluatedKey: { pk: 'x' },
+      });
+      expect(filterByRole(res, 'staff', FILTERS).items).toEqual([{ id: 1, version: 2 }, { id: 1, version: 2 }]);
+    });
+
+    it('still filters a single item and a plain array', () => {
+      expect(filterByRole(row, 'default', FILTERS)).toEqual({ id: 1 });
+      expect(filterByRole([row], 'default', FILTERS)).toEqual([{ id: 1 }]);
+    });
+
+    it('returns a list unchanged to a superadmin', () => {
+      const res = { items: [row] };
+      expect(filterByRole(res, 'superadmin', FILTERS)).toBe(res);
+    });
+  });
+
+  describe('checkAuthContext', () => {
+    const eventWith = (permissions, pathParameters) => ({
+      pathParameters,
+      requestContext: {
+        authorizer: { principalId: 'user1', permissions: JSON.stringify(permissions) },
+      },
+    });
+
+    it('lets a staff-only user pass a limited requirement', () => {
+      const ctx = checkAuthContext(eventWith({ bcparks_1: 'staff' }), 'limited');
+      expect(ctx.sub).toBe('user1');
+    });
+
+    it('lets a limited-only user pass a limited requirement', () => {
+      expect(() => checkAuthContext(eventWith({ bcparks_1: 'limited' }), 'limited')).not.toThrow();
+    });
+
+    it('lets a staff user pass a limited requirement for their collection', () => {
+      const event = eventWith({ bcparks_1: 'staff' }, { collectionId: 'bcparks_1' });
+      expect(() => checkAuthContext(event, 'limited')).not.toThrow();
+    });
+
+    it('refuses a limited-only user on a staff requirement', () => {
+      expect(() => checkAuthContext(eventWith({ bcparks_1: 'limited' }), 'staff')).toThrow(
+        expect.objectContaining({ code: 403 }),
+      );
+      const event = eventWith({ bcparks_1: 'limited' }, { collectionId: 'bcparks_1' });
+      expect(() => checkAuthContext(event, 'staff')).toThrow(expect.objectContaining({ code: 403 }));
+    });
+
+    it('refuses a user with no tier', () => {
+      expect(() => checkAuthContext(eventWith({}), 'limited')).toThrow(
+        expect.objectContaining({ code: 403 }),
+      );
+    });
+
+    it('refuses an unrecognised tier', () => {
+      expect(() => checkAuthContext(eventWith({ bcparks_1: 'bogus' }), 'limited')).toThrow(
+        expect.objectContaining({ code: 403 }),
+      );
+    });
+
+    it('refuses a staff user on a superadmin requirement', () => {
+      expect(() => checkAuthContext(eventWith({ bcparks_1: 'staff' }), 'superadmin')).toThrow(
+        expect.objectContaining({ code: 403 }),
+      );
+    });
+
+    it('refuses a superadmin value held without the superadmin key', () => {
+      expect(() => checkAuthContext(eventWith({ bcparks_1: 'superadmin' }), 'superadmin')).toThrow(
+        expect.objectContaining({ code: 403 }),
+      );
+    });
+
+    it('checks only the requested collection, not the user\'s other collections', () => {
+      const event = eventWith({ a: 'staff', b: 'limited' }, { collectionId: 'b' });
+      expect(() => checkAuthContext(event, 'staff')).toThrow(expect.objectContaining({ code: 403 }));
+    });
+
+    it('lets a superadmin pass any requirement', () => {
+      const permissions = { superadmin: 'superadmin' };
+      for (const tier of ['limited', 'staff', 'superadmin']) {
+        expect(() => checkAuthContext(eventWith(permissions), tier)).not.toThrow();
+        expect(() => checkAuthContext(eventWith(permissions, { collectionId: 'bcparks_1' }), tier)).not.toThrow();
+      }
+    });
+  });
+
+  describe('meetsTier', () => {
+    it('ranks limited below staff and never admits superadmin as a held or required tier', () => {
+      expect(meetsTier('staff', 'limited')).toBe(true);
+      expect(meetsTier('limited', 'staff')).toBe(false);
+      expect(meetsTier('superadmin', 'superadmin')).toBe(false);
+      expect(meetsTier('superadmin', 'limited')).toBe(false);
+      expect(meetsTier('staff', 'superadmin')).toBe(false);
+      expect(meetsTier('constructor', 'limited')).toBe(false);
+      expect(meetsTier('staff', '__proto__')).toBe(false);
     });
   });
 

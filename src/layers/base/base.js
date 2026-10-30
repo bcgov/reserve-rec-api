@@ -286,16 +286,6 @@ function removeFields(obj, fields) {
 }
   
 /**
- * Filter and sanitize the response for user role
- *
- * @param {Object} res - response data object from dynamo query
- * @param {String} role - user role which is used for removing items
- * @param {Object} ROLE_BASED_FILTERS - object of roles with an array of attributes that
- *                                      need to be removed
- *
- * @returns {Object} Filtered response data object
- */
-/**
  * Resolves the effective response-filtering role for a user against a specific
  * collection. Superadmin permissions live at the top level of authContext.permissions
  * (`{ superadmin: 'superadmin' }`) — without this helper, a per-collection lookup
@@ -310,31 +300,49 @@ function effectiveCollectionRole(authContext, collectionId) {
   if (authContext?.permissions?.['superadmin'] === 'superadmin') {
     return 'superadmin';
   }
-  return authContext?.permissions?.[collectionId] ?? 'default';
+  const tier = authContext?.permissions?.[collectionId];
+  return Object.hasOwn(TIER_RANK, tier ?? '') ? tier : 'default';
 }
 
+/**
+ * Filter and sanitize the response for user role
+ *
+ * @param {Object} res - a single item, an array of items, or a list result `{ items, lastEvaluatedKey }`
+ * @param {String} role - user role which is used for removing items
+ * @param {Object} ROLE_BASED_FILTERS - object of roles with an array of attributes that
+ *                                      need to be removed
+ *
+ * @returns {Object} Filtered response data object
+ */
 function filterByRole(res, role = 'default', ROLE_BASED_FILTERS) {
   // Return the response as-is for superadmin
   if (role === 'superadmin') {
     return res
   }
 
-  // Determine the fields to remove by role, e.g. "adminNotes" 
+  // Determine the fields to remove by role, e.g. "adminNotes"
   // No role means user gets default role (least privilege)
   const fieldsToFilter = ROLE_BASED_FILTERS[role] ?? ROLE_BASED_FILTERS.default;
-  
-  // Use helper function to sanitize the res object with allowed items
-  const sanitizedRes = Array.isArray(res) 
-    ? res.map((obj) => removeFields(obj, fieldsToFilter)) 
-    : removeFields(res, fieldsToFilter);
+  const strip = (obj) => removeFields(obj, fieldsToFilter);
 
-  return sanitizedRes;
+  if (Array.isArray(res)) return res.map(strip);
+  if (Array.isArray(res?.items)) return { ...res, items: res.items.map(strip) };
+  return strip(res);
+}
+
+// Superadmin is not a rank: it comes only from the permissions.superadmin key.
+const TIER_RANK = { limited: 1, staff: 2 };
+
+// True when the held tier is the required tier or a higher one; unknown tiers never qualify.
+function meetsTier(heldTier, requiredTier) {
+  if (!Object.hasOwn(TIER_RANK, heldTier ?? '') || !Object.hasOwn(TIER_RANK, requiredTier ?? '')) return false;
+  return TIER_RANK[heldTier] >= TIER_RANK[requiredTier];
 }
 
 /**
  * 
  * @param {Object} event - event object
- * @param {string} requiredTier - required tier ( e.g. limited, staff) required to continue
+ * @param {string} requiredTier - minimum tier ( e.g. limited, staff) required to continue
  * @param {string} collectionId - collectionId passed by endpoint
  * 
  * @returns {Object} - authContext from the event (given it passes all checks)
@@ -374,17 +382,17 @@ function checkAuthContext(event, requiredTier = null, collectionId = null) {
       }
 
       // If a requiredTier is specified e.g. 'staff' for POST/PUT,
-      // verify the user's tier for this collection matches
-      if (requiredTier && authContext.permissions[colId] !== requiredTier) {
+      // verify the user's tier for this collection is at least that tier
+      if (requiredTier && !meetsTier(authContext.permissions[colId], requiredTier)) {
         throw new Exception(
           `Unauthorized: User does not have the required permission tier for this operation.`,
           { code: 403 },
         );
       }
 
-    // No collectionId — check that the user holds the required tier in at least one collection
+    // No collectionId — check that the user holds at least the required tier in one collection
     } else {
-      if (requiredTier && !Object.values(authContext.permissions).includes(requiredTier)) {
+      if (requiredTier && !Object.values(authContext.permissions).some((tier) => meetsTier(tier, requiredTier))) {
         throw new Exception(
           `Unauthorized: User does not have the required permission tier for this operation.`,
           { code: 403 },
@@ -565,6 +573,7 @@ module.exports = {
   effectiveCollectionRole,
   filterByRole,
   checkAuthContext,
+  meetsTier,
   getClientIp,
   getRequestClaimsFromEvent,
   isoToEpoch,

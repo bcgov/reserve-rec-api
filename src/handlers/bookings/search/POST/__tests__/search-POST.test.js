@@ -42,6 +42,7 @@ jest.mock("/opt/base", () => ({
   handleCORS: jest.fn(),
   checkAuthContext: jest.fn(),
   effectiveCollectionRole: jest.fn(),
+  meetsTier: jest.requireActual("../../../../../layers/base/base").meetsTier,
   calculatePartySize: jest.fn(() => 4),
 }));
 
