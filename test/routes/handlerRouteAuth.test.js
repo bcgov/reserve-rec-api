@@ -49,6 +49,7 @@ describe('handler routes and their authorizers', () => {
 
     expect(authByRouteIn(stack)).toEqual({
       'GET /featureFlags': 'NONE',
+      'GET /featureFlags/admin': 'CUSTOM',
       'PUT /featureFlags': 'CUSTOM',
       'GET /config': 'NONE',
       'GET /users/me': 'CUSTOM',
