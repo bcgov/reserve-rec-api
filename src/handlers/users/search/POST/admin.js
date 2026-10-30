@@ -23,7 +23,7 @@ exports.handler = async function (event, context) {
       text,
       size = 20,
       from = 0,
-      sortField = 'createdAt',
+      sortField,
       sortOrder = 'desc',
       limit,
       ...filters
@@ -34,7 +34,8 @@ exports.handler = async function (event, context) {
     let query = new OSQuery(OPENSEARCH_USER_INDEX_NAME, {
       size,
       from,
-      sortField,
+      // Rank a text search by relevance; a plain listing stays newest first
+      sortField: sortField || (searchText ? '_score' : 'createdAt'),
       sortOrder,
     });
 
@@ -43,9 +44,15 @@ exports.handler = async function (event, context) {
 
     // If search text is provided do the search, otherwise return all users (with pagination)
     if (searchText) {
+      // An email is matched exactly or as a substring. Fuzzy text matching splits it at '@' and
+      // matches every user on the same domain (bcgov/reserve-rec-admin#468).
+      const emailShould = [
+        { term: { 'email.keyword': { value: searchText, case_insensitive: true, boost: 10 } } },
+        { wildcard: { 'email.keyword': { value: `*${searchText}*`, case_insensitive: true } } },
+      ];
       const searchQuery = {
         bool: {
-          should: [
+          should: searchText.includes('@') ? emailShould : [
             {
               multi_match: {
                 query: searchText,
