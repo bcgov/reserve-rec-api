@@ -1,6 +1,7 @@
 'use strict';
 
 jest.mock('/opt/base', () => ({
+  ...jest.requireActual('/opt/base'),
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
 

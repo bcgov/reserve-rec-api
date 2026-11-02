@@ -30,4 +30,4 @@ jobs:
 
       - name: Run tests
         run: |
-          yarn test --coverage
+          yarn test --coverage --coverageThreshold='{"global":{"lines":80}}'

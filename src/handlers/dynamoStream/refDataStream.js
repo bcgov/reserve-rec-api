@@ -54,7 +54,7 @@ exports.handler = async function (event, context) {
       }
 
       const gsisk = record.dynamodb.Keys.sk;
-      const user = newImage?.lastModifiedBy?.S || "system";
+      const user = newImage?.lastModifiedBy?.S || oldImage?.lastModifiedBy?.S || "system";
 
       // This forms the primary key in opensearch so we can reference it later to update/remove if need be
       const openSearchId = `${record.dynamodb.Keys.pk.S}#${record.dynamodb.Keys.sk.S}`;
@@ -63,17 +63,18 @@ exports.handler = async function (event, context) {
 
       const auditImage = {
         pk: marshall(user),
-        sk: marshall(creationTime),
+        // SequenceNumber keeps the key unique when a user changes several items in one second.
+        sk: marshall(`${creationTime}#${record.dynamodb.SequenceNumber}`),
         gsipk: gsipk,
         gsisk: gsisk,
         operation: marshall(eventName)
       };
 
       if (newImage) {
-        auditImage.newImage = marshall(newImage);
+        auditImage.newImage = { M: newImage };
       }
       if (oldImage) {
-        auditImage.oldImage = marshall(oldImage);
+        auditImage.oldImage = { M: oldImage };
       }
 
       logger.debug(`auditImage:${JSON.stringify(auditImage)}`);
@@ -130,8 +131,9 @@ exports.handler = async function (event, context) {
     // await sendToAllConnections();
     return sendResponse(200, [], `Reference Data Stream processing complete.`, null, context);
   } catch (e) {
-    logger.error(JSON.stringify(e));
-    return sendResponse(500, [], 'Error processing Reference Data stream.', e?.message, context);
+    logger.error(`Error processing Reference Data stream: ${e?.message || e}`);
+    // Rethrow so the event source mapping retries the batch.
+    throw e;
   }
 };
 

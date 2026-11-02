@@ -2,7 +2,7 @@ const {
   getAllCollections,
   getCollectionByCollectionId,
 } = require("../methods");
-const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext, meetsTier } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../configs");
 
 /**
@@ -62,12 +62,7 @@ exports.handler = async (event, context) => {
 
     // Filter out the collections the user doesn't have (at least) the 'staff' permission for
     if (!isSuperAdmin && res) {
-      const TIER_ORDER = ['limited', 'staff', 'superadmin'];
-      const minTierIndex = TIER_ORDER.indexOf('staff');
-      const hasAtLeastStaff = (collectionId) => {
-        const tier = authContext.permissions?.[collectionId];
-        return TIER_ORDER.indexOf(tier) >= minTierIndex;
-      };
+      const hasAtLeastStaff = (collectionId) => meetsTier(authContext.permissions?.[collectionId], 'staff');
 
       const filterCollections = (items) => items.filter((c) => hasAtLeastStaff(c.collectionId));
 

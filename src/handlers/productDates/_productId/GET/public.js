@@ -1,5 +1,5 @@
 
-const { fetchProductDates, fetchProductDateByDate } = require("../../methods");
+const { fetchProductDates } = require("../../methods");
 const { PUBLIC_PRODUCTDATE_PROJECTIONS } = require("../../configs");
 const { requestIdentity, logger, sendResponse, Exception } = require("/opt/base");
 /**
@@ -70,24 +70,8 @@ exports.handler = async (event, context) => {
       projectionFields: PUBLIC_PRODUCTDATE_PROJECTIONS, // We will only return a limited set of fields for the public handler to minimize data exposure
     }
 
-     // Check if this is a single date query
-    const date = startDate === endDate ? startDate : null;
-    
-    let productDates;
-    if (date) {
-      logger.debug(`Single date query detected - using fetchProductDateByDate for ${date}`);
-      productDates = await fetchProductDateByDate({
-        collectionId,
-        activityType,
-        activityId,
-        productId,
-        date,
-        bypassDiscoveryRules: false
-      });
-    } else {
-      logger.debug(`Range query - using fetchProductDates from ${startDate} to ${endDate}`);
-      productDates = await fetchProductDates(props);
-    }
+    // A single date is a one-day range, so it takes the same projected query as a range
+    const productDates = await fetchProductDates(props);
 
     return sendResponse(200, productDates, "Success", null, context);
 

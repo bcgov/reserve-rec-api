@@ -25,8 +25,12 @@ class AdminFeatureFlagsConstruct extends LambdaConstruct {
     // Add /featureFlags resource
     this.featureFlagsResource = this.resolveApi().root.addResource('featureFlags');
 
+    // Add /featureFlags/admin resource
+    this.featureFlagsAdminResource = this.featureFlagsResource.addResource('admin');
+
     this.addCorsPreflightForResources([
       this.featureFlagsResource,
+      this.featureFlagsAdminResource,
     ]);
 
     // GET /featureFlags (public - no auth required)
@@ -45,6 +49,26 @@ class AdminFeatureFlagsConstruct extends LambdaConstruct {
       new apigw.LambdaIntegration(this.featureFlagsGetPublicFunction),
       {
         authorizationType: apigw.AuthorizationType.NONE
+      }
+    );
+
+    // GET /featureFlags/admin (admin - requires auth, superadmin check in handler)
+    this.featureFlagsGetAdminFunction = this.generateBasicLambdaFn(
+      scope,
+      'featureFlagsGetAdminFunction',
+      'src/handlers/featureFlags/GET',
+      'admin.handler',
+      {
+        basicRead: true,
+      }
+    );
+
+    this.featureFlagsAdminResource.addMethod(
+      'GET',
+      new apigw.LambdaIntegration(this.featureFlagsGetAdminFunction),
+      {
+        authorizationType: apigw.AuthorizationType.CUSTOM,
+        authorizer: this.resolveAuthorizer()
       }
     );
 

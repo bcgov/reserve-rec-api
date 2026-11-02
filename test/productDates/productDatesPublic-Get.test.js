@@ -15,12 +15,11 @@ jest.mock("/opt/base", () => ({
 
 jest.mock("../../src/handlers/productDates/methods", () => ({
   fetchProductDates: jest.fn(),
-  fetchProductDateByDate: jest.fn(),
 }));
 
 const { handler } = require("../../src/handlers/productDates/_productId/GET/public");
 const { requestIdentity } = require("/opt/base");
-const { fetchProductDates, fetchProductDateByDate } = require("../../src/handlers/productDates/methods");
+const { fetchProductDates } = require("../../src/handlers/productDates/methods");
 
 function event(query = {}) {
   return {
@@ -42,7 +41,6 @@ describe("product-dates GET public", () => {
 
     expect(res.status).toBe(401);
     expect(fetchProductDates).not.toHaveBeenCalled();
-    expect(fetchProductDateByDate).not.toHaveBeenCalled();
   });
 
   it("returns product dates to a signed-in caller", async () => {
