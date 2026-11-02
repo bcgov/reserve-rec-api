@@ -40,6 +40,24 @@ describe("Users admin search POST handler", () => {
     ]);
   });
 
+  it("escapes wildcard characters typed into an email search", async () => {
+    await search({ query: "d*v?\\@gmail.com" });
+
+    const should = mockQuery.query.bool.must[0].bool.should;
+    expect(should[0].term["email.keyword"].value).toBe("d*v?\\@gmail.com");
+    expect(should[1].wildcard["email.keyword"].value).toBe("*d\\*v\\?\\\\@gmail.com*");
+  });
+
+  it("escapes wildcard characters typed into a non-email search", async () => {
+    await search({ query: "*" });
+
+    const should = mockQuery.query.bool.must[0].bool.should;
+    expect(should[0].multi_match.query).toBe("*");
+    for (const clause of should.slice(1)) {
+      expect(Object.values(clause.wildcard)[0].value).toBe("*\\**");
+    }
+  });
+
   it("ranks a text search by match score", async () => {
     await search({ query: "dave@gmail.com" });
 

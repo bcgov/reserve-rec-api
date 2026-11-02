@@ -44,11 +44,13 @@ exports.handler = async function (event, context) {
 
     // If search text is provided do the search, otherwise return all users (with pagination)
     if (searchText) {
+      // Typed * ? \ are literal characters, not wildcards
+      const pattern = `*${searchText.replace(/[\\*?]/g, '\\$&')}*`;
       // An email is matched exactly or as a substring. Fuzzy text matching splits it at '@' and
-      // matches every user on the same domain (bcgov/reserve-rec-admin#468).
+      // matches every user on the same domain.
       const emailShould = [
         { term: { 'email.keyword': { value: searchText, case_insensitive: true, boost: 10 } } },
-        { wildcard: { 'email.keyword': { value: `*${searchText}*`, case_insensitive: true } } },
+        { wildcard: { 'email.keyword': { value: pattern, case_insensitive: true } } },
       ];
       const searchQuery = {
         bool: {
@@ -62,12 +64,12 @@ exports.handler = async function (event, context) {
               }
             },
             // Make them wildcard and insensitive 
-            { wildcard: { 'email.keyword': { value: `*${searchText}*`, case_insensitive: true } } },
-            { wildcard: { 'givenName.keyword': { value: `*${searchText}*`, case_insensitive: true } } },
-            { wildcard: { 'familyName.keyword': { value: `*${searchText}*`, case_insensitive: true } } },
-            { wildcard: { phoneNumber: { value: `*${searchText}*`, case_insensitive: true } } },
-            { wildcard: { mobilePhone: { value: `*${searchText}*`, case_insensitive: true } } },
-            { wildcard: { licensePlate: { value: `*${searchText}*`, case_insensitive: true } } }
+            { wildcard: { 'email.keyword': { value: pattern, case_insensitive: true } } },
+            { wildcard: { 'givenName.keyword': { value: pattern, case_insensitive: true } } },
+            { wildcard: { 'familyName.keyword': { value: pattern, case_insensitive: true } } },
+            { wildcard: { phoneNumber: { value: pattern, case_insensitive: true } } },
+            { wildcard: { mobilePhone: { value: pattern, case_insensitive: true } } },
+            { wildcard: { licensePlate: { value: pattern, case_insensitive: true } } }
           ],
           minimum_should_match: 1
         }
