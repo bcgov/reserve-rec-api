@@ -689,6 +689,7 @@ module.exports = {
   client,
   createIndex,
   deleteIndex,
+  escapeOpenSearchQuery,
   listIndices,
   nonKeyableTerms,
   OPENSEARCH_AUDIT_INDEX_NAME,
