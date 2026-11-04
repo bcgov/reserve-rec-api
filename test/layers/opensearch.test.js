@@ -134,6 +134,16 @@ describe("OSQuery.search request", () => {
     ]);
   });
 
+  it("escapes a backslash so a trailing one can't break the query", async () => {
+    const q = new OSQuery("idx");
+    q.addMatchQueryStringRule("smith\\");
+    await q.search();
+
+    expect(sentRequest().body.query.bool.must).toEqual([
+      { query_string: { query: "smith\\\\" } },
+    ]);
+  });
+
   it("builds inclusive and exclusive range filters", async () => {
     const q = new OSQuery("idx");
     q.addRangeQueryRule("date", "2026-01-01", "2026-02-01");
