@@ -145,6 +145,29 @@ describe('PreSignUp mailbox claim', () => {
     });
   });
 
+  it('does not start migration when a different BCSC account owns the claim', async () => {
+    mockClaims.set('me@example.test', {
+      email: 'me@example.test',
+      owner: 'bcsc_existing',
+      source: 'bcsc',
+    });
+    mockUsers.add('bcsc_existing');
+    const event = signUp('me@example.test', 'PreSignUp_ExternalProvider');
+    event.userName = 'bcsc_new';
+
+    await expect(handler(event)).rejects.toMatchObject({
+      signupRefused: true,
+      message: expect.stringContaining('BC Services Card (BCSC)'),
+    });
+
+    expect(mockDdbSend.mock.calls.some(([command]) => (
+      command.input.Item?.pk?.S === 'migrateHold'
+    ))).toBe(false);
+    expect(mockCognitoSend).toHaveBeenCalledWith(expect.objectContaining({
+      input: expect.objectContaining({ Username: 'bcsc_existing' }),
+    }));
+  });
+
   it('refuses a Gmail dot variant', async () => {
     existingAccount('someone@gmail.com');
     await expect(handler(signUp('some.one@googlemail.com'))).rejects.toEqual(refused);

@@ -34,10 +34,17 @@ const NOW = 1792612298989; // Mock timestamp
 const { handler } = require("../PUT/public");
 const { batchTransactData, getOneByGlobalId, TRANSACTIONAL_DATA_TABLE_NAME } = require("/opt/dynamodb");
 
-function makeEvent({ migrateId = MOCK_MIGRATE_ID } = {}) {
+function makeEvent({
+  migrateId = MOCK_MIGRATE_ID,
+  username = "bcsc_12345",
+  isAuthenticated = "true",
+} = {}) {
   return {
     httpMethod: "PUT",
     pathParameters: migrateId ? { migrateId } : null,
+    requestContext: {
+      authorizer: { username, isAuthenticated },
+    },
   };
 }
 
@@ -81,6 +88,20 @@ describe("PUT Migrate handler", () => {
     expect(result.status).toBe(400);
     expect(result.message).toBe("A valid migrateId is required");
     expect(getOneByGlobalId).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 for a 'guest' request", async () => {
+    const result = await handler(makeEvent({ isAuthenticated: "false" }), {});
+
+    expect(result.status).toBe(401);
+    expect(getOneByGlobalId).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when a different authenticated account tries to confirm the migration", async () => {
+    const result = await handler(makeEvent({ username: "bcsc_other" }), {});
+
+    expect(result.status).toBe(403);
+    expect(batchTransactData).not.toHaveBeenCalled();
   });
 
   it("returns 404 when migration hold record is not found", async () => {
