@@ -53,9 +53,9 @@ Select user pool (enter number): 1
 
 Selected User Pool: prdt-reserve-user-pool (ca-central-1_ABC123XYZ)
 
-Enter username to check: cameronpettit
+Enter username to check: exampleuser
 
-Checking roles for user: cameronpettit
+Checking roles for user: exampleuser
 
 Enter OpenSearch domain endpoint: https://search-prdt-reserve-os-example.ca-central-1.es.amazonaws.com
 

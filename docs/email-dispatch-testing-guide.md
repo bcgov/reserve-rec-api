@@ -33,12 +33,11 @@ Located in: `ses-test-emails.txt` (not committed)
 3. Nan.1.Yang@gov.bc.ca
 4. Pavel.Ganapolsky@gov.bc.ca
 5. Meredith.Olsen-Maier@gov.bc.ca
-6. Cameron.Pettit@gov.bc.ca
-7. Christopher.Walsh@gov.bc.ca
-8. Manuji.Samara@gov.bc.ca
-9. David.Claveau@gov.bc.ca
-10. Winnie.1.Ho@gov.bc.ca
-11. Kimia.C.Abhar@gov.bc.ca
+6. Christopher.Walsh@gov.bc.ca
+7. Manuji.Samara@gov.bc.ca
+8. David.Claveau@gov.bc.ca
+9. Winnie.1.Ho@gov.bc.ca
+10. Kimia.C.Abhar@gov.bc.ca
 
 **Action Required**: Each person must click the verification link in their AWS SES verification email.
 
