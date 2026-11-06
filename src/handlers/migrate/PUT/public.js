@@ -17,6 +17,11 @@ exports.handler = async (event, context) => {
       throw new Exception('A valid migrateId is required', { code: 400 });
     }
 
+    const authorizer = event?.requestContext?.authorizer;
+    if (authorizer?.isAuthenticated !== 'true' || !authorizer.username) {
+      throw new Exception('Sign in to the BCSC account to confirm this migration.', { code: 401 });
+    }
+
     const migrateHold = await getOneByGlobalId(migrateId, TRANSACTIONAL_DATA_TABLE_NAME);
 
     // No hold found
@@ -27,6 +32,10 @@ exports.handler = async (event, context) => {
     // Missing required information in the hold
     if (migrateHold.pk !== 'migrateHold' || !migrateHold.oldParksSub || !migrateHold.newBcscUsername) {
       throw new Exception('Migration request is invalid. Please sign in again to restart the process.', { code: 404 });
+    }
+
+    if (authorizer.username !== migrateHold.newBcscUsername) {
+      throw new Exception('This migration belongs to a different BCSC account.', { code: 403 });
     }
 
     // Migration completed

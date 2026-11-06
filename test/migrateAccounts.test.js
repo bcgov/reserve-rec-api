@@ -93,6 +93,45 @@ describe('migrateAccounts', () => {
     expect(rollback).toEqual(expect.any(Function));
   });
 
+  it('migrates records from every page of the userId index', async () => {
+    const laterPageItem = {
+      pk: 'booking::booking-3',
+      sk: 'booking-3',
+      userId: oldSub,
+      bookingId: 'booking-3',
+    };
+    mockDynamoSend.mockImplementation(async (command) => {
+      if (command instanceof QueryCommand) {
+        const queryCount = mockDynamoSend.mock.calls.filter(([call]) => (
+          call instanceof QueryCommand
+        )).length;
+        if (queryCount === 1) {
+          return {
+            Items: sourceItems.map((item) => marshall(item)),
+            // Give a fake lastEvaluatedKey for it to mock query again
+            LastEvaluatedKey: marshall({ pk: 'page-1', sk: 'page-1' }),
+          };
+        }
+        return { Items: [marshall(laterPageItem)] };
+      }
+      if (command instanceof TransactWriteItemsCommand) return {};
+      throw new Error(`Unexpected DynamoDB command: ${command.constructor.name}`);
+    });
+
+    await migrateAccounts(oldSub, newSub);
+
+    const queries = mockDynamoSend.mock.calls
+      .map(([command]) => command)
+      .filter((command) => command instanceof QueryCommand);
+    const migration = mockDynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof TransactWriteItemsCommand);
+    expect(queries).toHaveLength(2);
+    expect(queries[1].input.ExclusiveStartKey).toEqual(marshall({ pk: 'page-1', sk: 'page-1' }));
+    expect(migration.input.TransactItems
+      .filter((operation) => operation.Put?.Item.userId?.S === newSub)).toHaveLength(3);
+  });
+
   it('returns a compensating rollback for a later migration-stage failure', async () => {
     const rollback = await migrateAccounts(oldSub, newSub);
     await rollback(new Error('attribute transfer failed'));

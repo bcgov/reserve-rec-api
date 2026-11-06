@@ -44,7 +44,8 @@ class PublicMigrateConstruct extends LambdaConstruct {
 
     // PUT /migrate/{migrateId}
     this.migrateMigrateIdResource.addMethod('PUT', new apigw.LambdaIntegration(this.migrateMigrateIdPutFunction), {
-      authorizationType: apigw.AuthorizationType.NONE,
+      authorizationType: apigw.AuthorizationType.CUSTOM,
+      authorizer: this.resolveAuthorizer(),
     });
   }
 }

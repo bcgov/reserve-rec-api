@@ -276,11 +276,19 @@ async function getOneByGlobalId(globalId, tableName = REFERENCE_DATA_TABLE_NAME,
  * @param {object} sortKeyCondition.operator: 'begins_with'|'='|'<','<='|'>'|'>='|'between'
  * @param {object} sortKeyCondition.value: string|number|object (for between: {start: val1, end: val2})
  * @param {object} sortKeyCondition.attributeName: string (optional, defaults to 'sk')
+ * @param {boolean} paginated - Whether to return a single page or all matching items.
  *
  * @returns {Array} Array of items matching the GSI query and optional sort key condition.
  */
 
-async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_NAME, indexName, sortKeyCondition = null) {
+async function getByGSI(
+  gsiProperty,
+  gsiValue,
+  tableName = REFERENCE_DATA_TABLE_NAME,
+  indexName,
+  sortKeyCondition = null,
+  paginated = true,
+) {
   console.log(`getItem by index: { ${gsiProperty}: ${gsiValue}, indexName: ${indexName}, sortKeyCondition: ${JSON.stringify(sortKeyCondition)} }`);
 
   let keyConditionExpression = `#${gsiProperty} = :${gsiProperty}`;
@@ -346,7 +354,7 @@ async function getByGSI(gsiProperty, gsiValue, tableName = REFERENCE_DATA_TABLE_
     ExpressionAttributeNames: expressionAttributeNames,
   };
 
-  const item = await runQuery(params);
+  const item = await runQuery(params, null, null, paginated);
   return item ?? [];
 }
 

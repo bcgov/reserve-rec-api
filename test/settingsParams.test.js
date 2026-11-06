@@ -29,6 +29,8 @@ describe('settings in the synthesized dev templates', () => {
     const env = {
       ...process.env,
       CDK_OUTDIR: outdir,
+      ENABLE_BOOKINGS: 'true',
+      ENABLE_MIGRATE: 'true',
       CDK_CONTEXT_JSON: JSON.stringify({
         '@context': 'dev',
         dev: { DEPLOYMENT_NAME: 'dev', AWS_REGION: 'ca-central-1', IS_OFFLINE: 'true', FAIL_FAST: 'true' },
@@ -114,7 +116,7 @@ describe('settings in the synthesized dev templates', () => {
     ]));
   });
 
-  it('grants the public migration endpoint transactional access without API authorization', () => {
+  it('grants the public migration endpoint transactional access with API authorization', () => {
     const migrationTemplate = Object.values(templates).find((candidate) => (
       Object.values(candidate.Resources || {}).some((resource) => (
         resource.Type === 'AWS::Lambda::Function'
@@ -149,7 +151,7 @@ describe('settings in the synthesized dev templates', () => {
     expect(Object.values(migrationTemplate.Resources).some((resource) => (
       resource.Type === 'AWS::ApiGateway::Method'
       && resource.Properties.HttpMethod === 'PUT'
-      && resource.Properties.AuthorizationType === 'NONE'
+      && resource.Properties.AuthorizationType === 'CUSTOM'
       && JSON.stringify(resource.Properties.Integration).includes(functionId)
     ))).toBe(true);
   });
