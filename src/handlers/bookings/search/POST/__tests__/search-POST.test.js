@@ -22,6 +22,7 @@ jest.mock("/opt/opensearch", () => ({
   })),
   OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME: "test-index",
   nonKeyableTerms: [],
+  escapeOpenSearchQuery: (s) => s.replace(/-/g, "\\-"),
 }));
 
 // Mock the Base Layer (Utilities and Auth)
@@ -112,13 +113,48 @@ describe("Bookings Admin Search POST handler", () => {
     expect(result.status).toBe(200);
   });
 
-  it("triggers a fuzzy search across all fields when text is provided", async () => {
-    const event = {
-      body: JSON.stringify({ text: "Camping" })
-    };
-    
-    await handler(event, {});
-    expect(mockAddMatchQueryStringRule).toHaveBeenCalledWith("Camping");
+  const textShould = () => mockQuery.bool.must[0].bool.should;
+
+  it("matches a confirmation code prefix, all typed terms, or part of a name", async () => {
+    await handler({ body: JSON.stringify({ text: "8b29" }) }, {});
+
+    expect(mockAddMatchQueryStringRule).not.toHaveBeenCalled();
+    expect(mockQuery.bool.must[0].bool.minimum_should_match).toBe(1);
+    expect(textShould()).toEqual([
+      { prefix: { bookingId: { value: "8b29", case_insensitive: true, boost: 10 } } },
+      { prefix: { "bookingId.keyword": { value: "8b29", case_insensitive: true, boost: 10 } } },
+      { query_string: { query: "8b29", default_operator: "AND", type: "cross_fields" } },
+      { wildcard: { "namedOccupant.firstName.keyword": { value: "*8b29*", case_insensitive: true } } },
+      { wildcard: { "namedOccupant.lastName.keyword": { value: "*8b29*", case_insensitive: true } } },
+    ]);
+  });
+
+  it("escapes query syntax in the all-fields match but keeps the raw code for the prefix", async () => {
+    await handler({ body: JSON.stringify({ text: "8b297302-e9" }) }, {});
+
+    expect(textShould()[0].prefix.bookingId.value).toBe("8b297302-e9");
+    expect(textShould()[2].query_string.query).toBe("8b297302\\-e9");
+  });
+
+  it("treats typed * ? \\ as literal characters in the name match", async () => {
+    await handler({ body: JSON.stringify({ text: "j*o?\\" }) }, {});
+
+    expect(textShould()[3].wildcard["namedOccupant.firstName.keyword"].value).toBe("*j\\*o\\?\\\\*");
+  });
+
+  it("matches an email exactly or as a substring, and nothing else", async () => {
+    await handler({ body: JSON.stringify({ text: "John@Example.com" }) }, {});
+
+    expect(textShould()).toEqual([
+      { term: { "namedOccupant.contactInfo.email.keyword": { value: "John@Example.com", case_insensitive: true, boost: 10 } } },
+      { wildcard: { "namedOccupant.contactInfo.email.keyword": { value: "*John@Example.com*", case_insensitive: true } } },
+    ]);
+  });
+
+  it("adds no text clause when no text is provided", async () => {
+    await handler({ body: JSON.stringify({}) }, {});
+
+    expect(mockQuery.bool?.must).toBeUndefined();
   });
 
   it("filters by exact email using the .keyword field", async () => {

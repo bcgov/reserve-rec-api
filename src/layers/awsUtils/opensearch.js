@@ -547,7 +547,7 @@ function setNestedValue(root, keys, value, append = true) {
  */
 function escapeOpenSearchQuery(input) {
   // Define a regular expression pattern for reserved characters
-  const pattern = /([-&|!(){}[\]^"~*?:\/+])/g;
+  const pattern = /([-&|!(){}[\]^"~*?:\/+\\])/g;
   // Use the replace method with a callback function to handle replacements
   const escapedQuery = input.replace(pattern, (match, p1) => `\\${p1}`);
   return escapedQuery;
@@ -689,6 +689,7 @@ module.exports = {
   client,
   createIndex,
   deleteIndex,
+  escapeOpenSearchQuery,
   listIndices,
   nonKeyableTerms,
   OPENSEARCH_AUDIT_INDEX_NAME,

@@ -3,6 +3,7 @@ const {
   OSQuery,
   OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME,
   nonKeyableTerms,
+  escapeOpenSearchQuery,
 } = require("/opt/opensearch");
 const {
   requestIdentity,
@@ -52,9 +53,34 @@ exports.handler = async function (event, context) {
     // Construct the search query
     let query = new OSQuery(OPENSEARCH_TRANSACTIONAL_DATA_INDEX_NAME, searchOptions);
 
-    // Fuzzy search across all searchable fields
     if (userQuery) {
-      query.addMatchQueryStringRule(userQuery);
+      // Typed * ? \ are literal characters, not wildcards
+      const pattern = `*${userQuery.replace(/[\\*?]/g, '\\$&')}*`;
+      const email = 'namedOccupant.contactInfo.email.keyword';
+      // An email is matched exactly or as a substring. Matching it across all fields splits it
+      // at '@' and returns every booking on the same email domain.
+      const emailShould = [
+        { term: { [email]: { value: userQuery, case_insensitive: true, boost: 10 } } },
+        { wildcard: { [email]: { value: pattern, case_insensitive: true } } },
+      ];
+      // The confirmation code is the bookingId; staff type the start of it. bookingId is
+      // keyword in some indexes and text + keyword in others, so prefix both.
+      const codePrefix = (field) => ({ prefix: { [field]: { value: userQuery, case_insensitive: true, boost: 10 } } });
+      query.query.bool = query.query.bool || {};
+      query.query.bool.must = query.query.bool.must || [];
+      query.query.bool.must.push({
+        bool: {
+          minimum_should_match: 1,
+          should: userQuery.includes('@') ? emailShould : [
+            codePrefix('bookingId'),
+            codePrefix('bookingId.keyword'),
+            // Every typed term must match, in any field, so "first last" doesn't match everyone named "first"
+            { query_string: { query: escapeOpenSearchQuery(userQuery), default_operator: 'AND', type: 'cross_fields' } },
+            { wildcard: { 'namedOccupant.firstName.keyword': { value: pattern, case_insensitive: true } } },
+            { wildcard: { 'namedOccupant.lastName.keyword': { value: pattern, case_insensitive: true } } },
+          ],
+        },
+      });
     }
 
     // Structured filtering to apply exact matches for specific attributes
