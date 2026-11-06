@@ -6,6 +6,7 @@ const lambda = require('aws-cdk-lib/aws-lambda');
 const logs = require('aws-cdk-lib/aws-logs');
 const { addOverviewDashboard, addBookingsDashboard, addAccountsDashboard } = require('../lib/helpers/dashboards');
 const { EVENT_GROUPS, addEventMetrics, renameLegacyEvents } = require('../lib/helpers/event-metrics');
+const { renderTokens } = require('./helpers/cfnTokens');
 
 const NAMESPACE = 'ReserveRecApi/test';
 const API = { name: 'test-public-api', stage: 'api' };
@@ -16,16 +17,10 @@ function synth(build) {
   return Template.fromStack(stack);
 }
 
-const joined = (value) => {
-  if (typeof value === 'string') return value;
-  if (value.Ref) return `\${${value.Ref}}`;
-  return value['Fn::Join'][1].map(joined).join('');
-};
-
 function dashboard(template, suffix) {
   const found = Object.values(template.findResources('AWS::CloudWatch::Dashboard'))
     .find((r) => r.Properties.DashboardName === `ReserveRecApi-test-${suffix}`);
-  return JSON.parse(joined(found.Properties.DashboardBody)).widgets;
+  return JSON.parse(renderTokens(found.Properties.DashboardBody)).widgets;
 }
 
 const widget = (widgets, title) => widgets.find((w) => w.properties.title === title).properties;
@@ -92,7 +87,7 @@ describe('overview dashboard', () => {
   });
 
   it('lists the event alarms and the inventory-return DLQ alarm', () => {
-    const alarms = widgets.find((w) => w.type === 'alarm').properties.alarms.map(joined);
+    const alarms = widgets.find((w) => w.type === 'alarm').properties.alarms.map(renderTokens);
     expect(alarms).toEqual([
       expect.stringMatching(/:alarm:ReserveRecApi-test-hold_failed$/),
       expect.stringMatching(/:alarm:ReserveRecApi-test-inventory-return-dlq$/),
