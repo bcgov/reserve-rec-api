@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiUpdateHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_UPDATE_CONFIG } = require("../../configs");
-const { parseRequest, assertFacilityNamesAvailable } = require("../../methods");
+const { parseRequest, assertFacilityNamesAvailable, getOrcsChanges, auditOrcsChanges } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -28,6 +28,12 @@ exports.handler = async (event, context) => {
 
     let updateRequests = await parseRequest(collectionId, body, "PUT", facilityType, facilityId);
 
+    // Setting, changing or removing a facility's park (orcs) is superadmin only (#678).
+    const orcsChanges = await getOrcsChanges(updateRequests, true);
+    if (orcsChanges.length > 0) {
+      checkAuthContext(event, 'superadmin');
+    }
+
     // Block a rename onto a name already used by another facility in the park.
     await assertFacilityNamesAvailable(
       collectionId,
@@ -43,6 +49,7 @@ exports.handler = async (event, context) => {
 
     // Use batchTransactData to update the database
     const res = await batchTransactData(updateItems);
+    await auditOrcsChanges(orcsChanges, authContext.sub);
 
     return sendResponse(200, updateRequests, "Success", null, context);
   } catch (error) {

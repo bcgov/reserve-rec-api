@@ -1,7 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../../common/data-utils");
 const { FACILITY_API_PUT_CONFIG } = require("../../configs");
-const { parseRequest, assertFacilityNamesAvailable } = require("../../methods");
+const { parseRequest, assertFacilityNamesAvailable, getOrcsChanges, auditOrcsChanges } = require("../../methods");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -22,6 +22,12 @@ exports.handler = async (event, context) => {
     const body = JSON.parse(event?.body);
     if (!body) {
       throw new Exception("Body is required", { code: 400 });
+    }
+
+    // Setting a facility's park (orcs) is superadmin only (#678). Checked before
+    // parseRequest, which takes the next facility id from the counter.
+    if ((Array.isArray(body) ? body : [body]).some((item) => Object.hasOwn(item ?? {}, 'orcs'))) {
+      checkAuthContext(event, 'superadmin');
     }
 
     body['collectionId'] = collectionId;
@@ -66,6 +72,8 @@ exports.handler = async (event, context) => {
         await new Promise((r) => setTimeout(r, attempt * 100));
       }
     }
+
+    await auditOrcsChanges(await getOrcsChanges(postRequests, false), authContext.sub);
 
     return sendResponse(200, postRequests, "Success", null, context);
   } catch (error) {

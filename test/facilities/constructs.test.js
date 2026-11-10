@@ -2,7 +2,7 @@
 
 jest.mock('aws-cdk-lib/aws-lambda-nodejs', () => require('../helpers/cdkConstruct').nodejsFunctionMock());
 
-const { synthConstruct } = require('../helpers/cdkConstruct');
+const { synthConstruct, actionsOn, AUDIT_TABLE_ARN } = require('../helpers/cdkConstruct');
 const { PublicFacilitiesConstruct, AdminFacilitiesConstruct } = require('../../src/handlers/facilities/constructs');
 
 const DIR = 'src/handlers/facilities/_collectionId';
@@ -19,9 +19,9 @@ describe('PublicFacilitiesConstruct', () => {
 });
 
 describe('AdminFacilitiesConstruct', () => {
-  let routes, grants;
+  let routes, grants, roles;
   beforeAll(() => {
-    ({ routes, grants } = synthConstruct(AdminFacilitiesConstruct));
+    ({ routes, grants, roles } = synthConstruct(AdminFacilitiesConstruct));
   });
 
   it('routes every method to its admin handler behind the authorizer', () => {
@@ -39,5 +39,14 @@ describe('AdminFacilitiesConstruct', () => {
     for (const actions of Object.values(grants)) {
       expect(actions).toEqual(expect.arrayContaining(['dynamodb:Query', 'dynamodb:PutItem', 'dynamodb:UpdateItem']));
     }
+  });
+
+  // writeAuditLog swallows errors, so without this grant orcs audit entries vanish silently (#678).
+  it('lets only POST and PUT write the audit table', () => {
+    const auditWriters = Object.entries(roles)
+      .filter(([, role]) => actionsOn(role, AUDIT_TABLE_ARN).includes('dynamodb:PutItem'))
+      .map(([file]) => file.split('/').slice(-2, -1)[0])
+      .sort();
+    expect(auditWriters).toEqual(['POST', 'PUT']);
   });
 });

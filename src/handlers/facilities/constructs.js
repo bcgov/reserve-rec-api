@@ -218,6 +218,10 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
       this.grantBasicRefDataTableReadWrite(func);
     }
 
+    // POST and PUT write an audit entry when a facility's orcs changes (#678).
+    this.grantAuditTableWrite(this.facilitiesCollectionIdPostFunction);
+    this.grantAuditTableWrite(this.facilitiesCollectionIdPutFunction);
+
   }
 }
 

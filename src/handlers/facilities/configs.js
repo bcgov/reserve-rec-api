@@ -3,6 +3,12 @@ const { FACILITY_TYPE_ENUMS, TIMEZONE_ENUMS } = require('../../common/data-const
 
 const rf = new rulesFns();
 
+// An ORCS is a park number: a whole number, 1 or more.
+const expectOrcs = (value) => {
+  rf.expectInteger(value);
+  rf.expectInRange(value, 1, Number.MAX_SAFE_INTEGER);
+};
+
 const ALLOWED_FILTERS = [
   { name: "isVisible", type: "boolean" },
   { name: "showOnMap", type: "boolean" },
@@ -131,6 +137,13 @@ const FACILITY_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
+    // Park (ORCS) the facility belongs to. Superadmin only; see facility POST.
+    orcs: {
+      rulesFn: ({ value, action }) => {
+        rf.expectAction(action, ['set']);
+        expectOrcs(value);
+      }
+    },
     timezone: {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
@@ -256,6 +269,13 @@ const FACILITY_API_UPDATE_CONFIG = {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
         rf.expectAction(action, ['set']);
+      }
+    },
+    // Park (ORCS) the facility belongs to. Superadmin only; see facility PUT.
+    orcs: {
+      rulesFn: ({ value, action }) => {
+        rf.expectAction(action, ['set', 'remove']);
+        if (action === 'set') expectOrcs(value);
       }
     },
     timezone: {
