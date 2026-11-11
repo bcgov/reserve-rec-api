@@ -55,13 +55,13 @@ exports.handler = async (event, context) => {
 
     // Write audit log
     await writeAuditLog(
-      authContext.userId,
+      authContext.sub,
       'featureFlags',
       'FEATURE_FLAGS_UPDATE',
       {
         previousFlags,
         newFlags: body.flags,
-        changedBy: authContext.username || authContext.userId,
+        changedBy: authContext.username || authContext.sub,
         timestamp
       },
       marshall,
@@ -69,7 +69,7 @@ exports.handler = async (event, context) => {
       AUDIT_TABLE_NAME
     );
 
-    logger.info('Feature flags updated successfully', { updatedBy: authContext.userId, newFlags: body.flags });
+    logger.info('Feature flags updated successfully', { updatedBy: authContext.sub, newFlags: body.flags });
 
     return sendResponse(200, {
       flags: updatedConfig.flags,
