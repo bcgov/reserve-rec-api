@@ -3,8 +3,9 @@ const {
   getActivitiesByActivityType,
   getActivityByActivityId,
 } = require("../../methods");
-const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext, effectiveCollectionRole, filterByRole } = require("/opt/base");
 const { ALLOWED_FILTERS } = require("../../configs");
+const { ROLE_BASED_FILTERS } = require("../../../facilities/configs");
 
 /**
  * @api {get} /activities/{collectionId} GET
@@ -45,7 +46,11 @@ exports.handler = async (event, context) => {
     });
 
     if (activityType && activityId) {
-      res = await getActivityByActivityId(collectionId, activityType, activityId, queryParams?.fetchFacilities || null, queryParams?.fetchGeozone || null);
+      const fetchFacilities = queryParams?.fetchFacilities === 'true';
+      res = await getActivityByActivityId(collectionId, activityType, activityId, fetchFacilities, queryParams?.fetchGeozone || null);
+      if (fetchFacilities && res?.facilities) {
+        res.facilities = filterByRole(res.facilities, effectiveCollectionRole(authContext, collectionId), ROLE_BASED_FILTERS);
+      }
     }
 
     if (activityType && !activityId) {

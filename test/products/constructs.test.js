@@ -2,7 +2,7 @@
 
 jest.mock("aws-cdk-lib/aws-lambda-nodejs", () => require("../helpers/cdkConstruct").nodejsFunctionMock());
 
-const { synthConstruct, authByRoute } = require("../helpers/cdkConstruct");
+const { auditWriters, synthConstruct, authByRoute } = require("../helpers/cdkConstruct");
 const { PublicProductsConstruct, AdminProductsConstruct } = require("../../src/handlers/products/constructs");
 
 const PRODUCT = "/products/{collectionId}/{activityType}/{activityId}";
@@ -32,5 +32,9 @@ describe("products API wiring", () => {
 
     expect(grants[`${HANDLERS}/POST/admin.js`]).toEqual(expect.arrayContaining(["dynamodb:PutItem", "dynamodb:UpdateItem"]));
     expect(grants[`${HANDLERS}/DELETE/admin.js`]).toEqual(expect.arrayContaining(["dynamodb:UpdateItem", "dynamodb:Query"]));
+  });
+
+  it("lets only the admin POST and DELETE handlers write the audit table", () => {
+    expect(auditWriters(synthConstruct(AdminProductsConstruct).roles)).toEqual([`${HANDLERS}/DELETE/admin.js`, `${HANDLERS}/POST/admin.js`]);
   });
 });

@@ -6,9 +6,11 @@ jest.mock('/opt/dynamodb', () => ({
   getOne: jest.fn(),
   incrementCounter: jest.fn(),
   batchTransactData: jest.fn(),
+  batchWriteData: jest.fn(),
 }));
 
-const { runQuery, getOne, incrementCounter, batchTransactData } = require('/opt/dynamodb');
+const { runQuery, getOne, incrementCounter, batchTransactData, batchWriteData } = require('/opt/dynamodb');
+const { auditRecords, relationshipAudit } = require('../helpers/dynamoIo');
 const { adminEvent, parse } = require('../helpers/adminEvent');
 const GET = require('../../src/handlers/geozones/_collectionId/GET/admin').handler;
 const POST = require('../../src/handlers/geozones/_collectionId/POST/admin').handler;
@@ -230,10 +232,14 @@ describe('PUT /geozones/{collectionId}', () => {
 describe('DELETE /geozones/{collectionId}/{geozoneId}', () => {
   const path = { collectionId: 'bcparks_1', geozoneId: '3' };
 
-  it('removes its relationships, then soft-deletes the geozone as the caller', async () => {
+  it('removes its relationships, auditing each, then soft-deletes the geozone as the caller', async () => {
+    const rel = {
+      pk: 'rel::geozone::bcparks_1::3', sk: 'facility::bcparks_1::campground::1',
+      pk1: 'geozone::bcparks_1', sk1: '3', pk2: 'facility::bcparks_1', sk2: 'campground::1',
+    };
     getOne.mockResolvedValue({ pk: 'geozone::bcparks_1', sk: '3' });
     runQuery
-      .mockResolvedValueOnce({ items: [{ pk: 'rel::geozone::bcparks_1::3', sk: 'facility::bcparks_1::campground::1' }] })
+      .mockResolvedValueOnce({ items: [rel] })
       .mockResolvedValueOnce({ items: [] });
     batchTransactData.mockResolvedValue({});
 
@@ -250,6 +256,7 @@ describe('DELETE /geozones/{collectionId}/{geozoneId}', () => {
     expect(softDelete.data.UpdateExpression).toBe('SET isDeleted = :true, deletedAt = :deletedAt, deletedBy = :deletedBy');
     expect(softDelete.data.ExpressionAttributeValues[':true']).toEqual({ BOOL: true });
     expect(softDelete.data.ExpressionAttributeValues[':deletedBy']).toEqual({ S: 'admin-7' });
+    expect(auditRecords(batchWriteData)).toEqual([relationshipAudit('RELATIONSHIP_DELETE', rel, 'admin-7')]);
   });
 
   it('404s an unknown geozone without deleting anything', async () => {

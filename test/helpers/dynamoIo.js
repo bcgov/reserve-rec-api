@@ -14,4 +14,20 @@ function mockModule() {
   };
 }
 
-module.exports = { mockModule };
+// Audit records writeAuditLog sent through a mocked batchWriteData, unmarshalled
+function auditRecords(batchWriteData) {
+  const { unmarshall } = require("@aws-sdk/util-dynamodb");
+  return batchWriteData.mock.calls.filter(([, , table]) => table === "audit").map(([[record]]) => unmarshall(record));
+}
+
+// Matches the audit record of one relationship link, keyed by its relationship item
+function relationshipAudit(operation, { pk1, sk1, pk2, sk2 }, user = "user-1") {
+  return expect.objectContaining({
+    pk: user,
+    operation,
+    gsipk: `entity::rel::${pk1}::${sk1}::${pk2}::${sk2}`,
+    metadata: expect.objectContaining({ pk1, sk1, pk2, sk2 }),
+  });
+}
+
+module.exports = { auditRecords, mockModule, relationshipAudit };

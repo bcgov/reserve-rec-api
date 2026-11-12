@@ -1,7 +1,7 @@
 const { requestIdentity, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { PRODUCT_API_PUT_CONFIG } = require("../../configs");
 const { parseRequest } = require("../../methods");
-const { createEntityWithRelationships } = require("../../../../common/relationship-utils.js");
+const { auditRelationshipChanges, createEntityWithRelationships } = require("../../../../common/relationship-utils.js");
 
 
 /**
@@ -52,7 +52,7 @@ exports.handler = async (event, context) => {
     }
 
     // Create product with relationships using consolidated workflow
-    let postRequests = await createEntityWithRelationships({
+    const { postRequests, added } = await createEntityWithRelationships({
       schema: 'product',
       collectionId,
       body,
@@ -61,6 +61,8 @@ exports.handler = async (event, context) => {
       putConfig: PRODUCT_API_PUT_CONFIG,
       parseRequest
     });
+
+    await auditRelationshipChanges(authContext.sub, { added });
 
     return sendResponse(200, postRequests, "Success", null, context);
   } catch (error) {

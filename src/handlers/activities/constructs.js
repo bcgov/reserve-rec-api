@@ -141,6 +141,11 @@ class ActivitiesConstruct extends LambdaConstruct {
       this.grantBasicRefDataTableReadWrite(func);
     }
 
+    // POST, PUT and DELETE audit the relationship links they write and remove
+    this.grantAuditTableWrite(this.activitiesCollectionIdPostFunction);
+    this.grantAuditTableWrite(this.activitiesCollectionIdPutFunction);
+    this.grantAuditTableWrite(this.activitiesCollectionIdDeleteFunction);
+
   }
 }
 

@@ -2,7 +2,7 @@
 
 jest.mock('aws-cdk-lib/aws-lambda-nodejs', () => require('../helpers/cdkConstruct').nodejsFunctionMock());
 
-const { synthConstruct, authByRoute, writerCount } = require('../helpers/cdkConstruct');
+const { auditWriters, synthConstruct, authByRoute, writerCount } = require('../helpers/cdkConstruct');
 const { GeozonesConstruct } = require('../../src/handlers/geozones/constructs');
 
 const WRITES = {
@@ -29,5 +29,10 @@ describe('GeozonesConstruct', () => {
       ...WRITES,
     });
     expect(writerCount(grants)).toBe(4);
+  }, 30000);
+
+  it('lets only the DELETE handler write the audit table', () => {
+    const { roles } = synthConstruct(GeozonesConstruct, { handlerPrefix: 'admin' });
+    expect(auditWriters(roles)).toEqual(['src/handlers/geozones/_collectionId/DELETE/admin.js']);
   }, 30000);
 });

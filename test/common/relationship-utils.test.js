@@ -143,7 +143,9 @@ describe('createEntityWithRelationships', () => {
     expect(put.action).toBe('Put');
     expect(put.data.Item).not.toHaveProperty('facilities');
     expect(batchWriteData).toHaveBeenCalledWith([rel.createRelationshipItem(FAC.pk, FAC.sk, ACT.pk, ACT.sk)], 25, 'RefTable');
-    expect(out[0].data).toEqual({ pk: ACT.pk, sk: ACT.sk, displayName: 'Camp' });
+    expect(out.postRequests[0].data).toEqual({ pk: ACT.pk, sk: ACT.sk, displayName: 'Camp' });
+    expect(out.added).toEqual([expect.objectContaining({ ...row(FAC, ACT), schema: 'relationship' })]);
+    expect(out.removed).toEqual([]);
   });
 
   it('PUT updates the entity, deletes stale relationships and adds new ones', async () => {
@@ -151,7 +153,7 @@ describe('createEntityWithRelationships', () => {
     runQuery.mockResolvedValue({ items: [row(FAC_OLD, ACT)] });
     const parseRequest = jest.fn().mockResolvedValue([{ key: { ...ACT }, data: { displayName: 'Camp', facilities: [FAC] } }]);
 
-    await rel.createEntityWithRelationships({
+    const out = await rel.createEntityWithRelationships({
       schema: 'activity', collectionId: 'bcparks_1', body: {}, requestMethod: 'PUT',
       relationshipFields: ['facilities'], putConfig: { fields: { displayName: {} } }, parseRequest, tableName: 'RefTable',
     });
@@ -164,6 +166,36 @@ describe('createEntityWithRelationships', () => {
       action: 'Delete',
       data: { TableName: 'RefTable', Key: { pk: { S: row(FAC_OLD, ACT).pk }, sk: { S: row(FAC_OLD, ACT).sk } } },
     }]);
+    expect(batchWriteData).toHaveBeenCalledWith([rel.createRelationshipItem(FAC.pk, FAC.sk, ACT.pk, ACT.sk)], 25, 'RefTable');
+    expect(out.added).toEqual([expect.objectContaining(row(FAC, ACT))]);
+    expect(out.removed).toEqual([row(FAC_OLD, ACT)]);
+  });
+
+  it('PUT leaves the relationships of a field the request did not carry alone', async () => {
+    const parseRequest = jest.fn().mockResolvedValue([{ key: { ...ACT }, data: { displayName: 'Camp' } }]);
+
+    const out = await rel.createEntityWithRelationships({
+      schema: 'activity', collectionId: 'bcparks_1', body: {}, requestMethod: 'PUT',
+      relationshipFields: ['facilities', 'geozones'], putConfig: { fields: { displayName: {} } }, parseRequest, tableName: 'RefTable',
+    });
+
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    expect(batchWriteData).not.toHaveBeenCalled();
+    expect(out).toMatchObject({ added: [], removed: [] });
+  });
+
+  it('PUT still syncs the relationship field when it retries', async () => {
+    const body = { displayName: 'Camp', facilities: [FAC] };
+    const parseRequest = jest.fn().mockImplementation(async () => [{ key: { ...ACT }, data: body }]);
+    runQuery.mockResolvedValue({ items: [] });
+    batchTransactData.mockRejectedValueOnce(new Error('TransactionCanceled')).mockResolvedValue({});
+
+    await rel.createEntityWithRelationships({
+      schema: 'activity', collectionId: 'bcparks_1', body, requestMethod: 'PUT', maxRetries: 2,
+      relationshipFields: ['facilities'], putConfig: { fields: { displayName: {} } }, parseRequest, tableName: 'RefTable',
+    });
+
     expect(batchWriteData).toHaveBeenCalledWith([rel.createRelationshipItem(FAC.pk, FAC.sk, ACT.pk, ACT.sk)], 25, 'RefTable');
   });
 
@@ -198,7 +230,10 @@ describe('deleteEntityRelationships', () => {
       .mockResolvedValueOnce({ items: [row(GZ, FAC)] });
 
     await expect(rel.deleteEntityRelationships(FAC.pk, FAC.sk, 'RefTable'))
-      .resolves.toEqual({ deletedCount: 3, forwardRelationships: 2, reverseRelationships: 1 });
+      .resolves.toEqual({
+        deletedCount: 3, forwardRelationships: 2, reverseRelationships: 1,
+        deleted: [row(FAC, ACT), row(FAC, { pk: 'activity::bcparks_1', sk: 'x' }), row(GZ, FAC)],
+      });
     expect(runQuery.mock.calls[0][0].KeyConditionExpression).toBe('pk = :pk');
     expect(runQuery.mock.calls[1][0].IndexName).toBe('entityRelationship-index');
     expect(batchTransactData).toHaveBeenCalledTimes(1);
@@ -209,14 +244,14 @@ describe('deleteEntityRelationships', () => {
   it('still deletes forward rows when the GSI query fails', async () => {
     runQuery.mockResolvedValueOnce({ items: [row(FAC, ACT)] }).mockRejectedValueOnce(new Error('no index'));
     await expect(rel.deleteEntityRelationships(FAC.pk, FAC.sk))
-      .resolves.toEqual({ deletedCount: 1, forwardRelationships: 1, reverseRelationships: 0 });
+      .resolves.toEqual({ deletedCount: 1, forwardRelationships: 1, reverseRelationships: 0, deleted: [row(FAC, ACT)] });
     expect(batchTransactData).toHaveBeenCalledTimes(1);
   });
 
   it('writes nothing when there are no relationships', async () => {
     runQuery.mockResolvedValue({});
     await expect(rel.deleteEntityRelationships(FAC.pk, FAC.sk))
-      .resolves.toEqual({ deletedCount: 0, forwardRelationships: 0, reverseRelationships: 0 });
+      .resolves.toEqual({ deletedCount: 0, forwardRelationships: 0, reverseRelationships: 0, deleted: [] });
     expect(batchTransactData).not.toHaveBeenCalled();
   });
 
@@ -278,6 +313,19 @@ describe('getRelationshipsByPk / getRelationshipsByGsipk', () => {
     runQuery.mockRejectedValue(new Error('boom'));
     await expect(rel.getRelationshipsByPk('rel::x')).rejects.toMatchObject({ code: 400, message: 'Error getting Relationships' });
     await expect(rel.getRelationshipsByGsipk('rel::y')).rejects.toMatchObject({ code: 400, message: 'Error getting Relationships via GSI' });
+  });
+});
+
+describe('getActivityFacilityLinks', () => {
+  it('returns the facility end of each link found on the GSI, skipping links whose pk1 is not a facility', async () => {
+    const FAC2 = { pk: 'facility::bcparks_2', sk: 'trail::9' };
+    runQuery.mockResolvedValue({ items: [row(FAC, ACT), row(GZ, ACT), row(FAC2, ACT)] });
+
+    await expect(rel.getActivityFacilityLinks('bcparks_1', 'backcountryCamp', '3')).resolves.toEqual([FAC, FAC2]);
+    expect(runQuery).toHaveBeenCalledWith(expect.objectContaining({
+      IndexName: 'entityRelationship-index',
+      ExpressionAttributeValues: { ':gsipk': { S: 'rel::activity::bcparks_1::backcountryCamp::3' }, ':gsisk': { S: 'facility::' } },
+    }), null, null, false);
   });
 });
 

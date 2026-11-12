@@ -1,5 +1,6 @@
-const { requestIdentity, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { marshall, REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { auditRelationshipChanges } = require("../../../../../../../common/relationship-utils");
 
 /**
  * DELETE /relationships/{pk1}/{sk1}/{pk2}/{sk2}
@@ -15,11 +16,17 @@ const { marshall, REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt
 exports.handler = async (event, context) => {
   logger.info("DELETE relationship", requestIdentity(event));
   try {
+    const authContext = checkAuthContext(event, 'superadmin');
+
     const pk1 = event?.pathParameters?.pk1;
     const sk1 = event?.pathParameters?.sk1;
     const pk2 = event?.pathParameters?.pk2;
     const sk2 = event?.pathParameters?.sk2;
     const body = event?.body ? JSON.parse(event.body) : null;
+
+    if (body) {
+      throw new Exception("Body is not allowed", { code: 400 });
+    }
 
     // Validate required parameters
     const missingParams = [];
@@ -41,20 +48,18 @@ exports.handler = async (event, context) => {
     const pk = `rel::${pk1}::${sk1}`;
     const sk = `${pk2}::${sk2}`;
 
-    if (body) {
-      throw new Exception("Body is not allowed", { code: 400 });
-    }
-
     const deleteItem = createDeleteCommand(pk, sk);
 
     // Use batchTransactData to delete the database item
-    const res = await batchTransactData([deleteItem]);
+    await batchTransactData([deleteItem]);
+    await auditRelationshipChanges(authContext.sub, { removed: [{ pk, sk, pk1, sk1, pk2, sk2 }] });
     return sendResponse(200, { deleted: true, pk, sk }, "Success", null, context);
   } catch (error) {
     return sendResponse(
       Number(error?.code) || 400,
       null,
       error?.message || "Error deleting relationship",
+      null,
       context
     );
   }

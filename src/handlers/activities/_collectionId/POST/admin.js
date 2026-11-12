@@ -1,8 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
-const { quickApiPutHandler } = require("../../../../common/data-utils");
-const { ACTIVITY_API_PUT_CONFIG } = require("../../configs");
-const { parseRequest } = require("../../methods");
-const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { ACTIVITY_API_PUT_CONFIG, ACTIVITY_RELATIONSHIP_FIELDS } = require("../../configs");
+const { guardRelationshipFields, parseRequest } = require("../../methods");
+const { auditRelationshipChanges, createEntityWithRelationships } = require("../../../../common/relationship-utils");
 
 /**
  * @api {post} /activities/{collectionId} POST
@@ -24,43 +23,26 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is required", { code: 400 });
     }
 
+    await guardRelationshipFields(event, collectionId, body);
+
     body['collectionId'] = collectionId;
     body['schema'] = "activity";
 
-    // Attempt to batch create a activity.
-    // If it fails, reset the counter on reserve-rec-counter table and try again.
-    let postRequests;
-    let success = false;
-    let attempt = 1;
-    const MAX_RETRIES = 3;
-    while (attempt <= MAX_RETRIES && !success) {
-      // Grab the activityType if provided
-      const { activityType } = event?.queryStringParameters || {};
-      postRequests = await parseRequest(collectionId, body, "POST", activityType);
+    // Grab the activityType if provided
+    const { activityType } = event?.queryStringParameters || {};
 
-      // Use quickApiPutHandler to create the put items
-      const putItems = await quickApiPutHandler(
-        REFERENCE_DATA_TABLE_NAME,
-        postRequests,
-        ACTIVITY_API_PUT_CONFIG
-      );
+    // Retries with a fresh counter id when the write fails
+    const { postRequests, added, removed } = await createEntityWithRelationships({
+      schema: 'activity',
+      collectionId,
+      body,
+      parseArgs: [activityType],
+      relationshipFields: ACTIVITY_RELATIONSHIP_FIELDS,
+      putConfig: ACTIVITY_API_PUT_CONFIG,
+      parseRequest,
+    });
 
-      try {
-        attempt++;
-        await batchTransactData(putItems);
-
-        success = true;
-        logger.info(`Transaction succeeded on attempt ${attempt}`);
-      } catch (error) {
-        if (attempt >= MAX_RETRIES) {
-          logger.error(`Failed after ${MAX_RETRIES} attempts.`);
-          throw error;
-        }
-
-        // Short pause before attempting again
-        await new Promise((r) => setTimeout(r, attempt * 100));
-      }
-    }
+    await auditRelationshipChanges(authContext.sub, { added, removed });
 
     return sendResponse(200, postRequests, "Success", null, context);
   } catch (error) {

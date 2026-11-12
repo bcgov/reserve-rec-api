@@ -9,12 +9,13 @@ jest.mock('/opt/dynamodb', () => ({
   ...jest.requireActual('/opt/dynamodb'),
   getOne: jest.fn(),
   runQuery: jest.fn(),
+  batchGetData: jest.fn(),
 }));
 
 process.env.WAITING_ROOM_TABLE_NAME = 'WaitingRoom';
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-const { getOne, runQuery } = require('/opt/dynamodb');
+const { getOne, runQuery, batchGetData } = require('/opt/dynamodb');
 const { handler } = require('../../src/handlers/activities/_collectionId/GET/public');
 
 const COL = 'bcparks_1';
@@ -82,6 +83,23 @@ describe('GET /activities/{collectionId} (public) waiting room status', () => {
     const res = await get({ activityType: 'dayuse', activityId: '4' });
     expect(mockSend).not.toHaveBeenCalled();
     expect(parse(res).data).toEqual({ displayName: 'Joffre Lakes' });
+  });
+});
+
+describe('GET /activities/{collectionId} (public) fetchFacilities', () => {
+  const fac = (sk, extra) => ({ pk: `facility::${COL}`, sk, displayName: sk, ...extra });
+
+  it('returns only visible, live facilities, without admin-only fields', async () => {
+    runQuery.mockResolvedValue({ items: ['open', 'draft', 'gone'].map((sk) => ({ pk1: `facility::${COL}`, sk1: sk })) });
+    batchGetData.mockResolvedValue([
+      fac('open', { isVisible: true, adminNotes: 'n', version: 3, lastUpdated: 't', creationDate: 'c' }),
+      fac('draft', { isVisible: false }),
+      fac('gone', { isDeleted: true }),
+    ]);
+
+    const res = await get({ activityType: 'dayuse', activityId: '4', fetchFacilities: 'true' });
+
+    expect(parse(res).data.facilities).toEqual([fac('open', { isVisible: true })]);
   });
 });
 

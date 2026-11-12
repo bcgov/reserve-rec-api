@@ -2,7 +2,7 @@
 
 jest.mock('aws-cdk-lib/aws-lambda-nodejs', () => require('../helpers/cdkConstruct').nodejsFunctionMock());
 
-const { synthConstruct } = require('../helpers/cdkConstruct');
+const { auditWriters, synthConstruct } = require('../helpers/cdkConstruct');
 const { ActivitiesConstruct } = require('../../src/handlers/activities/constructs');
 
 const DIR = 'src/handlers/activities/_collectionId';
@@ -40,5 +40,10 @@ describe('ActivitiesConstruct', () => {
     for (const actions of Object.values(grants)) {
       expect(actions).toEqual(expect.arrayContaining(['dynamodb:Query', 'dynamodb:PutItem', 'dynamodb:UpdateItem']));
     }
+  });
+
+  it('lets only the POST, PUT and DELETE handlers write the audit table', () => {
+    const { roles } = synthConstruct(ActivitiesConstruct);
+    expect(auditWriters(roles)).toEqual([`${DIR}/DELETE/admin.js`, `${DIR}/POST/admin.js`, `${DIR}/PUT/admin.js`]);
   });
 });

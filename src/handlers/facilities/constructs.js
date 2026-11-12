@@ -218,6 +218,8 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
       this.grantBasicRefDataTableReadWrite(func);
     }
 
+    // DELETE audits the relationship links it removes
+    this.grantAuditTableWrite(this.facilitiesCollectionIdDeleteFunction);
   }
 }
 

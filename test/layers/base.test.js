@@ -11,7 +11,7 @@ const axios = require("axios");
 const { PassThrough } = require("stream");
 const { transports } = require("winston");
 const { ApiGatewayManagementApiClient } = require("@aws-sdk/client-apigatewaymanagementapi");
-const { marshall } = require("@aws-sdk/util-dynamodb");
+const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const base = require("/opt/base");
 
 const authEvent = (permissions, extra = {}) => ({
@@ -213,19 +213,35 @@ describe("writeAuditLog", () => {
   beforeEach(() => jest.useFakeTimers({ now: new Date("2026-07-01T12:00:00.000Z") }));
   afterEach(() => jest.useRealTimers());
 
+  const written = (write) => write.mock.calls.map(([[record]]) => unmarshall(record));
+
   it("writes one audit record keyed by user and time, indexed by entity", async () => {
     const write = jest.fn().mockResolvedValue();
 
     await base.writeAuditLog("sub-1", "bk-9", "QR_VERIFY_SUCCESS", { park: "p", skip: undefined }, marshall, write, "audit");
 
-    expect(write).toHaveBeenCalledWith([marshall({
+    expect(write).toHaveBeenCalledWith([expect.any(Object)], 25, "audit");
+    const [record] = written(write);
+    expect(record.sk).toMatch(/^2026-07-01T12:00:00\.000Z#[0-9a-f-]{36}$/);
+    expect(record).toEqual({
       pk: "sub-1",
-      sk: "2026-07-01T12:00:00.000Z",
+      sk: record.sk,
       gsipk: "entity::bk-9",
       gsisk: "2026-07-01T12:00:00.000Z",
       operation: "QR_VERIFY_SUCCESS",
       metadata: { entityId: "bk-9", park: "p", timestamp: "2026-07-01T12:00:00.000Z" },
-    })], 25, "audit");
+    });
+  });
+
+  it("gives two records by one user in the same millisecond distinct keys", async () => {
+    const write = jest.fn().mockResolvedValue();
+
+    await base.writeAuditLog("sub-1", "rel-a", "RELATIONSHIP_CREATE", {}, marshall, write, "audit");
+    await base.writeAuditLog("sub-1", "rel-b", "RELATIONSHIP_CREATE", {}, marshall, write, "audit");
+
+    const [a, b] = written(write);
+    expect(a.pk).toBe(b.pk);
+    expect(a.sk).not.toBe(b.sk);
   });
 
   it("swallows a write failure", async () => {

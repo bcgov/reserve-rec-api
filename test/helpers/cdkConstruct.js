@@ -123,6 +123,11 @@ function actionsOn(role, match) {
 
 const allActions = (role) => [...new Set(role.statements.flatMap((st) => st.actions))].sort();
 
+// Handler files allowed to write the audit table, sorted
+function auditWriters(roles) {
+  return Object.keys(roles).filter((file) => actionsOn(roles[file], AUDIT_TABLE_ARN).includes('dynamodb:PutItem')).sort();
+}
+
 // routes -> { "GET /path": "CUSTOM" }, for tests that only care who is let in
 function authByRoute(routes) {
   return Object.fromEntries(Object.entries(routes).map(([route, { auth }]) => [route, auth]));
@@ -138,4 +143,4 @@ function writerCount(grants) {
   return Object.values(grants).filter((actions) => actions.includes('dynamodb:PutItem')).length;
 }
 
-module.exports = { AUDIT_TABLE_ARN, TRANS_TABLE_ARN, nodejsFunctionMock, appScopeStub, authByRouteIn, testStack, synthConstruct, authByRoute, writerCount, actionsOn, allActions };
+module.exports = { AUDIT_TABLE_ARN, TRANS_TABLE_ARN, auditWriters, nodejsFunctionMock, appScopeStub, authByRouteIn, testStack, synthConstruct, authByRoute, writerCount, actionsOn, allActions };

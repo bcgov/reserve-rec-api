@@ -143,6 +143,10 @@ class RelationshipsConstruct extends LambdaConstruct {
       this.grantBasicRefDataTableReadWrite(func);
     }
 
+    // Relationship writes are audited
+    this.grantAuditTableWrite(this.relationshipsPostFunction);
+    this.grantAuditTableWrite(this.relationshipsDeleteFunction);
+
   }
 }
 
