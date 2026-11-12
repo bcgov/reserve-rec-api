@@ -939,6 +939,12 @@ const POLICY_FEE_API_PUT_CONFIG = {
         rf.expectAction(action, ['set']);
       },
     },
+    nonResidentFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectMoneyFormat(value);
+        rf.expectAction(action, ['set']);
+      }
+    },
     adultNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
         rf.expectMoneyFormat(value);
@@ -1094,6 +1100,12 @@ const POLICY_FEE_API_UPDATE_CONFIG = {
         rf.expectType(value, ['boolean']);
         rf.expectAction(action, ['set']);
       },
+    },
+    nonResidentFee: {
+      rulesFn: ({ value, action }) => {
+        rf.expectMoneyFormat(value);
+        rf.expectAction(action, ['set']);
+      }
     },
     adultNightlyCampingFee: {
       rulesFn: ({ value, action }) => {
