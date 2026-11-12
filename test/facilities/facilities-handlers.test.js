@@ -391,6 +391,13 @@ describe('facility orcs (park number)', () => {
     })]);
   });
 
+  // ORCS 1 is Strathcona Park, the lowest valid park number.
+  it('saves orcs 1 on a superadmin POST', async () => {
+    const res = await postHandler(event({ permissions: SUPERADMIN, pathParameters: { facilityType: 'structure' }, body: { ...NEW_LOT, orcs: 1 } }));
+    expect(res.statusCode).toBe(200);
+    expect(unmarshall(firstWrite().data.Item).orcs).toBe(1);
+  });
+
   it('saves a POST without orcs as before, with no audit entry', async () => {
     const res = await postHandler(event({ pathParameters: { facilityType: 'structure' }, body: NEW_LOT }));
     expect(res.statusCode).toBe(200);
