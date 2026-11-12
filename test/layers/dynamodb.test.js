@@ -317,13 +317,31 @@ describe("batch gets", () => {
     }]]);
   });
 
-  it("attaches keys DynamoDB did not process", async () => {
+  describe("with keys DynamoDB did not process", () => {
     const left = [{ pk: { S: "b" }, sk: { S: "2" } }];
-    replyWith(null, { Responses: { t: [] }, UnprocessedKeys: { t: { Keys: left } } });
+    beforeEach(() => jest.spyOn(global, "setTimeout").mockImplementation((fn) => { fn(); return 0; }));
+    afterEach(() => global.setTimeout.mockRestore());
 
-    const data = await db.batchGetData([{ pk: "a", sk: "1" }, { pk: "b", sk: "2" }], "t");
+    it("requests only those keys again and returns every item", async () => {
+      mockSend
+        .mockImplementationOnce((_c, cb) => cb(null, { Responses: { t: items({ pk: "a", sk: "1" }) }, UnprocessedKeys: { t: { Keys: left } } }))
+        .mockImplementationOnce((_c, cb) => cb(null, { Responses: { t: items({ pk: "b", sk: "2" }) } }));
 
-    expect(data.unprocessedKeys).toEqual(left);
+      const data = await db.batchGetData([{ pk: "a", sk: "1" }, { pk: "b", sk: "2" }], "t");
+
+      expect(sent()[1]).toEqual(["BatchGetItemCommand", { RequestItems: { t: { Keys: left } } }]);
+      expect(data).toEqual([{ pk: "a", sk: "1" }, { pk: "b", sk: "2" }]);
+      expect(data.unprocessedKeys).toBeUndefined();
+    });
+
+    it("attaches the keys still unprocessed after the last retry", async () => {
+      replyWith(null, { Responses: { t: [] }, UnprocessedKeys: { t: { Keys: left } } });
+
+      const data = await db.batchGetData([{ pk: "a", sk: "1" }, { pk: "b", sk: "2" }], "t");
+
+      expect(mockSend).toHaveBeenCalledTimes(4);
+      expect(data.unprocessedKeys).toEqual(left);
+    });
   });
 
   it("rejects with the client error", async () => {

@@ -12,6 +12,7 @@
 
 const { requestIdentity, logger, sendResponse, handleCORS, Exception, checkAuthContext } = require("/opt/base");
 const { runQuery, getOne, TRANSACTIONAL_DATA_TABLE_NAME, REFERENCE_DATA_TABLE_NAME } = require("/opt/dynamodb");
+const { getActivityFacilityLinks } = require("../../../common/relationship-utils");
 
 exports.handler = async (event, context) => {
   logger.info("Daily Passes Report GET:", requestIdentity(event));
@@ -74,7 +75,7 @@ exports.handler = async (event, context) => {
       const bookings = activityBookings;
 
       // Resolve facility display name from the activity's linked facilities
-      const facilityDisplayName = await resolveFacilityDisplayName(activity);
+      const facilityDisplayName = await resolveFacilityDisplayName(collectionId, activity);
 
       // Add facility display name to each booking
       bookings.forEach(booking => {
@@ -195,24 +196,17 @@ async function resolveCollectionDisplayName(collectionId) {
 }
 
 /**
- * Resolves the facility display name from an activity's linked facilities
+ * Resolves the facility display name from the activity's facility relationships
  * Returns the first facility's displayName, or empty string if none found
  */
-async function resolveFacilityDisplayName(activity) {
+async function resolveFacilityDisplayName(collectionId, activity) {
   try {
-    const facilities = activity.facilities || [];
-    if (facilities.length === 0) {
+    const [facilityRef] = await getActivityFacilityLinks(collectionId, activity.activityType, activity.activityId);
+    if (!facilityRef) {
       return '';
     }
-
-    // Get the first facility reference
-    const facilityRef = facilities[0];
     const facilityPk = facilityRef.pk;
     const facilitySk = facilityRef.sk;
-
-    if (!facilityPk || !facilitySk) {
-      return '';
-    }
 
     // Fetch the facility record
     const queryObj = {

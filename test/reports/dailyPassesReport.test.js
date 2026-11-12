@@ -11,15 +11,27 @@ jest.mock('/opt/dynamodb', () => ({
 
 const { handler } = require('../../src/handlers/reports/GET/admin');
 
-// Rows by pk; runQuery honours begins_with(sk, ...) and sk equality like DynamoDB would.
+// Rows by pk, and relationship rows by gsipk; runQuery honours begins_with on the sort key like DynamoDB would.
 function useTables(rows) {
   mockRunQuery.mockImplementation(async (q) => {
     const v = q.ExpressionAttributeValues;
+    if (v[':gsipk']) {
+      return { items: (rows[v[':gsipk'].S] || []).filter((r) => r.gsisk.startsWith(v[':gsisk']?.S ?? '')) };
+    }
     const skPrefix = v[':sk']?.S ?? v[':activityType']?.S ?? '';
     const items = (rows[v[':pk'].S] || []).filter((r) => String(r.sk).startsWith(skPrefix));
     return { items };
   });
 }
+
+// Relationship row linking facility (pk1) to activity (pk2), as the GSI returns it.
+const link = (facility, activity) => ({
+  pk: `rel::${facility.pk}::${facility.sk}`, sk: `${activity.pk}::${activity.sk}`,
+  gsipk: `rel::${activity.pk}::${activity.sk}`, gsisk: `${facility.pk}::${facility.sk}`,
+  pk1: facility.pk, sk1: facility.sk, pk2: activity.pk, sk2: activity.sk,
+});
+const DAYUSE_1 = { pk: 'activity::bcparks_7', sk: 'dayuse::1' };
+const GOLD_CREEK = { pk: 'facility::bcparks_7', sk: 'trail::9' };
 
 const staff = (collectionId) => JSON.stringify({ [collectionId]: 'staff' });
 const event = (qs, permissions = staff('bcparks_7')) => ({
@@ -85,12 +97,13 @@ describe('GET /reports/daily-passes', () => {
     expect(body(res).data).toEqual({ items: [], count: 0, collectionId: 'bcparks_7', arrivalDate: '2026-07-01' });
   });
 
-  it('formats bookings across products with park and facility names', async () => {
+  it('formats bookings across products with park and the facility name from the relationship', async () => {
     useTables({
       'activity::bcparks_7': [
-        { sk: 'dayuse::1', activityType: 'dayuse', activityId: '1', facilities: [{ pk: 'facility::bcparks_7', sk: 'trail::9' }] },
+        { sk: 'dayuse::1', activityType: 'dayuse', activityId: '1' },
         { sk: 'backcountry::2', activityType: 'backcountry', activityId: '2' },
       ],
+      'rel::activity::bcparks_7::dayuse::1': [link(GOLD_CREEK, DAYUSE_1)],
       'product::bcparks_7::dayuse::1': [{ sk: 'p1' }, { sk: 'p2' }],
       'booking::bcparks_7::dayuse::1::p1': [vehicleBooking, { ...vehicleBooking, sk: '2026-07-02::x', bookingId: 'OTHER-DAY' }],
       'booking::bcparks_7::dayuse::1::p2': [trailBooking],
@@ -147,7 +160,7 @@ describe('GET /reports/daily-passes', () => {
 
   it('falls back to the bare collectionId when the park lookup fails or has no name', async () => {
     useTables({
-      'activity::bcparks_7': [{ sk: 'dayuse::1', activityType: 'dayuse', activityId: '1', facilities: [{ pk: 'facility::bcparks_7' }] }],
+      'activity::bcparks_7': [{ sk: 'dayuse::1', activityType: 'dayuse', activityId: '1' }],
       'product::bcparks_7::dayuse::1': [{ sk: 'p1' }],
       'booking::bcparks_7::dayuse::1::p1': [vehicleBooking],
     });
@@ -162,13 +175,14 @@ describe('GET /reports/daily-passes', () => {
 
   it('leaves the facility blank when its lookup fails', async () => {
     useTables({
-      'activity::bcparks_7': [{ sk: 'dayuse::1', activityType: 'dayuse', activityId: '1', facilities: [{ pk: 'facility::bcparks_7', sk: 'trail::9' }] }],
+      'activity::bcparks_7': [{ sk: 'dayuse::1', activityType: 'dayuse', activityId: '1' }],
+      'rel::activity::bcparks_7::dayuse::1': [link(GOLD_CREEK, DAYUSE_1)],
       'product::bcparks_7::dayuse::1': [{ sk: 'p1' }],
       'booking::bcparks_7::dayuse::1::p1': [vehicleBooking],
     });
     const tables = mockRunQuery.getMockImplementation();
     mockRunQuery.mockImplementation(async (q) => {
-      if (q.ExpressionAttributeValues[':pk'].S.startsWith('facility::')) throw new Error('throttled');
+      if (q.ExpressionAttributeValues[':pk']?.S.startsWith('facility::')) throw new Error('throttled');
       return tables(q);
     });
     const res = await handler(event({ collectionId: 'bcparks_7', arrivalDate: '2026-07-01' }), {});
@@ -187,7 +201,7 @@ describe('GET /reports/daily-passes', () => {
     });
     const tables = mockRunQuery.getMockImplementation();
     mockRunQuery.mockImplementation(async (q) => {
-      if (q.ExpressionAttributeValues[':pk'].S.startsWith(prefix)) throw new Error('throttled');
+      if (q.ExpressionAttributeValues[':pk']?.S.startsWith(prefix)) throw new Error('throttled');
       return tables(q);
     });
     const res = await handler(event({ collectionId: 'bcparks_7', arrivalDate: '2026-07-01' }), {});

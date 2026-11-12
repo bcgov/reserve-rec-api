@@ -8,9 +8,10 @@ const ALLOWED_FILTERS = [
   { name: "activityType", type: "list" },
   { name: "activityId", type: "number" },
   { name: "subActivityType", type: "list" },
-  { name: "facilities", type: "list" },
-  { name: "fetchFacilities", type: "boolean" }
 ];
+
+// Stored as relationship items, never as attributes on the activity
+const ACTIVITY_RELATIONSHIP_FIELDS = ['facilities', 'geozones'];
 
 const ACTIVITY_API_PUT_CONFIG = {
   failOnError: true,
@@ -82,18 +83,6 @@ const ACTIVITY_API_PUT_CONFIG = {
       isMandatory: true,
       rulesFn: ({ value, action }) => {
         rf.expectInteger(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    geozones: {
-      rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKeyArray(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    facilities: {
-      rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKeyArray(value);
         rf.expectAction(action, ['set']);
       }
     },
@@ -189,18 +178,6 @@ const ACTIVITY_API_UPDATE_CONFIG = {
         rf.expectAction(action, ['set']);
       }
     },
-    geozones: {
-      rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKeyArray(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
-    facilities: {
-      rulesFn: ({ value, action }) => {
-        rf.expectPrimaryKeyArray(value);
-        rf.expectAction(action, ['set']);
-      }
-    },
     isVisible: {
       rulesFn: ({ value, action }) => {
         rf.expectType(value, ['boolean']);
@@ -247,6 +224,7 @@ const ACTIVITY_API_UPDATE_CONFIG = {
 };
 
 module.exports = {
+  ACTIVITY_RELATIONSHIP_FIELDS,
   ACTIVITY_API_PUT_CONFIG,
   ACTIVITY_API_UPDATE_CONFIG,
   ALLOWED_FILTERS

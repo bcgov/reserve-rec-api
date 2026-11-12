@@ -539,7 +539,8 @@ async function writeAuditLog(user, entityId, operation, metadata = {}, marshallF
 
     const auditRecord = marshallFn({
       pk: user,
-      sk: timestamp,
+      // The uuid keeps two writes by one user in the same millisecond from overwriting each other.
+      sk: `${timestamp}#${crypto.randomUUID()}`,
       gsipk: `entity::${entityId}`,
       gsisk: timestamp,
       operation: operation,

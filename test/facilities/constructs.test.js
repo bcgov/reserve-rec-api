@@ -2,7 +2,7 @@
 
 jest.mock('aws-cdk-lib/aws-lambda-nodejs', () => require('../helpers/cdkConstruct').nodejsFunctionMock());
 
-const { synthConstruct } = require('../helpers/cdkConstruct');
+const { auditWriters, synthConstruct } = require('../helpers/cdkConstruct');
 const { PublicFacilitiesConstruct, AdminFacilitiesConstruct } = require('../../src/handlers/facilities/constructs');
 
 const DIR = 'src/handlers/facilities/_collectionId';
@@ -19,9 +19,13 @@ describe('PublicFacilitiesConstruct', () => {
 });
 
 describe('AdminFacilitiesConstruct', () => {
-  let routes, grants;
+  let routes, grants, roles;
   beforeAll(() => {
-    ({ routes, grants } = synthConstruct(AdminFacilitiesConstruct));
+    ({ routes, grants, roles } = synthConstruct(AdminFacilitiesConstruct));
+  });
+
+  it('lets only the DELETE handler write the audit table', () => {
+    expect(auditWriters(roles)).toEqual([`${DIR}/DELETE/admin.js`]);
   });
 
   it('routes every method to its admin handler behind the authorizer', () => {

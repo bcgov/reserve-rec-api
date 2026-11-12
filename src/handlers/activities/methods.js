@@ -1,6 +1,7 @@
 const { REFERENCE_DATA_TABLE_NAME, batchGetData, runQuery, getOne, marshall, incrementCounter, excludeDeletedItems, excludeHiddenItems } = require("/opt/dynamodb");
-const { Exception, logger } = require("/opt/base");
-const { ALLOWED_FILTERS } = require("./configs");
+const { Exception, logger, checkAuthContext } = require("/opt/base");
+const { ALLOWED_FILTERS, ACTIVITY_RELATIONSHIP_FIELDS } = require("./configs");
+const { FIELD_TO_SCHEMA, getActivityFacilityLinks } = require("../../common/relationship-utils");
 /**
  * Adds any filter expressions if any filters were added to query.
  *
@@ -183,15 +184,75 @@ async function getActivityByActivityId(collectionId, activityType, activityId, f
     //   const geozone = await getOne(res.geozone.pk, res.geozone.sk);
     //   res.geozone = geozone;
     // }
-    if (fetchFacilities && res?.facilities && res?.facilities.length > 0) {
-      let temp = await batchGetData(res.facilities, REFERENCE_DATA_TABLE_NAME);
-      res.facilities = temp;
+    if (fetchFacilities && res) {
+      const links = await getActivityFacilityLinks(collectionId, activityType, activityId);
+      const facilities = links.length > 0 ? await batchGetData(links, REFERENCE_DATA_TABLE_NAME) : [];
+      res.facilities = facilities.filter((facility) => !facility.isDeleted);
     }
     return res;
   } catch (error) {
     logger.error(`Error getting activity: ${error}`);
     throw new Exception("Error getting activity", { code: 400, error: error });
   }
+}
+
+const bodyItems = (body) => (Array.isArray(body) ? body : [body]).filter((item) => item && typeof item === "object");
+
+/**
+ * True when the body (or any item of a batch body) carries a relationship field, even an empty one.
+ */
+function hasRelationshipFields(body) {
+  return bodyItems(body).some((item) => ACTIVITY_RELATIONSHIP_FIELDS.some((field) => Object.hasOwn(item, field)));
+}
+
+/**
+ * Checks every facilities/geozones entry in the body before anything is written:
+ * each must be a {pk, sk} string pair, keyed to this collection, naming an entity that exists.
+ *
+ * @throws {Exception} 400 naming the first bad entry, or every missing one
+ */
+async function validateRelationshipFields(collectionId, body) {
+  const keys = new Map();
+  for (const item of bodyItems(body)) {
+    for (const field of ACTIVITY_RELATIONSHIP_FIELDS) {
+      if (!Object.hasOwn(item, field)) continue;
+      const entries = item[field];
+      if (!Array.isArray(entries)) {
+        throw new Exception(`${field} must be an array of {pk, sk}`, { code: 400 });
+      }
+      const expectedPk = `${FIELD_TO_SCHEMA[field]}::${collectionId}`;
+      for (const entry of entries) {
+        if (typeof entry?.pk !== "string" || typeof entry?.sk !== "string" || !entry.sk) {
+          throw new Exception(`Invalid ${field} entry ${JSON.stringify(entry)}: expected {pk, sk} strings`, { code: 400 });
+        }
+        if (entry.pk !== expectedPk) {
+          throw new Exception(`Invalid ${field} entry ${entry.pk}::${entry.sk}: pk must be ${expectedPk}`, { code: 400 });
+        }
+        keys.set(`${entry.pk}::${entry.sk}`, { pk: entry.pk, sk: entry.sk });
+      }
+    }
+  }
+  if (keys.size === 0) return;
+
+  const found = await batchGetData([...keys.values()], REFERENCE_DATA_TABLE_NAME);
+  if (found?.unprocessedKeys) {
+    throw new Exception("Could not check the linked entities; try again", { code: 500 });
+  }
+  const live = new Set((found || []).filter((entity) => !entity.isDeleted).map((entity) => `${entity.pk}::${entity.sk}`));
+  const missing = [...keys.keys()].filter((key) => !live.has(key));
+  if (missing.length > 0) {
+    throw new Exception(`Linked entities not found: ${missing.join(", ")}`, { code: 400 });
+  }
+}
+
+/**
+ * Only superadmins may set an activity's facilities or geozones; the entries are
+ * validated here so a refused request writes nothing, not even the id counter.
+ */
+async function guardRelationshipFields(event, collectionId, body) {
+  if (!hasRelationshipFields(body)) return;
+  checkAuthContext(event, "superadmin");
+  await validateRelationshipFields(collectionId, body);
 }
 
 /**
@@ -315,6 +376,7 @@ module.exports = {
   getActivitiesByCollectionId,
   getActivitiesByActivityType,
   getActivityByActivityId,
+  guardRelationshipFields,
   parseRequest,
-  processItem
+  processItem,
 };

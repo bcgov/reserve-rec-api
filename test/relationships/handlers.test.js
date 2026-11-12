@@ -6,10 +6,12 @@ jest.mock('/opt/dynamodb', () => ({
   getOne: jest.fn(),
   batchGetData: jest.fn(),
   batchTransactData: jest.fn(),
+  batchWriteData: jest.fn(),
 }));
 
-const { runQuery, getOne, batchGetData, batchTransactData } = require('/opt/dynamodb');
+const { runQuery, getOne, batchGetData, batchTransactData, batchWriteData } = require('/opt/dynamodb');
 const { adminEvent, parse } = require('../helpers/adminEvent');
+const { auditRecords: auditRecordsOf, relationshipAudit } = require('../helpers/dynamoIo');
 const POST = require('../../src/handlers/relationships/POST/admin').handler;
 const GET_FROM = require('../../src/handlers/relationships/_compoundPk1/_compoundSk1/GET/admin').handler;
 const GET_TO = require('../../src/handlers/relationships/reverse/_compoundPk2/_compoundSk2/GET/admin').handler;
@@ -18,6 +20,10 @@ const DELETE = require('../../src/handlers/relationships/_compoundPk1/_compoundS
 const FAC = { pk: 'facility::bcparks_1', sk: 'campground::2' };
 const ACT = { pk: 'activity::bcparks_1', sk: 'backcountryCamp::3' };
 const row = (a, b) => ({ pk: `rel::${a.pk}::${a.sk}`, sk: `${b.pk}::${b.sk}`, pk1: a.pk, sk1: a.sk, pk2: b.pk, sk2: b.sk });
+const auditRecords = () => auditRecordsOf(batchWriteData);
+const auditOf = (operation, a, b) => relationshipAudit(operation, row(a, b));
+const LIMITED = { bcparks_1: 'limited' };
+const STAFF = { bcparks_1: 'staff' };
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -43,6 +49,14 @@ describe('POST /relationships', () => {
       schema2: { S: 'activity' },
       version: { N: '1' },
     });
+    expect(auditRecords()).toEqual([auditOf('RELATIONSHIP_CREATE', FAC, ACT)]);
+  });
+
+  it.each([['staff', STAFF], ['limited', LIMITED]])('403s a %s caller and writes nothing', async (_label, permissions) => {
+    const res = await POST(adminEvent({ httpMethod: 'POST', permissions, body: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk, sk2: ACT.sk } }));
+    expect(res.statusCode).toBe(403);
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
   });
 
   it('400s naming each missing key part', async () => {
@@ -138,21 +152,23 @@ describe('DELETE /relationships/{pk1}/{sk1}/{pk2}/{sk2}', () => {
       action: 'Delete',
       data: { TableName: 'reference-data', Key: { pk: { S: row(FAC, ACT).pk }, sk: { S: row(FAC, ACT).sk } } },
     }]);
+    expect(auditRecords()).toEqual([auditOf('RELATIONSHIP_DELETE', FAC, ACT)]);
   });
 
-  // The handler has no checkAuthContext, so any caller can delete.
-  test.failing('403s a caller without staff on the collection and deletes nothing', async () => {
-    const res = await DELETE(adminEvent({ httpMethod: 'DELETE', permissions: { bcparks_9: 'staff' }, pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk, sk2: ACT.sk } }));
+  it.each([['staff', STAFF], ['limited', LIMITED]])('403s a %s caller and deletes nothing', async (_label, permissions) => {
+    const res = await DELETE(adminEvent({ httpMethod: 'DELETE', permissions, pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk, sk2: ACT.sk } }));
     expect(res.statusCode).toBe(403);
     expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
   });
 
   it.each([
-    ['a missing key part', { pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk } }],
-    ['a body', { pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk, sk2: ACT.sk }, body: { a: 1 } }],
-  ])('400s with %s and deletes nothing', async (_label, opts) => {
+    ['a missing key part', { pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk } }, 'Cannot delete relationship - missing required parameter(s): sk2'],
+    ['a body', { pathParameters: { pk1: FAC.pk, sk1: FAC.sk, pk2: ACT.pk, sk2: ACT.sk }, body: { a: 1 } }, 'Body is not allowed'],
+  ])('400s with %s and deletes nothing', async (_label, opts, msg) => {
     const res = await DELETE(adminEvent({ httpMethod: 'DELETE', ...opts }));
     expect(res.statusCode).toBe(400);
+    expect(parse(res).msg).toBe(msg);
     expect(batchTransactData).not.toHaveBeenCalled();
   });
 });

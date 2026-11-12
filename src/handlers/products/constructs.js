@@ -195,6 +195,9 @@ class AdminProductsConstruct extends LambdaConstruct {
       this.grantBasicRefDataTableReadWrite(func);
     }
 
+    // POST and DELETE audit the relationship links they write and remove
+    this.grantAuditTableWrite(this.productsCollectionIdPostFunction);
+    this.grantAuditTableWrite(this.productsCollectionIdDeleteFunction);
   }
 }
 

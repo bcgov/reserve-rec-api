@@ -5,6 +5,7 @@ jest.mock("/opt/dynamodb", () => require("../helpers/dynamoIo").mockModule());
 const db = require("/opt/dynamodb");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { adminEvent, parse } = require("../helpers/adminEvent");
+const { auditRecords, relationshipAudit } = require("../helpers/dynamoIo");
 const getAdmin = require("../../src/handlers/products/_collectionId/GET/admin").handler;
 const getPublic = require("../../src/handlers/products/_collectionId/GET/public").handler;
 const post = require("../../src/handlers/products/_collectionId/POST/admin").handler;
@@ -88,6 +89,10 @@ describe("POST product", () => {
     const [relationships] = db.batchWriteData.mock.calls[0];
     expect(relationships).toHaveLength(1);
     expect(JSON.stringify(relationships[0])).toContain("activity::bcparks_7");
+    expect(res.data).toEqual([expect.objectContaining({ key: { pk: "product::bcparks_7::dayuse::1", sk: "4" } })]);
+    expect(auditRecords(db.batchWriteData)).toEqual([relationshipAudit("RELATIONSHIP_CREATE", {
+      pk1: "activity::bcparks_7", sk1: "dayuse::1", pk2: "product::bcparks_7::dayuse::1", sk2: "4",
+    })]);
   });
 
   it("rejects an assetList entry with an unknown allocationType", async () => {
@@ -207,9 +212,14 @@ describe("DELETE product", () => {
     return adminEvent({ httpMethod: "DELETE", pathParameters: PATH, ...overrides, permissions });
   }
 
-  it("removes the product's relationships and soft-deletes it", async () => {
+  it("removes the product's relationships, auditing each, and soft-deletes it", async () => {
+    const rel = {
+      pk: "rel::activity::bcparks_7::dayuse::1", sk: "product::bcparks_7::dayuse::1::2",
+      pk1: "activity::bcparks_7", sk1: "dayuse::1", pk2: "product::bcparks_7::dayuse::1", sk2: "2",
+    };
     db.runQuery
-      .mockResolvedValueOnce({ items: [{ pk: "rel::product::bcparks_7::dayuse::1::2", sk: "activity::x" }] })
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({ items: [rel] })
       .mockResolvedValueOnce({ items: [] });
 
     const res = parse(await del(delEvent()));
@@ -222,6 +232,7 @@ describe("DELETE product", () => {
     expect(unmarshall(softDelete.data.Key)).toEqual({ pk: "product::bcparks_7::dayuse::1", sk: "2" });
     expect(softDelete.data.UpdateExpression).toContain("isDeleted = :true");
     expect(unmarshall(softDelete.data.ExpressionAttributeValues)).toMatchObject({ ":true": true, ":deletedBy": "user-1" });
+    expect(auditRecords(db.batchWriteData)).toEqual([relationshipAudit("RELATIONSHIP_DELETE", rel)]);
   });
 
   it("refuses a body", async () => {

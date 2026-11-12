@@ -1,8 +1,7 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
-const { quickApiUpdateHandler } = require("../../../../common/data-utils");
-const { ACTIVITY_API_UPDATE_CONFIG } = require("../../configs");
-const { parseRequest } = require("../../methods");
-const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
+const { ACTIVITY_API_UPDATE_CONFIG, ACTIVITY_RELATIONSHIP_FIELDS } = require("../../configs");
+const { guardRelationshipFields, parseRequest } = require("../../methods");
+const { auditRelationshipChanges, createEntityWithRelationships } = require("../../../../common/relationship-utils");
 
 /**
  * @api {put} /activities/{collectionId} PUT
@@ -27,19 +26,23 @@ exports.handler = async (event, context) => {
       throw new Exception("Body is required", { code: 400 });
     }
 
-    let updateRequests = await parseRequest(collectionId, body, "PUT", activityType, activityId);
+    await guardRelationshipFields(event, collectionId, body);
 
-    // Use quickApiPutHandler to create the put items
-    const updateItems = await quickApiUpdateHandler(
-      REFERENCE_DATA_TABLE_NAME,
-      updateRequests,
-      ACTIVITY_API_UPDATE_CONFIG
-    );
+    // Only relationship fields present in the body are synced; absent ones keep their links
+    const { postRequests, added, removed } = await createEntityWithRelationships({
+      schema: 'activity',
+      collectionId,
+      body,
+      requestMethod: 'PUT',
+      parseArgs: [activityType, activityId],
+      relationshipFields: ACTIVITY_RELATIONSHIP_FIELDS,
+      putConfig: ACTIVITY_API_UPDATE_CONFIG,
+      parseRequest,
+    });
 
-    // Use batchTransactData to update the database
-    const res = await batchTransactData(updateItems);
+    await auditRelationshipChanges(authContext.sub, { added, removed });
 
-    return sendResponse(200, res, "Success", null, context);
+    return sendResponse(200, postRequests, "Success", null, context);
   } catch (error) {
     logger.error(`Error in PUT Activities: ${error}`);
     return sendResponse(

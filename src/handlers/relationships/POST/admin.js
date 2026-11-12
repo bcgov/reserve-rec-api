@@ -1,6 +1,7 @@
 const { RELATIONSHIP_API_PUT_CONFIG } = require('../configs');
-const { requestIdentity, Exception, logger, sendResponse } = require("/opt/base");
+const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { quickApiPutHandler } = require("../../../common/data-utils");
+const { auditRelationshipChanges } = require("../../../common/relationship-utils");
 const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb");
 
 /**
@@ -14,7 +15,8 @@ const { REFERENCE_DATA_TABLE_NAME, batchTransactData } = require("/opt/dynamodb"
 exports.handler = async (event, context) => {
   logger.info("POST relationship", requestIdentity(event));
   try {
-    
+    const authContext = checkAuthContext(event, 'superadmin');
+
     const { pk1, sk1, pk2, sk2 } = JSON.parse(event?.body);
 
     // Validate required parameters
@@ -69,6 +71,7 @@ exports.handler = async (event, context) => {
     );
 
     const res = await batchTransactData(putItems);
+    await auditRelationshipChanges(authContext.sub, { added: [relationshipItem] });
 
     return sendResponse(200, res, "Success", null, context);
   } catch (error) {

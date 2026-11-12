@@ -1,6 +1,6 @@
 const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
-const { deleteEntityRelationships } = require("../../../../common/relationship-utils");
+const { auditRelationshipChanges, deleteEntityRelationships } = require("../../../../common/relationship-utils");
 
 /**
  * @api {delete} /products/{collectionId}/ DELETE
@@ -32,6 +32,7 @@ exports.handler = async (event, context) => {
     logger.info(`Deleting relationships for: rel::${pk}::${sk}`);
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
+    await auditRelationshipChanges(authContext.sub, { removed: relationshipResult.deleted });
 
     // Then soft-delete the product itself (keep the row, mark it deleted so it's hidden)
     const user = authContext?.sub || "system";
