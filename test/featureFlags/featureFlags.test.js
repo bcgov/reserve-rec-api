@@ -37,6 +37,13 @@ describe('PUT /feature-flags', () => {
     expect(mockDb.get(REF, 'config', 'featureFlags')).toMatchObject({ flags: { enablePayments: false, waitingRoom: true }, version: 5 });
   });
 
+  it('writes the audit entry under the caller', async () => {
+    await putHandler(put({ flags: { enablePayments: false } }), {});
+
+    const [entry] = mockDb.all('audit');
+    expect(entry).toMatchObject({ pk: 'sub-boss', gsipk: 'entity::featureFlags', operation: 'FEATURE_FLAGS_UPDATE' });
+  });
+
   it('starts at version 1 when no flags record exists', async () => {
     const res = await putHandler(put({ flags: { enablePayments: true } }), {});
     expect(data(res).version).toBe(1);
