@@ -3,8 +3,9 @@ const {
   getActivitiesByActivityType,
   getActivityByActivityId,
 } = require('../../methods');
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, filterByRole } = require('/opt/base');
 const { ALLOWED_FILTERS } = require('../../configs');
+const { ROLE_BASED_FILTERS } = require('../../../facilities/configs');
 const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 
@@ -90,7 +91,12 @@ exports.handler = async (event, context) => {
     });
 
     if (activityType && activityId) {
-      res = await getActivityByActivityId(collectionId, activityType, activityId, queryParams?.fetchFacilities || null, queryParams?.fetchGeozone || null);
+      const fetchFacilities = queryParams?.fetchFacilities === 'true';
+      res = await getActivityByActivityId(collectionId, activityType, activityId, fetchFacilities, queryParams?.fetchGeozone || null);
+      if (fetchFacilities && res?.facilities) {
+        const visible = res.facilities.filter((facility) => facility.isVisible !== false);
+        res.facilities = filterByRole(visible, 'default', ROLE_BASED_FILTERS);
+      }
       // Append waiting room status when startDate is provided
       const wrStatus = await getWaitingRoomStatus(collectionId, activityType, activityId, startDate);
       res = { ...res, ...wrStatus };

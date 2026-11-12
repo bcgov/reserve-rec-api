@@ -587,15 +587,31 @@ async function parallelizedBatchGetData(groups, tableName = REFERENCE_DATA_TABLE
 }
 
 /**
- * Retrieves a batch of items from a DynamoDB table.
+ * Retrieves a batch of items from a DynamoDB table. Keys DynamoDB leaves
+ * unprocessed are requested again with backoff; any still left after the
+ * last attempt are attached as `unprocessedKeys`.
  *
  * @param {Array} keys - An array of keys to retrieve from the table.
  * @param {string} tableName - The name of the DynamoDB table.
  * @returns {Object} An array of items retrieved from the table.
  */
 async function batchGetData(keys, tableName = REFERENCE_DATA_TABLE_NAME) {
-  const res = await batchGetDataPromise('batch', keys, tableName);
-  return res?.data;
+  let data = [];
+  let pending = keys;
+  for (let attempt = 0; ; attempt++) {
+    const res = await batchGetDataPromise('batch', pending, tableName);
+    data = data.concat(res?.data || []);
+    const left = res?.data?.unprocessedKeys;
+    if (!left?.length) {
+      return data;
+    }
+    if (attempt === UNPROCESSED_RETRY_ATTEMPTS) {
+      data['unprocessedKeys'] = left;
+      return data;
+    }
+    pending = left.map((key) => unmarshall(key));
+    await new Promise(resolve => setTimeout(resolve, UNPROCESSED_BASE_DELAY_MS * 2 ** attempt));
+  }
 }
 
 function batchGetDataPromise(groupName, keys, tableName = REFERENCE_DATA_TABLE_NAME) {

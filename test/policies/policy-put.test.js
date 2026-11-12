@@ -86,7 +86,7 @@ describe('PUT /policies/{policyType}/{policyId}', () => {
       maxVehiclesPerUnit: 1, adminNotes: 'a', searchTerms: ['s'], mustProvideAccessPoints: true,
     }],
     ['fee', {
-      displayName: 'f', description: 'd', isAcceptingPayments: false, adultNightlyCampingFee: 20,
+      displayName: 'f', description: 'd', isAcceptingPayments: false, nonResidentFee: 20, adultNightlyCampingFee: 20,
       youthNightlyCampingFee: 10, childNightlyCampingFee: 5, seniorNightlyCampingFee: 10, baseChangeFee: 9,
       unitChangeFee: 1, baseReservationFee: 6, unitReservationFee: 2, unitType: 'cabin', maxUnitCharge: 90,
       changeSSCFECharge: 1.5, hasSSCFEDiscount: true, additionalVehiclesFee: 5, damageDeposit: 100,

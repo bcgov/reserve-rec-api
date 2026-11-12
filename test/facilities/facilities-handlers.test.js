@@ -10,12 +10,14 @@ jest.mock('/opt/dynamodb', () => ({
   batchWriteData: jest.fn(),
 }));
 jest.mock('../../src/common/relationship-utils', () => ({
+  ...jest.requireActual('../../src/common/relationship-utils'),
   getRelationshipsByGsipk: jest.fn(),
   deleteEntityRelationships: jest.fn(),
 }));
 
 const { unmarshall } = require('@aws-sdk/util-dynamodb');
 const { getOne, runQuery, batchGetData, incrementCounter, batchTransactData, batchWriteData } = require('/opt/dynamodb');
+const { auditRecords, relationshipAudit } = require('../helpers/dynamoIo');
 const { getRelationshipsByGsipk, deleteEntityRelationships } = require('../../src/common/relationship-utils');
 const { handler: adminGet } = require('../../src/handlers/facilities/_collectionId/GET/admin');
 const { handler: publicGet } = require('../../src/handlers/facilities/_collectionId/GET/public');
@@ -321,11 +323,13 @@ describe('PUT /facilities/{collectionId}/{facilityType}/{facilityId}', () => {
 
 describe('DELETE /facilities/{collectionId}/{facilityType}/{facilityId}', () => {
   const path = { facilityType: 'structure', facilityId: '1' };
+  const asSuperadmin = (opts) => event({ permissions: SUPERADMIN, ...opts });
 
-  it('removes relationships, then soft-deletes the facility as the caller', async () => {
-    deleteEntityRelationships.mockResolvedValue({ deletedCount: 3 });
+  it('removes relationships, auditing each, then soft-deletes the facility as the caller', async () => {
+    const rel = { pk: `rel::facility::${COL}::structure::1`, sk: `activity::${COL}::dayuse::4`, pk1: `facility::${COL}`, sk1: 'structure::1', pk2: `activity::${COL}`, sk2: 'dayuse::4' };
+    deleteEntityRelationships.mockResolvedValue({ deletedCount: 3, deleted: [rel] });
 
-    const res = await deleteHandler(event({ sub: 'admin-7', pathParameters: path }));
+    const res = await deleteHandler(asSuperadmin({ sub: 'admin-7', pathParameters: path }));
 
     expect(res.statusCode).toBe(200);
     expect(deleteEntityRelationships).toHaveBeenCalledWith(`facility::${COL}`, 'structure::1');
@@ -334,25 +338,30 @@ describe('DELETE /facilities/{collectionId}/{facilityType}/{facilityId}', () => 
     expect(op.data.UpdateExpression).toBe('SET isDeleted = :true, deletedAt = :deletedAt, deletedBy = :deletedBy');
     expect(unmarshall(op.data.ExpressionAttributeValues)).toMatchObject({ ':true': true, ':deletedBy': 'admin-7' });
     expect(parse(res).data.relationshipsDeleted).toBe(3);
+    expect(auditRecords(batchWriteData)).toEqual([relationshipAudit('RELATIONSHIP_DELETE', rel, 'admin-7')]);
   });
 
-  // The handler has no checkAuthContext, so any caller can delete.
-  test.failing('403s a caller without staff on the collection and deletes nothing', async () => {
-    const res = await deleteHandler(event({ permissions: { other_9: 'staff' }, pathParameters: path }));
+  it.each([
+    ['staff on this collection', STAFF],
+    ['staff on another collection', { other_9: 'staff' }],
+    ['limited on this collection', { [COL]: 'limited' }],
+  ])('403s %s and deletes nothing', async (_label, permissions) => {
+    const res = await deleteHandler(event({ permissions, pathParameters: path }));
     expect(res.statusCode).toBe(403);
     expect(deleteEntityRelationships).not.toHaveBeenCalled();
     expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
   });
 
   it('400s when a body is sent', async () => {
-    const res = await deleteHandler(event({ pathParameters: path, body: { sk: 'x' } }));
+    const res = await deleteHandler(asSuperadmin({ pathParameters: path, body: { sk: 'x' } }));
     expect(res.statusCode).toBe(400);
     expect(parse(res).msg).toBe('Body is not allowed');
     expect(deleteEntityRelationships).not.toHaveBeenCalled();
   });
 
   it('400s without a facilityId', async () => {
-    const res = await deleteHandler(event({ pathParameters: { facilityType: 'structure' } }));
+    const res = await deleteHandler(asSuperadmin({ pathParameters: { facilityType: 'structure' } }));
     expect(res.statusCode).toBe(400);
     expect(parse(res).msg).toBe('Facility Collection ID, Facility Type, and Facility ID are required');
   });

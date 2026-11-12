@@ -1,6 +1,6 @@
-const { Exception, logger, sendResponse } = require("/opt/base");
+const { Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData } = require("/opt/dynamodb");
-const { deleteEntityRelationships } = require("../../../../common/relationship-utils");
+const { auditRelationshipChanges, deleteEntityRelationships } = require("../../../../common/relationship-utils");
 
 /**
  * @api {delete} /facilities/{collectionId}/ DELETE
@@ -9,6 +9,8 @@ const { deleteEntityRelationships } = require("../../../../common/relationship-u
 exports.handler = async (event, context) => {
   logger.info(`DELETE Facilities: ${event}`);
   try {
+    const authContext = checkAuthContext(event, 'superadmin');
+
     const collectionId = event?.pathParameters?.collectionId;
     const facilityType = event?.pathParameters?.facilityType || event?.queryStringParameters?.facilityType;
     const facilityId = event?.pathParameters?.facilityId || event?.queryStringParameters?.facilityId;
@@ -30,8 +32,10 @@ exports.handler = async (event, context) => {
     const relationshipResult = await deleteEntityRelationships(pk, sk);
     logger.info(`Deleted ${relationshipResult.deletedCount} relationships`);
 
+    const user = authContext.sub;
+    await auditRelationshipChanges(user, { removed: relationshipResult.deleted });
+
     // Then soft-delete the facility itself (keep the row, mark it deleted so it's hidden)
-    const user = event?.requestContext?.authorizer?.principalId || "system";
     const deleteItem = createSoftDeleteCommand(collectionId, facilityType, facilityId, user);
 
     const res = await batchTransactData([deleteItem]);

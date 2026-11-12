@@ -1,5 +1,6 @@
-const { logger, Exception } = require("/opt/base");
+const { logger, Exception, getNowISO, writeAuditLog } = require("/opt/base");
 const {
+  AUDIT_TABLE_NAME,
   batchGetData,
   batchTransactData,
   batchWriteData,
@@ -7,7 +8,7 @@ const {
   marshall,
   REFERENCE_DATA_TABLE_NAME,
   runQuery,
-  
+  unmarshall,
 } = require("/opt/dynamodb");
 const { quickApiPutHandler, quickApiUpdateHandler } = require("./data-utils");
 
@@ -224,7 +225,7 @@ async function queryRelationshipsBySchema(
  * @param {string} sourceSk
  * @param {string} targetSchema
  * @param {string} tableName
- * @returns {{ toAdd: Array, toDelete: Array }}
+ * @returns {{ toAdd: Array, toDelete: Array, removed: Array }} removed holds the stored items behind toDelete
  */
 function diffRelationships(
   existingItems,
@@ -255,6 +256,7 @@ function diffRelationships(
 
   const toAdd = [];
   const toDelete = [];
+  const removed = [];
 
   // Incoming entities not yet in the DB → create relationship items
   for (const entity of incomingEntities || []) {
@@ -275,6 +277,7 @@ function diffRelationships(
   // Existing relationships whose target is absent from incoming → delete
   for (const [key, item] of existingByTarget) {
     if (!incomingSet.has(key)) {
+      removed.push(item);
       toDelete.push({
         action: "Delete",
         data: {
@@ -285,7 +288,7 @@ function diffRelationships(
     }
   }
 
-  return { toAdd, toDelete };
+  return { toAdd, toDelete, removed };
 }
 
 /**
@@ -331,10 +334,9 @@ async function batchWriteRelationships(relationshipItems, tableName) {
  * @param {number} [config.maxRetries=3] - Maximum retry attempts
  *
  * @returns {Promise<Object>} Object with:
- *   - success: boolean
  *   - postRequests: Array of created entity requests
- *   - relationshipCount: Number of relationships created
- *   - attempts: Number of attempts made
+ *   - added: Relationship items written (unmarshalled)
+ *   - removed: Relationship items deleted (PUT only)
  */
 async function createEntityWithRelationships(config) {
   const {
@@ -355,6 +357,8 @@ async function createEntityWithRelationships(config) {
   let attempt = 1;
   let allRelationshipItems = [];
   let allDeleteTransactions = [];
+  let allRemoved = [];
+  let relationshipOnly = [];
 
   while (attempt <= maxRetries && !success) {
     // Parse the request to get entity items
@@ -366,7 +370,7 @@ async function createEntityWithRelationships(config) {
     );
 
     // For each entity item in the batch, process relationship fields
-    ({ postRequests, allRelationshipItems, allDeleteTransactions } =
+    ({ postRequests, allRelationshipItems, allDeleteTransactions, allRemoved, relationshipOnly } =
       await searchAndDeleteRelationshipsForBatch(
         postRequests,
         schema,
@@ -391,11 +395,11 @@ async function createEntityWithRelationships(config) {
       );
     } else if (requestMethod === "PUT") {
       // If it's a PUT request, we need to update the item
-      updateRequest = await quickApiUpdateHandler(
-        tableName,
-        postRequests,
-        putConfig,
-      );
+      const fieldUpdates = postRequests.filter((request) => !relationshipOnly.includes(request));
+      updateRequest = [
+        ...(fieldUpdates.length > 0 ? await quickApiUpdateHandler(tableName, fieldUpdates, putConfig) : []),
+        ...relationshipOnly.map((request) => relationshipOnlyUpdate(tableName, request.key, putConfig)),
+      ];
     }
 
     try {
@@ -430,7 +434,37 @@ async function createEntityWithRelationships(config) {
     }
   }
 
-  return postRequests;
+  return {
+    postRequests,
+    added: allRelationshipItems.map((item) => unmarshall(item.PutRequest.Item)),
+    removed: allRemoved,
+  };
+}
+
+/**
+ * Update for an entity whose PUT carried only relationship fields: it fails if
+ * the entity does not exist, and stamps lastUpdated (and version, when the config bumps it).
+ */
+function relationshipOnlyUpdate(tableName, key, config) {
+  const names = { "#lastUpdated": "lastUpdated" };
+  const values = { ":now": getNowISO() };
+  let expression = "SET #lastUpdated = :now";
+  if (config?.autoVersion) {
+    names["#version"] = "version";
+    values[":one"] = 1;
+    expression += " ADD #version :one";
+  }
+  return {
+    action: "Update",
+    data: {
+      TableName: tableName,
+      Key: marshall(key),
+      UpdateExpression: expression,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: marshall(values),
+      ConditionExpression: "attribute_exists(pk)",
+    },
+  };
 }
 
 /**
@@ -447,6 +481,8 @@ async function createEntityWithRelationships(config) {
  *   - postRequests: Updated array of entity requests with relationship fields removed
  *   - allRelationshipItems: Array of relationship items to be written to DynamoDB
  *   allDeleteTransactions: Array of delete transactions for stale relationships (PUT only)
+ *   allRemoved: Stored relationship items behind allDeleteTransactions
+ *   relationshipOnly: PUT requests left with no fields once relationship fields are stripped
  */
 async function searchAndDeleteRelationshipsForBatch(
   postRequests,
@@ -457,6 +493,8 @@ async function searchAndDeleteRelationshipsForBatch(
 ) {
   let allRelationshipItems = [];
   let allDeleteTransactions = [];
+  let allRemoved = [];
+  let relationshipOnly = [];
 
   for (let i = 0; i < postRequests.length; i++) {
     const postRequest = postRequests[i];
@@ -465,8 +503,10 @@ async function searchAndDeleteRelationshipsForBatch(
     const { pk, sk } = postRequest.key;
 
     if (requestMethod === "PUT") {
-      // PUT: diff against the DB so we can add new and remove stale relationships
+      // PUT: diff against the DB so we can add new and remove stale relationships.
+      // A field the request did not carry leaves its relationships alone.
       for (const field of relationshipFields) {
+        if (!Object.hasOwn(postRequest.data, field)) continue;
         const targetSchema = FIELD_TO_SCHEMA[field] || field;
         const incomingEntities = postRequest.data[field] || [];
         const existingItems = await queryRelationshipsBySchema(
@@ -480,7 +520,7 @@ async function searchAndDeleteRelationshipsForBatch(
           `Relationship sync for ${pk}::${sk} [${field}]: ${existingItems.length} existing, ${incomingEntities.length} incoming`,
         );
 
-        const { toAdd, toDelete } = diffRelationships(
+        const { toAdd, toDelete, removed } = diffRelationships(
           existingItems,
           incomingEntities,
           pk,
@@ -493,11 +533,17 @@ async function searchAndDeleteRelationshipsForBatch(
 
         allRelationshipItems.push(...toAdd);
         allDeleteTransactions.push(...toDelete);
+        allRemoved.push(...removed);
       }
 
-      // Strip relationship fields from data before passing to the update handler
+      // Strip relationship fields from a copy, so a retry still sees them in the request body
+      const carriedRelationships = relationshipFields.some((field) => Object.hasOwn(postRequest.data, field));
+      postRequests[i].data = { ...postRequest.data };
       for (const field of relationshipFields) {
         delete postRequests[i].data[field];
+      }
+      if (carriedRelationships && Object.keys(postRequests[i].data).length === 0) {
+        relationshipOnly.push(postRequests[i]);
       }
     } else {
       // POST: no existing relationships to worry about, just extract and create
@@ -513,7 +559,7 @@ async function searchAndDeleteRelationshipsForBatch(
     }
   }
 
-  return { postRequests, allRelationshipItems, allDeleteTransactions };
+  return { postRequests, allRelationshipItems, allDeleteTransactions, allRemoved, relationshipOnly };
 }
 
 /**
@@ -530,6 +576,7 @@ async function searchAndDeleteRelationshipsForBatch(
  *   - deletedCount: Number of relationships deleted
  *   - forwardRelationships: Number of forward relationships deleted
  *   - reverseRelationships: Number of reverse relationships deleted
+ *   - deleted: The relationship items deleted
  */
 async function deleteEntityRelationships(
   pk,
@@ -591,6 +638,7 @@ async function deleteEntityRelationships(
       deletedCount: 0,
       forwardRelationships: 0,
       reverseRelationships: 0,
+      deleted: [],
     };
   }
 
@@ -624,6 +672,7 @@ async function deleteEntityRelationships(
     deletedCount: allRelationships.length,
     forwardRelationships: forwardRelationships.length,
     reverseRelationships: reverseRelationships.length,
+    deleted: allRelationships,
   };
 }
 
@@ -793,6 +842,42 @@ async function getRelationshipsByGsipk(gsipk, schema1 = null, params = {}) {
 }
 
 /**
+ * Facilities linked to an activity, read from the relationship index.
+ * Only links whose pk1 is a facility count; the facility's collection comes from pk1.
+ *
+ * @returns {Promise<Array<{pk: string, sk: string}>>} facility keys
+ */
+async function getActivityFacilityLinks(collectionId, activityType, activityId) {
+  const res = await getRelationshipsByGsipk(
+    `rel::activity::${collectionId}::${activityType}::${activityId}`,
+    "facility",
+    { paginated: false },
+  );
+  return (res?.items || [])
+    .filter((item) => item.pk1?.startsWith("facility::"))
+    .map((item) => ({ pk: item.pk1, sk: item.sk1 }));
+}
+
+/**
+ * Writes one audit entry per relationship added or removed, keyed by the
+ * relationship item and recording both ends of the link.
+ *
+ * @param {string} user - caller's sub
+ * @param {Object} changes - { added, removed }: relationship items (pk, sk, pk1, sk1, pk2, sk2)
+ */
+async function auditRelationshipChanges(user, { added = [], removed = [] }) {
+  const entries = [
+    ...added.map((item) => ["RELATIONSHIP_CREATE", item]),
+    ...removed.map((item) => ["RELATIONSHIP_DELETE", item]),
+  ];
+  await Promise.all(
+    entries.map(([operation, { pk, sk, pk1, sk1, pk2, sk2 }]) =>
+      writeAuditLog(user, `${pk}::${sk}`, operation, { pk1, sk1, pk2, sk2 }, marshall, batchWriteData, AUDIT_TABLE_NAME),
+    ),
+  );
+}
+
+/**
  * Strip sensitive fields (adminNotes) from expanded relationship entities that
  * belong to a collection the caller is not scoped to. expandRelationships attaches
  * the full target entity, so without this a staffer scoped to one park could read
@@ -826,7 +911,10 @@ function filterExpandedEntitiesByRole(items, permissions = {}) {
 }
 
 module.exports = {
+  auditRelationshipChanges,
   batchWriteRelationships,
+  FIELD_TO_SCHEMA,
+  getActivityFacilityLinks,
   createEntityWithRelationships,
   createRelationshipItem,
   deleteEntityRelationships,

@@ -1,6 +1,6 @@
 const { requestIdentity, Exception, logger, sendResponse, checkAuthContext } = require("/opt/base");
 const { REFERENCE_DATA_TABLE_NAME, marshall, batchTransactData, getOne } = require("/opt/dynamodb");
-const { deleteEntityRelationships } = require("../../../../common/relationship-utils.js");
+const { auditRelationshipChanges, deleteEntityRelationships } = require("../../../../common/relationship-utils.js");
 
 /**
  * @api {delete} /geozones/{collectionId}/{geozoneId} DELETE
@@ -37,6 +37,7 @@ exports.handler = async (event, context) => {
     const relCount = await deleteEntityRelationships(pk, sk);
     
     logger.info(`Deleted ${relCount.deletedCount} relationship(s) for geozone ${pk}::${sk}`);
+    await auditRelationshipChanges(authContext.sub, { removed: relCount.deleted });
 
     // Now soft-delete the geozone itself (keep the row, mark it deleted so it's hidden)
     const user = event?.requestContext?.authorizer?.principalId || "system";

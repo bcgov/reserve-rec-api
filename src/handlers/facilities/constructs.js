@@ -221,7 +221,8 @@ class AdminFacilitiesConstruct extends LambdaConstruct {
     // POST and PUT write an audit entry when a facility's orcs changes (#678).
     this.grantAuditTableWrite(this.facilitiesCollectionIdPostFunction);
     this.grantAuditTableWrite(this.facilitiesCollectionIdPutFunction);
-
+    // DELETE audits the relationship links it removes
+    this.grantAuditTableWrite(this.facilitiesCollectionIdDeleteFunction);
   }
 }
 
