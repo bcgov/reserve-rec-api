@@ -1,7 +1,6 @@
 const { sendResponse, logger } = require('/opt/base');
 
 const apiName = process.env.API_NAME || 'Api';
-console.log('process.env:', process.env);
 
 exports.handler = async (event, context) => {
   logger.debug(`Event: ${JSON.stringify(event)}`);
