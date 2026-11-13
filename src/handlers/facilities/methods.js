@@ -7,8 +7,10 @@ const {
   incrementCounter,
   excludeDeletedItems,
   excludeHiddenItems,
+  batchWriteData,
+  AUDIT_TABLE_NAME,
 } = require("/opt/dynamodb");
-const { Exception, logger, filterByRole, effectiveCollectionRole } = require("/opt/base");
+const { Exception, logger, filterByRole, effectiveCollectionRole, writeAuditLog } = require("/opt/base");
 const { ALLOWED_FILTERS, ROLE_BASED_FILTERS } = require("./configs");
 const { getRelationshipsByGsipk, expandRelationships } = require("../../common/relationship-utils");
 
@@ -521,6 +523,49 @@ async function fetchFacilities(
   return filterByRole(res, role, ROLE_BASED_FILTERS);
 }
 
+// The orcs a request asks for: a number, or null when it is removed.
+function requestedOrcs(field) {
+  if (field !== null && typeof field === "object") {
+    return field.action === "remove" ? null : field.value ?? null;
+  }
+  return field;
+}
+
+/**
+ * The orcs changes in parsed facility requests (#678). Setting, changing or
+ * removing a facility's orcs needs superadmin and an audit entry. A PUT that
+ * sends the stored value again is not a change.
+ *
+ * @param {Array} requests - Parsed requests ({ key, data }) from parseRequest
+ * @param {boolean} compareStored - true for PUT: read each facility's stored orcs
+ * @returns {Array} { key, oldOrcs, newOrcs } per facility whose orcs changes
+ */
+async function getOrcsChanges(requests, compareStored) {
+  const changes = [];
+  for (const { key, data } of requests) {
+    if (!data || !Object.hasOwn(data, "orcs")) continue;
+    const newOrcs = requestedOrcs(data.orcs);
+    const oldOrcs = compareStored ? (await getOne(key.pk, key.sk))?.orcs ?? null : null;
+    if (newOrcs !== oldOrcs) changes.push({ key, oldOrcs, newOrcs });
+  }
+  return changes;
+}
+
+// One audit entry per facility whose orcs changed, as the caller.
+async function auditOrcsChanges(changes, user) {
+  for (const { key, oldOrcs, newOrcs } of changes) {
+    await writeAuditLog(
+      user,
+      `${key.pk}::${key.sk}`,
+      "FACILITY-ORCS-UPDATE",
+      { oldOrcs, newOrcs },
+      marshall,
+      batchWriteData,
+      AUDIT_TABLE_NAME,
+    );
+  }
+}
+
 module.exports = {
   getFacilitiesByCollectionId,
   getFacilitiesByFacilityType,
@@ -529,4 +574,6 @@ module.exports = {
   parseRequest,
   processItem,
   assertFacilityNamesAvailable,
+  getOrcsChanges,
+  auditOrcsChanges,
 };

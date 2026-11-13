@@ -366,3 +366,126 @@ describe('DELETE /facilities/{collectionId}/{facilityType}/{facilityId}', () => 
     expect(parse(res).msg).toBe('Facility Collection ID, Facility Type, and Facility ID are required');
   });
 });
+
+describe('facility orcs (park number)', () => {
+  const path = { facilityType: 'structure', facilityId: '1' };
+  const KEY = `facility::${COL}::structure::1`;
+  const audits = () => batchWriteData.mock.calls.map(([records]) => unmarshall(records[0]));
+  const names = () => Object.values(firstWrite().data.ExpressionAttributeNames);
+
+  beforeEach(() => {
+    jest.spyOn(global, 'setTimeout').mockImplementation((fn) => { fn(); return 0; });
+    getOne.mockResolvedValue({ displayName: 'Lot A' });
+  });
+  afterEach(() => {
+    global.setTimeout.mockRestore();
+  });
+
+  it('saves orcs on a superadmin POST and audits it', async () => {
+    const res = await postHandler(event({ permissions: SUPERADMIN, sub: 'admin-1', pathParameters: { facilityType: 'structure' }, body: { ...NEW_LOT, orcs: 7 } }));
+    expect(res.statusCode).toBe(200);
+    expect(unmarshall(firstWrite().data.Item).orcs).toBe(7);
+    expect(audits()).toEqual([expect.objectContaining({
+      pk: 'admin-1', gsipk: `entity::facility::${COL}::structure::2`, operation: 'FACILITY-ORCS-UPDATE',
+      metadata: expect.objectContaining({ oldOrcs: null, newOrcs: 7 }),
+    })]);
+  });
+
+  // ORCS 1 is Strathcona Park, the lowest valid park number.
+  it('saves orcs 1 on a superadmin POST', async () => {
+    const res = await postHandler(event({ permissions: SUPERADMIN, pathParameters: { facilityType: 'structure' }, body: { ...NEW_LOT, orcs: 1 } }));
+    expect(res.statusCode).toBe(200);
+    expect(unmarshall(firstWrite().data.Item).orcs).toBe(1);
+  });
+
+  it('saves a POST without orcs as before, with no audit entry', async () => {
+    const res = await postHandler(event({ pathParameters: { facilityType: 'structure' }, body: NEW_LOT }));
+    expect(res.statusCode).toBe(200);
+    expect(unmarshall(firstWrite().data.Item)).not.toHaveProperty('orcs');
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it('403s a staff POST that sets orcs before taking a facility id', async () => {
+    const res = await postHandler(event({ pathParameters: { facilityType: 'structure' }, body: { ...NEW_LOT, orcs: 7 } }));
+    expect(res.statusCode).toBe(403);
+    expect(incrementCounter).not.toHaveBeenCalled();
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it.each([['"7"', '7'], ['0', 0], ['-7', -7], ['7.5', 7.5], ['null', null]])('400s a POST with orcs %s and saves nothing', async (_label, orcs) => {
+    const res = await postHandler(event({ permissions: SUPERADMIN, pathParameters: { facilityType: 'structure' }, body: { ...NEW_LOT, orcs } }));
+    expect(res.statusCode).toBe(400);
+    expect(parse(res).msg).toBe("Validation failed for field 'orcs'");
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it('sets orcs on a superadmin PUT and audits old and new', async () => {
+    const res = await putHandler(event({ permissions: SUPERADMIN, sub: 'admin-1', pathParameters: path, body: { orcs: 7 } }));
+    expect(res.statusCode).toBe(200);
+    expect(getOne).toHaveBeenCalledWith(`facility::${COL}`, 'structure::1');
+    expect(names()).toContain('orcs');
+    expect(audits()).toEqual([expect.objectContaining({
+      pk: 'admin-1', gsipk: `entity::${KEY}`, operation: 'FACILITY-ORCS-UPDATE',
+      metadata: expect.objectContaining({ entityId: KEY, oldOrcs: null, newOrcs: 7 }),
+    })]);
+  });
+
+  it('changes orcs on a superadmin PUT and audits the old value', async () => {
+    getOne.mockResolvedValue({ orcs: 7 });
+    const res = await putHandler(event({ permissions: SUPERADMIN, pathParameters: path, body: { orcs: 8 } }));
+    expect(res.statusCode).toBe(200);
+    expect(audits()[0].metadata).toEqual(expect.objectContaining({ oldOrcs: 7, newOrcs: 8 }));
+  });
+
+  it('removes orcs on a superadmin PUT and audits it', async () => {
+    getOne.mockResolvedValue({ orcs: 7 });
+    const res = await putHandler(event({ permissions: SUPERADMIN, pathParameters: path, body: { orcs: { action: 'remove' } } }));
+    expect(res.statusCode).toBe(200);
+    expect(firstWrite().data.UpdateExpression).toMatch(/REMOVE .*#orcs/);
+    expect(audits()[0].metadata).toEqual(expect.objectContaining({ oldOrcs: 7, newOrcs: null }));
+  });
+
+  it.each([
+    ['sets', undefined, { orcs: 7 }],
+    ['changes', 7, { orcs: 8 }],
+    ['removes', 7, { orcs: { action: 'remove' } }],
+  ])('403s a staff PUT that %s orcs and saves nothing', async (_label, stored, body) => {
+    getOne.mockResolvedValue({ orcs: stored });
+    const res = await putHandler(event({ pathParameters: path, body }));
+    expect(res.statusCode).toBe(403);
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it('lets staff save a facility that sends its stored orcs unchanged, with no audit entry', async () => {
+    getOne.mockResolvedValue({ orcs: 7 });
+    const res = await putHandler(event({ pathParameters: path, body: { displayName: 'Lot Z', orcs: 7 } }));
+    expect(res.statusCode).toBe(200);
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it('leaves orcs alone on a PUT without it', async () => {
+    const res = await putHandler(event({ pathParameters: path, body: { displayName: 'Lot Z' } }));
+    expect(res.statusCode).toBe(200);
+    expect(names()).not.toContain('orcs');
+    expect(getOne).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it.each([['"7"', '7'], ['0', 0]])('400s a superadmin PUT with orcs %s and saves nothing', async (_label, orcs) => {
+    const res = await putHandler(event({ permissions: SUPERADMIN, pathParameters: path, body: { orcs } }));
+    expect(res.statusCode).toBe(400);
+    expect(parse(res).msg).toBe("Validation failed for field 'orcs'");
+    expect(batchTransactData).not.toHaveBeenCalled();
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+
+  it('does not audit when the write fails', async () => {
+    batchTransactData.mockRejectedValue(Object.assign(new Error('boom'), { code: 500 }));
+    const res = await putHandler(event({ permissions: SUPERADMIN, pathParameters: path, body: { orcs: 7 } }));
+    expect(res.statusCode).toBe(500);
+    expect(batchWriteData).not.toHaveBeenCalled();
+  });
+});

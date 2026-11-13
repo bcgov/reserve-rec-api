@@ -304,6 +304,22 @@ describe('rulesFns', () => {
     });
   });
 
+  describe('expectInRange', () => {
+    it('accepts both ends when inclusive', () => {
+      expect(() => rules.expectInRange(1, 1, 5)).not.toThrow();
+      expect(() => rules.expectInRange(5, 1, 5)).not.toThrow();
+    });
+    it('rejects values outside when inclusive', () => {
+      expect(() => rules.expectInRange(0, 1, 5)).toThrow();
+      expect(() => rules.expectInRange(6, 1, 5)).toThrow();
+    });
+    it('rejects both ends when exclusive', () => {
+      expect(() => rules.expectInRange(1, 1, 5, false)).toThrow();
+      expect(() => rules.expectInRange(5, 1, 5, false)).toThrow();
+      expect(() => rules.expectInRange(3, 1, 5, false)).not.toThrow();
+    });
+  });
+
   describe('expectLatitude', () => {
     it('should not throw for valid latitude', () => {
       let threw = false;

@@ -24,8 +24,9 @@ describe('AdminFacilitiesConstruct', () => {
     ({ routes, grants, roles } = synthConstruct(AdminFacilitiesConstruct));
   });
 
-  it('lets only the DELETE handler write the audit table', () => {
-    expect(auditWriters(roles)).toEqual([`${DIR}/DELETE/admin.js`]);
+  // writeAuditLog swallows errors, so without this grant audit entries vanish silently (#678).
+  it('lets only POST, PUT and DELETE write the audit table', () => {
+    expect(auditWriters(roles)).toEqual([`${DIR}/DELETE/admin.js`, `${DIR}/POST/admin.js`, `${DIR}/PUT/admin.js`]);
   });
 
   it('routes every method to its admin handler behind the authorizer', () => {
