@@ -116,43 +116,38 @@ describe('settings in the synthesized dev templates', () => {
     ]));
   });
 
-  it('grants the public migration endpoint transactional access with API authorization', () => {
+  it('authorizes migration email requests and keeps token confirmation public', () => {
     const migrationTemplate = Object.values(templates).find((candidate) => (
       Object.values(candidate.Resources || {}).some((resource) => (
         resource.Type === 'AWS::Lambda::Function'
         && typeof resource.Properties.FunctionName === 'string'
-        && resource.Properties.FunctionName.endsWith('-MigrateMigIdPUT')
+        && resource.Properties.FunctionName.endsWith('-MigrateEmailPOST')
       ))
     ));
     expect(migrationTemplate).toBeDefined();
 
-    const migrationFunctionEntry = Object.entries(migrationTemplate.Resources).find(([, resource]) => (
+    const functions = Object.entries(migrationTemplate.Resources).filter(([, resource]) => (
       resource.Type === 'AWS::Lambda::Function'
-      && resource.Properties.FunctionName.endsWith('-MigrateMigIdPUT')
+      && ['-MigrateEmailPOST', '-MigrateConfirmPOST'].some((suffix) => (
+        resource.Properties.FunctionName.endsWith(suffix)
+      ))
     ));
-    const [functionId, migrationFunction] = migrationFunctionEntry;
-    const roleReference = migrationFunction.Properties.Role;
-    const roleId = roleReference.Ref || roleReference['Fn::GetAtt']?.[0];
-    const role = migrationTemplate.Resources[roleId];
-    const inlineStatements = (role.Properties.Policies || [])
-      .flatMap((policy) => policy.PolicyDocument.Statement);
-    const attachedStatements = Object.values(migrationTemplate.Resources)
-      .filter((resource) => resource.Type === 'AWS::IAM::Policy'
-        && resource.Properties.Roles?.some((roleRef) => roleRef.Ref === roleId))
-      .flatMap((resource) => resource.Properties.PolicyDocument.Statement);
-    const actions = [...inlineStatements, ...attachedStatements]
-      .flatMap((statement) => Array.isArray(statement.Action) ? statement.Action : [statement.Action]);
-
-    expect(actions).toEqual(expect.arrayContaining([
-      'dynamodb:GetItem',
-      'dynamodb:UpdateItem',
-      'dynamodb:TransactWriteItems',
+    expect(functions).toHaveLength(2);
+    const functionIds = Object.fromEntries(functions.map(([id, resource]) => [
+      resource.Properties.FunctionName.endsWith('-MigrateEmailPOST') ? 'email' : 'confirm',
+      id,
     ]));
     expect(Object.values(migrationTemplate.Resources).some((resource) => (
       resource.Type === 'AWS::ApiGateway::Method'
-      && resource.Properties.HttpMethod === 'PUT'
+      && resource.Properties.HttpMethod === 'POST'
       && resource.Properties.AuthorizationType === 'CUSTOM'
-      && JSON.stringify(resource.Properties.Integration).includes(functionId)
+      && JSON.stringify(resource.Properties.Integration).includes(functionIds.email)
+    ))).toBe(true);
+    expect(Object.values(migrationTemplate.Resources).some((resource) => (
+      resource.Type === 'AWS::ApiGateway::Method'
+      && resource.Properties.HttpMethod === 'POST'
+      && resource.Properties.AuthorizationType === 'NONE'
+      && JSON.stringify(resource.Properties.Integration).includes(functionIds.confirm)
     ))).toBe(true);
   });
 

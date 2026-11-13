@@ -4,6 +4,7 @@ process.env.CLAIM_TABLE_NAME = 'claims';
 const mockDynamoSend = jest.fn();
 const mockCognitoSend = jest.fn();
 const mockMigrateAccounts = jest.fn();
+const mockGetOne = jest.fn();
 
 jest.mock('/opt/base', () => ({
   logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -13,6 +14,7 @@ const { logger } = require('/opt/base');
 
 jest.mock('/opt/dynamodb', () => ({
   migrateAccounts: (...args) => mockMigrateAccounts(...args),
+  getOne: (...args) => mockGetOne(...args),
 }));
 
 jest.mock('/opt/emailBlocklist', () => ({
@@ -35,7 +37,12 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
   };
 });
 
-const { GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const {
+  DeleteItemCommand,
+  GetItemCommand,
+  PutItemCommand,
+  UpdateItemCommand,
+} = require('@aws-sdk/client-dynamodb');
 const {
   AdminDeleteUserCommand,
   AdminDeleteUserAttributesCommand,
@@ -63,6 +70,7 @@ const confirmedHold = {
   pk: 'migrateHold',
   sk: 'bcsc_12345',
   status: 'confirmed',
+  holdExpiry: Date.now() + 60_000,
   oldParksSub: 'old-sub',
   oldParksUsername: 'parks-user',
   newBcscUsername: 'bcsc_12345',
@@ -83,6 +91,7 @@ let mockUsers;
 describe('PostConfirmation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetOne.mockResolvedValue(null);
     mockUsers = {
       'parks-user': oldUser,
       'bcsc_12345': {
@@ -182,6 +191,36 @@ describe('PostConfirmation', () => {
     expect(mockDynamoSend.mock.invocationCallOrder[2]).toBeLessThan(
       mockCognitoSend.mock.invocationCallOrder[mockCognitoSend.mock.calls.indexOf(deleteCall)],
     );
+  });
+
+  it('moves the old user profile to the new sub while preserving profile state', async () => {
+    mockGetOne.mockResolvedValue({
+      pk: 'user',
+      sk: 'old-sub',
+      sub: 'old-sub',
+      username: 'parks-user',
+      createdAt: '2025-01-02T03:04:05.000Z',
+      reviewStatus: 'approved',
+    });
+
+    await handler(migrationEvent);
+
+    const profilePut = mockDynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof PutItemCommand);
+    expect(profilePut.input.Item).toMatchObject({
+      pk: { S: 'user' },
+      sk: { S: 'new-sub' },
+      sub: { S: 'new-sub' },
+      username: { S: 'bcsc_12345' },
+      createdAt: { S: '2025-01-02T03:04:05.000Z' },
+      reviewStatus: { S: 'approved' },
+    });
+
+    const profileDelete = mockDynamoSend.mock.calls
+      .map(([command]) => command)
+      .find((command) => command instanceof DeleteItemCommand);
+    expect(profileDelete.input.Key).toEqual(marshall({ pk: 'user', sk: 'old-sub' }));
   });
 
   it('supports migration holds created before the old username was stored', async () => {
@@ -362,6 +401,16 @@ describe('PostConfirmation', () => {
     expect(mockCognitoSend).not.toHaveBeenCalled();
   });
 
+  it('preserves the new account when reading the migration hold fails before acquiring a lease', async () => {
+    mockDynamoSend.mockRejectedValueOnce(new Error('DynamoDB unavailable'));
+
+    await expect(handler(migrationEvent)).rejects.toThrow('DynamoDB unavailable');
+
+    expect(mockCognitoSend).not.toHaveBeenCalled();
+    expect(mockDynamoSend).toHaveBeenCalledTimes(1);
+    expect(mockMigrateAccounts).not.toHaveBeenCalled();
+  });
+
   it('reclaims a processing hold whose lease is missing', async () => {
     mockDynamoSend.mockImplementationOnce(async () => ({
       Item: marshall({ ...confirmedHold, status: 'processing' }),
@@ -395,7 +444,7 @@ describe('PostConfirmation', () => {
     expect(mockMigrateAccounts).not.toHaveBeenCalled();
   });
 
-  it('restores the hold and removes the new user when the old account is missing', async () => {
+  it('voids the hold and keeps the new user when the old account is missing', async () => {
     mockCognitoSend.mockImplementation(async (command) => {
       if (command instanceof AdminGetUserCommand && command.input.Username === 'parks-user') {
         throw Object.assign(new Error('missing old account'), { name: 'UserNotFoundException' });
@@ -403,11 +452,15 @@ describe('PostConfirmation', () => {
       return {};
     });
 
-    await expect(handler(migrationEvent)).rejects.toThrow('BC Parks account was not found');
+    await expect(handler(migrationEvent)).resolves.toBe(migrationEvent);
     expect(mockMigrateAccounts).not.toHaveBeenCalled();
-    expect(mockCognitoSend).toHaveBeenCalledWith(expect.objectContaining({
-      input: expect.objectContaining({ Username: 'bcsc_12345' }),
-    }));
+    expect(mockCognitoSend.mock.calls.some(([command]) => (
+      command instanceof AdminDeleteUserCommand && command.input.Username === 'bcsc_12345'
+    ))).toBe(false);
+    expect(mockDynamoSend.mock.calls.some(([command]) => (
+      command instanceof UpdateItemCommand
+      && command.input.ExpressionAttributeValues[':voided']?.S === 'voided'
+    ))).toBe(true);
   });
 
   it('surfaces Cognito lookup failures instead of treating them as missing users', async () => {
@@ -514,7 +567,7 @@ describe('PostConfirmation', () => {
     ))).toBe(false);
   });
 
-  it('surfaces incomplete cleanup after restoring attributes, data, hold, and new user', async () => {
+  it('preserves the new user and hold when data rollback fails', async () => {
     const rollback = jest.fn().mockRejectedValue(new Error('data rollback failed'));
     mockMigrateAccounts.mockResolvedValue(rollback);
     mockUsers['bcsc_12345'] = {
@@ -549,18 +602,27 @@ describe('PostConfirmation', () => {
       return {};
     });
 
-    await expect(handler(migrationEvent)).rejects.toMatchObject({
-      name: 'AggregateError',
-      errors: expect.arrayContaining([
-        expect.objectContaining({ message: 'old user deletion failed' }),
-        expect.objectContaining({ message: 'attribute rollback failed' }),
-        expect.objectContaining({ message: 'claim rollback failed' }),
-        expect.objectContaining({ message: 'data rollback failed' }),
-        expect.objectContaining({ message: 'hold rollback failed' }),
-        expect.objectContaining({ message: 'delete failed for bcsc_12345' }),
-      ]),
-    });
+    let migrationError;
+    try {
+      await handler(migrationEvent);
+    } catch (error) {
+      migrationError = error;
+    }
+    expect(migrationError).toBeInstanceOf(AggregateError);
+    expect(migrationError.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ message: 'old user deletion failed' }),
+      expect.objectContaining({ message: 'attribute rollback failed' }),
+      expect.objectContaining({ message: 'claim rollback failed' }),
+      expect.objectContaining({ message: 'data rollback failed' }),
+    ]));
+    expect(migrationError.errors).toHaveLength(4);
     expect(rollback).toHaveBeenCalledTimes(1);
+    expect(mockCognitoSend.mock.calls.some(([command]) => (
+      command instanceof AdminDeleteUserCommand && command.input.Username === 'bcsc_12345'
+    ))).toBe(false);
+    expect(mockDynamoSend.mock.calls.some(([command]) => (
+      command instanceof UpdateItemCommand && command.input.UpdateExpression.includes('#lastFailureAt')
+    ))).toBe(false);
     expect(logger.error).toHaveBeenCalledWith(
       'Migration claim recovery failed',
       expect.any(Object),

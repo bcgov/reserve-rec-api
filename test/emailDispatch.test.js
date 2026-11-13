@@ -201,6 +201,21 @@ describe('Email Dispatch System', () => {
       expect(validation.errors).toHaveLength(0);
     });
 
+    it('should validate a migration confirmation email payload', () => {
+      const payload = createEmailPayload({
+        messageType: 'migration',
+        templateName: 'migration_bcparks_default',
+        recipientEmail: 'customer@example.com',
+        recipientName: 'BC Parks account holder',
+        subject: 'Confirm your BC Parks account migration',
+        locale: 'en',
+        templateData: { confirmationUrl: 'https://reserve.example.test/migration-confirm?token=abc' },
+        metadata: { migrateId: '4e707c5a-68f1-4728-b09e-2b5b691b86e6' },
+      });
+
+      expect(validateEmailPayload(payload)).toMatchObject({ isValid: true, errors: [] });
+    });
+
     it('should reject invalid template name format', () => {
       const payload = createEmailPayload({
         messageType: 'receipt',

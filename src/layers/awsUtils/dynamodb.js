@@ -830,16 +830,35 @@ async function migrateAccounts(oldUuid, newUuid) {
 
     const keyChanged = newItem.pk !== item.pk || newItem.sk !== item.sk;
     const operations = [];
+
     if (keyChanged) {
-      // If the oldUuid is part of the pk or sk, then we need to
-      // make a new item and delete the old one
-      operations.push({
-        Put: {
-          TableName: TRANS_TABLE,
-          Item: marshall(newItem, { removeUndefinedValues: true }),
-          ConditionExpression: 'attribute_not_exists(pk)',
-        },
-      });
+      // Strongly consistent check to see if the new key already exists
+     const existingTarget = await getDynamoDBClient().send(new GetItemCommand({
+        TableName: TRANS_TABLE,
+        Key: marshall({ pk: newItem.pk, sk: newItem.sk }),
+        ConsistentRead: true,
+      }));
+
+      if (existingTarget.Item) {
+        const existingItem = unmarshall(existingTarget.Item);
+        // If it already belongs to the new user (e.g., partial re-run or prior migration artifact), 
+        // we can safely skip putting it and just ensure the old one gets deleted.
+        if (existingItem.userId === newUuid) {
+          logger.info('event=migration_key_already_migrated', { pk: newItem.pk, sk: newItem.sk });
+        } else {
+          throw new Error(`Migration key collision detected: Item already exists at target primary key for a different user.`);
+        }
+      } else {
+        // Safe to put the new item since nothing occupies that pk/sk
+        operations.push({
+          Put: {
+            TableName: TRANS_TABLE,
+            Item: marshall(newItem, { removeUndefinedValues: true }),
+            ConditionExpression: 'attribute_not_exists(pk)',
+          },
+        });
+      }
+
       operations.push({
         Delete: {
           TableName: TRANS_TABLE,
@@ -850,14 +869,26 @@ async function migrateAccounts(oldUuid, newUuid) {
         },
       });
     } else {
-      // If the oldUuid is NOT part of the pk or sk, then we can just update it
+      // update ONLY userId and gsipk to prevent overwriting concurrent status/payment changes
+      // which will be eventually consistent, but we want to avoid losing them in the migration.
+      const updateNames = { '#userId': 'userId' };
+      const updateValues = { ':oldUserId': marshall(oldUuid), ':newUserId': marshall(newUuid) };
+      let updateExpr = 'SET #userId = :newUserId';
+
+      if (newItem.gsipk !== undefined) {
+        updateNames['#gsipk'] = 'gsipk';
+        updateValues[':newGsipk'] = marshall(newItem.gsipk);
+        updateExpr += ', #gsipk = :newGsipk';
+      }
+
       operations.push({
-        Put: {
+        Update: {
           TableName: TRANS_TABLE,
-          Item: marshall(newItem, { removeUndefinedValues: true }),
+          Key: marshall({ pk: item.pk, sk: item.sk }),
+          UpdateExpression: updateExpr,
           ConditionExpression: '#userId = :oldUserId',
-          ExpressionAttributeNames: { '#userId': 'userId' },
-          ExpressionAttributeValues: { ':oldUserId': marshall(oldUuid) },
+          ExpressionAttributeNames: updateNames,
+          ExpressionAttributeValues: updateValues,
         },
       });
     }
@@ -918,27 +949,40 @@ async function migrateAccounts(oldUuid, newUuid) {
               },
             });
           }
-        } else if (operation.Put) {
-          const migrated = unmarshall(operation.Put.Item);
+        } else if (operation.Update) {
+          // Rollback the targeted in-place update by flipping old/new UUIDs back
+          const key = operation.Update.Key;
           const original = changes.find((change) => (
-            change.migrated.pk === migrated.pk && change.migrated.sk === migrated.sk
+            marshall(change.original.pk).S === key.pk.S
+            && marshall(change.original.sk).S === key.sk.S
           ));
-          if (original) {
-            rollbackItems.push({
-              Put: {
-                TableName: TRANS_TABLE,
-                Item: marshall(original.original, { removeUndefinedValues: true }),
-              },
-            });
+
+          const updateNames = { '#userId': 'userId' };
+          const updateValues = { ':newUserId': marshall(newUuid), ':oldUserId': marshall(oldUuid) };
+          let updateExpr = 'SET #userId = :oldUserId';
+
+          if (original && original.original.gsipk !== undefined) {
+            updateNames['#gsipk'] = 'gsipk';
+            updateValues[':oldGsipk'] = marshall(original.original.gsipk);
+            updateExpr += ', #gsipk = :oldGsipk';
           }
+
+          rollbackItems.push({
+            Update: {
+              TableName: TRANS_TABLE,
+              Key: key,
+              UpdateExpression: updateExpr,
+              ConditionExpression: '#userId = :newUserId',
+              ExpressionAttributeNames: updateNames,
+              ExpressionAttributeValues: updateValues,
+            },
+          });
         }
       }
 
       try {
         for (let i = 0; i < rollbackItems.length; i += TRANSACTION_MAX_SIZE) {
-          await getDynamoDBClient().send(new TransactWriteItemsCommand({
-            TransactItems: rollbackItems.slice(i, i + TRANSACTION_MAX_SIZE),
-          }));
+          await sendTransaction(rollbackItems.slice(i, i + TRANSACTION_MAX_SIZE));
         }
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError);
@@ -972,7 +1016,7 @@ async function migrateAccounts(oldUuid, newUuid) {
   try {
     for (const change of changes) {
       if (operationCount + change.operations.length > TRANSACTION_MAX_SIZE && currentChunk.length) {
-        await getDynamoDBClient().send(new TransactWriteItemsCommand({ TransactItems: currentChunk }));
+        await sendTransaction(currentChunk);
         appliedChunks.push(currentChunk);
         currentChunk = [];
         operationCount = 0;
@@ -981,7 +1025,7 @@ async function migrateAccounts(oldUuid, newUuid) {
       operationCount += change.operations.length;
     }
     if (currentChunk.length) {
-      await getDynamoDBClient().send(new TransactWriteItemsCommand({ TransactItems: currentChunk }));
+      await sendTransaction(currentChunk);
       appliedChunks.push(currentChunk);
     }
 

@@ -32,6 +32,26 @@ const mockDdbSend = jest.fn(async ({ input }) => {
     }
     return {};
   }
+  if (input.Key) {
+    const existing = mockClaims.get(input.Key.pk.S);
+    const ownerMatches = existing?.owner === input.ExpressionAttributeValues[':owner']?.S
+      && existing?.source === input.ExpressionAttributeValues[':source']?.S;
+    const legacyMatches = !existing?.owner
+      && existing?.email === input.ExpressionAttributeValues[':email']?.S;
+    if (!ownerMatches && !legacyMatches) {
+      throw Object.assign(new Error('The conditional request failed'), {
+        name: 'ConditionalCheckFailedException',
+      });
+    }
+    mockClaims.set(input.Key.pk.S, {
+      ...existing,
+      owner: input.ExpressionAttributeValues[':owner'].S,
+      source: input.ExpressionAttributeValues[':source'].S,
+      migrateHoldPending: input.ExpressionAttributeValues[':pending'].BOOL,
+      migrateId: input.ExpressionAttributeValues[':migrateId'].S,
+    });
+    return {};
+  }
   const existing = mockClaims.get(input.Item.pk.S);
   const holds = input.ConditionExpression.split(' OR ').some((term) => {
     if (term === 'attribute_not_exists(pk)') return !existing;
@@ -65,14 +85,18 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
 }));
 
 const mockUsers = new Set();
+const mockUserEmails = new Map();
 const mockCognitoSend = jest.fn(async ({ input }) => {
   if (!mockUsers.has(input.Username)) {
     throw Object.assign(new Error('User does not exist.'), { name: 'UserNotFoundException' });
   }
+  const UserAttributes = [{ Name: 'sub', Value: `sub-${input.Username}` }];
+  const email = mockUserEmails.get(input.Username);
+  if (email) UserAttributes.push({ Name: 'email', Value: email });
   return {
     Username: input.Username,
     UserStatus: 'UNCONFIRMED',
-    UserAttributes: [{ Name: 'sub', Value: `sub-${input.Username}` }],
+    UserAttributes,
   };
 });
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
@@ -107,6 +131,7 @@ describe('PreSignUp mailbox claim', () => {
     jest.clearAllMocks();
     mockClaims.clear();
     mockUsers.clear();
+    mockUserEmails.clear();
     mockHoldReads = [];
     mockHoldPutError = undefined;
     process.env.DUPLICATE_EMAIL_REFUSE = 'true';
@@ -224,6 +249,11 @@ describe('PreSignUp mailbox claim', () => {
     expect(holdWrite.Item.globalId.S).toMatch(/^[0-9a-f-]{36}$/i);
     expect(holdWrite.Item.oldParksSub.S).toBe('sub-me@example.test');
     expect(holdWrite.Item.oldParksUsername.S).toBe('me@example.test');
+    expect(holdWrite.Item.oldParksEmail.S).toBe('me@example.test');
+    expect(mockClaims.get('me@example.test')).toMatchObject({
+      migrateHoldPending: true,
+      migrateId: holdWrite.Item.globalId.S,
+    });
     expect(mockCognitoSend).toHaveBeenCalledWith(expect.objectContaining({
       input: expect.objectContaining({ Username: 'me@example.test' }),
     }));
@@ -244,6 +274,33 @@ describe('PreSignUp mailbox claim', () => {
       .find((input) => input.Item?.pk?.S === 'migrateHold');
     expect(holdWrite.Item.oldParksUsername.S).toBe('me@example.test');
     expect(holdWrite.Item.oldParksSub.S).toBe('sub-me@example.test');
+  });
+
+  it('updates a BC Parks claim without an email attribute after creating the migration hold', async () => {
+    mockClaims.set('me@example.test', {
+      owner: 'me@example.test',
+      source: 'bcparks',
+    });
+    mockUsers.add('me@example.test');
+    mockUserEmails.set('me@example.test', 'me@example.test');
+    const event = signUp('me@example.test', 'PreSignUp_ExternalProvider');
+    event.userName = 'bcsc_12345';
+
+    await expect(handler(event)).rejects.toMatchObject({
+      message: expect.stringContaining('$BCPARKS_MIGRATION_REQUIRED:'),
+    });
+
+    expect(mockClaims.get('me@example.test')).toMatchObject({
+      owner: 'me@example.test',
+      source: 'bcparks',
+      migrateHoldPending: true,
+    });
+    expect(mockClaims.get('me@example.test').migrateId).toMatch(/^[0-9a-f-]{36}$/i);
+    const claimUpdate = mockDdbSend.mock.calls
+      .map(([command]) => command.input)
+      .find((input) => input.TableName === 'claims' && input.UpdateExpression?.includes('#migrateHoldPending'));
+    expect(claimUpdate.ExpressionAttributeNames['#email']).toBe('email');
+    expect(claimUpdate.ExpressionAttributeValues[':email']).toEqual({ S: 'me@example.test' });
   });
 
   it('takes over a legacy claim when its BC Parks account no longer exists', async () => {
