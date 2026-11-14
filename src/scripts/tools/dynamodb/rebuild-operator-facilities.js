@@ -10,8 +10,9 @@
  *
  * It writes only `facilities` and `facilitiesBuiltFrom` (the orcs and extras
  * the cache was built from), only when the cache changed, and only if the
- * operator's orcs and extras are still what it read. Every write leaves an
- * audit entry with the old and new cache.
+ * operator's orcs and extras are still what it read. Each write and its audit
+ * entry (old and new cache) go in one transaction. An operator edited mid-run
+ * is reported as a conflict and the run carries on; rerun to pick it up.
  *
  * Run it after any change to an operator, or to a facility's orcs.
  *
@@ -28,7 +29,7 @@
 
 const crypto = require('crypto');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, QueryCommand, ScanCommand, TransactWriteCommand } = require('@aws-sdk/lib-dynamodb');
 
 const ORCS_INDEX_NAME = 'orcs-index';
 const OPERATOR_PREFIX = 'operator::';
@@ -131,7 +132,7 @@ async function parkFacilities(doc, tableName, orcs) {
   return items.filter((item) => item.pk.startsWith('facility::'));
 }
 
-// Returns 'unchanged', 'updated' (or would be, on a dry run) or 'invalid'.
+// Returns 'unchanged', 'updated' (or would be, on a dry run), 'invalid' or 'conflict'.
 async function rebuildOperator(doc, { tableName, auditTableName, auditUser, apply }, operator, log = console.log) {
   const id = operator.pk.slice(OPERATOR_PREFIX.length);
   const problem = grantProblem(operator);
@@ -158,9 +159,20 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
   log(`  ${id}: ${apply ? '' : '[dry-run] would '}set ${Object.keys(facilities).length} facilities: ${Object.keys(facilities).join(', ') || 'none'}`);
   if (!apply) return 'updated';
 
-  await doc.send(new UpdateCommand(updateParams(tableName, operator, facilities)));
   const timestamp = new Date().toISOString();
-  await doc.send(new PutCommand({ TableName: auditTableName, Item: auditRecord(auditUser, id, operator.facilities, facilities, timestamp, crypto.randomUUID()) }));
+  const audit = auditRecord(auditUser, id, operator.facilities, facilities, timestamp, crypto.randomUUID());
+  try {
+    await doc.send(new TransactWriteCommand({
+      TransactItems: [
+        { Update: updateParams(tableName, operator, facilities) },
+        { Put: { TableName: auditTableName, Item: audit } },
+      ],
+    }));
+  } catch (e) {
+    if (e.name !== 'TransactionCanceledException' || e.CancellationReasons?.[0]?.Code !== 'ConditionalCheckFailed') throw e;
+    log(`  ${id}: CONFLICT, orcs or extraFacilities changed during the run, rerun to rebuild`);
+    return 'conflict';
+  }
   return 'updated';
 }
 
@@ -174,12 +186,12 @@ async function main() {
   const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ca-central-1' }));
   console.log(`Rebuild operator facilities — table=${tableName} ${apply ? '(APPLY)' : '(DRY RUN)'}`);
 
-  const counts = { unchanged: 0, updated: 0, invalid: 0 };
+  const counts = { unchanged: 0, updated: 0, invalid: 0, conflict: 0 };
   for (const operator of await listOperators(doc, tableName)) {
     counts[await rebuildOperator(doc, { tableName, auditTableName, auditUser, apply }, operator)]++;
   }
-  console.log(`\n${counts.updated} ${apply ? 'updated' : 'would be updated'}, ${counts.unchanged} unchanged, ${counts.invalid} skipped as invalid.`);
-  if (counts.invalid) process.exitCode = 1;
+  console.log(`\n${counts.updated} ${apply ? 'updated' : 'would be updated'}, ${counts.unchanged} unchanged, ${counts.invalid} skipped as invalid, ${counts.conflict} conflicted.`);
+  if (counts.invalid || counts.conflict) process.exitCode = 1;
 }
 
 if (require.main === module) {

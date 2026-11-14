@@ -1,6 +1,6 @@
 'use strict';
 
-const { GetCommand, PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, TransactWriteCommand } = require('@aws-sdk/lib-dynamodb');
 const {
   facilityKey, facilityItemKey, grantProblem, buildFacilities, sameFacilities, auditRecord, updateParams, rebuildOperator,
 } = require('../../src/scripts/tools/dynamodb/rebuild-operator-facilities');
@@ -23,7 +23,8 @@ function fakeDoc({ byOrcs = {}, byKey = {} } = {}) {
     }),
   };
 }
-const writes = (doc) => doc.send.mock.calls.map(([c]) => c).filter((c) => c instanceof UpdateCommand || c instanceof PutCommand);
+// Each transaction's items, flattened: [{ Update }, { Put }, ...]
+const writes = (doc) => doc.send.mock.calls.map(([c]) => c).filter((c) => c instanceof TransactWriteCommand).flatMap((c) => c.input.TransactItems);
 const silent = () => {};
 
 describe('rebuild-operator-facilities', () => {
@@ -81,10 +82,10 @@ describe('rebuild-operator-facilities', () => {
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
 
     const [update, audit] = writes(doc);
-    expect(Object.keys(update.input.ExpressionAttributeValues[':facilities'])).toEqual([
+    expect(Object.keys(update.Update.ExpressionAttributeValues[':facilities'])).toEqual([
       'bcparks_363::trail::1', 'bcparks_7::structure::1', 'bcparks_7::structure::2',
     ]);
-    expect(audit.input).toMatchObject({ TableName: 'audit', Item: { pk: 'me', operation: 'OPERATOR-FACILITIES-REBUILD', metadata: { oldFacilities: null } } });
+    expect(audit.Put).toMatchObject({ TableName: 'audit', Item: { pk: 'me', operation: 'OPERATOR-FACILITIES-REBUILD', metadata: { oldFacilities: null } } });
   });
 
   it('leaves out non-facility items the index returns and extras that do not exist', async () => {
@@ -93,7 +94,7 @@ describe('rebuild-operator-facilities', () => {
 
     await rebuildOperator(doc, OPTS, operator, silent);
 
-    expect(Object.keys(writes(doc)[0].input.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1']);
+    expect(Object.keys(writes(doc)[0].Update.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1']);
   });
 
   it('reads every page of a park from orcs-index', async () => {
@@ -105,7 +106,7 @@ describe('rebuild-operator-facilities', () => {
 
     await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent);
 
-    expect(Object.keys(writes(doc)[0].input.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1', 'bcparks_7::structure::2']);
+    expect(Object.keys(writes(doc)[0].Update.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1', 'bcparks_7::structure::2']);
   });
 
   it('writes nothing when the cache is unchanged', async () => {
@@ -127,7 +128,7 @@ describe('rebuild-operator-facilities', () => {
     };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
-    expect(writes(doc)[0].input.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7, 999], extraFacilities: [] });
+    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7, 999], extraFacilities: [] });
   });
 
   it('writes nothing on a dry run', async () => {
@@ -144,14 +145,39 @@ describe('rebuild-operator-facilities', () => {
     expect(doc.send).not.toHaveBeenCalled();
   });
 
-  it('writes no audit entry when the guarded update fails', async () => {
+  it('writes the cache and its audit entry in one transaction', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
-    doc.send.mockImplementation(async (cmd) => {
-      if (cmd instanceof UpdateCommand) throw Object.assign(new Error('changed'), { name: 'ConditionalCheckFailedException' });
-      return cmd.input.IndexName ? { Items: [CHEAKAMUS] } : {};
-    });
 
-    await expect(rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).rejects.toThrow('changed');
-    expect(writes(doc).filter((c) => c instanceof PutCommand)).toEqual([]);
+    await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent);
+
+    const transactions = doc.send.mock.calls.map(([c]) => c).filter((c) => c instanceof TransactWriteCommand);
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0].input.TransactItems.map((i) => Object.keys(i)[0])).toEqual(['Update', 'Put']);
+  });
+
+  const failWrite = (error) => {
+    const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
+    const answer = doc.send.getMockImplementation();
+    doc.send.mockImplementation(async (cmd) => {
+      if (cmd instanceof TransactWriteCommand) throw error;
+      return answer(cmd);
+    });
+    return doc;
+  };
+
+  it('reports a conflict, instead of failing the run, when the operator changed mid-run', async () => {
+    const doc = failWrite(Object.assign(new Error('cancelled'), {
+      name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'ConditionalCheckFailed' }, { Code: 'None' }],
+    }));
+
+    expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).toBe('conflict');
+  });
+
+  it('rethrows any other write failure', async () => {
+    const doc = failWrite(Object.assign(new Error('audit table missing'), {
+      name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'None' }, { Code: 'ValidationError' }],
+    }));
+
+    await expect(rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).rejects.toThrow('audit table missing');
   });
 });
