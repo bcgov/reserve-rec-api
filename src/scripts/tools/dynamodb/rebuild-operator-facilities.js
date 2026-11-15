@@ -169,8 +169,10 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
       ],
     }));
   } catch (e) {
-    if (e.name !== 'TransactionCanceledException' || e.CancellationReasons?.[0]?.Code !== 'ConditionalCheckFailed') throw e;
-    log(`  ${id}: CONFLICT, orcs or extraFacilities changed during the run, rerun to rebuild`);
+    // ConditionalCheckFailed: orcs or extras changed since we read them. TransactionConflict: a write to the operator landed at the same moment.
+    const reason = e.CancellationReasons?.[0]?.Code;
+    if (e.name !== 'TransactionCanceledException' || !['ConditionalCheckFailed', 'TransactionConflict'].includes(reason)) throw e;
+    log(`  ${id}: CONFLICT (${reason}), the operator changed during the run, rerun to rebuild`);
     return 'conflict';
   }
   return 'updated';
@@ -198,4 +200,4 @@ if (require.main === module) {
   main().catch((e) => { console.error('Rebuild failed:', e); process.exit(1); });
 }
 
-module.exports = { facilityKey, facilityItemKey, grantProblem, buildFacilities, sameFacilities, auditRecord, updateParams, rebuildOperator };
+module.exports = { facilityKey, facilityItemKey, grantProblem, buildFacilities, sameFacilities, auditRecord, updateParams, rebuildOperator, main };

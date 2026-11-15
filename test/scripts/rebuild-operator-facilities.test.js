@@ -1,8 +1,8 @@
 'use strict';
 
-const { GetCommand, TransactWriteCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, ScanCommand, TransactWriteCommand } = require('@aws-sdk/lib-dynamodb');
 const {
-  facilityKey, facilityItemKey, grantProblem, buildFacilities, sameFacilities, auditRecord, updateParams, rebuildOperator,
+  facilityKey, facilityItemKey, grantProblem, buildFacilities, sameFacilities, auditRecord, updateParams, rebuildOperator, main,
 } = require('../../src/scripts/tools/dynamodb/rebuild-operator-facilities');
 
 const TABLE = 'ref';
@@ -165,9 +165,9 @@ describe('rebuild-operator-facilities', () => {
     return doc;
   };
 
-  it('reports a conflict, instead of failing the run, when the operator changed mid-run', async () => {
+  it.each(['ConditionalCheckFailed', 'TransactionConflict'])('reports %s as a conflict instead of failing the run', async (code) => {
     const doc = failWrite(Object.assign(new Error('cancelled'), {
-      name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'ConditionalCheckFailed' }, { Code: 'None' }],
+      name: 'TransactionCanceledException', CancellationReasons: [{ Code: code }, { Code: 'None' }],
     }));
 
     expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).toBe('conflict');
@@ -179,5 +179,43 @@ describe('rebuild-operator-facilities', () => {
     }));
 
     await expect(rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).rejects.toThrow('audit table missing');
+  });
+
+  describe('main', () => {
+    const env = { ...process.env };
+    const argv = process.argv;
+    afterEach(() => {
+      process.env = { ...env };
+      process.argv = argv;
+      process.exitCode = undefined;
+      jest.restoreAllMocks();
+    });
+
+    it('carries on past a conflicted operator and exits non-zero so it gets rerun', async () => {
+      const conflicted = { pk: 'operator::op1', sk: 'base', orcs: [7] };
+      const fine = { pk: 'operator::op2', sk: 'base', orcs: [7] };
+      const doc = {
+        send: jest.fn(async (cmd) => {
+          if (cmd instanceof ScanCommand) return { Items: [conflicted, fine] };
+          if (cmd.input.IndexName === 'orcs-index') return { Items: [CHEAKAMUS] };
+          if (cmd instanceof TransactWriteCommand && cmd.input.TransactItems[0].Update.Key.pk === conflicted.pk) {
+            throw Object.assign(new Error('cancelled'), { name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'ConditionalCheckFailed' }] });
+          }
+          return {};
+        }),
+      };
+      jest.spyOn(DynamoDBDocumentClient, 'from').mockReturnValue(doc);
+      jest.spyOn(console, 'log').mockImplementation(silent);
+      Object.assign(process.env, { TABLE_NAME: TABLE, AUDIT_TABLE_NAME: 'audit', AUDIT_USER: 'me' });
+      process.argv = [...argv, '--apply'];
+
+      await main();
+
+      // op1's write is attempted and refused; op2 is still tried after it.
+      const attempted = writes(doc).filter((i) => i.Update).map((i) => i.Update.Key.pk);
+      expect(attempted).toEqual(['operator::op1', 'operator::op2']);
+      expect(process.exitCode).toBe(1);
+      expect(console.log).toHaveBeenLastCalledWith(expect.stringContaining('1 updated, 0 unchanged, 0 skipped as invalid, 1 conflicted.'));
+    });
   });
 });
