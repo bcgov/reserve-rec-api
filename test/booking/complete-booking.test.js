@@ -203,6 +203,18 @@ describe("completeBooking", () => {
 
     expect(updateRequests[0].data.ExpressionAttributeValues[":status"]).toBe("confirmed");
   });
+
+  it("stores the payment's clientTransactionId on the booking", async () => {
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "BCPR-123" }, { sub: "sub-1", paymentStarted: true });
+
+    expect(updateRequests[0].data.ExpressionAttributeValues[":clientTransactionId"]).toBe("BCPR-123");
+  });
+
+  it("ignores a clientTransactionId sent by the client on a booking completed without payment", async () => {
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "someone-elses-txn" }, { sub: "sub-1" });
+
+    expect(updateRequests[0].data.ExpressionAttributeValues).not.toHaveProperty(":clientTransactionId");
+  });
 });
 
 describe("generateEmailParams", () => {

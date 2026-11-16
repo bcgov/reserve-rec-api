@@ -47,17 +47,15 @@ jest.mock("/opt/dynamodb", () => ({
 jest.mock("../../../methods", () => ({
   getTransactionsByBookingId: jest.fn(),
   getTransactionsByBookingIdDate: jest.fn(),
-  getTransactionByTransactionId: jest.fn(),
+  findAndVerifyTransactionOwnership: jest.fn(),
 }));
 
-const optBase = require("/opt/base");
 const { handler } = require("../public");
-const { 
-  getTransactionByTransactionId,
+const {
+  findAndVerifyTransactionOwnership,
   getTransactionsByBookingId,
   getTransactionsByBookingIdDate
 } = require("../../../methods");
-const { batchTransactData } = require("/opt/dynamodb");
 
 const MOCK_BOOKING_ID = "booking-123";
 const MOCK_USER_ID = "user-123";
@@ -79,194 +77,123 @@ function makeEvent({ sub, pathParameters = {}, queryStringParameters = {} }) {
   };
 }
 
-// Example transaction
+// Transactions are stored flat: userId sits on the item itself.
 const baseTransaction = {
-  success: true,
-  status: "paid",
-  trnId: "transaction_123",
-  message: "a message",
-  transaction: {
-    pk: `transaction::${MOCK_BOOKING_ID}`,
-    sk: `${DATE}::${TRANSACTION_ID}`,
-    amount: 10,
-    bookingId: 'standalone-test',
-    clientTransactionId: 'TRANSACTION_ID',
-    date: '${DATE}',
-    globalId: 'TRANSACTION_ID',
-    schema: 'transaction',
-    sessionId: 'test-session-id',
-    status: 'paid',
-    userId: MOCK_USER_ID,
-    cardAvsAddrMatch: 0,
-    cardAvsId: 'U',
-    cardAvsMessage: 'Address information is unavailable.',
-    cardAvsPostalResult: 0,
-    cardAvsProcessed: false,
-    cardAvsResult: '0',
-    cardBin: '433026',
-    cardCvdId: '1',
-    cardLastFour: '4675',
-    cardType: 'VI',
-    customRef1: 'standalone-test',
-    customRef2: 'test-session-id',
-    customRef3: '',
-    customRef4: '',
-    customRef5: '',
-    trnAmount: 10,
-    trnApproved: '1',
-    trnAuthCode: 'TEST',
-    trnCreated: `${DATE}T08:08:51`,
-    trnId: 'worldline-trn-123',
-    trnMessage: 'Approved',
-    trnOrderNumber: `${TRANSACTION_ID}`,
-    trnPaymentMethod: 'CC',
-    trnRiskScore: 0,
-    trnType: 'P',
-    trnLinks: [
-      {
-        rel: 'void',
-        href: 'https://api.na.bambora.com/v1/payments/worldline-trn-123/void',
-        method: 'POST'
-      },
-      {
-        rel: 'return',
-        href: 'https://api.na.bambora.com/v1/payments/worldline-trn-123/returns',
-        method: 'POST'
-      }
-    ],
-    metadata: {}
-  }
+  pk: `transaction::${MOCK_BOOKING_ID}`,
+  sk: `${DATE}::${TRANSACTION_ID}`,
+  amount: 10,
+  bookingId: 'standalone-test',
+  clientTransactionId: 'TRANSACTION_ID',
+  date: '${DATE}',
+  globalId: 'TRANSACTION_ID',
+  schema: 'transaction',
+  sessionId: 'test-session-id',
+  status: 'paid',
+  userId: MOCK_USER_ID,
+  cardAvsAddrMatch: 0,
+  cardAvsId: 'U',
+  cardAvsMessage: 'Address information is unavailable.',
+  cardAvsPostalResult: 0,
+  cardAvsProcessed: false,
+  cardAvsResult: '0',
+  cardBin: '433026',
+  cardCvdId: '1',
+  cardLastFour: '4675',
+  cardType: 'VI',
+  customRef1: 'standalone-test',
+  customRef2: 'test-session-id',
+  customRef3: '',
+  customRef4: '',
+  customRef5: '',
+  trnAmount: 10,
+  trnApproved: '1',
+  trnAuthCode: 'TEST',
+  trnCreated: `${DATE}T08:08:51`,
+  trnId: 'worldline-trn-123',
+  trnMessage: 'Approved',
+  trnOrderNumber: `${TRANSACTION_ID}`,
+  trnPaymentMethod: 'CC',
+  trnRiskScore: 0,
+  trnType: 'P',
+  trnLinks: [
+    {
+      rel: 'void',
+      href: 'https://api.na.bambora.com/v1/payments/worldline-trn-123/void',
+      method: 'POST'
+    },
+    {
+      rel: 'return',
+      href: 'https://api.na.bambora.com/v1/payments/worldline-trn-123/returns',
+      method: 'POST'
+    }
+  ],
+  metadata: {}
 };
 
-const baseTransactionsBooking = [
-  baseTransaction,
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  }
-]; 
-
-const baseTransactionsBookingOtherUser = [
-  baseTransaction,
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  },
-  {
-    transaction: {
-      userId: "not-the-right-user",
-    },
-  },
-]; 
-
-const baseTransactionsBookingDateOtherUser = [
-  baseTransaction,
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  },
-  {
-    transaction: {
-      userId: "not-the-right-user",
-    },
-  },
-]; 
-
-const baseTransactionsBookingDate = [
-  {
-    transaction: {
-      userId: MOCK_USER_ID,
-    },
-  },
-  {
-    transaction: {
-      transactionUrl: "token-payment",
-      userId: MOCK_USER_ID,
-    },
-  },
-]
+const mine = { ...baseTransaction, sk: "mine-2" };
+const notMine = { ...baseTransaction, sk: "not-mine", userId: "not-the-right-user" };
 
 describe("Public Transaction GET handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBooking);
-    getTransactionsByBookingIdDate.mockResolvedValue(baseTransactionsBookingDate);
-    getTransactionByTransactionId.mockResolvedValue(baseTransaction);
-    
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
+    getTransactionsByBookingId.mockResolvedValue({ items: [baseTransaction, mine, notMine] });
+    getTransactionsByBookingIdDate.mockResolvedValue({ items: [baseTransaction, notMine] });
+    findAndVerifyTransactionOwnership.mockResolvedValue(baseTransaction);
   });
-  
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-  
-  it("gets all the correct transactions from a bookingId", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBookingOtherUser);
+
+  it("returns only the caller's transactions for a bookingId", async () => {
     const event = makeEvent({
       sub: MOCK_USER_ID,
       pathParameters: { bookingId: MOCK_BOOKING_ID }
     });
 
-    const result = await handler(event);
+    const result = await handler(event, {});
 
-    expect(result).toEqual(baseTransactionsBooking);
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual([baseTransaction, mine]);
   });
-  
-  it("filters all transactions from a bookingId where userId doesn't match", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBooking);
-    const event = makeEvent({
-      sub: MOCK_USER_ID,
-      pathParameters: { bookingId: MOCK_BOOKING_ID }
-    });
 
-    const result = await handler(event);
-
-    expect(result).toEqual(baseTransactionsBooking);
-  });
-  
-  it("gets all transactions from a bookingId and date", async () => {
-    const date = new Date("2026-06-25T12:00:00Z").toISOString().split('T')[0]
-
+  it("returns only the caller's transactions for a bookingId and date", async () => {
     const event = makeEvent({
       sub: MOCK_USER_ID,
       pathParameters: { bookingId: MOCK_BOOKING_ID },
-      queryStringParameters: { date: date }
+      queryStringParameters: { date: DATE }
     });
 
-    const result = await handler(event);
+    const result = await handler(event, {});
 
-    expect(result).toEqual(baseTransactionsBookingDate);
+    expect(getTransactionsByBookingIdDate).toHaveBeenCalledWith(MOCK_BOOKING_ID, DATE);
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual([baseTransaction]);
   });
-  
-  it("gets all transactions from a bookingId and date", async () => {
-    getTransactionsByBookingId.mockResolvedValue(baseTransactionsBookingDateOtherUser);
-    const date = new Date("2026-06-25T12:00:00Z").toISOString().split('T')[0]
 
+  it("gets the caller's transaction using a clientTransactionId", async () => {
     const event = makeEvent({
       sub: MOCK_USER_ID,
-      pathParameters: { bookingId: MOCK_BOOKING_ID },
-      queryStringParameters: { date: date }
+      queryStringParameters: { clientTransactionId: TRANSACTION_ID }
     });
 
-    const result = await handler(event);
+    const result = await handler(event, {});
 
-    expect(result).toEqual(baseTransactionsBookingDate);
+    expect(findAndVerifyTransactionOwnership).toHaveBeenCalledWith(TRANSACTION_ID, MOCK_USER_ID);
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual(baseTransaction);
   });
-  
-  it("gets a transaction using a clientTransactionId", async () => {
+
+  it("refuses a clientTransactionId the caller does not own", async () => {
+    const { Exception } = require("/opt/base");
+    findAndVerifyTransactionOwnership.mockRejectedValue(
+      new Exception("Unauthorized access to transaction", { code: 401 }),
+    );
     const event = makeEvent({
       sub: MOCK_USER_ID,
-      pathParameters: { bookingId: MOCK_BOOKING_ID },
-      queryStringParameters: { date: "2025-06-11", clientTransactionId: TRANSACTION_ID }
+      queryStringParameters: { clientTransactionId: TRANSACTION_ID }
     });
 
-    const result = await handler(event);
+    const result = await handler(event, {});
 
-    expect(result).toEqual(baseTransaction);
+    expect(result.status).toBe(401);
+    expect(result.data).toBeNull();
   });
 
   it("fails if the no query string parameters are given", async () => {

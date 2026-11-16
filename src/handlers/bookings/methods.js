@@ -1503,6 +1503,12 @@ async function completeBooking(bookingId, sessionId, props, { sub, username, pay
       isPending: { action: 'remove' },
     };
 
+    // Link a paid booking to its payment so the booking page and refunds can find it.
+    // Only the server-side payment path sets this; public complete handlers pass the raw body.
+    if (paymentStarted && typeof props?.clientTransactionId === 'string') {
+      updatedBookingItem.clientTransactionId = props.clientTransactionId;
+    }
+
     // When the FE-driven complete handler invokes us with the authenticated
     // sub, rewrite the named-occupant identity fields from Cognito and accept
     // booking-context fields (address/vehicle/equipment) from the request.

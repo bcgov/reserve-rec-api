@@ -11,7 +11,7 @@ const {
 const {
   getTransactionsByBookingId,
   getTransactionsByBookingIdDate,
-  getTransactionByTransactionId,
+  findAndVerifyTransactionOwnership,
 } = require("../../methods");
 
 exports.handler = async (event, context) => {
@@ -32,38 +32,27 @@ exports.handler = async (event, context) => {
     const date = params.date;
     const clientTransactionId = params.clientTransactionId
 
+    // Transactions are stored flat, so the owner is transaction.userId.
     if (clientTransactionId) {
-      // Get a specific transaction using transactionId
-      const transaction =
-        await getTransactionByTransactionId(clientTransactionId);
-
-      // Check user on transaction
-      if (transaction.transaction.userId === userId) return transaction;
-    } else if (bookingId && date && !clientTransactionId) {
-      // Get all transaction created for a specific booking on a date
-      const transactions = await getTransactionsByBookingIdDate(
-        bookingId,
-        date,
+      // Get a specific transaction; throws 404/401 if missing or not the caller's
+      const transaction = await findAndVerifyTransactionOwnership(
+        clientTransactionId,
+        userId,
       );
 
-      // Check user on all transactions
-      validTransactions = [];
-      for (const transaction of transactions) {
-        if (transaction.transaction.userId === userId) validTransactions.push(transaction);
-      }
+      return sendResponse(200, transaction, "Success", null, context);
+    } else if (bookingId) {
+      // Get the transactions for a booking, optionally on one date
+      // runQuery returns { items, lastEvaluatedKey }, not an array
+      const { items = [] } = date
+        ? await getTransactionsByBookingIdDate(bookingId, date)
+        : await getTransactionsByBookingId(bookingId);
 
-      return validTransactions;
-    } else if (bookingId && !date && !clientTransactionId) {
-      // Get all transactions created for a specific booking
-      const transactions = await getTransactionsByBookingId(bookingId);
+      const validTransactions = items.filter(
+        (transaction) => transaction.userId === userId,
+      );
 
-      // Check user on all transactions
-      validTransactions = [];
-      for (const transaction of transactions) {
-        if (transaction.transaction.userId === userId) validTransactions.push(transaction);
-      }
-
-      return validTransactions;
+      return sendResponse(200, validTransactions, "Success", null, context);
     } else {
       throw new Exception(
         "Invalid: missing bookingId, date, and/or clientTransactionId",
