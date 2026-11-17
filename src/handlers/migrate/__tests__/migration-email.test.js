@@ -33,6 +33,7 @@ jest.mock('/opt/base', () => {
 jest.mock('/opt/dynamodb', () => ({
   getOne: (...args) => mockGetOne(...args),
   getOneByGlobalId: mockGetOneByGlobalId,
+  migrationsEnabled: async () => (await mockGetOne('config', 'featureFlags'))?.flags?.enableMigrations === true,
   TRANSACTIONAL_DATA_TABLE_NAME: 'transactional-data',
 }));
 jest.mock('/opt/emailBlocklist', () => ({

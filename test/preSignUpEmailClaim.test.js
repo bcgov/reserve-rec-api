@@ -11,6 +11,7 @@ const BANNED = 'banned@example.test';
 const mockGetOne = jest.fn().mockResolvedValue({ flags: { enableMigrations: true } });
 jest.mock('/opt/dynamodb', () => ({
   getOne: (...args) => mockGetOne(...args),
+  migrationsEnabled: async () => (await mockGetOne('config', 'featureFlags'))?.flags?.enableMigrations === true,
   runQuery: jest.fn().mockResolvedValue({
     items: [{ kind: 'address', value: 'banned@example.test' }],
   }),

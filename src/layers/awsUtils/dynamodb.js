@@ -1062,6 +1062,16 @@ async function migrateAccounts(oldUuid, newUuid) {
   return rollbackMigration;
 }
 
+/**
+ * Checks if migrations are enabled by retrieving the feature flag configuration from the database.
+ * 
+ * @returns {Promise<boolean>} - A Promise that resolves to true if migrations are enabled, false otherwise.
+ */
+async function migrationsEnabled() {
+  const featureFlagConfig = await getOne('config', 'featureFlags');
+  return featureFlagConfig?.flags?.enableMigrations === true;
+}
+
 module.exports = {
   AUDIT_TABLE_NAME,
   AWS_REGION,
@@ -1103,4 +1113,5 @@ module.exports = {
   marshall,
   unmarshall,
   migrateAccounts,
+  migrationsEnabled,
 };

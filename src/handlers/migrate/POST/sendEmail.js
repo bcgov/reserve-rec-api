@@ -5,19 +5,14 @@ const {
   UpdateItemCommand,
 } = require('@aws-sdk/client-dynamodb');
 const {
-  getOne,
   getOneByGlobalId,
+  migrationsEnabled,
   TRANSACTIONAL_DATA_TABLE_NAME,
 } = require('/opt/dynamodb');
 const { sendMigrationConfirmationEmail } = require('../../../../lib/handlers/emailDispatch/utils');
 
 const dynamodb = new DynamoDBClient({ region: process.env.AWS_REGION });
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function migrationsEnabled() {
-  const featureFlagConfig = await getOne('config', 'featureFlags');
-  return featureFlagConfig?.flags?.enableMigrations === true;
-}
 
 function frontendBaseUrl() {
   const configuredDomain = process.env.PUBLIC_FRONTEND_DOMAIN;

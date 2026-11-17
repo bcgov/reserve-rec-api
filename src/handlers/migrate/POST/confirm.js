@@ -9,8 +9,8 @@ const {
   AdminUpdateUserAttributesCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 const {
-  getOne,
   getOneByGlobalId,
+  migrationsEnabled,
   TRANSACTIONAL_DATA_TABLE_NAME,
 } = require('/opt/dynamodb');
 const { canonicalizeEmail } = require('/opt/emailBlocklist');
@@ -21,11 +21,6 @@ const CLAIM_TABLE_NAME = process.env.CLAIM_TABLE_NAME;
 const PUBLIC_USER_POOL_ID = process.env.PUBLIC_USER_POOL_ID;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/;
-
-async function migrationsEnabled() {
-  const featureFlagConfig = await getOne('config', 'featureFlags');
-  return featureFlagConfig?.flags?.enableMigrations === true;
-}
 
 // Prevents timing attacks by ensuring that the comparison takes the same amount of time regardless of
 // how many characters match.
