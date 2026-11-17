@@ -9,7 +9,6 @@
     "@aws-sdk/credential-provider-node": "^3.910.0",
     "@aws-sdk/util-dynamodb": "^3.910.0",
     "@opensearch-project/opensearch": "^2.4.0",
-    "axios": "^1.7.9",
-    "fast-xml-parser": "4.2.5"
+    "axios": "^1.20.0"
   }
 }
