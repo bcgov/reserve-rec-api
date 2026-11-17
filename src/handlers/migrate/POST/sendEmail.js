@@ -5,6 +5,7 @@ const {
   UpdateItemCommand,
 } = require('@aws-sdk/client-dynamodb');
 const {
+  getOne,
   getOneByGlobalId,
   TRANSACTIONAL_DATA_TABLE_NAME,
 } = require('/opt/dynamodb');
@@ -12,6 +13,11 @@ const { sendMigrationConfirmationEmail } = require('../../../../lib/handlers/ema
 
 const dynamodb = new DynamoDBClient({ region: process.env.AWS_REGION });
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function migrationsEnabled() {
+  const featureFlagConfig = await getOne('config', 'featureFlags');
+  return featureFlagConfig?.flags?.enableMigrations === true;
+}
 
 function frontendBaseUrl() {
   const configuredDomain = process.env.PUBLIC_FRONTEND_DOMAIN;
@@ -25,6 +31,10 @@ function frontendBaseUrl() {
 
 exports.handler = async (event, context) => {
   try {
+    if (!(await migrationsEnabled())) {
+      throw new Exception('Migration is currently unavailable.', { code: 403 });
+    }
+
     const migrateId = event?.pathParameters?.migrateId;
     if (typeof migrateId !== 'string' || !UUID_REGEX.test(migrateId)) {
       throw new Exception('A valid migrateId is required', { code: 400 });
@@ -99,6 +109,7 @@ exports.handler = async (event, context) => {
     await sendMigrationConfirmationEmail({
       recipientEmail: hold.oldParksEmail,
       recipientName: hold.oldParksName || '',
+      destinationName: hold.newBcscName || '',
       confirmationUrl: confirmationUrl.toString(),
       migrateId,
     });

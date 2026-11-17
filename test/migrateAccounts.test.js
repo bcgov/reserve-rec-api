@@ -261,4 +261,32 @@ describe('migrateAccounts', () => {
       'ACCOUNT_MIGRATION_FAILED',
     ]);
   });
+
+  it('marks an error when the internal rollback fails', async () => {
+    let transactionCount = 0;
+    mockDynamoSend.mockImplementation(async (command) => {
+      if (command instanceof GetItemCommand) return {};
+      if (command instanceof QueryCommand) return { Items: [marshall(sourceItems[0])] };
+      if (command instanceof TransactWriteItemsCommand) {
+        transactionCount += 1;
+        if (transactionCount === 2) throw new Error('rollback transaction failed');
+        return {};
+      }
+      throw new Error(`Unexpected DynamoDB command: ${command.constructor.name}`);
+    });
+    mockWriteAuditLog.mockImplementation(async (_user, _entityId, operation) => {
+      if (operation === 'ACCOUNT_MIGRATION_COMPLETED') {
+        throw new Error('completion audit failed');
+      }
+    });
+
+    const error = await migrateAccounts(oldSub, newSub).catch((migrationError) => migrationError);
+
+    expect(error).toBeInstanceOf(AggregateError);
+    expect(error.rollbackFailed).toBe(true);
+    expect(error.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ message: 'completion audit failed' }),
+      expect.objectContaining({ message: 'rollback transaction failed' }),
+    ]));
+  });
 });

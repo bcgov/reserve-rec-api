@@ -17,6 +17,7 @@ jest.mock('/opt/base', () => ({
 
 process.env.EMAIL_QUEUE_URL = 'https://sqs.ca-central-1.amazonaws.com/123456789012/email';
 const { sendMigrationConfirmationEmail } = require('../lib/handlers/emailDispatch/utils');
+const { TemplateEngine } = require('../lib/handlers/emailDispatch/templateEngine');
 
 describe('migration confirmation email utility', () => {
   beforeEach(() => {
@@ -28,6 +29,7 @@ describe('migration confirmation email utility', () => {
     await sendMigrationConfirmationEmail({
       recipientEmail: 'parks@example.test',
       recipientName: '',
+      destinationName: 'Test BCSC User',
       confirmationUrl: 'https://reserve.example.test/migration-confirm#migrateId=id&token=token',
       migrateId: 'migration-id',
     });
@@ -40,8 +42,18 @@ describe('migration confirmation email utility', () => {
       recipientName: 'BC Parks account holder',
       templateData: {
         confirmationUrl: 'https://reserve.example.test/migration-confirm#migrateId=id&token=token',
+        destinationName: 'Test BCSC User',
       },
       metadata: { migrateId: 'migration-id' },
     });
+  });
+
+  it('renders the destination name in both confirmation email formats', async () => {
+    const templates = await new TemplateEngine().loadLocalTemplate('migration_bcparks_default');
+
+    expect(templates.html({ destinationName: 'Test BCSC User' }))
+      .toContain('BC Services Card account for <strong>Test BCSC User</strong>');
+    expect(templates.text({ destinationName: 'Test BCSC User' }))
+      .toContain('BC Services Card account for Test BCSC User');
   });
 });

@@ -8,7 +8,9 @@ jest.mock('/opt/base', () => ({
 }));
 
 const BANNED = 'banned@example.test';
+const mockGetOne = jest.fn().mockResolvedValue({ flags: { enableMigrations: true } });
 jest.mock('/opt/dynamodb', () => ({
+  getOne: (...args) => mockGetOne(...args),
   runQuery: jest.fn().mockResolvedValue({
     items: [{ kind: 'address', value: 'banned@example.test' }],
   }),
@@ -49,6 +51,9 @@ const mockDdbSend = jest.fn(async ({ input }) => {
       source: input.ExpressionAttributeValues[':source'].S,
       migrateHoldPending: input.ExpressionAttributeValues[':pending'].BOOL,
       migrateId: input.ExpressionAttributeValues[':migrateId'].S,
+      ...(input.ExpressionAttributeValues[':migrateTargetName'] && {
+        migrateTargetName: input.ExpressionAttributeValues[':migrateTargetName'].S,
+      }),
     });
     return {};
   }
@@ -86,6 +91,7 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
 
 const mockUsers = new Set();
 const mockUserEmails = new Map();
+const mockUserNames = new Map();
 const mockCognitoSend = jest.fn(async ({ input }) => {
   if (!mockUsers.has(input.Username)) {
     throw Object.assign(new Error('User does not exist.'), { name: 'UserNotFoundException' });
@@ -94,7 +100,7 @@ const mockCognitoSend = jest.fn(async ({ input }) => {
   const email = mockUserEmails.get(input.Username);
   if (email) UserAttributes.push({ Name: 'email', Value: email });
   return {
-    Username: input.Username,
+    Username: mockUserNames.get(input.Username) || input.Username,
     UserStatus: 'UNCONFIRMED',
     UserAttributes,
   };
@@ -132,8 +138,10 @@ describe('PreSignUp mailbox claim', () => {
     mockClaims.clear();
     mockUsers.clear();
     mockUserEmails.clear();
+    mockUserNames.clear();
     mockHoldReads = [];
     mockHoldPutError = undefined;
+    mockGetOne.mockResolvedValue({ flags: { enableMigrations: true } });
     process.env.DUPLICATE_EMAIL_REFUSE = 'true';
   });
 
@@ -250,18 +258,55 @@ describe('PreSignUp mailbox claim', () => {
     expect(holdWrite.Item.oldParksSub.S).toBe('sub-me@example.test');
     expect(holdWrite.Item.oldParksUsername.S).toBe('me@example.test');
     expect(holdWrite.Item.oldParksEmail.S).toBe('me@example.test');
+    expect(holdWrite.Item.newBcscName.S).toBe('Test User');
     expect(mockClaims.get('me@example.test')).toMatchObject({
       migrateHoldPending: true,
       migrateId: holdWrite.Item.globalId.S,
+      migrateTargetName: 'Test User',
     });
     expect(mockCognitoSend).toHaveBeenCalledWith(expect.objectContaining({
       input: expect.objectContaining({ Username: 'me@example.test' }),
     }));
   });
 
+  it('allows the first BCSC sign-in against a BC Parks claim when migrations are disabled', async () => {
+    mockGetOne.mockResolvedValue({ flags: { enableMigrations: false } });
+    existingAccount('me@example.test');
+    const event = signUp('me@example.test', 'PreSignUp_ExternalProvider');
+    event.userName = 'bcsc_12345';
+
+    await expect(handler(event)).resolves.toBeDefined();
+
+    expect(mockGetOne).toHaveBeenCalledWith('config', 'featureFlags');
+    expect(mockDdbSend.mock.calls.some(([command]) => (
+      command.input.Item?.pk?.S === 'migrateHold'
+    ))).toBe(false);
+    expect(mockDdbSend.mock.calls.some(([command]) => (
+      command.input.UpdateExpression?.includes('#migrateHoldPending')
+    ))).toBe(false);
+  });
+
+  it('refuses BCSC signup if the migration feature flag cannot be read', async () => {
+    mockGetOne.mockRejectedValue(new Error('feature flag table unavailable'));
+    existingAccount('me@example.test');
+    const event = signUp('me@example.test', 'PreSignUp_ExternalProvider');
+    event.userName = 'bcsc_12345';
+
+    await expect(handler(event)).rejects.toMatchObject({ signupRefused: true });
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Migration feature flag lookup failed',
+      { error: 'feature flag table unavailable' },
+    );
+    expect(mockDdbSend.mock.calls.some(([command]) => (
+      command.input.Item?.pk?.S === 'migrateHold'
+    ))).toBe(false);
+  });
+
   it('recognizes legacy BC Parks claims without owner or source fields', async () => {
     mockClaims.set('me@example.test', { email: 'me@example.test' });
     mockUsers.add('me@example.test');
+    mockUserNames.set('me@example.test', '8f604f47-f44f-4f06-a6d2-59e20bd0d998');
     const event = signUp('me@example.test', 'PreSignUp_ExternalProvider');
     event.userName = 'bcsc_12345';
 
@@ -272,8 +317,13 @@ describe('PreSignUp mailbox claim', () => {
     const holdWrite = mockDdbSend.mock.calls
       .map(([command]) => command.input)
       .find((input) => input.Item?.pk?.S === 'migrateHold');
-    expect(holdWrite.Item.oldParksUsername.S).toBe('me@example.test');
+    expect(holdWrite.Item.oldParksUsername.S).toBe('8f604f47-f44f-4f06-a6d2-59e20bd0d998');
     expect(holdWrite.Item.oldParksSub.S).toBe('sub-me@example.test');
+    expect(mockClaims.get('me@example.test').owner).toBe('8f604f47-f44f-4f06-a6d2-59e20bd0d998');
+    const claimUpdate = mockDdbSend.mock.calls
+      .map(([command]) => command.input)
+      .find((input) => input.TableName === 'claims' && input.UpdateExpression?.includes('#migrateHoldPending'));
+    expect(claimUpdate.ExpressionAttributeValues[':email']).toEqual({ S: 'me@example.test' });
   });
 
   it('updates a BC Parks claim without an email attribute after creating the migration hold', async () => {

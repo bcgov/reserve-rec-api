@@ -1009,7 +1009,12 @@ async function migrateAccounts(oldUuid, newUuid) {
     }
 
     if (rollbackErrors.length) {
-      throw new AggregateError([migrationError, ...rollbackErrors], 'Migration failed and one or more recovery steps failed');
+      const error = new AggregateError(
+        [migrationError, ...rollbackErrors],
+        'Migration failed and one or more recovery steps failed',
+      );
+      error.rollbackFailed = true;
+      throw error;
     }
   };
 

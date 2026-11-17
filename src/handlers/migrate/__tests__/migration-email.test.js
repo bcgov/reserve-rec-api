@@ -2,6 +2,7 @@ const { createHash } = require('crypto');
 
 const mockDdbSend = jest.fn();
 const mockCognitoSend = jest.fn();
+const mockGetOne = jest.fn();
 const mockGetOneByGlobalId = jest.fn();
 const mockSendMigrationConfirmationEmail = jest.fn();
 const mockLogger = { error: jest.fn() };
@@ -30,6 +31,7 @@ jest.mock('/opt/base', () => {
   };
 });
 jest.mock('/opt/dynamodb', () => ({
+  getOne: (...args) => mockGetOne(...args),
   getOneByGlobalId: mockGetOneByGlobalId,
   TRANSACTIONAL_DATA_TABLE_NAME: 'transactional-data',
 }));
@@ -59,6 +61,7 @@ function makeHold(overrides = {}) {
     holdExpiry: Date.now() + 60_000,
     oldParksUsername: 'parks@example.test',
     oldParksEmail: 'Parks@Example.Test',
+    newBcscName: 'Test BCSC User',
     ...overrides,
   };
 }
@@ -66,6 +69,7 @@ function makeHold(overrides = {}) {
 describe('migration email confirmation handlers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetOne.mockResolvedValue({ flags: { enableMigrations: true } });
     mockDdbSend.mockResolvedValue({});
     mockCognitoSend.mockResolvedValue({});
     mockSendMigrationConfirmationEmail.mockResolvedValue({});
@@ -85,6 +89,7 @@ describe('migration email confirmation handlers', () => {
     expect(update.ExpressionAttributeNames['#tokenHash']).toBe('emailConfirmationTokenHash');
     expect(mockSendMigrationConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({
       recipientEmail: 'Parks@Example.Test',
+      destinationName: 'Test BCSC User',
       migrateId: MIGRATE_ID,
       confirmationUrl: expect.stringMatching(/^https:\/\/reserve\.example\.test\/dayuse\/migration-confirm#/),
     }));
@@ -101,6 +106,20 @@ describe('migration email confirmation handlers', () => {
     });
 
     expect(response.statusCode).toBe(403);
+    expect(mockDdbSend).not.toHaveBeenCalled();
+    expect(mockSendMigrationConfirmationEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not send migration email when migrations are disabled', async () => {
+    mockGetOne.mockResolvedValue({ flags: { enableMigrations: false } });
+
+    const response = await sendEmail({
+      pathParameters: { migrateId: MIGRATE_ID },
+      requestContext: { authorizer: { isAuthenticated: 'true', username: 'parks@example.test' } },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mockGetOneByGlobalId).not.toHaveBeenCalled();
     expect(mockDdbSend).not.toHaveBeenCalled();
     expect(mockSendMigrationConfirmationEmail).not.toHaveBeenCalled();
   });
@@ -129,6 +148,7 @@ describe('migration email confirmation handlers', () => {
       UserAttributes: [
         { Name: 'custom:migrationPending', Value: 'false' },
         { Name: 'custom:migrationId', Value: 'none' },
+        { Name: 'custom:migrationTargetName', Value: 'none' },
       ],
     });
     expect(updates[2].UpdateExpression).toContain('REMOVE');
@@ -145,6 +165,19 @@ describe('migration email confirmation handlers', () => {
     });
 
     expect(response.statusCode).toBe(400);
+    expect(mockDdbSend).not.toHaveBeenCalled();
+    expect(mockCognitoSend).not.toHaveBeenCalled();
+  });
+
+  it('does not confirm migration when migrations are disabled', async () => {
+    mockGetOne.mockResolvedValue({ flags: { enableMigrations: false } });
+
+    const response = await confirmMigration({
+      body: JSON.stringify({ migrateId: MIGRATE_ID, token: TOKEN }),
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mockGetOneByGlobalId).not.toHaveBeenCalled();
     expect(mockDdbSend).not.toHaveBeenCalled();
     expect(mockCognitoSend).not.toHaveBeenCalled();
   });

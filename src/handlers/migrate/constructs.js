@@ -57,6 +57,13 @@ class PublicMigrateConstruct extends LambdaConstruct {
 
     this.migrateEmailPostFunction.addToRolePolicy(
       new iam.PolicyStatement({
+        actions: ["dynamodb:GetItem"],
+        resources: [props.referenceDataTableArn],
+      }),
+    );
+
+    this.migrateEmailPostFunction.addToRolePolicy(
+      new iam.PolicyStatement({
         actions: ["dynamodb:Query", "dynamodb:UpdateItem"],
         resources: [
           props.transactionalDataTableArn,
@@ -109,6 +116,13 @@ class PublicMigrateConstruct extends LambdaConstruct {
     this.migrateConfirmPostFunction.addEnvironment(
       "PUBLIC_USER_POOL_ID",
       props.publicUserPoolId,
+    );
+
+    this.migrateConfirmPostFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:GetItem"],
+        resources: [props.referenceDataTableArn],
+      }),
     );
 
     this.migrateConfirmPostFunction.addToRolePolicy(

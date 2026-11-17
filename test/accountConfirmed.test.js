@@ -629,6 +629,28 @@ describe('PostConfirmation', () => {
     );
   });
 
+  it('preserves the new user and hold when migrateAccounts rollback fails before returning its callback', async () => {
+    const migrationError = new AggregateError(
+      [new Error('migration failed'), new Error('data rollback failed')],
+      'Migration failed and one or more recovery steps failed',
+    );
+    migrationError.rollbackFailed = true;
+    mockMigrateAccounts.mockRejectedValue(migrationError);
+
+    await expect(handler(migrationEvent)).rejects.toBe(migrationError);
+
+    expect(mockCognitoSend.mock.calls.some(([command]) => (
+      command instanceof AdminDeleteUserCommand && command.input.Username === 'bcsc_12345'
+    ))).toBe(false);
+    expect(mockDynamoSend.mock.calls.some(([command]) => (
+      command instanceof UpdateItemCommand && command.input.UpdateExpression.includes('#lastFailureAt')
+    ))).toBe(false);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Data rollback failed; preserving new user and hold',
+      { newUsername: 'bcsc_12345', oldUsername: 'parks-user' },
+    );
+  });
+
   it('does not run migration from later PostAuthentication logins', async () => {
     const event = { ...migrationEvent, triggerSource: 'PostAuthentication_Authentication' };
     await expect(handler(event)).resolves.toBe(event);

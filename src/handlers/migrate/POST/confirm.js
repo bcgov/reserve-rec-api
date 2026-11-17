@@ -9,6 +9,7 @@ const {
   AdminUpdateUserAttributesCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 const {
+  getOne,
   getOneByGlobalId,
   TRANSACTIONAL_DATA_TABLE_NAME,
 } = require('/opt/dynamodb');
@@ -21,6 +22,11 @@ const PUBLIC_USER_POOL_ID = process.env.PUBLIC_USER_POOL_ID;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/;
 
+async function migrationsEnabled() {
+  const featureFlagConfig = await getOne('config', 'featureFlags');
+  return featureFlagConfig?.flags?.enableMigrations === true;
+}
+
 // Prevents timing attacks by ensuring that the comparison takes the same amount of time regardless of
 // how many characters match.
 function safeEqual(left, right) {
@@ -31,6 +37,10 @@ function safeEqual(left, right) {
 
 exports.handler = async (event, context) => {
   try {
+    if (!(await migrationsEnabled())) {
+      throw new Exception('Migration is currently unavailable.', { code: 403 });
+    }
+
     let body;
     try {
       body = JSON.parse(event?.body || '{}');
@@ -151,6 +161,7 @@ exports.handler = async (event, context) => {
       UserAttributes: [
         { Name: 'custom:migrationPending', Value: 'false' },
         { Name: 'custom:migrationId', Value: 'none' },
+        { Name: 'custom:migrationTargetName', Value: 'none' },
       ],
     }));
 
