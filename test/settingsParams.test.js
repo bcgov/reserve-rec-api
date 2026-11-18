@@ -29,6 +29,8 @@ describe('settings in the synthesized dev templates', () => {
     const env = {
       ...process.env,
       CDK_OUTDIR: outdir,
+      ENABLE_BOOKINGS: 'true',
+      ENABLE_MIGRATE: 'true',
       CDK_CONTEXT_JSON: JSON.stringify({
         '@context': 'dev',
         dev: { DEPLOYMENT_NAME: 'dev', AWS_REGION: 'ca-central-1', IS_OFFLINE: 'true', FAIL_FAST: 'true' },
@@ -80,6 +82,73 @@ describe('settings in the synthesized dev templates', () => {
     const identity = template(/^ReserveRecApi-Dev-PublicIdentityStack\.template\.json$/);
     const env = functionEnv(identity, '-PreSignUp');
     expect(ssmSource(env.DUPLICATE_EMAIL_REFUSE, identity)).toBe('/reserveRecApi/dev/settings/duplicateEmailRefuse');
+  });
+
+  it('grants the migration trigger required DynamoDB and Cognito permissions', () => {
+    const identity = template(/^ReserveRecApi-Dev-PublicIdentityStack\.template\.json$/);
+    const accountConfirmedFunction = Object.values(identity.Resources).find((resource) => (
+      resource.Type === 'AWS::Lambda::Function'
+      && typeof resource.Properties.FunctionName === 'string'
+      && resource.Properties.FunctionName.endsWith('-AccountConfirmed')
+    ));
+    expect(accountConfirmedFunction).toBeDefined();
+    const roleReference = accountConfirmedFunction.Properties.Role;
+    const roleId = roleReference.Ref || roleReference['Fn::GetAtt']?.[0];
+    const role = identity.Resources[roleId];
+    const inlineStatements = (role.Properties.Policies || [])
+      .flatMap((policy) => policy.PolicyDocument.Statement);
+    const attachedStatements = Object.values(identity.Resources)
+      .filter((resource) => resource.Type === 'AWS::IAM::Policy'
+        && resource.Properties.Roles?.some((role) => role.Ref === roleId))
+      .flatMap((resource) => resource.Properties.PolicyDocument.Statement);
+    const actions = [...inlineStatements, ...attachedStatements]
+      .flatMap((statement) => Array.isArray(statement.Action) ? statement.Action : [statement.Action]);
+
+    expect(actions).toEqual(expect.arrayContaining([
+      'dynamodb:GetItem',
+      'dynamodb:UpdateItem',
+      'dynamodb:TransactWriteItems',
+      'dynamodb:BatchWriteItem',
+      'cognito-idp:AdminDeleteUser',
+      'cognito-idp:AdminDeleteUserAttributes',
+      'cognito-idp:AdminGetUser',
+      'cognito-idp:AdminUpdateUserAttributes',
+    ]));
+  });
+
+  it('authorizes migration email requests and keeps token confirmation public', () => {
+    const migrationTemplate = Object.values(templates).find((candidate) => (
+      Object.values(candidate.Resources || {}).some((resource) => (
+        resource.Type === 'AWS::Lambda::Function'
+        && typeof resource.Properties.FunctionName === 'string'
+        && resource.Properties.FunctionName.endsWith('-MigrateEmailPOST')
+      ))
+    ));
+    expect(migrationTemplate).toBeDefined();
+
+    const functions = Object.entries(migrationTemplate.Resources).filter(([, resource]) => (
+      resource.Type === 'AWS::Lambda::Function'
+      && ['-MigrateEmailPOST', '-MigrateConfirmPOST'].some((suffix) => (
+        resource.Properties.FunctionName.endsWith(suffix)
+      ))
+    ));
+    expect(functions).toHaveLength(2);
+    const functionIds = Object.fromEntries(functions.map(([id, resource]) => [
+      resource.Properties.FunctionName.endsWith('-MigrateEmailPOST') ? 'email' : 'confirm',
+      id,
+    ]));
+    expect(Object.values(migrationTemplate.Resources).some((resource) => (
+      resource.Type === 'AWS::ApiGateway::Method'
+      && resource.Properties.HttpMethod === 'POST'
+      && resource.Properties.AuthorizationType === 'CUSTOM'
+      && JSON.stringify(resource.Properties.Integration).includes(functionIds.email)
+    ))).toBe(true);
+    expect(Object.values(migrationTemplate.Resources).some((resource) => (
+      resource.Type === 'AWS::ApiGateway::Method'
+      && resource.Properties.HttpMethod === 'POST'
+      && resource.Properties.AuthorizationType === 'NONE'
+      && JSON.stringify(resource.Properties.Integration).includes(functionIds.confirm)
+    ))).toBe(true);
   });
 
   describe('public bookings functions', () => {
