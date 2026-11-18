@@ -149,14 +149,15 @@ exports.handler = async function (event, context, callback) {
       const sub = payload.sub;
       logger.debug(`sub: ${sub}`);
 
-      const { unauthorized, isSuperAdmin, permissions } = await resolveAdminPermissions(payload);
+      const { unauthorized, isSuperAdmin, role, permissions, operatorId, facilities } = await resolveAdminPermissions(payload);
 
       // User hasn't been assigned a group in Cognito (yet)
       if (unauthorized) {
         console.log(`Deny, user ${sub} is in unauthorized group`);
         return generatePolicy(sub, 'Deny', normalizedEvent.methodArn);
-      } else if (isSuperAdmin) {
-        // Any users that have been manually added to the SuperAdmin group in Cognito are granted everything
+      } else if (isSuperAdmin || role === 'hqAdmin') {
+        // The SuperAdmin Cognito group (with no role record) and HQ Admin are granted everything;
+        // only the group gets isAdmin.
         return {
           principalId: sub,
           policyDocument: {
@@ -169,8 +170,9 @@ exports.handler = async function (event, context, callback) {
           },
           context: {
             isAuthenticated: 'true',
-            isAdmin: 'true',
-            permissions: JSON.stringify({ superadmin: 'superadmin' }),
+            ...(isSuperAdmin && { isAdmin: 'true' }),
+            role,
+            permissions: JSON.stringify(permissions),
             userId: sub,
             username: payload.username || '',
           }
@@ -208,13 +210,17 @@ exports.handler = async function (event, context, callback) {
       const stage = process.env.STAGE_NAME || '*';
       const basePath = `${arnPrefix}:${apiId}/${stage}`;
 
-      // Get the unique tiers this user has, e.g., "staff", "limited"
-      const userTiers = [...new Set(Object.values(permissions))];
+      // Get the unique tiers this user has, e.g., "staff", "limited".
+      // Park Operator and Park Staff use the resource map named after their role.
+      const userTiers = role ? [role] : [...new Set(Object.values(permissions))];
 
       // Get the resource maps for each tier
       // e.g. "staff" => ["GET/facilities/*", "POST/facilities/*"]
       //      "limited" => ["GET/facilities/*"]
-      const resourceMaps = await batchGetData(userTiers.map(tier => ({ pk: `resourceMap::${tier}`, sk: 'latest' })));
+      // BatchGetItem refuses an empty key list, so a map with no tiers ({}) reads nothing and keeps /users/me only.
+      const resourceMaps = userTiers.length
+        ? await batchGetData(userTiers.map(tier => ({ pk: `resourceMap::${tier}`, sk: 'latest' })))
+        : [];
 
       for (const resource of resourceMaps) {
         for (const path of resource.allowedPaths) {
@@ -238,6 +244,7 @@ exports.handler = async function (event, context, callback) {
         },
         context: {
           isAuthenticated: 'true',
+          ...(role && { role, operatorId, facilities: JSON.stringify(facilities) }),
           permissions: JSON.stringify(permissions),
           userId: sub,
           username: payload.username || '',

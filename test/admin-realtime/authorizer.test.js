@@ -62,7 +62,24 @@ describe('admin realtime authorizer', () => {
       isSuperAdmin: 'true',
       exp: '1760003600',
     });
-    expect(mockGetOne).not.toHaveBeenCalled();
+    expect(mockGetOne).toHaveBeenCalledWith('userid::sub-1', 'base');
+  });
+
+  it('lets HQ Admin subscribe as a superadmin does', async () => {
+    mockVerify.mockResolvedValue(payload([]));
+    mockGetOne.mockResolvedValue({ role: 'hqAdmin' });
+    const res = await handler(event());
+    expect(effect(res)).toBe('Allow');
+    expect(res.context.permissions).toBe(JSON.stringify({ superadmin: 'superadmin' }));
+  });
+
+  it.each(['parkStaff', 'parkOperator'])('denies %s even while staff added events are on', async (role) => {
+    process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
+    mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
+    mockGetOne.mockImplementation(async (pk) => (pk === 'operator::op-1'
+      ? { orcs: [7], facilities: { 'bcparks_7::structure::3': { orcs: 7 } } }
+      : { role, operatorId: 'op-1', permissions: { bcparks_7: 'staff' } }));
+    expect(effect(await handler(event()))).toBe('Deny');
   });
 
   it.each([
