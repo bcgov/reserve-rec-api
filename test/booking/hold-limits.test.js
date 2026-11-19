@@ -393,7 +393,10 @@ describe('createBooking with hold limits', () => {
   const threeRemovals = [removed(2 * MIN), removed(4 * MIN), removed(6 * MIN)];
 
   const mockStore = ({ bookings = [], availability = 10 } = {}) => {
-    runQuery.mockResolvedValue({ items: bookings });
+    const facilityLink = { pk1: 'facility::col-1', sk1: 'structure::1' };
+    runQuery.mockImplementation(async (query) => ({
+      items: query.ExpressionAttributeValues[':gsipk'] ? [facilityLink] : bookings,
+    }));
     getOne.mockImplementation(async (pk) => {
       if (pk.startsWith('product::')) return product;
       if (pk.startsWith('inventoryPool::')) return availability === null ? null : { availability };
