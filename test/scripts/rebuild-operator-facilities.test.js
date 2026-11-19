@@ -97,6 +97,18 @@ describe('rebuild-operator-facilities', () => {
     expect(Object.keys(writes(doc)[0].Update.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1']);
   });
 
+  it('leaves out deleted facilities, from a park and from extras', async () => {
+    const doc = fakeDoc({
+      byOrcs: { 7: [CHEAKAMUS, { ...DIAMOND, isDeleted: true }] },
+      byKey: { 'facility::bcparks_363|trail::1': { ...JOFFRE, isDeleted: true } },
+    });
+    const operator = { pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_363::trail::1'] };
+
+    await rebuildOperator(doc, OPTS, operator, silent);
+
+    expect(Object.keys(writes(doc)[0].Update.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1']);
+  });
+
   it('reads every page of a park from orcs-index', async () => {
     const doc = fakeDoc();
     doc.send.mockImplementation(async (cmd) => {
@@ -120,6 +132,17 @@ describe('rebuild-operator-facilities', () => {
     expect(writes(doc)).toEqual([]);
   });
 
+  it('writes nothing when the stored grant comes back in a different key order', async () => {
+    const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
+    const operator = {
+      pk: 'operator::op1', sk: 'base', orcs: [7],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { extraFacilities: [], orcs: [7] },
+    };
+
+    expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('unchanged');
+    expect(writes(doc)).toEqual([]);
+  });
+
   it('rewrites when the grant changed even if the facilities did not', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
     const operator = {
@@ -129,6 +152,17 @@ describe('rebuild-operator-facilities', () => {
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
     expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7, 999], extraFacilities: [] });
+  });
+
+  it('rewrites when only extraFacilities changed even if the facilities did not', async () => {
+    const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
+    const operator = {
+      pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_9::trail::1'],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { orcs: [7], extraFacilities: [] },
+    };
+
+    expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
+    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7], extraFacilities: ['bcparks_9::trail::1'] });
   });
 
   it('writes nothing on a dry run', async () => {

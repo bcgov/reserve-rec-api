@@ -68,6 +68,11 @@ function sameFacilities(a, b) {
   return JSON.stringify(entries(a)) === JSON.stringify(entries(b));
 }
 
+// Maps come back in any key order, so compare the grant field by field (lists keep their order).
+function sameGrant(a = {}, b) {
+  return JSON.stringify(a.orcs) === JSON.stringify(b.orcs) && JSON.stringify(a.extraFacilities) === JSON.stringify(b.extraFacilities);
+}
+
 // Same shape writeAuditLog (/opt/base) writes.
 function auditRecord(user, operatorId, oldFacilities, newFacilities, timestamp, uuid) {
   const entityId = `${OPERATOR_PREFIX}${operatorId}`;
@@ -120,7 +125,7 @@ function listOperators(doc, tableName) {
   });
 }
 
-// orcs-index holds anything with a numeric orcs, so keep only facilities.
+// orcs-index holds anything with a numeric orcs, so keep only facilities. A deleted facility keeps its orcs, so drop it here.
 async function parkFacilities(doc, tableName, orcs) {
   const items = await readAll(doc, QueryCommand, {
     TableName: tableName,
@@ -129,7 +134,7 @@ async function parkFacilities(doc, tableName, orcs) {
     ExpressionAttributeNames: { '#orcs': 'orcs' },
     ExpressionAttributeValues: { ':orcs': orcs },
   });
-  return items.filter((item) => item.pk.startsWith('facility::'));
+  return items.filter((item) => item.pk.startsWith('facility::') && !item.isDeleted);
 }
 
 // Returns 'unchanged', 'updated' (or would be, on a dry run), 'invalid' or 'conflict'.
@@ -145,14 +150,14 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
   for (const orcs of operator.orcs) items.push(...await parkFacilities(doc, tableName, orcs));
   for (const key of operator.extraFacilities ?? []) {
     const item = (await doc.send(new GetCommand({ TableName: tableName, Key: facilityItemKey(key) }))).Item;
-    if (item) items.push(item);
-    else log(`  ${id}: extra facility ${key} not found, left out`);
+    if (item && !item.isDeleted) items.push(item);
+    else log(`  ${id}: extra facility ${key} ${item ? 'deleted' : 'not found'}, left out`);
   }
   const facilities = buildFacilities(items);
 
   // The grant counts too, so facilitiesBuiltFrom never lags behind orcs and extras.
   const grant = { orcs: operator.orcs, extraFacilities: operator.extraFacilities ?? [] };
-  if (sameFacilities(operator.facilities, facilities) && JSON.stringify(operator.facilitiesBuiltFrom) === JSON.stringify(grant)) {
+  if (sameFacilities(operator.facilities, facilities) && sameGrant(operator.facilitiesBuiltFrom, grant)) {
     log(`  ${id}: unchanged (${Object.keys(facilities).length} facilities)`);
     return 'unchanged';
   }
