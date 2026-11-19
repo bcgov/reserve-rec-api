@@ -6,6 +6,7 @@ process.env.IS_OFFLINE = "false";
 process.env.PAYMENTS_API_SECRET = "/secrets/adminApiStack/paymentsApiPasscode";
 process.env.MERCHANT_ID_SECRET = "/secrets/adminApiStack/merchantId";
 process.env.HASH_KEY_SECRET = "/secrets/adminApiStack/hashKey";
+process.env.WORLDLINE_PAYMENT_API_URL = "https://api.na.bambora.com/v1/payments";
 
 jest.mock("axios");
 const axios = require("axios");
@@ -144,6 +145,15 @@ describe("Method: processTokenTransaction", () => {
     userId: MOCK_USER_ID,
     token: "mock-payment-token",
     cardholderName: "Jane Camper",
+    billingName: "Jane Alternate",
+    email: "jane@example.com",
+    address1: "12 Main Street",
+    address2: "Unit 4",
+    city: "Victoria",
+    province: "British Columbia",
+    postalCode: "V8W 1A1",
+    country: "Canada",
+    phoneNumber: "+12505550123",
   };
 
   beforeEach(() => {
@@ -213,7 +223,7 @@ describe("Method: processTokenTransaction", () => {
       userId: MOCK_USER_ID,
       status: "pending",
       bookingStatus: "pending",
-      feeValues: { bookingTotal: 100 },
+      feePolicySnapshot: { feeInformation: { total: 100 } },
     });
 
     // DynamoDB utils mock
@@ -242,7 +252,8 @@ describe("Method: processTokenTransaction", () => {
 
     expect(result.success).toBe(true);
     expect(result.status).toBe("paid");
-    expect(result.transaction.trnId).toBe("worldline-trn-123");
+    expect(result.bookingId).toBe(MOCK_BOOKING_ID);
+    expect(result).not.toHaveProperty("transaction");
 
     // Verify Axios was called with the correct Worldline payload
     expect(axios.post).toHaveBeenCalledTimes(1);
@@ -252,11 +263,32 @@ describe("Method: processTokenTransaction", () => {
         payment_method: "token",
         amount: 100,
         token: expect.objectContaining({ code: "mock-payment-token" }),
+        billing: expect.objectContaining({
+          name: "Jane Alternate",
+          email_address: "jane@example.com",
+          address_line1: "12 Main Street",
+          address_line2: "Unit 4",
+          phone_number: "+12505550123",
+        }),
       }),
       expect.any(Object),
     );
 
     expect(batchTransactData).toHaveBeenCalledTimes(1);
+    expect(quickApiUpdateHandler).not.toHaveBeenCalled();
+    expect(batchTransactData).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "Update",
+          data: expect.objectContaining({
+            Key: {
+              pk: { S: "mock::pk" },
+              sk: { S: "mock::sk" },
+            },
+          }),
+        }),
+      ]),
+    );
   });
 
   it("completes the booking as paid", async () => {

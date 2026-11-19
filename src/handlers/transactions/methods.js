@@ -22,11 +22,9 @@ const {
 } = require("/opt/dynamodb");
 const {
   quickApiPutHandler,
-  quickApiUpdateHandler,
 } = require("../../common/data-utils");
 const { TRANSACTION_PUT_CONFIG } = require("./configs");
 
-const { BOOKING_UPDATE_CONFIG } = require("../bookings/configs");
 const {
   completeBooking,
   sendBookingConfirmationEmail,
@@ -147,19 +145,103 @@ async function updateTransactionForPayment(
       });
     }
 
-    if (body?.trnApproved == 1) {
-      body.status = "paid";
-    } else {
-      body.status = "cancelled";
+    // If the transaction is approved, we update the status to 'paid' and store the Worldline trnId and amount.
+    const missingEnvs = [
+      ["PAYMENTS_API_SECRET", process.env.PAYMENTS_API_SECRET],
+      ["MERCHANT_ID_SECRET", process.env.MERCHANT_ID_SECRET],
+      ["WORLDLINE_PAYMENT_API_URL", process.env.WORLDLINE_PAYMENT_API_URL],
+    ].filter(([, value]) => !value);
+    if (missingEnvs.length) {
+      throw new Exception(
+        `Missing required Worldline environment variables: ${missingEnvs.map(([name]) => name).join(", ")}`,
+        { code: 500 },
+      );
     }
 
+    // Validate the callback data against the original transaction record
+    const callbackTrnId = body?.trnId;
+    const callbackAmount = Number(body?.trnAmount);
+    if (
+      !callbackTrnId ||
+      !Number.isFinite(callbackAmount) ||
+      body?.trnApproved != 1
+    ) {
+      throw new Exception("Payment callback was not approved", { code: 400 });
+    }
+
+    // Validate that the callback transaction ID and amount match the original transaction record
+    if (transactionRecord.trnId && String(transactionRecord.trnId) !== String(callbackTrnId)) {
+      throw new Exception("Payment transaction ID mismatch", { code: 400 });
+    }
+
+    // Validate that the callback amount matches the original transaction amount
+    if (Number.isFinite(Number(transactionRecord.amount)) &&
+      Math.abs(Number(transactionRecord.amount) - callbackAmount) > 0.005) {
+      throw new Exception("Payment amount mismatch", { code: 400 });
+    }
+
+    const paymentsApiPasscode = await getSecret(process.env.PAYMENTS_API_SECRET);
+    const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
+    const basicAuthToken = Buffer.from(
+      `${merchantId}:${paymentsApiPasscode}`,
+    ).toString("base64");
+    const paymentApiUrl = process.env.WORLDLINE_PAYMENT_API_URL.replace(/\/+$/, "");
+
+    // Verify the payment with Worldline's API to ensure the transaction is valid and approved
+    let apiResponse;
+    try {
+      apiResponse = await axios.get(
+        `${paymentApiUrl}/${encodeURIComponent(callbackTrnId)}`,
+        {
+          headers: {
+            Authorization: `Passcode ${basicAuthToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    } catch (error) {
+      throw new Exception("Unable to verify payment with Worldline", {
+        code: 502,
+        error: error?.message,
+      });
+    }
+
+    // Validate the response from Worldline to ensure the transaction is approved and matches the expected details
+    const verified = apiResponse?.data;
+    const approved =
+      verified?.approved === 1 ||
+      verified?.approved === true ||
+      verified?.approved === "1";
+    const verifiedAmount = Number(verified?.amount);
+    const expectedAmount = Number(transactionRecord.amount);
+
+    // Ensure the verified transaction matches the expected bookingId, clientTransactionId, and amount
+    if (
+      !approved ||
+      String(verified?.id) !== String(callbackTrnId) ||
+      String(verified?.order_number) !== String(clientTransactionId) ||
+      !Number.isFinite(verifiedAmount) ||
+      (Number.isFinite(expectedAmount) &&
+        Math.abs(expectedAmount - verifiedAmount) > 0.005) ||
+      Math.abs(callbackAmount - verifiedAmount) > 0.005
+    ) {
+      throw new Exception("Worldline payment verification failed", { code: 400 });
+    }
+
+    // If all checks pass, we prepare the update payload to mark the transaction as 'paid'
     return {
       key: { pk: transactionRecord.pk, sk: transactionRecord.sk },
-      data: body,
+      data: {
+        status: "paid",
+        trnId: verified.id,
+        trnAmount: verifiedAmount,
+        trnApproved: "1",
+        trnOrderNumber: verified.order_number,
+      },
     };
   } catch (error) {
     throw new Exception("Error updating transaction", {
-      code: 400,
+      code: Number(error?.code) === 500 ? 500 : Number(error?.code) === 502 ? 502 : 400,
       error: error,
     });
   }
@@ -728,17 +810,27 @@ async function executeWorldlinePayment(
   body,
   bookingRecord,
 ) {
+  const missingEnvs = [
+    ["PAYMENTS_API_SECRET", process.env.PAYMENTS_API_SECRET],
+    ["MERCHANT_ID_SECRET", process.env.MERCHANT_ID_SECRET],
+    ["HASH_KEY_SECRET", process.env.HASH_KEY_SECRET],
+    ["WORLDLINE_PAYMENT_API_URL", process.env.WORLDLINE_PAYMENT_API_URL],
+  ].filter(([, value]) => !value);
+  if (missingEnvs.length) {
+    throw new Exception(
+      `Missing required Worldline environment variables: ${missingEnvs.map(([name]) => name).join(", ")}`,
+      { code: 500 },
+    );
+  }
+
   const paymentsApiPasscode = await getSecret(process.env.PAYMENTS_API_SECRET);
   const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
-  const hashKey = await getSecret(process.env.HASH_KEY_SECRET);
 
   logger.info(
     `Submitting token checkout payment to Worldline for transaction: ${clientTransactionId}`,
   );
 
-  const paymentApiUrl =
-    process.env.WORLDLINE_PAYMENT_API_URL ||
-    "https://api.na.bambora.com/v1/payments";
+  const paymentApiUrl = process.env.WORLDLINE_PAYMENT_API_URL;
   const basicAuthToken = Buffer.from(
     `${merchantId}:${paymentsApiPasscode}`,
   ).toString("base64");
@@ -763,7 +855,7 @@ async function executeWorldlinePayment(
       ref3: body?.email || bookingRecord?.namedOccupant?.contactInfo?.email,
     },
     billing: {
-      name: body?.cardholderName || "",
+      name: body?.billingName || body?.cardholderName || "",
       address_line1: body?.address1 || "",
       address_line2: body?.address2 || "",
       city: body?.city || "",
@@ -800,7 +892,6 @@ async function executeWorldlinePayment(
     logger.error(
       "Worldline REST direct API charge failed:",
       postError.message,
-      postError.response?.data,
     );
     const errDetails = postError.response?.data || {};
 
@@ -825,13 +916,21 @@ async function executeWorldlinePayment(
  * @throws {Exception} Throws if payment fails or internal processing errors occur.
  */
 async function processTokenTransaction(body, userId, adminId) {
+  logger.info("Process token transaction", { bookingId: body?.bookingId, userId, adminId });
   try {
     let bookingRecord = null;
     let transactionAmount = body.trnAmount || 0;
 
     try {
       bookingRecord = await fetchAndValidateBooking(body.bookingId, userId);
-      transactionAmount = bookingRecord.feeValues?.bookingTotal;
+
+      // TODO: reconsider how we're getting fee information from a booking and validate
+      // validate with the fee using fee validation logic, and ensure the fee is correct for the booking.
+      // The booking should have a feePolicySnapshot with feeInformation.total
+      transactionAmount =
+        bookingRecord?.feePolicySnapshot?.feeInformation?.total ??
+        bookingRecord?.feeValues?.bookingTotal ??
+        transactionAmount;
     } catch (err) {
       // Re-throw the exception, but add some items for admin audit
       throw new Exception(
@@ -842,7 +941,6 @@ async function processTokenTransaction(body, userId, adminId) {
           data: {
             adminId: adminId,
             bookingId: body?.bookingId,
-            body: body,
           },
         },
       );
@@ -944,8 +1042,6 @@ async function processTokenTransaction(body, userId, adminId) {
           data: {
             adminId: adminId,
             bookingId: body?.bookingId,
-            body: body,
-            transaction: transactionObj,
           },
         },
       );
@@ -957,7 +1053,7 @@ async function processTokenTransaction(body, userId, adminId) {
       completion = await completeBooking(
         body.bookingId,
         body.sessionId,
-        { clientTransactionId: clientTransactionId, queryTime: Date.now() },
+        { clientTransactionId: clientTransactionId, queryTime: Date.now(), namedOccupant: `${bookingRecord?.firstName} ${bookingRecord?.lastName}` },
         { sub: userId, paymentStarted: true },
       );
     } catch (completeErr) {
@@ -976,13 +1072,7 @@ async function processTokenTransaction(body, userId, adminId) {
     }
     const { updateRequests, emailParams, ownerIdentity } = completion;
 
-    const putItemsBooking = await quickApiUpdateHandler(
-      TRANSACTIONAL_DATA_TABLE_NAME,
-      [updateRequests],
-      BOOKING_UPDATE_CONFIG,
-    );
-
-    await batchTransactData([...putItemsTransaction, ...putItemsBooking]);
+    await batchTransactData([...putItemsTransaction, ...updateRequests]);
     logger.info(
       `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
     );
@@ -1001,8 +1091,7 @@ async function processTokenTransaction(body, userId, adminId) {
       success: true,
       status: "paid",
       clientTransactionId: clientTransactionId,
-      message: paymentResult?.data?.message,
-      transaction: transactionObj,
+      bookingId: body?.bookingId,
     };
   } catch (err) {
     if (err instanceof Exception) throw err;
@@ -1013,7 +1102,6 @@ async function processTokenTransaction(body, userId, adminId) {
       data: {
         adminId: adminId,
         bookingId: body?.bookingId,
-        body: body,
       },
     });
   }

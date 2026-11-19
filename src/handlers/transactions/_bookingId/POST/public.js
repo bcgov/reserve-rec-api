@@ -29,7 +29,6 @@ exports.handler = async (event, context) => {
     }
 
     // Ensure the user has passed in a transaction amount, booking
-    // Session ID isn't needed for admin
     const requiredFields = ["trnAmount", "bookingId", "token", "userId", "sessionId"];
     for (const field of requiredFields) {
       if (!body?.[field]) {
@@ -47,7 +46,11 @@ exports.handler = async (event, context) => {
     let response;
     response = await processTokenTransaction(body, userId);
 
-    logger.info(`Transaction processed successfully`, response);
+    logger.info("Transaction processed successfully", {
+      bookingId: body?.bookingId,
+      clientTransactionId: response?.clientTransactionId,
+      status: response?.status,
+    });
 
     return sendResponse(200, { response }, "Success", null, context);
   } catch (error) {
