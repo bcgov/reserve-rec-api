@@ -22,11 +22,9 @@ const {
 } = require("/opt/dynamodb");
 const {
   quickApiPutHandler,
-  quickApiUpdateHandler,
 } = require("../../common/data-utils");
 const { TRANSACTION_PUT_CONFIG } = require("./configs");
 
-const { BOOKING_UPDATE_CONFIG } = require("../bookings/configs");
 const {
   completeBooking,
   sendBookingConfirmationEmail,
@@ -976,13 +974,8 @@ async function processTokenTransaction(body, userId, adminId) {
     }
     const { updateRequests, emailParams, ownerIdentity } = completion;
 
-    const putItemsBooking = await quickApiUpdateHandler(
-      TRANSACTIONAL_DATA_TABLE_NAME,
-      [updateRequests],
-      BOOKING_UPDATE_CONFIG,
-    );
-
-    await batchTransactData([...putItemsTransaction, ...putItemsBooking]);
+    // completeBooking already returns finished update requests, so they go straight in.
+    await batchTransactData([...putItemsTransaction, ...updateRequests]);
     logger.info(
       `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
     );

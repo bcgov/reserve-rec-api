@@ -117,8 +117,7 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     batchTransactData.mockResolvedValue({});
   });
 
-  // methods.js wraps completeBooking's array in another array, so quickApiUpdateHandler rejects it.
-  test.failing("writes an approved payment as a create-only paid transaction row plus the booking update in one batch", async () => {
+  it("writes an approved payment as a create-only paid transaction row plus the booking update in one batch", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse() });
 
     const result = await processTokenTransaction(body, "user-1", null);
