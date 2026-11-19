@@ -1,0 +1,13 @@
+Confirm your BC Parks account migration
+
+We received a request to move your BC Parks account to a BC Services Card account.
+{{#if destinationName}}
+This will transfer your bookings to the BC Services Card account for {{destinationName}} and close your old BC Parks account.
+{{else}}
+This will transfer your bookings to a BC Services Card account and close your old BC Parks account.
+{{/if}}
+
+Confirm account migration:
+{{confirmationUrl}}
+
+If you did not request this, you can ignore this email. Your account will not be changed.

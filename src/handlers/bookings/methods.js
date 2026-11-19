@@ -20,6 +20,8 @@ const {
   getActivitiesByCollectionId,
 } = require("../activities/methods");
 const { getAndAttachNestedProperties, quickApiPutHandler, quickApiUpdateHandler } = require("../../common/data-utils");
+const { getRelationshipsByGsipk } = require("../../common/relationship-utils");
+const { facilityKeysFromLinks } = require("../../common/facility-keys");
 const {
   DEFAULT_PRICE,
   DEFAULT_TRANSACTION_FEE_PERCENT,
@@ -1057,6 +1059,33 @@ function createInventoryRequests(assetRef, productDates, invQuantity) {
   }
 }
 
+/**
+ * The facilities a booking covers, as `<collectionId>::<facilityType>::<facilityId>` keys.
+ * An activity with one facility or none needs no request keys (none gives `[]`); a multi-facility one must name some of its own.
+ */
+async function resolveBookingFacilityKeys({ collectionId, activityType, activityId, facilityKeys: requested }) {
+  const activity = `${collectionId}::${activityType}::${activityId}`;
+  const res = await getRelationshipsByGsipk(`rel::activity::${activity}`, "facility", { paginated: false });
+  const { keys, skipped } = facilityKeysFromLinks(res?.items);
+
+  if (skipped.length > 0) {
+    logger.warn(`Activity ${activity} has facility links that are not facilities; left off the booking`, { skipped });
+  }
+  if (requested === undefined || requested === null) {
+    if (keys.length === 0) {
+      logger.warn(`Activity ${activity} has no facility link; booking stored with no facilityKeys`);
+    }
+    if (keys.length <= 1) {
+      return keys;
+    }
+    throw refused("invalid", "facilityKeys is required: this activity covers more than one facility.");
+  }
+  if (!Array.isArray(requested) || requested.length === 0 || requested.some((key) => !keys.includes(key))) {
+    throw refused("invalid", "facilityKeys must list one or more of this activity's facilities.");
+  }
+  return [...new Set(requested)];
+}
+
 async function initBookingRequestItems(product, productDates, assetRef, props) {
   try {
     // === Destructure ===
@@ -1071,6 +1100,8 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       userId,
       cognitoUsername,
     } = props;
+
+    const facilityKeys = await resolveBookingFacilityKeys(props);
 
     // === Generate Secure IDs ===
     const globalId = crypto.randomUUID();
@@ -1116,6 +1147,7 @@ async function initBookingRequestItems(product, productDates, assetRef, props) {
       sessionInitTime: queryTime,
       sessionExpiry: sessionExpiry,
       collectionId: collectionId,
+      facilityKeys: facilityKeys,
       activityType: activityType,
       activitySubType: activity?.activitySubType || product?.activitySubType,
       activityId: activityId,
