@@ -292,7 +292,8 @@ async function voidPaymentAttempt({ attempt, trnId, amount, source }) {
   const { bookingId, clientTransactionId } = attempt;
   let response;
   try {
-    response = await voidPayment(trnId, amount);
+    // Same length as the charge's BCPR- id, which already fills Worldline's 30-character limit.
+    response = await voidPayment(trnId, amount, clientTransactionId.replace(/^BCPR-/, "BCPV-"));
   } catch (error) {
     response = error?.response?.data;
     logger.error("event=payment_void_failed", {

@@ -379,7 +379,11 @@ describe("processTokenTransaction through the payment lock and TRANSACTION confi
 
       expect(err).toMatchObject({ code: 500, data: { chargeReversed: true } });
       expect(err.message).toMatch(/reversed and you have not been charged/);
-      expect(axios.post.mock.calls[1].slice(0, 2)).toEqual([voidUrl, { amount: 12.5 }]);
+      const chargeOrder = axios.post.mock.calls[0][1].order_number;
+      expect(axios.post.mock.calls[1].slice(0, 2)).toEqual([
+        voidUrl,
+        { amount: 12.5, order_number: chargeOrder.replace("BCPR-", "BCPV-") },
+      ]);
       expect(lockWrite(writesOf(3)).data.ExpressionAttributeValues).toMatchObject({ ":from": "paid", ":to": "void" });
     });
 

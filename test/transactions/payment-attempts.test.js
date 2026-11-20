@@ -244,14 +244,14 @@ describe("settlePaymentAttempt", () => {
 describe("voidPaymentAttempt", () => {
   const voidArgs = () => ({ attempt: newAttempt(), trnId: "10000123", amount: 12.5, source: "public" });
 
-  it("voids the exact amount and moves attempt and lock from paid to void, clearing needsReconciliation", async () => {
+  it("voids the exact amount under its own order number and moves attempt and lock from paid to void", async () => {
     axios.post.mockResolvedValue({ data: { id: "10000124", approved: "1", message: "Approved", type: "VP" } });
 
     await expect(voidPaymentAttempt(voidArgs())).resolves.toBe(true);
 
     const [url, payload, options] = axios.post.mock.calls[0];
     expect(url).toBe("https://api.na.bambora.com/v1/payments/10000123/void");
-    expect(payload).toEqual({ amount: 12.5 });
+    expect(payload).toEqual({ amount: 12.5, order_number: "BCPV-attempt-1" });
     expect(options.headers.Authorization).toMatch(/^Passcode /);
     const [attemptOp, lock] = opsOf(0);
     expect(attemptOp.data.ExpressionAttributeValues).toMatchObject({

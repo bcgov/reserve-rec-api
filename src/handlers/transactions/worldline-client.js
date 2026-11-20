@@ -75,10 +75,13 @@ async function chargePayment(payload) {
   return res.data;
 }
 
-/** POST /v1/payments/{trnId}/void; Worldline requires the exact original amount. */
-async function voidPayment(trnId, amount) {
+/**
+ * POST /v1/payments/{trnId}/void; Worldline requires the exact original amount, and refuses a void
+ * without its own order number as a duplicate of the charge (code 788).
+ */
+async function voidPayment(trnId, amount, orderNumber) {
   const options = await requestOptions(process.env.PAYMENTS_API_SECRET, PAYMENT_PROVIDER_TIMEOUT_MS);
-  const res = await axios.post(`${paymentsUrl()}/${trnId}/void`, { amount }, options);
+  const res = await axios.post(`${paymentsUrl()}/${trnId}/void`, { amount, order_number: orderNumber }, options);
   return res.data;
 }
 
@@ -109,7 +112,7 @@ async function findPaymentByOrderNumber(orderNumber, from, to) {
       end_date: format(to),
       start_row: "1",
       end_row: "2",
-      // Field 5 is the order number, 8 the transaction type; "P" (purchase) skips a void under the same order.
+      // Field 5 is the order number, 8 the transaction type; "P" (purchase) skips any void or return.
       criteria: [
         { field: "5", operator: "%3D", value: orderNumber },
         { field: "8", operator: "%3D", value: "P" },
