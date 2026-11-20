@@ -65,12 +65,12 @@ exports.handler = async (event, context) => {
 
     await writeAuditLog(
       adminId,
-      response?.transaction.clientTransactionId,
+      response?.clientTransactionId,
       "ADMIN_PAYMENT_SUCCESS",
       {
         result: response.success,
         message: response.message,
-        transaction: response?.transaction,
+        transaction: response,
       },
       marshall,
       batchWriteData,

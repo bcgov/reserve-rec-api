@@ -48,7 +48,7 @@ jest.mock("../../src/handlers/bookings/methods", () => ({
 }));
 
 const axios = require("axios");
-const { batchTransactData, getOneByGlobalId } = require("/opt/dynamodb");
+const { batchTransactData, getOneByGlobalId, runQuery } = require("/opt/dynamodb");
 const { completeBooking } = require("../../src/handlers/bookings/methods");
 const {
   processTokenTransaction,
@@ -107,10 +107,12 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     jest.clearAllMocks();
     getOneByGlobalId.mockResolvedValue({
       bookingId: "booking-1",
+      sessionId: "session-1",
       userId: "user-1",
       status: "in progress",
       feeValues: { bookingTotal: 12.5 },
     });
+    runQuery.mockResolvedValue({ items: [] });
     completeBooking.mockResolvedValue({
       updateRequests: [bookingUpdate],
       emailParams: null,
@@ -118,12 +120,13 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     batchTransactData.mockResolvedValue({});
   });
 
-  it("writes an approved payment as a create-only paid transaction row plus the booking update in one batch", async () => {
+  it("writes an approved payment row before the booking update", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse() });
 
     const result = await processTokenTransaction(body, "user-1", null);
 
     expect(result.status).toBe("paid");
+    expect(batchTransactData).toHaveBeenCalledTimes(2);
     const [writes] = batchTransactData.mock.calls[0];
     const put = writes.find((w) => w.action === "Put");
     expect(put.data.TableName).toBe("TransactionalDataTable");
@@ -142,7 +145,12 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     });
     expect(put.data.Item.sk).toMatch(/^2026-06-11::BCPR-/);
     expect(put.data.Item.clientTransactionId).toHaveLength(30);
-    expect(writes).toContainEqual(expect.objectContaining({ action: "Update", data: expect.objectContaining({ Key: bookingUpdate.data.Key }) }));
+    expect(batchTransactData.mock.calls[1][0]).toContainEqual(
+      expect.objectContaining({
+        action: "Update",
+        data: expect.objectContaining({ Key: bookingUpdate.data.Key }),
+      }),
+    );
   });
 
   it("stores a declined payment as a failed transaction and reports the decline", async () => {

@@ -220,10 +220,25 @@ describe("Method: processTokenTransaction", () => {
     // Database booking mock
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
+      sessionId: "session-xyz",
       userId: MOCK_USER_ID,
       status: "pending",
       bookingStatus: "pending",
       feePolicySnapshot: { feeInformation: { total: 100 } },
+      namedOccupant: {
+        firstName: "Jane",
+        lastName: "Camper",
+        contactInfo: {
+          streetAddress: "12 Main Street",
+          unitNumber: "Unit 4",
+          postalCode: "V8W 1A1",
+          city: "Victoria",
+          province: "British Columbia",
+          country: "Canada",
+        },
+      },
+      vehicleInformation: [{ licensePlate: "ABC123", vehicleMake: "Van" }],
+      equipmentInformation: "Tent",
     });
 
     // DynamoDB utils mock
@@ -233,6 +248,7 @@ describe("Method: processTokenTransaction", () => {
     quickApiUpdateHandler.mockResolvedValue([
       { Update: { Key: { fakeKey: true } } },
     ]);
+    runQuery.mockResolvedValue({ items: [] });
 
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
@@ -274,7 +290,11 @@ describe("Method: processTokenTransaction", () => {
       expect.any(Object),
     );
 
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    expect(batchTransactData).toHaveBeenCalledTimes(2);
+    expect(quickApiPutHandler.mock.calls[0][1][0].data).toMatchObject({
+      status: "paid",
+      sessionId: "session-xyz",
+    });
     expect(quickApiUpdateHandler).not.toHaveBeenCalled();
     expect(batchTransactData).toHaveBeenCalledWith(
       expect.arrayContaining([
@@ -298,9 +318,126 @@ describe("Method: processTokenTransaction", () => {
     expect(completeBooking).toHaveBeenCalledWith(
       MOCK_BOOKING_ID,
       expect.anything(),
+      expect.objectContaining({
+        namedOccupant: {
+          firstName: "Jane",
+          lastName: "Camper",
+          contactInfo: {
+            streetAddress: "12 Main Street",
+            unitNumber: "Unit 4",
+            postalCode: "V8W 1A1",
+            city: "Victoria",
+            province: "British Columbia",
+            country: "Canada",
+          },
+        },
+        vehicleInformation: [{ licensePlate: "ABC123", vehicleMake: "Van" }],
+        equipmentInformation: "Tent",
+      }),
+      { sub: MOCK_USER_ID, paymentStarted: true },
+    );
+  });
+
+  it("records an approved transaction before booking completion can refuse", async () => {
+    const { completeBooking } = require("../../bookings/methods");
+    const { Exception } = require("/opt/base");
+    completeBooking.mockRejectedValueOnce(
+      new Exception("Session expired", { code: 403 }),
+    );
+
+    await expect(
+      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
+    ).rejects.toMatchObject({ code: 403 });
+
+    const transaction = quickApiPutHandler.mock.calls[0][1][0].data;
+    expect(transaction).toMatchObject({ status: "paid", bookingId: MOCK_BOOKING_ID });
+    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    expect(batchTransactData.mock.invocationCallOrder[0]).toBeLessThan(
+      completeBooking.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("resumes a paid transaction on retry without charging the card again", async () => {
+    const { completeBooking } = require("../../bookings/methods");
+    const { Exception } = require("/opt/base");
+    completeBooking.mockRejectedValueOnce(
+      new Exception("Session expired", { code: 403 }),
+    );
+
+    await expect(
+      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
+    ).rejects.toMatchObject({ code: 403 });
+
+    const transaction = quickApiPutHandler.mock.calls[0][1][0].data;
+    runQuery.mockResolvedValue({ items: [transaction] });
+
+    const result = await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID);
+
+    expect(result).toMatchObject({
+      success: true,
+      status: "paid",
+      clientTransactionId: transaction.clientTransactionId,
+    });
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(quickApiPutHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the booking session ID when the payment request omits it", async () => {
+    const requestBody = { ...baseBody };
+    delete requestBody.sessionId;
+
+    await processTokenTransaction(requestBody, MOCK_USER_ID, MOCK_ADMIN_ID);
+
+    expect(quickApiPutHandler.mock.calls[0][1][0].data.sessionId).toBe("session-xyz");
+    expect(axios.post.mock.calls[0][1].custom.ref2).toBe("session-xyz");
+    expect(require("../../bookings/methods").completeBooking).toHaveBeenCalledWith(
+      MOCK_BOOKING_ID,
+      "session-xyz",
       expect.any(Object),
       { sub: MOCK_USER_ID, paymentStarted: true },
     );
+  });
+
+  it("rejects a mismatched session ID before charging", async () => {
+    await expect(
+      processTokenTransaction(
+        { ...baseBody, sessionId: "another-session" },
+        MOCK_USER_ID,
+        MOCK_ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: 403 });
+
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it("rejects payment when the booking has no server-resolved total", async () => {
+    getOneByGlobalId.mockResolvedValueOnce({
+      bookingId: MOCK_BOOKING_ID,
+      sessionId: "session-xyz",
+      userId: MOCK_USER_ID,
+      status: "pending",
+      bookingStatus: "pending",
+      feePolicySnapshot: {
+        primaryKey: { pk: "feePolicy::example", sk: "v1" },
+        feeSchedule: [],
+        lineItems: [],
+      },
+    });
+
+    await expect(
+      processTokenTransaction(
+        { ...baseBody, trnAmount: 0.01 },
+        MOCK_USER_ID,
+        MOCK_ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 400,
+      message: "Unable to determine a valid booking amount for payment",
+    });
+
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(quickApiPutHandler).not.toHaveBeenCalled();
+    expect(require("../../bookings/methods").completeBooking).not.toHaveBeenCalled();
   });
 
   it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
