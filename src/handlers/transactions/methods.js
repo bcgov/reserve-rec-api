@@ -30,6 +30,7 @@ const {
   sendBookingConfirmationEmail,
 } = require("../bookings/methods");
 const { BOOKING_STATUSES } = require("../../common/data-constants");
+const { enqueueSmsReminderIfNeeded } = require("../bookings/notifications");
 
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
@@ -351,7 +352,7 @@ async function getTransactionByTransactionId(clientTransactionId) {
  * @param {string} clientTransactionId - The global transaction identifier.
  * @param {string} userId - The user ID to verify against the transaction owner.
  * @returns {Promise<Object>} The verified transaction record.
- * @throws {Exception} 404 if transaction is not found, 401 if user is unauthorized, 400 on error.
+ * @throws {Exception} 404 if transaction is not found or not the user's, 400 on error.
  */
 async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
   logger.info(
@@ -370,8 +371,9 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
       throw new Exception("Transaction not found", { code: 404 });
     }
 
+    // Same answer as a missing transaction, so callers can't tell someone else's id exists.
     if (transaction.userId !== userId) {
-      throw new Exception("Unauthorized access to transaction", { code: 401 });
+      throw new Exception("Transaction not found", { code: 404 });
     }
 
     return transaction;
@@ -1043,6 +1045,19 @@ async function processTokenTransaction(body, userId, adminId) {
         ),
     );
 
+    const namedOccupant = body?.namedOccupant || bookingRecord?.namedOccupant;
+    const vehicleInformation = body?.vehicleInformation ?? bookingRecord?.vehicleInformation;
+    const equipmentInformation = body?.equipmentInformation ?? bookingRecord?.equipmentInformation;
+
+    // completeBooking refuses a booking without occupant details. Check before charging,
+    // so a bad request is refused while the card is still untouched.
+    if (!namedOccupant) {
+      throw new Exception("Named occupant information is required to pay for a booking", {
+        code: 400,
+        data: { adminId: adminId, bookingId: body?.bookingId },
+      });
+    }
+
     // If an existing paid transaction is found, resume booking completion
     if (outstandingPayment?.status === "paid") {
       logger.info("Resuming booking completion for an existing paid transaction", {
@@ -1054,6 +1069,7 @@ async function processTokenTransaction(body, userId, adminId) {
         bookingRecord,
         userId,
         outstandingPayment.clientTransactionId,
+        { namedOccupant, vehicleInformation, equipmentInformation },
       );
     }
 
@@ -1164,13 +1180,27 @@ async function processTokenTransaction(body, userId, adminId) {
       TRANSACTION_PUT_CONFIG,
     );
 
-    // Handle failed payment write
+    // Record the attempt as soon as Worldline answers, on its own: a paid row must survive
+    // even if confirming the booking below is refused or loses a race with another tab.
+    try {
+      await batchTransactData(putItemsTransaction);
+    } catch (writeErr) {
+      // Worldline's id is the only way to find this charge again if the row was not written.
+      logger.error("event=payment_not_recorded", {
+        bookingId: body?.bookingId,
+        clientTransactionId,
+        status: paymentResult?.status,
+        trnId: paymentResult?.data?.id,
+        message: writeErr?.message,
+      });
+      throw writeErr;
+    }
+
+    // Handle failed payment
     if (
       paymentResult.status !== "paid" ||
       paymentResult.data?.approved != "1"
     ) {
-      await batchTransactData(putItemsTransaction);
-
       // Throw an error that captures the adminId, for admin payments
       throw new Exception(
         `Worldline Payment Transaction Failed: ${paymentResult?.message}`,
@@ -1185,13 +1215,17 @@ async function processTokenTransaction(body, userId, adminId) {
       );
     }
 
-    // Record the approved charge before completion can refuse or fail.
-    await batchTransactData(putItemsTransaction);
     return await completePaidBooking(
       body,
       bookingRecord,
       userId,
       clientTransactionId,
+      {
+        namedOccupant,
+        vehicleInformation,
+        equipmentInformation,
+        smsOptIn: body?.smsOptIn,
+      },
     );
   } catch (err) {
     if (err instanceof Exception) throw err;

@@ -77,6 +77,12 @@ exports.handler = async (event, context) => {
       throw refused("state", `Booking ${bookingId} is already cancelled`, 409);
     }
 
+    // Backcountry bookings are final: no changes, cancellations or refunds.
+    // Checked after the state checks so a cancelled one says "already cancelled".
+    if (booking.activityType === "backcountryCamp") {
+      throw refused("state", "Backcountry bookings cannot be cancelled", 409);
+    }
+
     // Check if booking is already checked-in
     if (booking.checkedInTime) {
       throw refused("state", "Booking is already checked-in", 409);

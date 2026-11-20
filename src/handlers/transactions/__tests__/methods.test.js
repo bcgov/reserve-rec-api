@@ -154,6 +154,7 @@ describe("Method: processTokenTransaction", () => {
     postalCode: "V8W 1A1",
     country: "Canada",
     phoneNumber: "+12505550123",
+    namedOccupant: { contactInfo: { city: "Victoria" } },
   };
 
   beforeEach(() => {
@@ -290,6 +291,7 @@ describe("Method: processTokenTransaction", () => {
       expect.any(Object),
     );
 
+    // The paid row on its own, then the booking update.
     expect(batchTransactData).toHaveBeenCalledTimes(2);
     expect(quickApiPutHandler.mock.calls[0][1][0].data).toMatchObject({
       status: "paid",
@@ -319,6 +321,7 @@ describe("Method: processTokenTransaction", () => {
       MOCK_BOOKING_ID,
       expect.anything(),
       expect.objectContaining({
+        clientTransactionId: expect.stringMatching(/^BCPR-/),
         namedOccupant: {
           firstName: "Jane",
           lastName: "Camper",
@@ -409,6 +412,49 @@ describe("Method: processTokenTransaction", () => {
 
     expect(axios.post).not.toHaveBeenCalled();
   });
+
+  it("rejects payment when the booking has no server-resolved total", async () => {
+    getOneByGlobalId.mockResolvedValueOnce({
+      bookingId: MOCK_BOOKING_ID,
+      sessionId: "session-xyz",
+      userId: MOCK_USER_ID,
+      status: "pending",
+      bookingStatus: "pending",
+      feePolicySnapshot: {
+        primaryKey: { pk: "feePolicy::example", sk: "v1" },
+        feeSchedule: [],
+        lineItems: [],
+      },
+    });
+
+    await expect(
+      processTokenTransaction(
+        { ...baseBody, trnAmount: 0.01 },
+        MOCK_USER_ID,
+        MOCK_ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 400,
+      message: "Unable to determine a valid booking amount for payment",
+    });
+
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(quickApiPutHandler).not.toHaveBeenCalled();
+    expect(require("../../bookings/methods").completeBooking).not.toHaveBeenCalled();
+  });
+
+  it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
+    const { completeBooking } = require("../../bookings/methods");
+    completeBooking.mockRejectedValueOnce({ code: 503, data: { retryAfter: 2 } });
+
+    await expect(
+      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
+    ).rejects.toMatchObject({
+      code: 500,
+      message: "Payment received but the booking could not be finalized",
+    });
+  });
+});
 
   it("rejects payment when the booking has no server-resolved total", async () => {
     getOneByGlobalId.mockResolvedValueOnce({
@@ -711,12 +757,12 @@ describe("Methods: findAndVerifyTransactionOwnership", () => {
     });
   });
 
-  it("throws an error if the userId does not match", async () => {
+  it("answers 404 when the transaction belongs to someone else", async () => {
     await expect(
       findAndVerifyTransactionOwnership(TRANSACTION_ID, "bad-user-id"),
     ).rejects.toMatchObject({
-      code: 401,
-      message: "Unauthorized access to transaction",
+      code: 404,
+      message: "Transaction not found",
     });
   });
 
