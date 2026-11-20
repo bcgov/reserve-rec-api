@@ -170,6 +170,23 @@ describe("Bookings Cancel handler", () => {
     expect(result.message).toContain("is already checked-in");
   });
 
+  it("returns 409 for a backcountry booking, which cannot be cancelled", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...baseBooking, activityType: "backcountryCamp" });
+    const event = makeEvent({});
+    const result = await handler(event, {});
+    expect(result.status).toBe(409);
+    expect(result.message).toContain("Backcountry bookings cannot be cancelled");
+    expect(flagCancelledBooking).not.toHaveBeenCalled();
+  });
+
+  it("says a cancelled backcountry booking is already cancelled, not that it cannot be cancelled", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...baseBooking, activityType: "backcountryCamp", status: "cancelled" });
+    const result = await handler(makeEvent({}), {});
+    expect(result.status).toBe(409);
+    expect(result.message).toContain("is already cancelled");
+    expect(flagCancelledBooking).not.toHaveBeenCalled();
+  });
+
   it("returns 409 when booking status isn't confirmed", async () => {
     getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: 'something' });
     const event = makeEvent({});

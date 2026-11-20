@@ -618,7 +618,26 @@ const REFUND_UPDATE_CONFIG = {
   },
 };
 
+// The fields a member of the public gets back for their own transaction: what the
+// booking details and payment status pages show. Card BIN, AVS/CVD results, Worldline
+// links, refs, session and keys stay server-side.
+const PUBLIC_TRANSACTION_FIELDS = [
+  "clientTransactionId",
+  "bookingId",
+  "date",
+  "status",
+  "transactionStatus", // older transactions
+  "amount",
+  "trnAmount",
+  "trnCreated",
+  "trnApproved",
+  "trnMessage",
+  "cardType",
+  "cardLastFour",
+];
+
 module.exports = {
+  PUBLIC_TRANSACTION_FIELDS,
   REFUND_PUT_CONFIG,
   REFUND_UPDATE_CONFIG,
   TRANSACTION_PUT_CONFIG,

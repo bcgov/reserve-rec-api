@@ -1492,7 +1492,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false } = {}) {
+async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false, clientTransactionId } = {}) {
   try {
 
     // === get queryTime ===
@@ -1534,6 +1534,12 @@ async function completeBooking(bookingId, sessionId, props, { sub, username, pay
       // Remove pending state from GSI1
       isPending: { action: 'remove' },
     };
+
+    // Link a paid booking to its payment so the booking page and refunds can find it.
+    // Read from the options, never props: options are set by the server, props come from the request body.
+    if (typeof clientTransactionId === 'string') {
+      updatedBookingItem.clientTransactionId = clientTransactionId;
+    }
 
     // When the FE-driven complete handler invokes us with the authenticated
     // sub, rewrite the named-occupant identity fields from Cognito and accept

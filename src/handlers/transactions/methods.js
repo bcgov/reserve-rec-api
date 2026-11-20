@@ -22,16 +22,15 @@ const {
 } = require("/opt/dynamodb");
 const {
   quickApiPutHandler,
-  quickApiUpdateHandler,
 } = require("../../common/data-utils");
 const { TRANSACTION_PUT_CONFIG } = require("./configs");
 
-const { BOOKING_UPDATE_CONFIG } = require("../bookings/configs");
 const {
   completeBooking,
   sendBookingConfirmationEmail,
 } = require("../bookings/methods");
 const { BOOKING_STATUSES } = require("../../common/data-constants");
+const { enqueueSmsReminderIfNeeded } = require("../bookings/notifications");
 
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
@@ -268,7 +267,7 @@ async function getTransactionByTransactionId(clientTransactionId) {
  * @param {string} clientTransactionId - The global transaction identifier.
  * @param {string} userId - The user ID to verify against the transaction owner.
  * @returns {Promise<Object>} The verified transaction record.
- * @throws {Exception} 404 if transaction is not found, 401 if user is unauthorized, 400 on error.
+ * @throws {Exception} 404 if transaction is not found or not the user's, 400 on error.
  */
 async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
   logger.info(
@@ -287,8 +286,9 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
       throw new Exception("Transaction not found", { code: 404 });
     }
 
+    // Same answer as a missing transaction, so callers can't tell someone else's id exists.
     if (transaction.userId !== userId) {
-      throw new Exception("Unauthorized access to transaction", { code: 401 });
+      throw new Exception("Transaction not found", { code: 404 });
     }
 
     return transaction;
@@ -848,6 +848,15 @@ async function processTokenTransaction(body, userId, adminId) {
       );
     }
 
+    // completeBooking refuses a booking without occupant details. Check before charging,
+    // so a bad request is refused while the card is still untouched.
+    if (!body?.namedOccupant) {
+      throw new Exception("Named occupant information is required to pay for a booking", {
+        code: 400,
+        data: { adminId: adminId, bookingId: body?.bookingId },
+      });
+    }
+
     // Create the Worldline transaction prefix
     const clientTransactionId = createWorldlineUuidWithPrefix(
       crypto.randomUUID(),
@@ -928,13 +937,27 @@ async function processTokenTransaction(body, userId, adminId) {
       TRANSACTION_PUT_CONFIG,
     );
 
-    // Handle failed payment write
+    // Record the attempt as soon as Worldline answers, on its own: a paid row must survive
+    // even if confirming the booking below is refused or loses a race with another tab.
+    try {
+      await batchTransactData(putItemsTransaction);
+    } catch (writeErr) {
+      // Worldline's id is the only way to find this charge again if the row was not written.
+      logger.error("event=payment_not_recorded", {
+        bookingId: body?.bookingId,
+        clientTransactionId,
+        status: paymentResult?.status,
+        trnId: paymentResult?.data?.id,
+        message: writeErr?.message,
+      });
+      throw writeErr;
+    }
+
+    // Handle failed payment
     if (
       paymentResult.status !== "paid" ||
       paymentResult.data?.approved != "1"
     ) {
-      await batchTransactData(putItemsTransaction);
-
       // Throw an error that captures the adminId, for admin payments
       throw new Exception(
         `Worldline Payment Transaction Failed: ${paymentResult?.message}`,
@@ -951,49 +974,63 @@ async function processTokenTransaction(body, userId, adminId) {
       );
     }
 
-    // Handle standard successful write and complete booking
+    // The card is charged and the payment is recorded. From here a failure leaves a paid
+    // transaction with no confirmed booking, which needs a person to refund or confirm it.
     let completion;
     try {
       completion = await completeBooking(
         body.bookingId,
         body.sessionId,
-        { clientTransactionId: clientTransactionId, queryTime: Date.now() },
-        { sub: userId, paymentStarted: true },
+        // The same details the free path sends to POST /bookings/{id}/complete; without them
+        // completeBooking refuses the booking or blanks the vehicle and equipment fields.
+        {
+          queryTime: Date.now(),
+          namedOccupant: body.namedOccupant,
+          vehicleInformation: body.vehicleInformation,
+          equipmentInformation: body.equipmentInformation,
+          smsOptIn: body.smsOptIn,
+        },
+        { sub: userId, paymentStarted: true, clientTransactionId },
       );
+      await batchTransactData(completion.updateRequests);
     } catch (completeErr) {
-      // The card is already charged: a retryable 503 would invite a second charge.
-      if (completeErr?.code === 503) {
-        logger.error("Payment taken but booking not finalized", {
-          bookingId: body?.bookingId,
-          clientTransactionId,
-        });
-        throw new Exception("Payment received but the booking could not be finalized", {
-          code: 500,
-          data: { bookingId: body?.bookingId, clientTransactionId },
-        });
-      }
-      throw completeErr;
+      logger.error("event=paid_booking_not_confirmed", {
+        bookingId: body?.bookingId,
+        clientTransactionId,
+        code: completeErr?.code,
+        message: completeErr?.message,
+      });
+      // Never a retryable error: a retry would charge the card a second time.
+      throw new Exception("Payment received but the booking could not be finalized", {
+        code: 500,
+        data: { bookingId: body?.bookingId, clientTransactionId },
+      });
     }
-    const { updateRequests, emailParams, ownerIdentity } = completion;
-
-    const putItemsBooking = await quickApiUpdateHandler(
-      TRANSACTIONAL_DATA_TABLE_NAME,
-      [updateRequests],
-      BOOKING_UPDATE_CONFIG,
-    );
-
-    await batchTransactData([...putItemsTransaction, ...putItemsBooking]);
     logger.info(
       `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
     );
 
-    // Side effects (emails)
-    if (emailParams) {
-      sendBookingConfirmationEmail(emailParams, userId, ownerIdentity).catch((emailErr) => {
-        logger.error(
-          "Asynchronous booking confirmation email trigger failed:",
-          emailErr,
-        );
+    // Booking is durable; now the notifications, as POST /bookings/{id}/complete sends them.
+    // Failures are logged and do not undo the booking.
+    const { emailParams, smsParams, ownerIdentity } = completion;
+    try {
+      await sendBookingConfirmationEmail(emailParams, userId, ownerIdentity);
+    } catch (emailErr) {
+      logger.error("Paid booking confirmed but confirmation email send failed", {
+        bookingId: body?.bookingId,
+        error: emailErr?.message,
+      });
+    }
+    try {
+      await enqueueSmsReminderIfNeeded(
+        smsParams,
+        { bookingId: body?.bookingId },
+        smsParams?.namedOccupant?.contactInfo?.mobilePhone,
+      );
+    } catch (smsErr) {
+      logger.error("Paid booking confirmed but confirmation SMS enqueue failed", {
+        bookingId: body?.bookingId,
+        error: smsErr?.message,
       });
     }
 

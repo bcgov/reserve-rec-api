@@ -32,6 +32,27 @@ const defaults = {
   }
 };
 
+// The payment POST confirms the booking, so it sends the same confirmation email and SMS
+// as POST /bookings/{id}/complete and needs the same queues.
+function wireNotificationQueues(fn, props) {
+  if (props?.emailQueueUrl) fn.addEnvironment('EMAIL_QUEUE_URL', props.emailQueueUrl);
+  if (props?.smsReminderQueueUrl) fn.addEnvironment('SMS_REMINDER_QUEUE_URL', props.smsReminderQueueUrl);
+  const queueArns = [props?.emailQueueArn, props?.smsReminderQueueArn].filter(Boolean);
+  if (queueArns.length) {
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['sqs:SendMessage', 'sqs:GetQueueUrl'],
+      resources: queueArns,
+    }));
+  }
+  // The email queue is encrypted with the shared KMS key.
+  if (props?.emailQueueArn && props?.kmsKey) {
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+      resources: [props.kmsKey.keyArn],
+    }));
+  }
+}
+
 class AdminTransactionsConstruct extends LambdaConstruct {
   constructor(scope, id, props) {
     super(scope, id, {
@@ -110,6 +131,8 @@ class AdminTransactionsConstruct extends LambdaConstruct {
       ],
       resources: ["*"],
     }));
+
+    wireNotificationQueues(this.transactionsAdminPostFunction, props);
 
     // POST /transactions
     this.transactionsAdminResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsAdminPostFunction), {
@@ -296,6 +319,8 @@ class PublicTransactionsConstruct extends LambdaConstruct {
       ],
       resources: ["*"],
     }));
+
+    wireNotificationQueues(this.transactionsPublicPostFunction, props);
 
     // POST /transactions
     this.transactionsResource.addMethod('POST', new apigw.LambdaIntegration(this.transactionsPublicPostFunction), {
