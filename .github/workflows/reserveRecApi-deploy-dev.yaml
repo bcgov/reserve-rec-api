@@ -57,7 +57,6 @@ jobs:
         env:
           # Gate the payment backend to match the enablePayments feature flag.
           # Unset -> empty string -> '' !== 'false' -> routes stay enabled (safe default).
-          ENABLE_WORLDLINE_NOTIFICATION: ${{ vars.ENABLE_WORLDLINE_NOTIFICATION }}
           ENABLE_PUBLIC_TRANSACTIONS: ${{ vars.ENABLE_PUBLIC_TRANSACTIONS }}
         run: export LOG_LEVEL=debug && cdk deploy -c @context=dev --all --require-approval never --rollback
 

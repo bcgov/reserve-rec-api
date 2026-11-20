@@ -15,7 +15,7 @@ The Email Dispatch Stack creates and manages:
 ## Architecture
 
 ```
-API Handler (e.g., Worldline Notification)
+API Handler
     |
     v
 [SQS Queue] --> [Lambda Function] --> [AWS SES] --> Customer Email
@@ -127,7 +127,7 @@ Messages sent to the SQS queue must follow this schema:
 - Must be deployed before this stack
 
 ### Consumers
-- **Public API Stack**: Worldline notification handler sends receipt emails
+- **Public API Stack**: Transaction handlers send confirmation and receipt emails
 - Other handlers can use the email queue by:
   1. Resolving the queue URL: `scope.resolveEmailQueueUrl(this)`
   2. Adding SQS send permissions to their IAM role

@@ -15,7 +15,6 @@ const { UsersConstruct } = require('../../src/handlers/users/constructs');
 const { ReportsConstruct } = require('../../src/handlers/reports/constructs');
 const { VerifyConstruct } = require('../../src/handlers/verify/constructs');
 const { AdminSearchLambda, PublicSearchLambda } = require('../../src/handlers/search/constructs');
-const { WorldlineNotificationConstruct } = require('../../src/handlers/worldlineNotification/constructs');
 const { WaitingRoomPublicConstruct } = require('../../src/handlers/waiting-room/constructs');
 const { AdminWaitingRoomConstruct } = require('../../src/handlers/waiting-room/admin/constructs');
 const { PingApiConstruct } = require('../../src/handlers/ping/constructs');
@@ -72,12 +71,11 @@ describe('handler routes and their authorizers', () => {
     });
   });
 
-  it('public API: waiting-room writes need a token, reads and the payment webhook do not', () => {
+  it('public API: waiting-room writes need a token, while reads do not', () => {
     const { stack, props } = apiStack();
     new PublicFeatureFlagsConstruct(stack, 'FeatureFlags', props);
     new PublicConfigLambdas(stack, 'Config', props);
     new PublicSearchLambda(stack, 'Search', { ...props, opensearchDomainArn: 'arn:aws:es:ca-central-1:111111111111:domain/d' });
-    new WorldlineNotificationConstruct(stack, 'Worldline', { ...props, emailQueueUrl: 'https://sqs/q', emailQueueArn: 'arn:aws:sqs:ca-central-1:111111111111:q' });
     new WaitingRoomPublicConstruct(stack, 'WaitingRoom', props);
     new PingApiConstruct(stack, 'Ping', props);
 
@@ -85,7 +83,6 @@ describe('handler routes and their authorizers', () => {
       'GET /featureFlags': 'NONE',
       'GET /config': 'NONE',
       'POST /search': 'NONE',
-      'POST /worldline-notification': 'NONE',
       'POST /waiting-room/join': 'CUSTOM',
       'POST /waiting-room/claim': 'CUSTOM',
       'POST /waiting-room/heartbeat': 'CUSTOM',

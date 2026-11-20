@@ -82,7 +82,6 @@ const MOCK_BOOKING_ID = "booking-123";
 const MOCK_ADMIN_ID = "admin-123";
 const MOCK_USER_ID = "user-123";
 const TRANSACTION_ID = `BCPR-${MOCK_BOOKING_ID}`
-const DATE = new Date("2026-06-11T12:00:00Z").toISOString().split('T')[0]
 
 function makeToken(sub) {
   const base64Payload = Buffer.from(JSON.stringify({ sub })).toString("base64");
@@ -106,25 +105,8 @@ function makeEvent({
 const baseTransaction = {
   success: true,
   status: "paid",
-  trnId: "transaction_123",
-  message: "a message",
-  transaction: {
-    pk: `transaction::${MOCK_BOOKING_ID}`,
-    sk: `${DATE}::${TRANSACTION_ID}`,
-    amount: 10,
-    bookingId: MOCK_BOOKING_ID,
-    clientTransactionId: TRANSACTION_ID,
-    date: DATE,
-    globalId: TRANSACTION_ID,
-    schema: "transaction",
-    status: "paid",
-    transactionUrl: "token-payment",
-    userId: MOCK_USER_ID,
-    trnId: "trn_123",
-    trnApproved: 1,
-    messageText: "a message",
-    authCode: 123,
-  },
+  clientTransactionId: TRANSACTION_ID,
+  bookingId: MOCK_BOOKING_ID,
 };
 
 describe("Admin Transaction POST handler", () => {
@@ -247,11 +229,20 @@ describe("Admin Transaction POST handler", () => {
       TRANSACTION_ID,
       "ADMIN_PAYMENT_SUCCESS",
       expect.objectContaining({
-        transaction: baseTransaction.transaction,
+        transaction: baseTransaction,
       }),
       expect.any(Function),
       expect.any(Function),
       "AuditTable",
+    );
+    expect(optBase.writeAuditLog).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "ADMIN_PAYMENT_FAILURE",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
     );
   });
 

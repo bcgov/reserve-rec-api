@@ -38,7 +38,6 @@ exports.handler = async (event, context) => {
           data: {
             adminId: "no adminId",
             bookingId: body?.bookingId,
-            body: body
           },
         },
       );
@@ -56,7 +55,6 @@ exports.handler = async (event, context) => {
           data: {
             adminId: adminId,
             bookingId: body?.bookingId,
-            body: body
           },
         });
       }
@@ -67,12 +65,12 @@ exports.handler = async (event, context) => {
 
     await writeAuditLog(
       adminId,
-      response?.transaction.clientTransactionId,
+      response?.clientTransactionId,
       "ADMIN_PAYMENT_SUCCESS",
       {
         result: response.success,
         message: response.message,
-        transaction: response?.transaction,
+        transaction: response,
       },
       marshall,
       batchWriteData,
@@ -83,9 +81,10 @@ exports.handler = async (event, context) => {
 
     return sendResponse(200, { response }, "Success", null, context);
   } catch (error) {
+    const bookingId = error?.data?.bookingId || event?.pathParameters?.bookingId;
     await writeAuditLog(
       error?.data?.adminId,
-      `BCPR-${error?.data?.body?.bookingId}`,
+      bookingId ? `BCPR-${bookingId}` : "unknown",
       "ADMIN_PAYMENT_FAILURE",
       {
         success: false,

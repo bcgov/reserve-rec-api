@@ -4,6 +4,7 @@
 process.env.PAYMENTS_API_SECRET = "/secrets/paymentsApiPasscode";
 process.env.MERCHANT_ID_SECRET = "/secrets/merchantId";
 process.env.HASH_KEY_SECRET = "/secrets/hashKey";
+process.env.WORLDLINE_PAYMENT_API_URL = "https://api.na.bambora.com/v1/payments";
 
 jest.mock("axios");
 jest.mock("@aws-sdk/client-secrets-manager", () => ({
@@ -51,7 +52,7 @@ jest.mock("../../src/handlers/bookings/notifications", () => ({
 }));
 
 const axios = require("axios");
-const { batchTransactData, getOneByGlobalId } = require("/opt/dynamodb");
+const { batchTransactData, getOneByGlobalId, runQuery } = require("/opt/dynamodb");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../src/handlers/bookings/methods");
 const { enqueueSmsReminderIfNeeded } = require("../../src/handlers/bookings/notifications");
 const {
@@ -116,10 +117,12 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     jest.clearAllMocks();
     getOneByGlobalId.mockResolvedValue({
       bookingId: "booking-1",
+      sessionId: "session-1",
       userId: "user-1",
       status: "in progress",
       feeValues: { bookingTotal: 12.5 },
     });
+    runQuery.mockResolvedValue({ items: [] });
     completeBooking.mockResolvedValue({
       updateRequests: [bookingUpdate],
       emailParams: { to: "jane@example.com" },
@@ -135,6 +138,7 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     const result = await processTokenTransaction(body, "user-1", null);
 
     expect(result.status).toBe("paid");
+    expect(batchTransactData).toHaveBeenCalledTimes(2);
     const [writes] = batchTransactData.mock.calls[0];
     const put = writes.find((w) => w.action === "Put");
     expect(put.data.TableName).toBe("TransactionalDataTable");
@@ -275,6 +279,8 @@ describe("updateTransactionForPayment guards", () => {
     status: "in progress",
     bookingId: "booking-1",
     sessionId: "session-1",
+    amount: 12.5,
+    trnId: "10000123",
   };
 
   beforeEach(() => {
@@ -283,11 +289,56 @@ describe("updateTransactionForPayment guards", () => {
 
   it("marks an approved callback as paid against the stored row", async () => {
     getOneByGlobalId.mockResolvedValue(record);
+    axios.get.mockResolvedValue({
+      data: {
+        id: "10000123",
+        order_number: "BCPR-1",
+        approved: "1",
+        amount: 12.5,
+      },
+    });
 
-    const result = await updateTransactionForPayment("BCPR-1", "booking-1", "session-1", { trnApproved: "1" });
+    const result = await updateTransactionForPayment(
+      "BCPR-1",
+      "booking-1",
+      "session-1",
+      { trnApproved: "1", trnId: "10000123", trnAmount: "12.50" },
+    );
 
     expect(result.key).toEqual({ pk: "transaction::booking-1", sk: "2026-06-11::BCPR-1" });
     expect(result.data.status).toBe("paid");
+  });
+
+  it("refuses a callback that the Worldline API reports as declined", async () => {
+    getOneByGlobalId.mockResolvedValue(record);
+    axios.get.mockResolvedValue({
+      data: { id: "10000123", order_number: "BCPR-1", approved: "0", amount: 12.5 },
+    });
+
+    await expect(
+      updateTransactionForPayment(
+        "BCPR-1",
+        "booking-1",
+        "session-1",
+        { trnApproved: "1", trnId: "10000123", trnAmount: "12.50" },
+      ),
+    ).rejects.toMatchObject({ code: 400 });
+  });
+
+  it("refuses a callback whose amount differs from the verified payment", async () => {
+    getOneByGlobalId.mockResolvedValue(record);
+    axios.get.mockResolvedValue({
+      data: { id: "10000123", order_number: "BCPR-1", approved: "1", amount: 12.5 },
+    });
+
+    await expect(
+      updateTransactionForPayment(
+        "BCPR-1",
+        "booking-1",
+        "session-1",
+        { trnApproved: "1", trnId: "10000123", trnAmount: "99.00" },
+      ),
+    ).rejects.toMatchObject({ code: 400 });
   });
 
   it.each([
