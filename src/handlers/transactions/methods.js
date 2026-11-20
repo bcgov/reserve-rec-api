@@ -919,7 +919,13 @@ async function executeWorldlinePayment(
  * @returns {Promise<Object>} - An object indicating success and the final booking status.
  * @throws {Exception} - Throws an exception if the booking completion fails.
  */
-async function completePaidBooking(body, bookingRecord, userId, clientTransactionId) {
+async function completePaidBooking(
+  body,
+  bookingRecord,
+  userId,
+  clientTransactionId,
+  bookingDetails = {},
+) {
   let completion;
   try {
     // Attempt to finalize the booking with the provided details
@@ -927,17 +933,20 @@ async function completePaidBooking(body, bookingRecord, userId, clientTransactio
       body.bookingId,
       body.sessionId || bookingRecord.sessionId,
       {
+        ...bookingDetails,
         clientTransactionId,
         queryTime: Date.now(),
-        namedOccupant: bookingRecord.namedOccupant,
-        vehicleInformation: bookingRecord.vehicleInformation,
-        equipmentInformation: bookingRecord.equipmentInformation,
+        namedOccupant: bookingDetails.namedOccupant ?? bookingRecord.namedOccupant,
+        vehicleInformation:
+          bookingDetails.vehicleInformation ?? bookingRecord.vehicleInformation,
+        equipmentInformation:
+          bookingDetails.equipmentInformation ?? bookingRecord.equipmentInformation,
       },
-      { sub: userId, paymentStarted: true },
+      { sub: userId, paymentStarted: true, clientTransactionId },
     );
   } catch (completeErr) {
     // The card is already charged: a retryable 503 would invite a second charge.
-    if (completeErr?.code === 503) {
+    if (completeErr?.code === 503 || !(completeErr instanceof Exception)) {
       logger.error("Payment taken but booking not finalized", {
         bookingId: body?.bookingId,
         clientTransactionId,
@@ -951,19 +960,47 @@ async function completePaidBooking(body, bookingRecord, userId, clientTransactio
   }
 
   // If the booking completion was successful, update the transaction record and send confirmation email
-  const { updateRequests, emailParams, ownerIdentity } = completion;
-  await batchTransactData(updateRequests);
+  const { updateRequests, emailParams, smsParams, ownerIdentity } = completion;
+  try {
+    await batchTransactData(updateRequests);
+  } catch (writeErr) {
+    logger.error("Payment taken but booking update failed", {
+      bookingId: body?.bookingId,
+      clientTransactionId,
+      message: writeErr?.message,
+    });
+    throw new Exception("Payment received but the booking could not be finalized", {
+      code: 500,
+      data: { bookingId: body?.bookingId, clientTransactionId },
+    });
+  }
   logger.info(
     `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
   );
 
   // Send the booking confirmation email async, without blocking the response
   if (emailParams) {
-    sendBookingConfirmationEmail(emailParams, userId, ownerIdentity).catch((emailErr) => {
-      logger.error(
-        "Asynchronous booking confirmation email trigger failed:",
-        emailErr,
-      );
+    Promise.resolve()
+      .then(() => sendBookingConfirmationEmail(emailParams, userId, ownerIdentity))
+      .catch((emailErr) => {
+        logger.error(
+          "Asynchronous booking confirmation email trigger failed:",
+          emailErr,
+        );
+      });
+  }
+
+  try {
+    await enqueueSmsReminderIfNeeded(
+      smsParams,
+      { bookingId: body.bookingId },
+      smsParams?.namedOccupant?.contactInfo?.mobilePhone,
+    );
+  } catch (smsError) {
+    logger.error("Booking completed but confirmation SMS enqueue failed", {
+      bookingId: body.bookingId,
+      error: smsError?.message,
+      stack: smsError?.stack,
     });
   }
 
