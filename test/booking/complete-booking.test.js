@@ -205,27 +205,27 @@ describe("completeBooking", () => {
   });
 
   it("stores the payment's clientTransactionId on the booking", async () => {
-    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "BCPR-123" }, { sub: "sub-1", paymentStarted: true });
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", body(), { sub: "sub-1", paymentStarted: true, clientTransactionId: "BCPR-123" });
 
     expect(updateRequests[0].data.ExpressionAttributeValues[":clientTransactionId"]).toBe("BCPR-123");
   });
 
   it("refuses a paid completion that carries only the payment id, with no occupant details", async () => {
     await expect(
-      completeBooking("bk-1", "sess-1", { clientTransactionId: "BCPR-123", queryTime: NOW }, { sub: "sub-1", paymentStarted: true }),
+      completeBooking("bk-1", "sess-1", { queryTime: NOW }, { sub: "sub-1", paymentStarted: true, clientTransactionId: "BCPR-123" }),
     ).rejects.toMatchObject({ code: 400 });
   });
 
   it("keeps the vehicle and equipment details on a paid completion", async () => {
-    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "BCPR-123" }, { sub: "sub-1", paymentStarted: true });
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", body(), { sub: "sub-1", paymentStarted: true, clientTransactionId: "BCPR-123" });
 
     const values = updateRequests[0].data.ExpressionAttributeValues;
     expect(values[":equipmentInformation"]).toBe("tent");
     expect(values[":vehicleInformation"]).toHaveLength(5);
   });
 
-  it("ignores a clientTransactionId sent by the client on a booking completed without payment", async () => {
-    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "someone-elses-txn" }, { sub: "sub-1" });
+  it("ignores a clientTransactionId sent in the request body", async () => {
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "someone-elses-txn" }, { sub: "sub-1", paymentStarted: true });
 
     expect(updateRequests[0].data.ExpressionAttributeValues).not.toHaveProperty(":clientTransactionId");
   });

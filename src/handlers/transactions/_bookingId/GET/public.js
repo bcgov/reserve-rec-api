@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
 
     // Transactions are stored flat, so the owner is transaction.userId.
     if (clientTransactionId) {
-      // Get a specific transaction; throws 404/401 if missing or not the caller's
+      // Get a specific transaction; throws 404 if missing or not the caller's
       const transaction = await findAndVerifyTransactionOwnership(
         clientTransactionId,
         userId,
@@ -54,8 +54,10 @@ exports.handler = async (event, context) => {
         ? await getTransactionsByBookingIdDate(bookingId, date)
         : await getTransactionsByBookingId(bookingId);
 
+      // The booking's partition also holds refund rows (sk "refund::..."); this list is payments only.
+      // Matched on sk, not schema, because older transactions may not carry a schema.
       const validTransactions = items.filter(
-        (transaction) => transaction.userId === userId,
+        (transaction) => transaction.userId === userId && !transaction.sk?.startsWith("refund::"),
       );
 
       return sendResponse(200, validTransactions.map(publicView), "Success", null, context);

@@ -1492,7 +1492,7 @@ function formatBookingResponsePublic(bookingResponse) {
   }
 }
 
-async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false } = {}) {
+async function completeBooking(bookingId, sessionId, props, { sub, username, paymentStarted = false, clientTransactionId } = {}) {
   try {
 
     // === get queryTime ===
@@ -1536,9 +1536,9 @@ async function completeBooking(bookingId, sessionId, props, { sub, username, pay
     };
 
     // Link a paid booking to its payment so the booking page and refunds can find it.
-    // Only the server-side payment path sets this; public complete handlers pass the raw body.
-    if (paymentStarted && typeof props?.clientTransactionId === 'string') {
-      updatedBookingItem.clientTransactionId = props.clientTransactionId;
+    // Read from the options, never props: options are set by the server, props come from the request body.
+    if (typeof clientTransactionId === 'string') {
+      updatedBookingItem.clientTransactionId = clientTransactionId;
     }
 
     // When the FE-driven complete handler invokes us with the authenticated

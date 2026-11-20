@@ -162,9 +162,8 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
         vehicleInformation: body.vehicleInformation,
         equipmentInformation: "tent",
         smsOptIn: true,
-        clientTransactionId: expect.any(String),
       }),
-      { sub: "user-1", paymentStarted: true },
+      { sub: "user-1", paymentStarted: true, clientTransactionId: expect.any(String) },
     );
   });
 

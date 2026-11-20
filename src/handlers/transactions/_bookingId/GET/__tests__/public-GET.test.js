@@ -147,16 +147,17 @@ const publicView = (t) => ({
 
 const mine = { ...baseTransaction, sk: "mine-2" };
 const notMine = { ...baseTransaction, sk: "not-mine", userId: "not-the-right-user" };
+const refund = { ...baseTransaction, sk: "refund::2026-06-11::r-1", schema: "refund" };
 
 describe("Public Transaction GET handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    getTransactionsByBookingId.mockResolvedValue({ items: [baseTransaction, mine, notMine] });
+    getTransactionsByBookingId.mockResolvedValue({ items: [baseTransaction, mine, notMine, refund] });
     getTransactionsByBookingIdDate.mockResolvedValue({ items: [baseTransaction, notMine] });
     findAndVerifyTransactionOwnership.mockResolvedValue(baseTransaction);
   });
 
-  it("returns only the caller's transactions for a bookingId", async () => {
+  it("returns only the caller's payments for a bookingId, not refunds", async () => {
     const event = makeEvent({
       sub: MOCK_USER_ID,
       pathParameters: { bookingId: MOCK_BOOKING_ID }
@@ -211,7 +212,7 @@ describe("Public Transaction GET handler", () => {
   it("refuses a clientTransactionId the caller does not own", async () => {
     const { Exception } = require("/opt/base");
     findAndVerifyTransactionOwnership.mockRejectedValue(
-      new Exception("Unauthorized access to transaction", { code: 401 }),
+      new Exception("Transaction not found", { code: 404 }),
     );
     const event = makeEvent({
       sub: MOCK_USER_ID,
@@ -220,7 +221,7 @@ describe("Public Transaction GET handler", () => {
 
     const result = await handler(event, {});
 
-    expect(result.status).toBe(401);
+    expect(result.status).toBe(404);
     expect(result.data).toBeNull();
   });
 

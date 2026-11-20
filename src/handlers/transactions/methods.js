@@ -266,7 +266,7 @@ async function getTransactionByTransactionId(clientTransactionId) {
  * @param {string} clientTransactionId - The global transaction identifier.
  * @param {string} userId - The user ID to verify against the transaction owner.
  * @returns {Promise<Object>} The verified transaction record.
- * @throws {Exception} 404 if transaction is not found, 401 if user is unauthorized, 400 on error.
+ * @throws {Exception} 404 if transaction is not found or not the user's, 400 on error.
  */
 async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
   logger.info(
@@ -285,8 +285,9 @@ async function findAndVerifyTransactionOwnership(clientTransactionId, userId) {
       throw new Exception("Transaction not found", { code: 404 });
     }
 
+    // Same answer as a missing transaction, so callers can't tell someone else's id exists.
     if (transaction.userId !== userId) {
-      throw new Exception("Unauthorized access to transaction", { code: 401 });
+      throw new Exception("Transaction not found", { code: 404 });
     }
 
     return transaction;
@@ -967,14 +968,13 @@ async function processTokenTransaction(body, userId, adminId) {
         // The same details the free path sends to POST /bookings/{id}/complete; without them
         // completeBooking refuses the booking or blanks the vehicle and equipment fields.
         {
-          clientTransactionId: clientTransactionId,
           queryTime: Date.now(),
           namedOccupant: body.namedOccupant,
           vehicleInformation: body.vehicleInformation,
           equipmentInformation: body.equipmentInformation,
           smsOptIn: body.smsOptIn,
         },
-        { sub: userId, paymentStarted: true },
+        { sub: userId, paymentStarted: true, clientTransactionId },
       );
     } catch (completeErr) {
       // The card is already charged: a retryable 503 would invite a second charge.

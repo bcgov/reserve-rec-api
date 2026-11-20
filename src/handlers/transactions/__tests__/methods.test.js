@@ -267,8 +267,8 @@ describe("Method: processTokenTransaction", () => {
     expect(completeBooking).toHaveBeenCalledWith(
       MOCK_BOOKING_ID,
       expect.anything(),
-      expect.any(Object),
-      { sub: MOCK_USER_ID, paymentStarted: true },
+      expect.not.objectContaining({ clientTransactionId: expect.anything() }),
+      { sub: MOCK_USER_ID, paymentStarted: true, clientTransactionId: expect.stringMatching(/^BCPR-/) },
     );
   });
 
@@ -543,12 +543,12 @@ describe("Methods: findAndVerifyTransactionOwnership", () => {
     });
   });
 
-  it("throws an error if the userId does not match", async () => {
+  it("answers 404 when the transaction belongs to someone else", async () => {
     await expect(
       findAndVerifyTransactionOwnership(TRANSACTION_ID, "bad-user-id"),
     ).rejects.toMatchObject({
-      code: 401,
-      message: "Unauthorized access to transaction",
+      code: 404,
+      message: "Transaction not found",
     });
   });
 
