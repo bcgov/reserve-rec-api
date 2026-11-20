@@ -3,13 +3,15 @@
 // Real data-utils + transactions configs; only Worldline, Secrets Manager and DynamoDB are doubled.
 process.env.PAYMENTS_API_SECRET = "/secrets/paymentsApiPasscode";
 process.env.MERCHANT_ID_SECRET = "/secrets/merchantId";
+process.env.WORLDLINE_PAYMENT_API_URL = "https://api.na.bambora.com/v1/payments";
 process.env.HASH_KEY_SECRET = "/secrets/hashKey";
 process.env.WORLDLINE_PAYMENT_API_URL = "https://api.na.bambora.com/v1/payments";
 
 jest.mock("axios");
+const mockSecretsSend = jest.fn();
 jest.mock("@aws-sdk/client-secrets-manager", () => ({
   SecretsManagerClient: jest.fn().mockImplementation(() => ({
-    send: jest.fn().mockResolvedValue({ SecretString: "secret-value" }),
+    send: mockSecretsSend,
   })),
   GetSecretValueCommand: jest.fn().mockImplementation((input) => ({ input })),
 }));
@@ -34,6 +36,7 @@ jest.mock("/opt/dynamodb", () => ({
   batchTransactData: jest.fn(),
   getOne: jest.fn(),
   getOneByGlobalId: jest.fn(),
+  isConditionFailure: jest.requireActual("../../src/layers/awsUtils/dynamodb.js").isConditionFailure,
   putItem: jest.fn(),
   runQuery: jest.fn(),
   batchGetData: jest.fn(),
@@ -52,7 +55,8 @@ jest.mock("../../src/handlers/bookings/notifications", () => ({
 }));
 
 const axios = require("axios");
-const { batchTransactData, getOneByGlobalId, runQuery } = require("/opt/dynamodb");
+const { Exception } = require("/opt/base");
+const { batchTransactData, getOne, getOneByGlobalId } = require("/opt/dynamodb");
 const { completeBooking, sendBookingConfirmationEmail } = require("../../src/handlers/bookings/methods");
 const { enqueueSmsReminderIfNeeded } = require("../../src/handlers/bookings/notifications");
 const {
@@ -112,7 +116,17 @@ const body = {
   smsOptIn: true,
 };
 
-describe("processTokenTransaction stores the transaction through TRANSACTION_PUT_CONFIG", () => {
+const conditionFailed = Object.assign(new Error("Transaction cancelled"), {
+  name: "TransactionCanceledException",
+  CancellationReasons: [{ Code: "None" }, { Code: "None" }, { Code: "ConditionalCheckFailed" }],
+});
+
+// batchTransactData call 0 takes the lock with the PENDING attempt; call 1 settles it.
+const writesOf = (call) => batchTransactData.mock.calls[call][0];
+const lockWrite = (writes) => writes.find((w) => w.data.Key?.sk === "payment");
+const attemptWrite = (writes) => writes.find((w) => w.data.Key?.sk?.startsWith("2026-06-11::BCPR-"));
+
+describe("processTokenTransaction through the payment lock and TRANSACTION configs", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getOneByGlobalId.mockResolvedValue({
@@ -122,64 +136,72 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
       status: "in progress",
       feeValues: { bookingTotal: 12.5 },
     });
-    runQuery.mockResolvedValue({ items: [] });
+    getOne.mockResolvedValue(null);
     completeBooking.mockResolvedValue({
       updateRequests: [bookingUpdate],
       emailParams: { to: "jane@example.com" },
       smsParams: { smsOptIn: true, namedOccupant: { contactInfo: { mobilePhone: "+12505550100" } } },
       ownerIdentity: { email: "jane@example.com" },
     });
-    batchTransactData.mockResolvedValue({});
+    batchTransactData.mockResolvedValue(true);
+    mockSecretsSend.mockResolvedValue({ SecretString: "secret-value" });
   });
 
-  it("writes an approved payment as a create-only paid transaction row on its own, then the booking update", async () => {
+  it("does not charge when the hold expired between the booking check and the lock", async () => {
+    batchTransactData.mockRejectedValueOnce(Object.assign(new Error("Transaction cancelled"), {
+      name: "TransactionCanceledException",
+      CancellationReasons: [{ Code: "None" }, { Code: "None" }, { Code: "ConditionalCheckFailed" }],
+    }));
+
+    await expect(processTokenTransaction(body, "user-1", null)).rejects.toMatchObject({ code: 410 });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it("frees the lock as FAILED when the payment cannot be sent, without charging", async () => {
+    const cachedPath = process.env.PAYMENTS_API_SECRET;
+    process.env.PAYMENTS_API_SECRET = "/secrets/notYetCached";
+    mockSecretsSend.mockRejectedValueOnce(new Error("AccessDenied"));
+
+    await expect(processTokenTransaction(body, "user-1", null)).rejects.toMatchObject({ code: 400 });
+    process.env.PAYMENTS_API_SECRET = cachedPath;
+
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(lockWrite(writesOf(1)).data.ExpressionAttributeValues[":to"]).toBe("failed");
+  });
+
+  it("writes the attempt PENDING before charging, then commits attempt, lock and booking update in one transaction", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse() });
 
     const result = await processTokenTransaction(body, "user-1", null);
 
     expect(result.status).toBe("paid");
     expect(batchTransactData).toHaveBeenCalledTimes(2);
-    const [writes] = batchTransactData.mock.calls[0];
-    const put = writes.find((w) => w.action === "Put");
-    expect(put.data.TableName).toBe("TransactionalDataTable");
+    expect(batchTransactData.mock.invocationCallOrder[0]).toBeLessThan(axios.post.mock.invocationCallOrder[0]);
+    const put = writesOf(0).find((w) => w.action === "Put");
     expect(put.data.ConditionExpression).toBe("attribute_not_exists(pk) AND attribute_not_exists(sk)");
     expect(put.data.Item).toMatchObject({
       pk: "transaction::booking-1",
       schema: "transaction",
-      status: "paid",
+      status: "in progress",
       amount: 12.5,
       userId: "user-1",
-      trnId: "10000123",
-      trnApproved: "1",
-      cardLastFour: "4675",
-      cardAvsProcessed: false,
-      version: 1,
+      attemptNumber: 1,
+      source: "public",
     });
-    expect(put.data.Item.sk).toMatch(/^2026-06-11::BCPR-/);
     expect(put.data.Item.clientTransactionId).toHaveLength(30);
-    expect(writes).toHaveLength(1);
-    expect(batchTransactData.mock.calls[1][0]).toEqual([bookingUpdate]);
-  });
 
-  it("keeps the paid row when the booking is refused after the charge, and answers a non-retryable 500", async () => {
-    axios.post.mockResolvedValue({ data: worldlineResponse() });
-    completeBooking.mockRejectedValueOnce({ code: 409, message: "Session id does not match" });
-
-    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
-
-    expect(err.code).toBe(500);
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
-    expect(batchTransactData.mock.calls[0][0][0].data.Item.status).toBe("paid");
-  });
-
-  it("keeps the paid row when the booking write loses a race (isPending already gone)", async () => {
-    axios.post.mockResolvedValue({ data: worldlineResponse() });
-    batchTransactData.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("ConditionalCheckFailed"));
-
-    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
-
-    expect(err.code).toBe(500);
-    expect(batchTransactData.mock.calls[0][0][0].data.Item.status).toBe("paid");
+    const writes = writesOf(1);
+    expect(writes).toHaveLength(3);
+    const attempt = attemptWrite(writes);
+    expect(attempt.data.ConditionExpression).toBe("#status = :expectedStatus");
+    expect(attempt.data.ExpressionAttributeValues).toMatchObject({
+      ":status": "paid",
+      ":expectedStatus": "in progress",
+      ":trnId": "10000123",
+      ":cardLastFour": "4675",
+    });
+    expect(lockWrite(writes).data.ExpressionAttributeValues).toMatchObject({ ":from": "in progress", ":to": "paid" });
+    expect(writes).toContainEqual(bookingUpdate);
   });
 
   it("sends the confirmation email and SMS once the paid booking is saved", async () => {
@@ -205,7 +227,7 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     expect(enqueueSmsReminderIfNeeded).toHaveBeenCalled();
   });
 
-  it("completes the booking with the occupant, vehicle and equipment details from the request", async () => {
+  it("completes the booking with the request's occupant fields and the payer's sub", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse() });
 
     await processTokenTransaction(body, "user-1", null);
@@ -219,28 +241,237 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
         equipmentInformation: "tent",
         smsOptIn: true,
       }),
-      { sub: "user-1", paymentStarted: true, clientTransactionId: expect.any(String) },
+      { sub: "user-1", clientTransactionId: expect.stringMatching(/^BCPR-/) },
     );
+    expect(completeBooking.mock.calls[0][2]).not.toHaveProperty("token");
   });
 
-  it("refuses a request without occupant details before charging the card", async () => {
-    const { namedOccupant, ...noOccupant } = body;
+  it("charges the amount from the booking, not the request, with a timeout below the Lambda's", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
 
-    await expect(processTokenTransaction(noOccupant, "user-1", null)).rejects.toMatchObject({ code: 400 });
+    await processTokenTransaction({ ...body, trnAmount: 0.01 }, "user-1", null);
 
+    const [, payload, options] = axios.post.mock.calls[0];
+    expect(payload.amount).toBe(12.5);
+    expect(options.timeout).toBeLessThan(10000);
+  });
+
+  it("falls back to the booking's own session and occupant details when the request leaves them out", async () => {
+    const saved = { namedOccupant: { firstName: "Jane" }, vehicleInformation: [{ licensePlate: "ABC123" }], equipmentInformation: "van" };
+    getOneByGlobalId.mockResolvedValue({ bookingId: "booking-1", sessionId: "session-1", userId: "user-1", status: "in progress", feeValues: { bookingTotal: 12.5 }, ...saved });
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+    const { sessionId, namedOccupant, vehicleInformation, equipmentInformation, ...bare } = body;
+
+    await processTokenTransaction(bare, "user-1", null);
+
+    expect(completeBooking).toHaveBeenCalledWith("booking-1", "session-1", expect.objectContaining(saved), expect.anything());
+    expect(axios.post.mock.calls[0][1].custom.ref2).toBe("session-1");
+  });
+
+  it("charges the fee policy total ahead of feeValues, under the request's billing name", async () => {
+    getOneByGlobalId.mockResolvedValue({
+      bookingId: "booking-1", sessionId: "session-1", userId: "user-1", status: "in progress",
+      feePolicySnapshot: { feeInformation: { total: 20 } }, feeValues: { bookingTotal: 12.5 },
+    });
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+
+    await processTokenTransaction({ ...body, billingName: "Jane Alternate" }, "user-1", null);
+
+    const [, payload] = axios.post.mock.calls[0];
+    expect(payload.amount).toBe(20);
+    expect(payload.billing.name).toBe("Jane Alternate");
+  });
+
+  it("frees the lock as FAILED without charging when the Worldline URL is not set", async () => {
+    const url = process.env.WORLDLINE_PAYMENT_API_URL;
+    delete process.env.WORLDLINE_PAYMENT_API_URL;
+
+    await expect(processTokenTransaction(body, "user-1", null)).rejects.toMatchObject({ code: 400 });
+    process.env.WORLDLINE_PAYMENT_API_URL = url;
+
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(lockWrite(writesOf(1)).data.ExpressionAttributeValues[":to"]).toBe("failed");
+  });
+
+  it("refuses a booking with nothing to charge before any write", async () => {
+    getOneByGlobalId.mockResolvedValue({ bookingId: "booking-1", userId: "user-1", status: "in progress", feeValues: { bookingTotal: 0 } });
+
+    await expect(processTokenTransaction(body, "user-1", null)).rejects.toMatchObject({ code: 400 });
     expect(axios.post).not.toHaveBeenCalled();
     expect(batchTransactData).not.toHaveBeenCalled();
   });
 
-  it("stores a declined payment as a failed transaction and reports the decline", async () => {
+  it.each([
+    ["a refusal", new Exception("Not authorized to complete this booking", { code: 403, data: { refusal: "owner" } })],
+    ["a Cognito 503", new Exception("The service is busy.", { code: 503, data: { retryAfter: 2 } })],
+  ])("does not charge when completion fails with %s, and passes the error on", async (_label, completionError) => {
+    completeBooking.mockRejectedValue(completionError);
+
+    await expect(processTokenTransaction(body, "user-1", null)).rejects.toBe(completionError);
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(batchTransactData).not.toHaveBeenCalled();
+  });
+
+  it("refuses a second payment while one is in flight with 409, without charging", async () => {
+    getOne.mockResolvedValue({ status: "in progress", attemptCount: 1, activeClientTransactionId: "BCPR-first" });
+
+    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+    expect(err).toMatchObject({ code: 409, data: { refusal: "duplicate_payment", clientTransactionId: "BCPR-first" } });
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(completeBooking).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paid booking with 409 duplicate_payment", async () => {
+    getOneByGlobalId.mockResolvedValue({ bookingId: "booking-1", userId: "user-1", status: "confirmed", feeValues: { bookingTotal: 12.5 } });
+
+    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+    expect(err).toMatchObject({ code: 409, data: { refusal: "duplicate_payment" } });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it("stores a declined payment as FAILED on the attempt and the lock, and reports the decline", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse({ approved: "0", message: "DECLINE" }) });
 
     await expect(processTokenTransaction(body, "user-1", null)).rejects.toMatchObject({ code: 400 });
 
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
-    const [[put]] = batchTransactData.mock.calls[0];
-    expect(put.data.Item).toMatchObject({ status: "failed", trnApproved: "0", trnMessage: "DECLINE" });
-    expect(completeBooking).not.toHaveBeenCalled();
+    const writes = writesOf(1);
+    expect(attemptWrite(writes).data.ExpressionAttributeValues).toMatchObject({
+      ":status": "failed",
+      ":trnApproved": "0",
+      ":trnMessage": "DECLINE",
+    });
+    expect(lockWrite(writes).data.ExpressionAttributeValues[":to"]).toBe("failed");
+    expect(writes).not.toContainEqual(bookingUpdate);
+  });
+
+  it.each([
+    ["a timeout with no response", Object.assign(new Error("timeout of 7000ms exceeded"), { code: "ECONNABORTED" })],
+    ["a 5xx from Worldline", Object.assign(new Error("Service Unavailable"), { response: { status: 503, data: {} } })],
+  ])("records %s as UNKNOWN and answers 502 payment_unconfirmed", async (_label, providerError) => {
+    axios.post.mockRejectedValue(providerError);
+
+    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+    expect(err).toMatchObject({ code: 502, data: { refusal: "payment_unconfirmed" } });
+    const writes = writesOf(1);
+    expect(attemptWrite(writes).data.ExpressionAttributeValues[":status"]).toBe("unknown");
+    expect(lockWrite(writes).data.ExpressionAttributeValues[":to"]).toBe("unknown");
+  });
+
+  describe("when the booking can no longer complete after an approved charge", () => {
+    const voidUrl = "https://api.na.bambora.com/v1/payments/10000123/void";
+
+    beforeEach(() => {
+      batchTransactData
+        .mockResolvedValueOnce(true)
+        .mockRejectedValueOnce(conditionFailed)
+        .mockResolvedValue(true);
+    });
+
+    it("voids the charge and answers 500 saying it was reversed", async () => {
+      axios.post
+        .mockResolvedValueOnce({ data: worldlineResponse() })
+        .mockResolvedValueOnce({ data: { id: "10000124", approved: "1", message: "Approved", type: "VP" } });
+
+      const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+      expect(err).toMatchObject({ code: 500, data: { chargeReversed: true } });
+      expect(err.message).toMatch(/reversed and you have not been charged/);
+      expect(axios.post.mock.calls[1].slice(0, 2)).toEqual([voidUrl, { amount: 12.5 }]);
+      expect(lockWrite(writesOf(3)).data.ExpressionAttributeValues).toMatchObject({ ":from": "paid", ":to": "void" });
+    });
+
+    it("keeps the charge paid for reconciliation and says so when the void is refused", async () => {
+      axios.post
+        .mockResolvedValueOnce({ data: worldlineResponse() })
+        .mockRejectedValueOnce(Object.assign(new Error("Request failed with status code 402"), {
+          response: { status: 402, data: { code: 205, message: "Transaction only voidable on the date processed" } },
+        }));
+
+      const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+      expect(err).toMatchObject({ code: 500, data: { chargeReversed: false } });
+      expect(err.message).toMatch(/could not be reversed/);
+      expect(batchTransactData).toHaveBeenCalledTimes(3);
+    });
+
+    it("keeps an approved charge as SUCCESS flagged for reconciliation", async () => {
+      axios.post.mockResolvedValue({ data: worldlineResponse() });
+  
+      await processTokenTransaction(body, "user-1", null).catch((e) => e);
+  
+      const writes = writesOf(2);
+      expect(writes).not.toContainEqual(bookingUpdate);
+      expect(attemptWrite(writes).data.ExpressionAttributeValues).toMatchObject({
+        ":status": "paid",
+        ":bookingCompletionFailed": true,
+        ":needsReconciliation": true,
+      });
+      expect(lockWrite(writes).data.ExpressionAttributeValues).toMatchObject({
+        ":to": "paid",
+        ":needsReconciliation": true,
+      });
+    });
+  });
+
+  describe("with a lock stuck in 'unknown'", () => {
+    const stuckFor = (minutes) =>
+      getOne.mockResolvedValue({
+        status: "unknown",
+        attemptCount: 1,
+        activeClientTransactionId: "BCPR-stuck",
+        pendingSince: new Date(Date.now() - minutes * 60 * 1000).toISOString(),
+      });
+
+    beforeEach(() => {
+      process.env.REPORTING_API_SECRET = "/secrets/reportingApiPasscode";
+      stuckFor(10);
+      getOneByGlobalId.mockImplementation(async (id) =>
+        id === "BCPR-stuck"
+          ? { pk: "transaction::booking-1", sk: "2026-06-11::BCPR-stuck", bookingId: "booking-1", clientTransactionId: "BCPR-stuck", status: "unknown" }
+          : { bookingId: "booking-1", userId: "user-1", status: "in progress", feeValues: { bookingTotal: 12.5 } },
+      );
+    });
+
+    afterEach(() => {
+      delete process.env.REPORTING_API_SECRET;
+    });
+
+    it("refuses 409 already paid without charging when Worldline approved the stuck attempt", async () => {
+      axios.post.mockResolvedValueOnce({ data: { records: [{ trn_id: 10000099 }] } });
+      axios.get.mockResolvedValueOnce({ data: { id: "10000099", approved: 1, message: "Approved" } });
+
+      const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+      expect(err).toMatchObject({ code: 409, message: "Booking has already been paid", data: { refusal: "duplicate_payment" } });
+      expect(axios.post).toHaveBeenCalledTimes(1);
+      expect(completeBooking).not.toHaveBeenCalled();
+    });
+
+    it("keeps refusing 409 without charging while Worldline has no record of an attempt 10 minutes old", async () => {
+      axios.post.mockResolvedValueOnce({ data: { records: [] } });
+
+      const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+      expect(err).toMatchObject({ code: 409, data: { refusal: "duplicate_payment", paymentStatus: "unknown" } });
+      expect(axios.post).toHaveBeenCalledTimes(1);
+      expect(batchTransactData.mock.calls.flat(2).some((op) => op.data.ExpressionAttributeValues?.[":to"])).toBe(false);
+    });
+
+    it("fails the stuck attempt and charges a new one when Worldline has no record of it after 31 minutes", async () => {
+      stuckFor(31);
+      axios.post
+        .mockResolvedValueOnce({ data: { records: [] } })
+        .mockResolvedValueOnce({ data: worldlineResponse() });
+
+      const result = await processTokenTransaction(body, "user-1", null);
+
+      expect(result.status).toBe("paid");
+      expect(lockWrite(writesOf(0)).data.ExpressionAttributeValues).toMatchObject({ ":from": "unknown", ":to": "failed" });
+      expect(lockWrite(writesOf(1)).data.ExpressionAttributeValues).toMatchObject({ ":previousAttemptCount": 1 });
+    });
   });
 });
 

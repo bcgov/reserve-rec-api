@@ -3,7 +3,11 @@
 jest.mock('aws-cdk-lib/aws-lambda-nodejs', () => require('../helpers/cdkConstruct').nodejsFunctionMock());
 
 const { AUDIT_TABLE_ARN, TRANS_TABLE_ARN, actionsOn, allActions, synthConstruct } = require('../helpers/cdkConstruct');
-const { AdminTransactionsConstruct, PublicTransactionsConstruct } = require('../../src/handlers/transactions/constructs');
+const {
+  AdminTransactionsConstruct,
+  PublicTransactionsConstruct,
+  reportingApiSecretEnv,
+} = require('../../src/handlers/transactions/constructs');
 
 const DIR = 'src/handlers/transactions/_bookingId';
 const WRITE = ['dynamodb:BatchWriteItem', 'dynamodb:DeleteItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'];
@@ -17,12 +21,14 @@ const environment = (api) => ({
   HASH_KEY_SECRET: `/reserveRecApi/test/${api}/hashKey`,
   PAYMENTS_API_SECRET: `/reserveRecApi/test/${api}/paymentsApiPasscode`,
   WORLDLINE_PAYMENT_API_URL: 'https://api.na.bambora.com/v1/payments',
+  REPORTING_API_SECRET: `/reserveRecApi/test/${api}/reportingApiPasscode`,
 });
 
 // Secret ARNs are built from stack tokens, so match on the secret path inside the Fn::Join.
 const secretNamed = (name) => (resource) => JSON.stringify(resource).includes(`:secret:${name}*`);
 const secretsRead = (role, api) => ['merchantId', 'hashKey', 'paymentsApiPasscode']
   .map((name) => actionsOn(role, secretNamed(`/reserveRecApi/test/${api}/${name}`)));
+const reportingSecretRead = (role, api) => actionsOn(role, secretNamed(`/reserveRecApi/test/${api}/reportingApiPasscode`));
 
 describe('AdminTransactionsConstruct', () => {
   let routes, roles;
@@ -44,6 +50,7 @@ describe('AdminTransactionsConstruct', () => {
       'GET /transactions/admin': get,
       'GET /transactions/admin/{bookingId}': get,
       'POST /transactions/admin': { auth: 'CUSTOM', handler: `${DIR}/POST/admin.js` },
+      'POST /transactions/admin/{bookingId}/reconcile': { auth: 'CUSTOM', handler: `${DIR}/reconcile/POST/admin.js` },
       'GET /transactions/admin/{bookingId}/refunds': refundsGet,
       'GET /transactions/admin/{bookingId}/refunds/{refundId}': refundsGet,
       'POST /transactions/admin/{bookingId}/refunds': { auth: 'CUSTOM', handler: `${DIR}/refunds/POST/admin.js` },
@@ -65,7 +72,7 @@ describe('AdminTransactionsConstruct', () => {
   });
 
   it('lets the admin POST handlers write transactions and the audit log', () => {
-    for (const file of ['POST/admin.js', 'refunds/POST/admin.js']) {
+    for (const file of ['POST/admin.js', 'reconcile/POST/admin.js', 'refunds/POST/admin.js']) {
       const role = roles[`${DIR}/${file}`];
       expect(actionsOn(role, TRANS_TABLE_ARN)).toEqual(expect.arrayContaining(WRITE));
       expect(actionsOn(role, AUDIT_TABLE_ARN)).toEqual(['dynamodb:BatchWriteItem', 'dynamodb:PutItem']);
@@ -75,8 +82,16 @@ describe('AdminTransactionsConstruct', () => {
   it('lets only the payment and refund handlers read the Worldline secrets', () => {
     const read = ['secretsmanager:GetSecretValue'];
     expect(secretsRead(roles[`${DIR}/POST/admin.js`], 'adminApiStack')).toEqual([read, read, read]);
+    expect(secretsRead(roles[`${DIR}/reconcile/POST/admin.js`], 'adminApiStack')).toEqual([read, read, read]);
     expect(secretsRead(roles[`${DIR}/refunds/POST/admin.js`], 'adminApiStack')).toEqual([read, read, read]);
     expect(allActions(roles[`${DIR}/GET/admin.js`])).not.toContain('secretsmanager:GetSecretValue');
+  });
+
+  it('lets only the payment and reconcile handlers search Worldline reports', () => {
+    const read = ['secretsmanager:GetSecretValue'];
+    expect(reportingSecretRead(roles[`${DIR}/POST/admin.js`], 'adminApiStack')).toEqual(read);
+    expect(reportingSecretRead(roles[`${DIR}/reconcile/POST/admin.js`], 'adminApiStack')).toEqual(read);
+    expect(reportingSecretRead(roles[`${DIR}/refunds/POST/admin.js`], 'adminApiStack')).toEqual([]);
   });
 
   it('lets the payment handler resolve the owner from Cognito and the refund handler publish refunds', () => {
@@ -125,6 +140,7 @@ describe('PublicTransactionsConstruct', () => {
     const role = roles[`${DIR}/POST/public.js`];
     const read = ['secretsmanager:GetSecretValue'];
     expect(secretsRead(role, 'publicApiStack')).toEqual([read, read, read]);
+    expect(reportingSecretRead(role, 'publicApiStack')).toEqual(read);
     expect(actionsOn(role, TRANS_TABLE_ARN)).toEqual(expect.arrayContaining(WRITE));
     expect(allActions(role)).toEqual(expect.arrayContaining(COGNITO));
     expect(role.env).toMatchObject(environment('publicApiStack'));
@@ -138,5 +154,20 @@ describe('PublicTransactionsConstruct', () => {
 
   it('lets the public refund handler publish refund requests', () => {
     expect(actionsOn(roles[`${DIR}/refunds/POST/public.js`], TOPIC)).toEqual(['sns:Publish']);
+  });
+});
+
+describe('reportingApiSecretEnv', () => {
+  const secret = (value) => ({
+    reportingApiPasscode: { key: 'reportingApiPasscode', id: 'Stack-ReportingApiPasscode', path: '/reserveRecApi/dev/publicApiStack/reportingApiPasscode', value },
+  });
+
+  it('points REPORTING_API_SECRET at the secret when synth could read it', () => {
+    expect(reportingApiSecretEnv({ secrets: secret('passcode') }))
+      .toEqual({ REPORTING_API_SECRET: '/reserveRecApi/dev/publicApiStack/reportingApiPasscode' });
+  });
+
+  it('leaves it unset when the primer fell back to the secret id', () => {
+    expect(reportingApiSecretEnv({ secrets: secret('Stack-ReportingApiPasscode') })).toEqual({});
   });
 });

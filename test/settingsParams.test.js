@@ -151,6 +151,49 @@ describe('settings in the synthesized dev templates', () => {
     ))).toBe(true);
   });
 
+  describe('payment functions', () => {
+    const PAYMENT_FUNCTIONS = ['-TransPubPOST', '-TransAdminPOST', '-TransAdminRecPOST'];
+    const resources = () => Object.values(templates).flatMap((tmpl) => Object.values(tmpl.Resources || {}));
+    const paymentFunctions = () => resources().filter((r) => r.Type === 'AWS::Lambda::Function'
+      && PAYMENT_FUNCTIONS.some((suffix) => String(r.Properties.FunctionName).endsWith(suffix)));
+
+    it('gives the payment functions 25 s, under the API Gateway limit', () => {
+      expect(paymentFunctions().map((r) => r.Properties.Timeout)).toEqual([25, 25, 25]);
+    });
+
+    it('leaves REPORTING_API_SECRET unset when the reporting secret cannot be read', () => {
+      for (const fn of paymentFunctions()) {
+        expect(fn.Properties.Environment.Variables).not.toHaveProperty('REPORTING_API_SECRET');
+      }
+    });
+
+    const paymentAlarms = (resourceList) => resourceList.filter((r) => r.Type === 'AWS::CloudWatch::Alarm'
+      && r.Properties.MetricName.startsWith('payment_'));
+
+    // Public transactions are disabled in deployed environments, so the alarms must not depend on them.
+    it('alarms on each payment failure event from the admin transactions stack only', () => {
+      const adminNested = template(/AdminTransactionsNestedStack.*\.nested\.template\.json$/);
+      const alarms = paymentAlarms(Object.values(adminNested.Resources));
+      expect(alarms.map((a) => [a.Properties.AlarmName, a.Properties.Threshold]).sort()).toEqual([
+        ['ReserveRecApi-dev-payment_booking_completion_failed', 1],
+        ['ReserveRecApi-dev-payment_record_failed', 1],
+        ['ReserveRecApi-dev-payment_unconfirmed', 1],
+        ['ReserveRecApi-dev-payment_void_failed', 1],
+      ]);
+      expect(paymentAlarms(resources())).toHaveLength(4);
+    });
+
+    it('counts the public payment events into the same metrics', () => {
+      const publicNested = template(/PublicTransactionsNestedStack.*\.nested\.template\.json$/);
+      const metrics = Object.values(publicNested.Resources).filter((r) => r.Type === 'AWS::Logs::MetricFilter')
+        .map((r) => r.Properties.MetricTransformations[0]);
+      expect(metrics).toEqual(expect.arrayContaining([
+        expect.objectContaining({ MetricName: 'payment_unconfirmed', MetricNamespace: 'ReserveRecApi/dev' }),
+        expect.objectContaining({ MetricName: 'payment_duplicate_refused', MetricNamespace: 'ReserveRecApi/dev' }),
+      ]));
+    });
+  });
+
   describe('public bookings functions', () => {
     let parent;
     let nested;

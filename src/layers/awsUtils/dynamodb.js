@@ -714,9 +714,9 @@ function chunkArray(array, chunkSize) {
  * @async
  * @param {Array<Object>} data - The array of objects to be transacted into DynamoDB.
  * If you want the transaction action to differ from the one provided in the `action` argument,
- * you can provide your data as {action: ('Put', 'Update', 'Delete', 'ConditionExpression'), data: <object> }.
+ * you can provide your data as {action: ('Put', 'Update', 'Delete', 'ConditionCheck'), data: <object> }.
  * This allows you to perform more than 1 type of action per transaction.
- * @param {string} [action='Put'] - The default action to perform if not specified for each item ('Put', 'Update', 'Delete', 'ConditionExpression').
+ * @param {string} [action='Put'] - The default action to perform if not specified for each item ('Put', 'Update', 'Delete', 'ConditionCheck').
  * @returns {Promise<boolean>} - A Promise that resolves to true if the batch transact operation succeeds.
  */
 const TRANSACTION_CONFLICT_ATTEMPTS = 3;
@@ -762,8 +762,8 @@ async function batchTransactData(data, action = 'Put') {
       const TransactItems = chunk.map(item => {
         let op = item?.action || action;
         switch (op) {
-          case 'ConditionExpression':
-            return { ConditionExpression: item?.data || item };
+          case 'ConditionCheck':
+            return { ConditionCheck: item?.data || item };
           case 'Update':
             return { Update: item?.data || item };
           case 'Delete':

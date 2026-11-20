@@ -93,6 +93,50 @@ const TRANSACTION_PUT_CONFIG = {
       },
     },
 
+    // Payment attempt lifecycle; statusHistory is appended on each transition
+    statusHistory: {
+      rulesFn: ({ value, action }) => {
+        rf.expectArray(value, ["object"]);
+        rf.expectAction(action, ["set", "append"]);
+      },
+    },
+    attemptNumber: {
+      rulesFn: ({ value, action }) => {
+        rf.expectInteger(value);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+    source: {
+      rulesFn: ({ value, action }) => {
+        rf.expectValueInList(value, ["public", "admin"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+    adminId: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ["string"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+    bookingCompletionFailed: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ["boolean"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+    needsReconciliation: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ["boolean"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+    providerMismatch: {
+      rulesFn: ({ value, action }) => {
+        rf.expectType(value, ["boolean"]);
+        rf.expectAction(action, ["set"]);
+      },
+    },
+
     // Items from Worldline Gateway
     cardAvsAddrMatch: {
       rulesFn: ({ value, action }) => {
@@ -281,11 +325,23 @@ const TRANSACTION_PUT_CONFIG = {
   },
 };
 
+// Key, identity and attempt-origin fields are fixed when the attempt row is created.
+const TRANSACTION_FIXED_FIELDS = [
+  "pk", "sk", "amount", "bookingId", "clientTransactionId", "date", "globalId",
+  "schema", "sessionId", "userId", "attemptNumber", "source", "adminId",
+];
+const TRANSACTION_MUTABLE_FIELDS = Object.fromEntries(
+  Object.entries(TRANSACTION_PUT_CONFIG.fields).filter(
+    ([field]) => !TRANSACTION_FIXED_FIELDS.includes(field),
+  ),
+);
+
 const TRANSACTION_UPDATE_CONFIG = {
   failOnError: true,
   autoTimestamp: true,
   autoVersion: true,
   fields: {
+    ...TRANSACTION_MUTABLE_FIELDS,
     status: {
       rulesFn: ({ value, action }) => {
         rf.expectValueInList(value, TRANSACTION_STATUS_ENUMS);

@@ -1,16 +1,6 @@
 const { DateTime } = require("luxon");
 const axios = require("axios");
 const crypto = require("crypto");
-const {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} = require("@aws-sdk/client-secrets-manager");
-
-const secretsClient = new SecretsManagerClient({
-  region: process.env.AWS_REGION || "ca-central-1",
-});
-let cachedSecrets = {};
-
 const { Exception, getNow, getNowISO, logger } = require("/opt/base");
 const {
   getOne,
@@ -18,57 +8,38 @@ const {
   putItem,
   runQuery,
   TRANSACTIONAL_DATA_TABLE_NAME,
-  batchTransactData,
 } = require("/opt/dynamodb");
-const {
-  quickApiPutHandler,
-} = require("../../common/data-utils");
-const { TRANSACTION_PUT_CONFIG } = require("./configs");
-
 const {
   completeBooking,
   sendBookingConfirmationEmail,
 } = require("../bookings/methods");
-const { BOOKING_STATUSES } = require("../../common/data-constants");
+const {
+  BOOKING_STATUSES,
+  TRANSACTION_STATUSES,
+} = require("../../common/data-constants");
+const {
+  chargePayment,
+  getSecret,
+  isApproved,
+} = require("./worldline-client");
+const {
+  PAYMENT_LOCK_SK,
+  PAYMENT_REFUSALS,
+  acquirePaymentLock,
+  assertPaymentAllowed,
+  getPaymentLock,
+  historyEntry,
+  isPaymentStuck,
+  reconcilePayment,
+  recordDuplicateAttempt,
+  settlePaymentAttempt,
+  transitionPaymentAttempt,
+  voidPaymentAttempt,
+} = require("./payment-attempts");
 const { enqueueSmsReminderIfNeeded } = require("../bookings/notifications");
 
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
-
-/**
- * Dynamically retrieves a secret from AWS Secrets Manager by its path/name.
- * Cache is stored locally to avoid hitting AWS Secrets Manager API limits on repeat requests.
- *
- * @param {string} secretPath - The exact path name of the secret (e.g. process.env.MERCHANT_ID_SECRET)
- * @returns {Promise<string>} The plaintext secret value.
- * @throws {Error} If secretPath is missing or Secrets Manager API call fails.
- */
-async function getSecret(secretPath) {
-  if (!secretPath) {
-    throw new Error(
-      "Cannot retrieve secret: secretPath is undefined or empty.",
-    );
-  }
-
-  if (cachedSecrets[secretPath]) {
-    return cachedSecrets[secretPath];
-  }
-
-  try {
-    const response = await secretsClient.send(
-      new GetSecretValueCommand({ SecretId: secretPath }),
-    );
-
-    cachedSecrets[secretPath] = response.SecretString;
-    return cachedSecrets[secretPath];
-  } catch (error) {
-    console.error(
-      `Error retrieving secret [${secretPath}] from Secrets Manager:`,
-      error,
-    );
-    throw error;
-  }
-}
 
 /**
  * Creates a unique Worldline transaction identifier trimmed to meet length limits.
@@ -261,8 +232,11 @@ async function getTransactionsByBookingId(bookingId) {
     let query = {
       TableName: TRANSACTIONAL_DATA_TABLE_NAME,
       KeyConditionExpression: "pk = :pk",
+      // The booking's payment lock shares the partition but is not a transaction.
+      FilterExpression: "sk <> :lockSk",
       ExpressionAttributeValues: {
         ":pk": { S: `transaction::${bookingId}` },
+        ":lockSk": { S: PAYMENT_LOCK_SK },
       },
       ConsistentRead: true,
     };
@@ -773,11 +747,15 @@ async function fetchAndValidateBooking(bookingId, userId) {
     });
   }
 
-  if (bookingRecord.status === "confirmed") {
-    throw new Exception("Booking has already been paid", { code: 400 });
+  if (bookingRecord.status === BOOKING_STATUSES.CONFIRMED) {
+    await recordDuplicateAttempt(bookingId);
+    throw new Exception("Booking has already been paid", {
+      code: 409,
+      data: { refusal: PAYMENT_REFUSALS.DUPLICATE },
+    });
   }
 
-  if (bookingRecord.status === "cancelled") {
+  if (bookingRecord.status === BOOKING_STATUSES.CANCELLED) {
     throw new Exception("Booking has been cancelled", { code: 400 });
   }
 
@@ -805,7 +783,8 @@ async function fetchAndValidateBooking(bookingId, userId) {
  * @param {number} transactionAmount - The total amount to charge to the card.
  * @param {Object} body - The raw request body containing token and billing details.
  * @param {Object|null} bookingRecord - The booking record (used as a fallback to extract user email).
- * @returns {Promise<Object>} An object containing standard payment response flags.
+ * @returns {Promise<Object>} `status` is SUCCESS or FAILED when Worldline answered, UNKNOWN when it
+ *   did not (no response, timeout or 5xx), in which case the card may have been charged.
  */
 async function executeWorldlinePayment(
   clientTransactionId,
@@ -813,30 +792,9 @@ async function executeWorldlinePayment(
   body,
   bookingRecord,
 ) {
-  const missingEnvs = [
-    ["PAYMENTS_API_SECRET", process.env.PAYMENTS_API_SECRET],
-    ["MERCHANT_ID_SECRET", process.env.MERCHANT_ID_SECRET],
-    ["HASH_KEY_SECRET", process.env.HASH_KEY_SECRET],
-    ["WORLDLINE_PAYMENT_API_URL", process.env.WORLDLINE_PAYMENT_API_URL],
-  ].filter(([, value]) => !value);
-  if (missingEnvs.length) {
-    throw new Exception(
-      `Missing required Worldline environment variables: ${missingEnvs.map(([name]) => name).join(", ")}`,
-      { code: 500 },
-    );
-  }
-
-  const paymentsApiPasscode = await getSecret(process.env.PAYMENTS_API_SECRET);
-  const merchantId = await getSecret(process.env.MERCHANT_ID_SECRET);
-
   logger.info(
     `Submitting token checkout payment to Worldline for transaction: ${clientTransactionId}`,
   );
-
-  const paymentApiUrl = process.env.WORLDLINE_PAYMENT_API_URL;
-  const basicAuthToken = Buffer.from(
-    `${merchantId}:${paymentsApiPasscode}`,
-  ).toString("base64");
 
   // Note: this should have everything the user has passed into the payment form AND
   // should have the user's details from their Cognito account (address, postal code).
@@ -870,173 +828,80 @@ async function executeWorldlinePayment(
     },
   };
 
-  // Attempt to POST the payment to Worldline with the payload
   try {
-    const res = await axios.post(paymentApiUrl, payload, {
-      headers: {
-        Authorization: `Passcode ${basicAuthToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const wlResponse = res.data;
-    const isApproved =
-      wlResponse?.approved === 1 ||
-      wlResponse?.approved === true ||
-      wlResponse?.approved === "1";
-
+    const wlResponse = await chargePayment(payload);
     return {
-      data: res.data,
-      status: isApproved ? "paid" : "failed",
+      data: wlResponse,
+      status: isApproved(wlResponse)
+        ? TRANSACTION_STATUSES.SUCCESS
+        : TRANSACTION_STATUSES.FAILED,
+      message: wlResponse?.message,
       errorStatusCode: null,
       errorDetailsObj: null,
     };
   } catch (postError) {
+    if (postError.providerNotCalled) throw postError;
     logger.error(
       "Worldline REST direct API charge failed:",
       postError.message,
     );
+    const providerStatus = postError.response?.status;
     const errDetails = postError.response?.data || {};
 
     return {
-      status: "failed",
-      clientTransactionId: "",
+      status:
+        !providerStatus || providerStatus >= 500
+          ? TRANSACTION_STATUSES.UNKNOWN
+          : TRANSACTION_STATUSES.FAILED,
       message: errDetails.message || postError.message,
-      authCode: "",
-      errorStatusCode: postError.response?.status || 400,
+      errorStatusCode: providerStatus || 400,
       errorDetailsObj: errDetails,
     };
   }
 }
 
-/**
- * Completes a booking after a successful payment, updating the booking status and sending confirmation email.
- * 
- * @param {*} body - The request body containing bookingId and sessionId.
- * @param {*} bookingRecord - The booking record fetched from the database.
- * @param {*} userId - The sub identifier of the user making the payment.
- * @param {*} clientTransactionId - The unique transaction ID for the payment.
- * @returns {Promise<Object>} - An object indicating success and the final booking status.
- * @throws {Exception} - Throws an exception if the booking completion fails.
- */
-async function completePaidBooking(
-  body,
-  bookingRecord,
-  userId,
-  clientTransactionId,
-  bookingDetails = {},
-) {
-  let completion;
-  try {
-    // Attempt to finalize the booking with the provided details
-    completion = await completeBooking(
-      body.bookingId,
-      body.sessionId || bookingRecord.sessionId,
-      {
-        ...bookingDetails,
-        clientTransactionId,
-        queryTime: Date.now(),
-        namedOccupant: bookingDetails.namedOccupant ?? bookingRecord.namedOccupant,
-        vehicleInformation:
-          bookingDetails.vehicleInformation ?? bookingRecord.vehicleInformation,
-        equipmentInformation:
-          bookingDetails.equipmentInformation ?? bookingRecord.equipmentInformation,
-      },
-      { sub: userId, paymentStarted: true, clientTransactionId },
-    );
-  } catch (completeErr) {
-    // The card is already charged: a retryable 503 would invite a second charge.
-    if (completeErr?.code === 503 || !(completeErr instanceof Exception)) {
-      logger.error("Payment taken but booking not finalized", {
-        bookingId: body?.bookingId,
-        clientTransactionId,
-      });
-      throw new Exception("Payment received but the booking could not be finalized", {
-        code: 500,
-        data: { bookingId: body?.bookingId, clientTransactionId },
-      });
-    }
-    throw completeErr;
-  }
-
-  // If the booking completion was successful, update the transaction record and send confirmation email
-  const { updateRequests, emailParams, smsParams, ownerIdentity } = completion;
-  try {
-    await batchTransactData(updateRequests);
-  } catch (writeErr) {
-    logger.error("Payment taken but booking update failed", {
-      bookingId: body?.bookingId,
-      clientTransactionId,
-      message: writeErr?.message,
-    });
-    throw new Exception("Payment received but the booking could not be finalized", {
-      code: 500,
-      data: { bookingId: body?.bookingId, clientTransactionId },
-    });
-  }
-  logger.info(
-    `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
-  );
-
-  // Send the booking confirmation email async, without blocking the response
-  if (emailParams) {
-    Promise.resolve()
-      .then(() => sendBookingConfirmationEmail(emailParams, userId, ownerIdentity))
-      .catch((emailErr) => {
-        logger.error(
-          "Asynchronous booking confirmation email trigger failed:",
-          emailErr,
-        );
-      });
-  }
-
-  try {
-    await enqueueSmsReminderIfNeeded(
-      smsParams,
-      { bookingId: body.bookingId },
-      smsParams?.namedOccupant?.contactInfo?.mobilePhone,
-    );
-  } catch (smsError) {
-    logger.error("Booking completed but confirmation SMS enqueue failed", {
-      bookingId: body.bookingId,
-      error: smsError?.message,
-      stack: smsError?.stack,
-    });
-  }
-
+/** The Worldline response fields stored on the attempt row. */
+function paymentResultFields(data) {
   return {
-    success: true,
-    status: "paid",
-    clientTransactionId,
-    bookingId: body?.bookingId,
+    cardAvsAddrMatch: data?.card?.address_match,
+    cardAvsId: data?.card?.avs?.id,
+    cardAvsMessage: data?.card?.avs?.message,
+    cardAvsPostalResult: data?.card?.postal_result,
+    cardAvsProcessed: data?.card?.avs?.processed,
+    cardAvsResult: data?.card?.avs_result,
+    cardBin: data?.card?.card_bin,
+    cardCvdId: data?.card?.cvd_result,
+    cardLastFour: data?.card?.last_four,
+    cardType: data?.card?.card_type,
+    customRef1: data?.custom?.ref1,
+    customRef2: data?.custom?.ref2,
+    customRef3: data?.custom?.ref3,
+    customRef4: data?.custom?.ref4,
+    customRef5: data?.custom?.ref5,
+    trnAmount: data?.amount,
+    trnApproved: data?.approved,
+    trnAuthCode: data?.auth_code,
+    trnCreated: data?.created,
+    trnId: data?.id,
+    trnMessage: data?.message,
+    trnOrderNumber: data?.order_number,
+    trnPaymentMethod: data?.payment_method,
+    trnRiskScore: data?.risk_score,
+    trnType: data?.type,
+    trnLinks: data?.links,
+    metadata: data,
   };
 }
 
-/**
- * Handle modern secure Custom Checkout (Tokenized Payment via Bambora/Worldline API)
- * Performs payment against Worldline, records approved charges, and completes the booking.
- * @param {Object} body - The parsed JSON body from the HTTP event.
- * @param {string} userId - The sub identifier of the requesting user.
- * @param {string} adminId - The sub identifier for the admin issuing payment (admin-only)
- * @returns {Promise<Object>} The final payment result and transaction state to return to the client.
- * @throws {Exception} Throws if payment fails or internal processing errors occur.
- */
+// Booking checks and the payment lock come before the charge; the attempt, lock and booking then commit
+// together. Throws 409 duplicate, 502 unknown outcome, 500 charged but not booked.
 async function processTokenTransaction(body, userId, adminId) {
   logger.info("Process token transaction", { bookingId: body?.bookingId, userId, adminId });
   try {
-    let bookingRecord = null;
-    let transactionAmount;
-
+    const bookingId = body.bookingId;
+    let bookingRecord;
     try {
-      bookingRecord = await fetchAndValidateBooking(body.bookingId, userId);
-
-      // If the request includes a sessionId, validate it against the booking record
-      if (body.sessionId && body.sessionId !== bookingRecord.sessionId) {
-        throw new Exception("Invalid session ID for payment", {
-          code: 403,
-          data: { adminId, bookingId: body.bookingId },
-        });
-      }
+      bookingRecord = await fetchAndValidateBooking(bookingId, userId);
     } catch (err) {
       // Re-throw the exception, but add some items for admin audit
       throw new Exception(
@@ -1045,87 +910,18 @@ async function processTokenTransaction(body, userId, adminId) {
           code: err?.code || 400,
           message: err?.msg || "Error fetching and validating booking",
           data: {
+            ...err?.data,
             adminId: adminId,
-            bookingId: body?.bookingId,
+            bookingId: bookingId,
           },
         },
       );
     }
 
-    // TODO: reconsider how we're getting fee information from a booking and validate
-    // validate with the fee using fee validation logic, and ensure the fee is correct for the booking.
-    // The booking should have a feePolicySnapshot with feeInformation.total
-    transactionAmount =
+    // TODO: work out the fee on the server once fee policies are priced, rather than trusting the snapshot.
+    const transactionAmount =
       bookingRecord?.feePolicySnapshot?.feeInformation?.total ??
       bookingRecord?.feeValues?.bookingTotal;
-
-    // Check for existing transactions for this bookingId and userId
-    let existingTransactions;
-    try {
-      ({ items: existingTransactions = [] } = await getTransactionsByBookingId(
-        body.bookingId,
-      ));
-    } catch (err) {
-      throw new Exception(err?.message || "Error checking existing payments", {
-        code: err?.code || 400,
-        data: { adminId, bookingId: body?.bookingId },
-      });
-    }
-
-    // Check for any existing transactions that are already paid or in refund process
-    const outstandingPayment = existingTransactions.find(
-      (transaction) =>
-        transaction?.schema === "transaction" &&
-        transaction.userId === userId &&
-        ["paid", "partial refund", "refund in progress"].includes(
-          transaction.status,
-        ),
-    );
-
-    const namedOccupant = body?.namedOccupant || bookingRecord?.namedOccupant;
-    const vehicleInformation = body?.vehicleInformation ?? bookingRecord?.vehicleInformation;
-    const equipmentInformation = body?.equipmentInformation ?? bookingRecord?.equipmentInformation;
-
-    // completeBooking refuses a booking without occupant details. Check before charging,
-    // so a bad request is refused while the card is still untouched.
-    if (!namedOccupant) {
-      throw new Exception("Named occupant information is required to pay for a booking", {
-        code: 400,
-        data: { adminId: adminId, bookingId: body?.bookingId },
-      });
-    }
-
-    // If an existing paid transaction is found, resume booking completion
-    if (outstandingPayment?.status === "paid") {
-      logger.info("Resuming booking completion for an existing paid transaction", {
-        bookingId: body.bookingId,
-        clientTransactionId: outstandingPayment.clientTransactionId,
-      });
-      return await completePaidBooking(
-        body,
-        bookingRecord,
-        userId,
-        outstandingPayment.clientTransactionId,
-        { namedOccupant, vehicleInformation, equipmentInformation },
-      );
-    }
-
-    // If an existing transaction is found that is in refund progress or partial refund, block new payment
-    if (outstandingPayment) {
-      throw new Exception(
-        "A payment for this booking is already being refunded or requires review",
-        {
-          code: 409,
-          data: {
-            adminId,
-            bookingId: body.bookingId,
-            clientTransactionId: outstandingPayment.clientTransactionId,
-          },
-        },
-      );
-    }
-
-    // Validate the transaction amount is an acceptable number
     if (
       typeof transactionAmount !== "number" ||
       !Number.isFinite(transactionAmount) ||
@@ -1133,111 +929,104 @@ async function processTokenTransaction(body, userId, adminId) {
     ) {
       throw new Exception("Unable to determine a valid booking amount for payment", {
         code: 400,
-        data: { adminId, bookingId: body?.bookingId },
+        data: { adminId, bookingId },
       });
     }
 
-    // Create the Worldline transaction prefix
+    let lock = await getPaymentLock(bookingId);
+    if (isPaymentStuck(lock)) ({ lock } = await reconcilePayment(bookingId));
+    await assertPaymentAllowed(bookingId, lock);
+
     const clientTransactionId = createWorldlineUuidWithPrefix(
       crypto.randomUUID(),
       "BCPR-",
     );
-
-    // Create the Worldline transaction
-    const paymentResult = await executeWorldlinePayment(
-      clientTransactionId,
-      transactionAmount,
-      body,
-      bookingRecord,
+    // Checked before charging, so a refusal (expired session, unverified email) moves no money.
+    // The booking's link to this payment commits with the SUCCESS, so a failed attempt never reaches it.
+    const completion = await completeBooking(
+      bookingId,
+      body.sessionId || bookingRecord.sessionId,
+      {
+        namedOccupant: body.namedOccupant || bookingRecord.namedOccupant,
+        vehicleInformation: body.vehicleInformation ?? bookingRecord.vehicleInformation,
+        equipmentInformation: body.equipmentInformation ?? bookingRecord.equipmentInformation,
+        smsOptIn: body.smsOptIn,
+      },
+      { sub: userId, clientTransactionId },
     );
 
     const today = getNow().toFormat("yyyy-LL-dd");
-
-    // Cleanly map the database record without mutating paymentResult
-    const transactionObj = {
-      pk: `transaction::${body.bookingId}`,
+    const source = adminId ? "admin" : "public";
+    const attempt = {
+      pk: `transaction::${bookingId}`,
       sk: `${today}::${clientTransactionId}`,
       amount: transactionAmount,
-      bookingId: body.bookingId,
+      bookingId: bookingId,
       clientTransactionId: clientTransactionId,
       date: today,
       globalId: clientTransactionId,
       schema: "transaction",
       sessionId: body.sessionId || bookingRecord?.sessionId,
-      status: paymentResult?.status,
+      status: TRANSACTION_STATUSES.PENDING,
       userId: userId,
-      cardAvsAddrMatch: paymentResult?.data?.card?.address_match,
-      cardAvsId: paymentResult?.data?.card?.avs?.id,
-      cardAvsMessage: paymentResult?.data?.card?.avs?.message,
-      cardAvsPostalResult: paymentResult?.data?.card?.postal_result,
-      cardAvsProcessed: paymentResult?.data?.card?.avs?.processed,
-      cardAvsResult: paymentResult?.data?.card?.avs_result,
-      cardBin: paymentResult?.data?.card?.card_bin,
-      cardCvdId: paymentResult?.data?.card?.cvd_result,
-      cardLastFour: paymentResult?.data?.card?.last_four,
-      cardType: paymentResult?.data?.card?.card_type,
-      customRef1: paymentResult?.data?.custom?.ref1,
-      customRef2: paymentResult?.data?.custom?.ref2,
-      customRef3: paymentResult?.data?.custom?.ref3,
-      customRef4: paymentResult?.data?.custom?.ref4,
-      customRef5: paymentResult?.data?.custom?.ref5,
-      trnAmount: paymentResult?.data?.amount,
-      trnApproved: paymentResult?.data?.approved,
-      trnAuthCode: paymentResult?.data?.auth_code,
-      // trnCustomerName: body?.
-      trnCreated: paymentResult?.data?.created,
-      // trnEmailAddress: body?.
-      trnId: paymentResult?.data?.id,
-      trnMessage: paymentResult?.data?.message,
-      trnOrderNumber: paymentResult?.data?.order_number,
-      trnPaymentMethod: paymentResult?.data?.payment_method,
-      // trnPhoneNumber: body?.,
-      trnRiskScore: paymentResult?.data?.risk_score,
-      trnType: paymentResult?.data?.type,
-      trnLinks: paymentResult?.data?.links,
-      // Slap it all in there as metadata
-      metadata: paymentResult?.data,
+      source,
+      adminId: adminId || undefined,
+      statusHistory: [historyEntry(TRANSACTION_STATUSES.PENDING, source)],
     };
+    await acquirePaymentLock(attempt, lock, bookingRecord);
 
-    // Remove anything that's undefined
-    Object.keys(transactionObj).forEach((key) => {
-      if (transactionObj[key] === undefined) {
-        delete transactionObj[key];
-      }
-    });
-
-    const putItemsTransaction = await quickApiPutHandler(
-      TRANSACTIONAL_DATA_TABLE_NAME,
-      [
-        {
-          key: { pk: transactionObj.pk, sk: transactionObj.sk },
-          data: transactionObj,
-        },
-      ],
-      TRANSACTION_PUT_CONFIG,
-    );
-
-    // Record the attempt as soon as Worldline answers, on its own: a paid row must survive
-    // even if confirming the booking below is refused or loses a race with another tab.
+    let paymentResult;
     try {
-      await batchTransactData(putItemsTransaction);
-    } catch (writeErr) {
-      // Worldline's id is the only way to find this charge again if the row was not written.
-      logger.error("event=payment_not_recorded", {
-        bookingId: body?.bookingId,
+      paymentResult = await executeWorldlinePayment(
         clientTransactionId,
-        status: paymentResult?.status,
-        trnId: paymentResult?.data?.id,
-        message: writeErr?.message,
+        transactionAmount,
+        body,
+        bookingRecord,
+      );
+    } catch (setupErr) {
+      // Thrown before Worldline was called (secrets lookup), so nothing was charged: free the lock.
+      await settlePaymentAttempt({
+        attempt,
+        from: TRANSACTION_STATUSES.PENDING,
+        to: TRANSACTION_STATUSES.FAILED,
+        source,
+        history: { providerMessage: setupErr?.message },
       });
-      throw writeErr;
+      throw setupErr;
+    }
+    const resultFields = paymentResultFields(paymentResult.data);
+    const transition = {
+      attempt,
+      from: TRANSACTION_STATUSES.PENDING,
+      to: paymentResult.status,
+      source,
+      fields: resultFields,
+      history: {
+        providerMessage: paymentResult.message,
+        providerTrnId: paymentResult.data?.id,
+      },
+    };
+    const transactionObj = { ...attempt, ...resultFields, status: paymentResult.status };
+
+    if (paymentResult.status === TRANSACTION_STATUSES.UNKNOWN) {
+      await settlePaymentAttempt(transition);
+      logger.error("event=payment_unconfirmed", { bookingId, clientTransactionId });
+      throw new Exception(
+        "We could not confirm your payment. Do not pay again; contact support if your card was charged.",
+        {
+          code: 502,
+          data: {
+            refusal: PAYMENT_REFUSALS.UNCONFIRMED,
+            adminId,
+            bookingId,
+            clientTransactionId,
+          },
+        },
+      );
     }
 
-    // Handle failed payment
-    if (
-      paymentResult.status !== "paid" ||
-      paymentResult.data?.approved != "1"
-    ) {
+    if (paymentResult.status === TRANSACTION_STATUSES.FAILED) {
+      await settlePaymentAttempt(transition);
       // Throw an error that captures the adminId, for admin payments
       throw new Exception(
         `Worldline Payment Transaction Failed: ${paymentResult?.message}`,
@@ -1246,24 +1035,78 @@ async function processTokenTransaction(body, userId, adminId) {
           error: paymentResult.errorDetailsObj || null,
           data: {
             adminId: adminId,
-            bookingId: body?.bookingId,
+            bookingId: bookingId,
           },
         },
       );
     }
 
-    return await completePaidBooking(
-      body,
-      bookingRecord,
-      userId,
-      clientTransactionId,
-      {
-        namedOccupant,
-        vehicleInformation,
-        equipmentInformation,
-        smsOptIn: body?.smsOptIn,
-      },
+    try {
+      // completeBooking's updateRequests are already built and conditioned on the booking still being held.
+      await transitionPaymentAttempt({ ...transition, extraOps: completion.updateRequests });
+    } catch (finalizeErr) {
+      // The card is charged: keep the SUCCESS on record so the charge can be reconciled.
+      logger.error("event=payment_booking_completion_failed", {
+        bookingId,
+        clientTransactionId,
+        error: finalizeErr?.message,
+      });
+      const flags = { bookingCompletionFailed: true, needsReconciliation: true };
+      await settlePaymentAttempt({
+        ...transition,
+        fields: { ...resultFields, ...flags },
+        lockFields: flags,
+      });
+      const chargeReversed = await voidPaymentAttempt({
+        attempt,
+        trnId: paymentResult.data?.id,
+        amount: Number(transactionAmount.toFixed(2)),
+        source,
+      });
+      throw new Exception(
+        chargeReversed
+          ? "The booking could not be finalized. Your payment was reversed and you have not been charged."
+          : "Payment received but the booking could not be finalized, and the charge could not be reversed automatically. Contact support; do not pay again.",
+        {
+          code: 500,
+          data: { adminId, bookingId, clientTransactionId, chargeReversed },
+        },
+      );
+    }
+    logger.info(
+      `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${bookingId}`,
     );
+
+    // Booking is durable; now the notifications, as POST /bookings/{id}/complete sends them.
+    // Failures are logged and do not undo the booking.
+    const { emailParams, smsParams, ownerIdentity } = completion;
+    try {
+      await sendBookingConfirmationEmail(emailParams, userId, ownerIdentity);
+    } catch (emailErr) {
+      logger.error("Paid booking confirmed but confirmation email send failed", {
+        bookingId: body?.bookingId,
+        error: emailErr?.message,
+      });
+    }
+    try {
+      await enqueueSmsReminderIfNeeded(
+        smsParams,
+        { bookingId: body?.bookingId },
+        smsParams?.namedOccupant?.contactInfo?.mobilePhone,
+      );
+    } catch (smsErr) {
+      logger.error("Paid booking confirmed but confirmation SMS enqueue failed", {
+        bookingId: body?.bookingId,
+        error: smsErr?.message,
+      });
+    }
+
+    return {
+      success: true,
+      status: TRANSACTION_STATUSES.SUCCESS,
+      clientTransactionId,
+      bookingId,
+    };
   } catch (err) {
     if (err instanceof Exception) throw err;
     const message = `Error processing token transaction: ${err.message || err}`;

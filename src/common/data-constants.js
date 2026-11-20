@@ -96,6 +96,15 @@ const BOOKING_STATUSES = {
 
 const BOOKING_STATUS_ENUMS = Object.values(BOOKING_STATUSES);
 
+// Payment attempt states, stored as the existing transaction status strings.
+const TRANSACTION_STATUSES = {
+  PENDING: 'in progress',
+  SUCCESS: 'paid',
+  FAILED: 'failed',
+  UNKNOWN: 'unknown',
+  VOIDED: 'void',
+};
+
 const TRANSACTION_STATUS_ENUMS = [
   'in progress',
   'paid',
@@ -150,6 +159,7 @@ module.exports = {
   DEFAULT_API_UPDATE_CONFIG,
   DURATION_PROPERTY_ENUMS,
   TIME_24H_ENUMS,
+  TRANSACTION_STATUSES,
   TRANSACTION_STATUS_ENUMS,
   INVENTORY_STATUS_ENUMS,
   ALLOWED_FILTERS,
