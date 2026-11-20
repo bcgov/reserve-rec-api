@@ -68,11 +68,6 @@ exports.handler = async (event, context) => {
       throw refused("owner", `User ${userId} does not own booking ${bookingId}`, 403);
     }
 
-    // Backcountry bookings are final: no changes, cancellations or refunds.
-    if (booking.activityType === "backcountryCamp") {
-      throw refused("state", "Backcountry bookings cannot be cancelled", 409);
-    }
-
     if (booking.status === BOOKING_STATUSES.IN_PROGRESS) {
       throw refused("state", `Booking ${bookingId} is in progress`, 409);
     }
@@ -80,6 +75,12 @@ exports.handler = async (event, context) => {
     // Check if booking is already cancelled
     if (booking.status === "cancelled") {
       throw refused("state", `Booking ${bookingId} is already cancelled`, 409);
+    }
+
+    // Backcountry bookings are final: no changes, cancellations or refunds.
+    // Checked after the state checks so a cancelled one says "already cancelled".
+    if (booking.activityType === "backcountryCamp") {
+      throw refused("state", "Backcountry bookings cannot be cancelled", 409);
     }
 
     // Check if booking is already checked-in

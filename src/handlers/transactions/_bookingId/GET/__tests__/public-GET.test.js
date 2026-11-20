@@ -130,6 +130,21 @@ const baseTransaction = {
   metadata: {}
 };
 
+// What the public page gets back: the payment card's fields, nothing Worldline-internal.
+const publicView = (t) => ({
+  clientTransactionId: t.clientTransactionId,
+  bookingId: t.bookingId,
+  date: t.date,
+  status: t.status,
+  amount: t.amount,
+  trnAmount: t.trnAmount,
+  trnCreated: t.trnCreated,
+  trnApproved: t.trnApproved,
+  trnMessage: t.trnMessage,
+  cardType: t.cardType,
+  cardLastFour: t.cardLastFour,
+});
+
 const mine = { ...baseTransaction, sk: "mine-2" };
 const notMine = { ...baseTransaction, sk: "not-mine", userId: "not-the-right-user" };
 
@@ -150,7 +165,7 @@ describe("Public Transaction GET handler", () => {
     const result = await handler(event, {});
 
     expect(result.status).toBe(200);
-    expect(result.data).toEqual([baseTransaction, mine]);
+    expect(result.data).toEqual([publicView(baseTransaction), publicView(mine)]);
   });
 
   it("returns only the caller's transactions for a bookingId and date", async () => {
@@ -164,7 +179,7 @@ describe("Public Transaction GET handler", () => {
 
     expect(getTransactionsByBookingIdDate).toHaveBeenCalledWith(MOCK_BOOKING_ID, DATE);
     expect(result.status).toBe(200);
-    expect(result.data).toEqual([baseTransaction]);
+    expect(result.data).toEqual([publicView(baseTransaction)]);
   });
 
   it("gets the caller's transaction using a clientTransactionId", async () => {
@@ -177,7 +192,20 @@ describe("Public Transaction GET handler", () => {
 
     expect(findAndVerifyTransactionOwnership).toHaveBeenCalledWith(TRANSACTION_ID, MOCK_USER_ID);
     expect(result.status).toBe(200);
-    expect(result.data).toEqual(baseTransaction);
+    expect(result.data).toEqual(publicView(baseTransaction));
+  });
+
+  it("never returns the card BIN, AVS/CVD results, Worldline links, refs or session", async () => {
+    const event = makeEvent({
+      sub: MOCK_USER_ID,
+      queryStringParameters: { clientTransactionId: TRANSACTION_ID }
+    });
+
+    const result = await handler(event, {});
+
+    for (const field of ["cardBin", "cardAvsResult", "cardCvdId", "trnLinks", "customRef2", "sessionId", "trnRiskScore", "metadata", "pk", "userId"]) {
+      expect(result.data).not.toHaveProperty(field);
+    }
   });
 
   it("refuses a clientTransactionId the caller does not own", async () => {

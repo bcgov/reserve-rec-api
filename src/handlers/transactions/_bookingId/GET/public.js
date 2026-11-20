@@ -13,6 +13,12 @@ const {
   getTransactionsByBookingIdDate,
   findAndVerifyTransactionOwnership,
 } = require("../../methods");
+const { PUBLIC_TRANSACTION_FIELDS } = require("../../configs");
+
+const publicView = (transaction) => Object.fromEntries(
+  PUBLIC_TRANSACTION_FIELDS.filter((field) => transaction?.[field] !== undefined)
+    .map((field) => [field, transaction[field]]),
+);
 
 exports.handler = async (event, context) => {
   logger.info("Transactions user GET:", requestIdentity(event));
@@ -40,7 +46,7 @@ exports.handler = async (event, context) => {
         userId,
       );
 
-      return sendResponse(200, transaction, "Success", null, context);
+      return sendResponse(200, publicView(transaction), "Success", null, context);
     } else if (bookingId) {
       // Get the transactions for a booking, optionally on one date
       // runQuery returns { items, lastEvaluatedKey }, not an array
@@ -52,7 +58,7 @@ exports.handler = async (event, context) => {
         (transaction) => transaction.userId === userId,
       );
 
-      return sendResponse(200, validTransactions, "Success", null, context);
+      return sendResponse(200, validTransactions.map(publicView), "Success", null, context);
     } else {
       throw new Exception(
         "Invalid: missing bookingId, date, and/or clientTransactionId",

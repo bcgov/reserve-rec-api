@@ -179,6 +179,14 @@ describe("Bookings Cancel handler", () => {
     expect(flagCancelledBooking).not.toHaveBeenCalled();
   });
 
+  it("says a cancelled backcountry booking is already cancelled, not that it cannot be cancelled", async () => {
+    getBookingByBookingId.mockResolvedValue({ ...baseBooking, activityType: "backcountryCamp", status: "cancelled" });
+    const result = await handler(makeEvent({}), {});
+    expect(result.status).toBe(409);
+    expect(result.message).toContain("is already cancelled");
+    expect(flagCancelledBooking).not.toHaveBeenCalled();
+  });
+
   it("returns 409 when booking status isn't confirmed", async () => {
     getBookingByBookingId.mockResolvedValue({ ...baseBooking, status: 'something' });
     const event = makeEvent({});
