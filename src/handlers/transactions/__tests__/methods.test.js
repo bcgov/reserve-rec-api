@@ -257,7 +257,8 @@ describe("Method: processTokenTransaction", () => {
       expect.any(Object),
     );
 
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    // The paid row on its own, then the booking update.
+    expect(batchTransactData).toHaveBeenCalledTimes(2);
   });
 
   it("completes the booking as paid", async () => {

@@ -46,9 +46,14 @@ jest.mock("../../src/handlers/bookings/methods", () => ({
   sendBookingConfirmationEmail: jest.fn(),
 }));
 
+jest.mock("../../src/handlers/bookings/notifications", () => ({
+  enqueueSmsReminderIfNeeded: jest.fn(),
+}));
+
 const axios = require("axios");
 const { batchTransactData, getOneByGlobalId } = require("/opt/dynamodb");
-const { completeBooking } = require("../../src/handlers/bookings/methods");
+const { completeBooking, sendBookingConfirmationEmail } = require("../../src/handlers/bookings/methods");
+const { enqueueSmsReminderIfNeeded } = require("../../src/handlers/bookings/notifications");
 const {
   processTokenTransaction,
   updateTransactionForPayment,
@@ -117,12 +122,14 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     });
     completeBooking.mockResolvedValue({
       updateRequests: [bookingUpdate],
-      emailParams: null,
+      emailParams: { to: "jane@example.com" },
+      smsParams: { smsOptIn: true, namedOccupant: { contactInfo: { mobilePhone: "+12505550100" } } },
+      ownerIdentity: { email: "jane@example.com" },
     });
     batchTransactData.mockResolvedValue({});
   });
 
-  it("writes an approved payment as a create-only paid transaction row plus the booking update in one batch", async () => {
+  it("writes an approved payment as a create-only paid transaction row on its own, then the booking update", async () => {
     axios.post.mockResolvedValue({ data: worldlineResponse() });
 
     const result = await processTokenTransaction(body, "user-1", null);
@@ -146,7 +153,52 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     });
     expect(put.data.Item.sk).toMatch(/^2026-06-11::BCPR-/);
     expect(put.data.Item.clientTransactionId).toHaveLength(30);
-    expect(writes).toContainEqual(expect.objectContaining({ action: "Update", data: expect.objectContaining({ Key: bookingUpdate.data.Key }) }));
+    expect(writes).toHaveLength(1);
+    expect(batchTransactData.mock.calls[1][0]).toEqual([bookingUpdate]);
+  });
+
+  it("keeps the paid row when the booking is refused after the charge, and answers a non-retryable 500", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+    completeBooking.mockRejectedValueOnce({ code: 409, message: "Session id does not match" });
+
+    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+    expect(err.code).toBe(500);
+    expect(batchTransactData).toHaveBeenCalledTimes(1);
+    expect(batchTransactData.mock.calls[0][0][0].data.Item.status).toBe("paid");
+  });
+
+  it("keeps the paid row when the booking write loses a race (isPending already gone)", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+    batchTransactData.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("ConditionalCheckFailed"));
+
+    const err = await processTokenTransaction(body, "user-1", null).catch((e) => e);
+
+    expect(err.code).toBe(500);
+    expect(batchTransactData.mock.calls[0][0][0].data.Item.status).toBe("paid");
+  });
+
+  it("sends the confirmation email and SMS once the paid booking is saved", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+
+    await processTokenTransaction(body, "user-1", null);
+
+    expect(sendBookingConfirmationEmail).toHaveBeenCalledWith({ to: "jane@example.com" }, "user-1", { email: "jane@example.com" });
+    expect(enqueueSmsReminderIfNeeded).toHaveBeenCalledWith(
+      expect.objectContaining({ smsOptIn: true }),
+      { bookingId: "booking-1" },
+      "+12505550100",
+    );
+  });
+
+  it("still answers paid when the confirmation email fails", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+    sendBookingConfirmationEmail.mockRejectedValueOnce(new Error("EMAIL_QUEUE_URL environment variable not set"));
+
+    const result = await processTokenTransaction(body, "user-1", null);
+
+    expect(result.status).toBe("paid");
+    expect(enqueueSmsReminderIfNeeded).toHaveBeenCalled();
   });
 
   it("completes the booking with the occupant, vehicle and equipment details from the request", async () => {

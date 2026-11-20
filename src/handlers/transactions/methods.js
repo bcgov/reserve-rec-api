@@ -30,6 +30,7 @@ const {
   sendBookingConfirmationEmail,
 } = require("../bookings/methods");
 const { BOOKING_STATUSES } = require("../../common/data-constants");
+const { enqueueSmsReminderIfNeeded } = require("../bookings/notifications");
 
 const HASH_KEY = process.env.HASH_KEY;
 const MERCHANT_ID = process.env.MERCHANT_ID;
@@ -936,13 +937,27 @@ async function processTokenTransaction(body, userId, adminId) {
       TRANSACTION_PUT_CONFIG,
     );
 
-    // Handle failed payment write
+    // Record the attempt as soon as Worldline answers, on its own: a paid row must survive
+    // even if confirming the booking below is refused or loses a race with another tab.
+    try {
+      await batchTransactData(putItemsTransaction);
+    } catch (writeErr) {
+      // Worldline's id is the only way to find this charge again if the row was not written.
+      logger.error("event=payment_not_recorded", {
+        bookingId: body?.bookingId,
+        clientTransactionId,
+        status: paymentResult?.status,
+        trnId: paymentResult?.data?.id,
+        message: writeErr?.message,
+      });
+      throw writeErr;
+    }
+
+    // Handle failed payment
     if (
       paymentResult.status !== "paid" ||
       paymentResult.data?.approved != "1"
     ) {
-      await batchTransactData(putItemsTransaction);
-
       // Throw an error that captures the adminId, for admin payments
       throw new Exception(
         `Worldline Payment Transaction Failed: ${paymentResult?.message}`,
@@ -959,7 +974,8 @@ async function processTokenTransaction(body, userId, adminId) {
       );
     }
 
-    // Handle standard successful write and complete booking
+    // The card is charged and the payment is recorded. From here a failure leaves a paid
+    // transaction with no confirmed booking, which needs a person to refund or confirm it.
     let completion;
     try {
       completion = await completeBooking(
@@ -976,35 +992,45 @@ async function processTokenTransaction(body, userId, adminId) {
         },
         { sub: userId, paymentStarted: true, clientTransactionId },
       );
+      await batchTransactData(completion.updateRequests);
     } catch (completeErr) {
-      // The card is already charged: a retryable 503 would invite a second charge.
-      if (completeErr?.code === 503) {
-        logger.error("Payment taken but booking not finalized", {
-          bookingId: body?.bookingId,
-          clientTransactionId,
-        });
-        throw new Exception("Payment received but the booking could not be finalized", {
-          code: 500,
-          data: { bookingId: body?.bookingId, clientTransactionId },
-        });
-      }
-      throw completeErr;
+      logger.error("event=paid_booking_not_confirmed", {
+        bookingId: body?.bookingId,
+        clientTransactionId,
+        code: completeErr?.code,
+        message: completeErr?.message,
+      });
+      // Never a retryable error: a retry would charge the card a second time.
+      throw new Exception("Payment received but the booking could not be finalized", {
+        code: 500,
+        data: { bookingId: body?.bookingId, clientTransactionId },
+      });
     }
-    const { updateRequests, emailParams, ownerIdentity } = completion;
-
-    // completeBooking already returns finished update requests, so they go straight in.
-    await batchTransactData([...putItemsTransaction, ...updateRequests]);
     logger.info(
       `Successfully stored paid transaction ${clientTransactionId} and finalized booking ${body.bookingId}`,
     );
 
-    // Side effects (emails)
-    if (emailParams) {
-      sendBookingConfirmationEmail(emailParams, userId, ownerIdentity).catch((emailErr) => {
-        logger.error(
-          "Asynchronous booking confirmation email trigger failed:",
-          emailErr,
-        );
+    // Booking is durable; now the notifications, as POST /bookings/{id}/complete sends them.
+    // Failures are logged and do not undo the booking.
+    const { emailParams, smsParams, ownerIdentity } = completion;
+    try {
+      await sendBookingConfirmationEmail(emailParams, userId, ownerIdentity);
+    } catch (emailErr) {
+      logger.error("Paid booking confirmed but confirmation email send failed", {
+        bookingId: body?.bookingId,
+        error: emailErr?.message,
+      });
+    }
+    try {
+      await enqueueSmsReminderIfNeeded(
+        smsParams,
+        { bookingId: body?.bookingId },
+        smsParams?.namedOccupant?.contactInfo?.mobilePhone,
+      );
+    } catch (smsErr) {
+      logger.error("Paid booking confirmed but confirmation SMS enqueue failed", {
+        bookingId: body?.bookingId,
+        error: smsErr?.message,
       });
     }
 
