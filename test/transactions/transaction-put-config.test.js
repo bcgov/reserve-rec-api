@@ -99,6 +99,11 @@ const body = {
   sessionId: "session-1",
   token: "tok-1",
   cardholderName: "Jane Camper",
+  // The same fields the free path sends to POST /bookings/{id}/complete.
+  namedOccupant: { contactInfo: { postalCode: "V8V 1A1", city: "Victoria" } },
+  vehicleInformation: [{ licensePlate: "ABC123", licensePlateRegistrationRegion: "BC" }],
+  equipmentInformation: "tent",
+  smsOptIn: true,
 };
 
 describe("processTokenTransaction stores the transaction through TRANSACTION_PUT_CONFIG", () => {
@@ -142,6 +147,34 @@ describe("processTokenTransaction stores the transaction through TRANSACTION_PUT
     expect(put.data.Item.sk).toMatch(/^2026-06-11::BCPR-/);
     expect(put.data.Item.clientTransactionId).toHaveLength(30);
     expect(writes).toContainEqual(expect.objectContaining({ action: "Update", data: expect.objectContaining({ Key: bookingUpdate.data.Key }) }));
+  });
+
+  it("completes the booking with the occupant, vehicle and equipment details from the request", async () => {
+    axios.post.mockResolvedValue({ data: worldlineResponse() });
+
+    await processTokenTransaction(body, "user-1", null);
+
+    expect(completeBooking).toHaveBeenCalledWith(
+      "booking-1",
+      "session-1",
+      expect.objectContaining({
+        namedOccupant: body.namedOccupant,
+        vehicleInformation: body.vehicleInformation,
+        equipmentInformation: "tent",
+        smsOptIn: true,
+        clientTransactionId: expect.any(String),
+      }),
+      { sub: "user-1", paymentStarted: true },
+    );
+  });
+
+  it("refuses a request without occupant details before charging the card", async () => {
+    const { namedOccupant, ...noOccupant } = body;
+
+    await expect(processTokenTransaction(noOccupant, "user-1", null)).rejects.toMatchObject({ code: 400 });
+
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(batchTransactData).not.toHaveBeenCalled();
   });
 
   it("stores a declined payment as a failed transaction and reports the decline", async () => {

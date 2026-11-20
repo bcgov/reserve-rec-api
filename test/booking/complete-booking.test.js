@@ -210,6 +210,20 @@ describe("completeBooking", () => {
     expect(updateRequests[0].data.ExpressionAttributeValues[":clientTransactionId"]).toBe("BCPR-123");
   });
 
+  it("refuses a paid completion that carries only the payment id, with no occupant details", async () => {
+    await expect(
+      completeBooking("bk-1", "sess-1", { clientTransactionId: "BCPR-123", queryTime: NOW }, { sub: "sub-1", paymentStarted: true }),
+    ).rejects.toMatchObject({ code: 400 });
+  });
+
+  it("keeps the vehicle and equipment details on a paid completion", async () => {
+    const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "BCPR-123" }, { sub: "sub-1", paymentStarted: true });
+
+    const values = updateRequests[0].data.ExpressionAttributeValues;
+    expect(values[":equipmentInformation"]).toBe("tent");
+    expect(values[":vehicleInformation"]).toHaveLength(5);
+  });
+
   it("ignores a clientTransactionId sent by the client on a booking completed without payment", async () => {
     const { updateRequests } = await completeBooking("bk-1", "sess-1", { ...body(), clientTransactionId: "someone-elses-txn" }, { sub: "sub-1" });
 

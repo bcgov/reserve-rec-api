@@ -144,6 +144,7 @@ describe("Method: processTokenTransaction", () => {
     userId: MOCK_USER_ID,
     token: "mock-payment-token",
     cardholderName: "Jane Camper",
+    namedOccupant: { contactInfo: { city: "Victoria" } },
   };
 
   beforeEach(() => {

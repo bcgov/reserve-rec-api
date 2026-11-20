@@ -846,6 +846,15 @@ async function processTokenTransaction(body, userId, adminId) {
       );
     }
 
+    // completeBooking refuses a booking without occupant details. Check before charging,
+    // so a bad request is refused while the card is still untouched.
+    if (!body?.namedOccupant) {
+      throw new Exception("Named occupant information is required to pay for a booking", {
+        code: 400,
+        data: { adminId: adminId, bookingId: body?.bookingId },
+      });
+    }
+
     // Create the Worldline transaction prefix
     const clientTransactionId = createWorldlineUuidWithPrefix(
       crypto.randomUUID(),
@@ -955,7 +964,16 @@ async function processTokenTransaction(body, userId, adminId) {
       completion = await completeBooking(
         body.bookingId,
         body.sessionId,
-        { clientTransactionId: clientTransactionId, queryTime: Date.now() },
+        // The same details the free path sends to POST /bookings/{id}/complete; without them
+        // completeBooking refuses the booking or blanks the vehicle and equipment fields.
+        {
+          clientTransactionId: clientTransactionId,
+          queryTime: Date.now(),
+          namedOccupant: body.namedOccupant,
+          vehicleInformation: body.vehicleInformation,
+          equipmentInformation: body.equipmentInformation,
+          smsOptIn: body.smsOptIn,
+        },
         { sub: userId, paymentStarted: true },
       );
     } catch (completeErr) {
