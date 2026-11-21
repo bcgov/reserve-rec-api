@@ -9,6 +9,7 @@ const {
   writeAuditLog,
 } = require("/opt/base");
 const { processTokenTransaction } = require("../../methods");
+const { PAYMENT_REFUSALS } = require("../../payment-attempts");
 const {
   AUDIT_TABLE_NAME,
   batchWriteData,
@@ -18,16 +19,18 @@ const {
 exports.handler = async (event, context) => {
   logger.info("Transactions admin POST:", requestIdentity(event));
 
+  let adminId = null;
+  let body = null;
   try {
     // Only allow superadmins to make payments
     const authContext = checkAuthContext(event, "superadmin");
 
     // Get relevant data from the event
-    const body = JSON.parse(event?.body);
+    body = JSON.parse(event?.body);
     logger.debug("transaction body: ", body);
 
     // Get the user sub from the authorizer context (admin user)
-    const adminId = getRequestClaimsFromEvent(event)?.sub || null;
+    adminId = getRequestClaimsFromEvent(event)?.sub || null;
 
     if (!adminId) {
       const message = "Unauthorized: Authentication required to create transaction";
@@ -81,11 +84,12 @@ exports.handler = async (event, context) => {
 
     return sendResponse(200, { response }, "Success", null, context);
   } catch (error) {
-    const bookingId = error?.data?.bookingId || event?.pathParameters?.bookingId;
+    const duplicate = error?.data?.refusal === PAYMENT_REFUSALS.DUPLICATE;
+    const bookingId = body?.bookingId || error?.data?.bookingId || event?.pathParameters?.bookingId;
     await writeAuditLog(
-      error?.data?.adminId,
-      bookingId ? `BCPR-${bookingId}` : "unknown",
-      "ADMIN_PAYMENT_FAILURE",
+      adminId || error?.data?.adminId,
+      error?.data?.clientTransactionId || (bookingId ? `BCPR-${bookingId}` : "unknown"),
+      duplicate ? "ADMIN_PAYMENT_DUPLICATE" : "ADMIN_PAYMENT_FAILURE",
       {
         success: false,
         message: error.msg || error.message,

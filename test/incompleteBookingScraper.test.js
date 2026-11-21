@@ -3,6 +3,7 @@ jest.mock('/opt/dynamodb', () => ({
   marshall: jest.fn((v) => ({ S: v })),
   batchTransactData: jest.fn(),
   getOne: jest.fn(),
+  isConditionFailure: jest.requireActual('../src/layers/awsUtils/dynamodb.js').isConditionFailure,
 }));
 
 jest.mock('../src/handlers/bookings/methods', () => ({
@@ -73,5 +74,33 @@ describe('incompleteBookingScraper timeout update', () => {
       ([items]) => items?.[0]?.data?.UpdateExpression?.includes('#timedOutAt')
     );
     expect(timeoutCall).toBeUndefined();
+  });
+
+  it('times the booking out only if no payment for it is underway, in the same transaction', async () => {
+    const booking = expiredInProgressBooking();
+    getExpiredBookings.mockResolvedValue({ items: [{ pk: booking.pk, sk: booking.sk, bookingId: booking.bookingId }] });
+    getOne.mockResolvedValue(booking);
+
+    await handler({}, {});
+
+    const [items] = batchTransactData.mock.calls[0];
+    const check = items.find((item) => item.action === 'ConditionCheck');
+    expect(check.data.Key).toEqual({ pk: { S: 'transaction::g1' }, sk: { S: 'payment' } });
+    expect(check.data.ConditionExpression).toBe('attribute_not_exists(pk) OR #status IN (:failed, :void)');
+  });
+
+  it('keeps the hold and returns no inventory while the booking is being paid for', async () => {
+    const booking = expiredInProgressBooking();
+    getExpiredBookings.mockResolvedValue({ items: [{ pk: booking.pk, sk: booking.sk, bookingId: booking.bookingId }] });
+    getOne.mockResolvedValue(booking);
+    batchTransactData.mockRejectedValueOnce(Object.assign(new Error('Transaction cancelled'), {
+      name: 'TransactionCanceledException',
+      CancellationReasons: [{ Code: 'None' }, { Code: 'ConditionalCheckFailed' }],
+    }));
+
+    await handler({}, {});
+
+    expect(mockSqsSend).not.toHaveBeenCalled();
+    expect(batchTransactData).toHaveBeenCalledTimes(1);
   });
 });

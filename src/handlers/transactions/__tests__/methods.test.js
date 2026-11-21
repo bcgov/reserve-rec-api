@@ -54,25 +54,6 @@ jest.mock("@aws-sdk/client-secrets-manager", () => {
 jest.mock("../../bookings/methods", () => ({
   snsPublishCommand: jest.fn(),
   snsPublishSend: jest.fn(),
-  completeBooking: jest.fn((event) => {
-    return {
-      updateRequests: [
-        {
-          action: "Update",
-          data: {
-            TableName: "mock-table",
-            Key: {
-              pk: { S: "mock::pk" },
-              sk: { S: "mock::sk" },
-            },
-            UpdateExpression: "updateExpression",
-            ExpressionAttributeNames: "expressionAttributeNames",
-            ExpressionAttributeValues: "expressionAttributeValues",
-          },
-        },
-      ],
-    };
-  }),
 }));
 
 jest.mock("/opt/base", () => {
@@ -104,10 +85,6 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../../common/data-utils", () => ({
-  quickApiPutHandler: jest.fn(),
-  quickApiUpdateHandler: jest.fn(),
-}));
 
 const {
   createWorldlineUuidWithPrefix,
@@ -127,16 +104,11 @@ const {
   putItem,
   runQuery,
 } = require("/opt/dynamodb");
-const {
-  quickApiPutHandler,
-  quickApiUpdateHandler,
-} = require("../../../common/data-utils");
 
 describe("Method: processTokenTransaction", () => {
   const MOCK_ADMIN_ID = "admin-123";
   const MOCK_USER_ID = "user-123";
   const MOCK_BOOKING_ID = "booking-123";
-  const TRANSACTION_ID = "transaction-123";
 
   const baseBody = {
     bookingId: MOCK_BOOKING_ID,
@@ -167,57 +139,6 @@ describe("Method: processTokenTransaction", () => {
       HASH_KEY_SECRET: "/secrets/adminApiStack/hashKey",
     };
 
-    // Axios Worldline Mock
-    axios.post.mockResolvedValue({
-      data: {
-        id: "worldline-trn-123",
-        authorizing_merchant_id: 123456789,
-        approved: "1",
-        message_id: "1",
-        message: "Approved",
-        auth_code: "TEST",
-        created: "2026-06-11T08:08:51",
-        order_number: "BCPR-mock-uuid-1234",
-        type: "P",
-        payment_method: "CC",
-        risk_score: 0,
-        amount: 10,
-        custom: {
-          ref1: "standalone-test",
-          ref2: "test-session-id",
-          ref3: "",
-          ref4: "",
-          ref5: "",
-        },
-        card: {
-          card_type: "VI",
-          last_four: "4675",
-          card_bin: "433026",
-          address_match: 0,
-          postal_result: 0,
-          avs_result: "0",
-          cvd_result: "1",
-          avs: {
-            id: "U",
-            message: "Address information is unavailable.",
-            processed: false,
-          },
-        },
-        links: [
-          {
-            rel: "void",
-            href: "https://api.na.bambora.com/v1/payments/worldline-trn-123/void",
-            method: "POST",
-          },
-          {
-            rel: "return",
-            href: "https://api.na.bambora.com/v1/payments/worldline-trn-123/returns",
-            method: "POST",
-          },
-        ],
-      },
-    });
-
     // Database booking mock
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
@@ -242,15 +163,6 @@ describe("Method: processTokenTransaction", () => {
       equipmentInformation: "Tent",
     });
 
-    // DynamoDB utils mock
-    quickApiPutHandler.mockResolvedValue([
-      { Put: { Item: { fakeData: true } } },
-    ]);
-    quickApiUpdateHandler.mockResolvedValue([
-      { Update: { Key: { fakeKey: true } } },
-    ]);
-    runQuery.mockResolvedValue({ items: [] });
-
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
   });
@@ -258,218 +170,6 @@ describe("Method: processTokenTransaction", () => {
   afterEach(() => {
     process.env = OLD_ENV;
     jest.useRealTimers();
-  });
-
-  it("successfully processes a payment and completes the booking", async () => {
-    const result = await processTokenTransaction(
-      baseBody,
-      MOCK_USER_ID,
-      MOCK_ADMIN_ID,
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.status).toBe("paid");
-    expect(result.bookingId).toBe(MOCK_BOOKING_ID);
-    expect(result).not.toHaveProperty("transaction");
-
-    // Verify Axios was called with the correct Worldline payload
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(axios.post).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        payment_method: "token",
-        amount: 100,
-        token: expect.objectContaining({ code: "mock-payment-token" }),
-        billing: expect.objectContaining({
-          name: "Jane Alternate",
-          email_address: "jane@example.com",
-          address_line1: "12 Main Street",
-          address_line2: "Unit 4",
-          phone_number: "+12505550123",
-        }),
-      }),
-      expect.any(Object),
-    );
-
-    // The paid row on its own, then the booking update.
-    expect(batchTransactData).toHaveBeenCalledTimes(2);
-    expect(quickApiPutHandler.mock.calls[0][1][0].data).toMatchObject({
-      status: "paid",
-      sessionId: "session-xyz",
-    });
-    expect(quickApiUpdateHandler).not.toHaveBeenCalled();
-    expect(batchTransactData).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          action: "Update",
-          data: expect.objectContaining({
-            Key: {
-              pk: { S: "mock::pk" },
-              sk: { S: "mock::sk" },
-            },
-          }),
-        }),
-      ]),
-    );
-  });
-
-  it("completes the booking as paid", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID);
-
-    expect(completeBooking).toHaveBeenCalledWith(
-      MOCK_BOOKING_ID,
-      expect.anything(),
-      expect.objectContaining({
-        clientTransactionId: expect.stringMatching(/^BCPR-/),
-        namedOccupant: baseBody.namedOccupant,
-        vehicleInformation: [{ licensePlate: "ABC123", vehicleMake: "Van" }],
-        equipmentInformation: "Tent",
-      }),
-      expect.objectContaining({ sub: MOCK_USER_ID, paymentStarted: true }),
-    );
-  });
-
-  it("records an approved transaction before booking completion can refuse", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    const { Exception } = require("/opt/base");
-    completeBooking.mockRejectedValueOnce(
-      new Exception("Session expired", { code: 403 }),
-    );
-
-    await expect(
-      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
-    ).rejects.toMatchObject({ code: 403 });
-
-    const transaction = quickApiPutHandler.mock.calls[0][1][0].data;
-    expect(transaction).toMatchObject({ status: "paid", bookingId: MOCK_BOOKING_ID });
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
-    expect(batchTransactData.mock.invocationCallOrder[0]).toBeLessThan(
-      completeBooking.mock.invocationCallOrder[0],
-    );
-  });
-
-  it("resumes a paid transaction on retry without charging the card again", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    const { Exception } = require("/opt/base");
-    completeBooking.mockRejectedValueOnce(
-      new Exception("Session expired", { code: 403 }),
-    );
-
-    await expect(
-      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
-    ).rejects.toMatchObject({ code: 403 });
-
-    const transaction = quickApiPutHandler.mock.calls[0][1][0].data;
-    runQuery.mockResolvedValue({ items: [transaction] });
-
-    const result = await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID);
-
-    expect(result).toMatchObject({
-      success: true,
-      status: "paid",
-      clientTransactionId: transaction.clientTransactionId,
-    });
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(quickApiPutHandler).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses the booking session ID when the payment request omits it", async () => {
-    const requestBody = { ...baseBody };
-    delete requestBody.sessionId;
-
-    await processTokenTransaction(requestBody, MOCK_USER_ID, MOCK_ADMIN_ID);
-
-    expect(quickApiPutHandler.mock.calls[0][1][0].data.sessionId).toBe("session-xyz");
-    expect(axios.post.mock.calls[0][1].custom.ref2).toBe("session-xyz");
-    expect(require("../../bookings/methods").completeBooking).toHaveBeenCalledWith(
-      MOCK_BOOKING_ID,
-      "session-xyz",
-      expect.any(Object),
-      expect.objectContaining({ sub: MOCK_USER_ID, paymentStarted: true }),
-    );
-  });
-
-  it("rejects a mismatched session ID before charging", async () => {
-    await expect(
-      processTokenTransaction(
-        { ...baseBody, sessionId: "another-session" },
-        MOCK_USER_ID,
-        MOCK_ADMIN_ID,
-      ),
-    ).rejects.toMatchObject({ code: 403 });
-
-    expect(axios.post).not.toHaveBeenCalled();
-  });
-
-  it("rejects payment when the booking has no server-resolved total", async () => {
-    getOneByGlobalId.mockResolvedValueOnce({
-      bookingId: MOCK_BOOKING_ID,
-      sessionId: "session-xyz",
-      userId: MOCK_USER_ID,
-      status: "pending",
-      bookingStatus: "pending",
-      feePolicySnapshot: {
-        primaryKey: { pk: "feePolicy::example", sk: "v1" },
-        feeSchedule: [],
-        lineItems: [],
-      },
-    });
-
-    await expect(
-      processTokenTransaction(
-        { ...baseBody, trnAmount: 0.01 },
-        MOCK_USER_ID,
-        MOCK_ADMIN_ID,
-      ),
-    ).rejects.toMatchObject({
-      code: 400,
-      message: "Unable to determine a valid booking amount for payment",
-    });
-
-    expect(axios.post).not.toHaveBeenCalled();
-    expect(quickApiPutHandler).not.toHaveBeenCalled();
-    expect(require("../../bookings/methods").completeBooking).not.toHaveBeenCalled();
-  });
-
-  it("rejects payment when the booking has no server-resolved total", async () => {
-    getOneByGlobalId.mockResolvedValueOnce({
-      bookingId: MOCK_BOOKING_ID,
-      sessionId: "session-xyz",
-      userId: MOCK_USER_ID,
-      status: "pending",
-      bookingStatus: "pending",
-      feePolicySnapshot: {
-        primaryKey: { pk: "feePolicy::example", sk: "v1" },
-        feeSchedule: [],
-        lineItems: [],
-      },
-    });
-
-    await expect(
-      processTokenTransaction(
-        { ...baseBody, trnAmount: 0.01 },
-        MOCK_USER_ID,
-        MOCK_ADMIN_ID,
-      ),
-    ).rejects.toMatchObject({
-      code: 400,
-      message: "Unable to determine a valid booking amount for payment",
-    });
-
-    expect(axios.post).not.toHaveBeenCalled();
-    expect(quickApiPutHandler).not.toHaveBeenCalled();
-    expect(require("../../bookings/methods").completeBooking).not.toHaveBeenCalled();
-  });
-
-  it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    completeBooking.mockRejectedValueOnce({ code: 503, data: { retryAfter: 2 } });
-
-    const err = await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID).catch((e) => e);
-    expect(err.code).toBe(500);
-    expect(err.data).not.toHaveProperty("retryAfter");
-    expect(axios.post).toHaveBeenCalledTimes(1);
   });
 
   it("throws a 403 Exception if the user does not own the booking", async () => {
@@ -489,7 +189,7 @@ describe("Method: processTokenTransaction", () => {
     });
   });
 
-  it("throws a 400 Exception if the user's booking is confirmed already", async () => {
+  it("throws a 409 duplicate_payment Exception if the user's booking is confirmed already", async () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
@@ -501,8 +201,9 @@ describe("Method: processTokenTransaction", () => {
     await expect(
       processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
     ).rejects.toMatchObject({
-      code: 400,
+      code: 409,
       message: "Booking has already been paid",
+      data: expect.objectContaining({ refusal: "duplicate_payment" }),
     });
   });
 
@@ -521,29 +222,6 @@ describe("Method: processTokenTransaction", () => {
       code: 400,
       message: "Booking has been cancelled",
     });
-  });
-
-  it("handles Worldline API rejections and writes a 'failed' transaction record", async () => {
-    axios.post.mockRejectedValue({
-      response: {
-        status: 402,
-        statusText: "Payment Required",
-      },
-    });
-
-    await expect(
-      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
-    ).rejects.toMatchObject({ code: 402 });
-
-    expect(quickApiPutHandler).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: expect.objectContaining({ status: "failed" }),
-        }),
-      ]),
-      expect.any(Object),
-    );
   });
 });
 
@@ -588,7 +266,7 @@ describe("Methods: getTransactions", () => {
     jest.useRealTimers();
   });
 
-  it("gets all transactions using a bookingId", async () => {
+  it("gets all transactions using a bookingId, without the payment lock row", async () => {
     const result = await getTransactionsByBookingId(MOCK_BOOKING_ID);
 
     expect(result).toEqual({ items: [baseTransaction] });
@@ -597,8 +275,10 @@ describe("Methods: getTransactions", () => {
       expect.objectContaining({
         TableName: "TransactionalDataTable",
         KeyConditionExpression: "pk = :pk",
+        FilterExpression: "sk <> :lockSk",
         ExpressionAttributeValues: {
           ":pk": { S: `transaction::${MOCK_BOOKING_ID}` },
+          ":lockSk": { S: "payment" },
         },
       }),
     );

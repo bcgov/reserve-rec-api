@@ -81,6 +81,8 @@ const { batchTransactData } = require("/opt/dynamodb");
 const MOCK_BOOKING_ID = "booking-123";
 const MOCK_ADMIN_ID = "admin-123";
 const MOCK_USER_ID = "user-123";
+const MOCK_SESSION_ID = "session-123";
+const MOCK_OCCUPANT = { contactInfo: { postalCode: "V8V 1X4" } };
 const TRANSACTION_ID = `BCPR-${MOCK_BOOKING_ID}`
 
 function makeToken(sub) {
@@ -130,6 +132,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -149,6 +153,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -167,6 +173,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -219,6 +227,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -253,6 +263,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 0,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -272,6 +284,38 @@ describe("Admin Transaction POST handler", () => {
     );
   });
 
+  it("audits a refused duplicate payment as ADMIN_PAYMENT_DUPLICATE against the existing transaction", async () => {
+    processTokenTransaction.mockRejectedValue(
+      new optBase.Exception("Booking has already been paid", {
+        code: 409,
+        data: { refusal: "duplicate_payment", paymentStatus: "paid", clientTransactionId: "BCPR-paid-1" },
+      }),
+    );
+    const event = makeEvent({
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        trnAmount: 10,
+        userId: MOCK_USER_ID,
+        token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(409);
+    expect(optBase.writeAuditLog).toHaveBeenCalledWith(
+      MOCK_ADMIN_ID,
+      "BCPR-paid-1",
+      "ADMIN_PAYMENT_DUPLICATE",
+      expect.objectContaining({ success: false }),
+      expect.any(Function),
+      expect.any(Function),
+      "AuditTable",
+    );
+  });
+
   it("fails if a non-admin tries to access the admin payment endpoint", async () => {
     const event = makeEvent({
       sub: MOCK_USER_ID,
@@ -280,6 +324,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -319,6 +365,8 @@ describe("Admin Transaction POST handler", () => {
         trnAmount: 10,
         userId: MOCK_USER_ID,
         token: "mock-payment-token",
+        sessionId: MOCK_SESSION_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
