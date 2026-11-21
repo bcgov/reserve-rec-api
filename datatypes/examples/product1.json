@@ -1,0 +1,227 @@
+{
+  "pk": "product::mockPark1::backcountryCamp::1",
+  "sk": "1",
+  "schema": "product",
+  "globalId": "73a8b2c1-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+  "collectionId": "mockPark1",
+  "productId": 1,
+  "identifier": 1,
+  "activityType": "backcountryCamp",
+  "activityId": 1,
+  "activitySubType": null,
+  "displayName": "Mock Backcountry Camping Offering for Mock Park 1 - 2026 Season",
+  "description": "Mock backcountry camping reservation for Mock Park 1 for the 2026 season.",
+  "rangeStart": "2026-05-01",
+  "rangeEnd": "2026-10-31",
+  "timezone": "America/Vancouver",
+  "assetList": [
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::1"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    },
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::2"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    },
+    {
+      "primaryKey": {
+        "pk": "asset::mockPark1::campground::1",
+        "sk": "campsite::3"
+      },
+      "allocationType": "fixed",
+      "quantity": 1
+    }
+  ],
+  "availabilityEstimationPattern": {
+    "estimationMode": "exact",
+    "cadence": {
+      "minutes": 5
+    }
+  },
+  "itineraryRules": {
+    "entryExit": {
+      "required": true,
+      "allowedEntryPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::2"
+        }
+      ],
+      "allowedExitPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "accessPoint::2"
+        }
+      ]
+    },
+    "stayPoints": {
+      "required": true,
+      "allowedStayPoints": [
+        {
+          "pk": "facility::mockPark1",
+          "sk": "campground::1"
+        },
+        {
+          "pk": "facility::mockPark1",
+          "sk": "campground::2"
+        }
+      ]
+    }
+  },
+  "waitRoomConfig": {},
+  "allDatesReservedIntervals": [
+    {
+      "id": "mayLong2026",
+      "displayName": "May Long Weekend 2026",
+      "startDate": "2026-05-15",
+      "endDate": "2026-05-18"
+    }
+  ],
+  "reservationPolicy": {
+    "primaryKey": {
+      "pk": "policy::reservation::101",
+      "sk": "v1"
+    },
+    "isDiscoverable": true,
+    "isReservable": true,
+    "minTotalDays": 1,
+    "maxTotalDays": 14,
+    "temporalWindows": {
+      "discoveryWindow": {
+        "open": "2026-01-01T07:00:00-08:00",
+        "close": "2026-12-31T23:59:59-08:00"
+      }
+    }
+  },
+  "reservationContext": {
+    "discoveryWindow": {
+      "open": "2026-01-01T07:00:00-08:00",
+      "close": "2026-12-31T23:59:59-08:00"
+    }
+  },
+  "partyPolicy": {
+    "primaryKey": {
+      "pk": "policy::party::101",
+      "sk": "v1"
+    },
+    "partyCategories": [
+      {
+        "id": "adults",
+        "label": "Adults (18+)",
+        "minCount": 1,
+        "maxCount": 4
+      },
+      {
+        "id": "children",
+        "label": "Children <18",
+        "minCount": 0,
+        "maxCount": 3
+      },
+      {
+        "id": "tents",
+        "label": "Tents",
+        "minCount": 1,
+        "maxCount": 2
+      }
+    ],
+    "partyCompositionRules": [
+      {
+        "id": "maxTotalPartySize",
+        "label": "Maximum Total Party Size",
+        "failMsg": "Total party size cannot exceed 4 people.",
+        "if": [],
+        "then": {
+          "lhs": [
+            {
+              "type": "ref",
+              "value": "partyContext.adults"
+            },
+            {
+              "op": "add"
+            },
+            {
+              "type": "ref",
+              "value": "partyContext.children"
+            }
+          ],
+          "op": "lte",
+          "rhs": [
+            {
+              "type": "constant",
+              "value": 4
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "feePolicy": {
+    "primaryKey": {
+      "pk": "policy::fee::301",
+      "sk": "v1"
+    },
+    "feeSchedule": [
+      {
+        "id": "transactionFee",
+        "label": "Transaction Fee",
+        "type": "flat",
+        "amount": 6.5
+      },
+      {
+        "id": "tax",
+        "label": "Tax",
+        "type": "percentage",
+        "amount": 0.05
+      }
+    ],
+    "lineItems": [
+      {
+        "id": "transactionFeeLine",
+        "label": "Transaction Fee",
+        "type": "flat",
+        "isReturnable": false,
+        "if": [],
+        "quantity": {
+          "type": "constant",
+          "value": 1
+        },
+        "rate": {
+          "type": "ref",
+          "value": "feeSchedule.transactionFee.amount"
+        },
+        "taxApplied": [
+          {
+            "type": "ref",
+            "value": "feeSchedule.tax.amount"
+          }
+        ],
+        "discountsApplied": []
+      }
+    ]
+  },
+  "changePolicy": {
+    "primaryKey": {
+      "pk": "policy::refund::401",
+      "sk": "v1"
+    }
+  },
+  "createdAt": "2024-01-01T12:00:00Z",
+  "lastUpdated": "2024-01-01T12:00:00Z",
+  "version": 1
+}

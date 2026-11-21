@@ -1,0 +1,23 @@
+{
+  "pk": "activity::bcparks_1",
+  "sk": "backcountryCamp::1",
+  "schema": "activity",
+  "globalId": "a9fds8hya-234d-t543-qw4r-gsodgnsdo",
+  "collectionId": "bcparks_1",
+  "activityId": 1,
+  "identifier": 1,
+  "activityType": "backcountryCamp",
+  "activitySubType": "",
+  "displayName": "Bedwell Lakes Trail",
+  "description": "The Bedwell Lake Trail in Strathcona Park offers a stunning, challenging hike through forest to a subalpine plateau with multiple lakes, featuring bridges, stairs, and rooty sections with incredible views of Mount Tom Taylor, making it great for day hikes or backpacking, with an optional, harder extension to Cream Lake. The trail is well-maintained but demanding, requiring good fitness, sturdy footwear, and potentially a high-clearance vehicle for the rough access road. Designated backcountry sites with outhouses and bear caches at Baby Bedwell Lake and Bedwell Lake; wilderness camping near Cream Lake.",
+  "imageUrls": [
+    "https://...",
+    "https://..."
+  ],
+  "isVisible": true,
+  "creationDate": "2026-01-07T15:30:00.000Z",
+  "lastUpdated": "2026-01-07T15:30:00.000Z",
+  "version": 1,
+  "searchTerms": "bedwell lake, baby bedwell lake, strathcona park...",
+  "adminNotes": ""
+}
