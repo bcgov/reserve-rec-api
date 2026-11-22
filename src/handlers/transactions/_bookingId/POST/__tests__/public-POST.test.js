@@ -58,6 +58,7 @@ const MOCK_SESSION_ID = "session-123";
 const MOCK_TOKEN = "token-123";
 const TRANSACTION_ID = `BCPR-${MOCK_BOOKING_ID}`;
 const MOCK_USER_ID = "user-123";
+const MOCK_OCCUPANT = { contactInfo: { postalCode: "V8V 1X4" } };
 
 function makeToken(sub) {
   const base64Payload = Buffer.from(JSON.stringify({ sub })).toString("base64");
@@ -135,6 +136,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -155,6 +157,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -173,6 +176,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -191,6 +195,7 @@ describe("Public Transaction POST handler", () => {
         token: "",
         trnAmount: 10,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -209,6 +214,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 0,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -220,6 +226,30 @@ describe("Public Transaction POST handler", () => {
     );
   });
 
+  it("returns a duplicate payment refusal as 409 with its refusal code", async () => {
+    processTokenTransaction.mockRejectedValue(
+      new optBase.Exception("A payment for this booking is already being processed", {
+        code: 409,
+        data: { refusal: "duplicate_payment", paymentStatus: "in progress" },
+      }),
+    );
+    const event = makeEvent({
+      body: {
+        bookingId: MOCK_BOOKING_ID,
+        sessionId: MOCK_SESSION_ID,
+        token: MOCK_TOKEN,
+        trnAmount: 10,
+        userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
+      },
+    });
+
+    const result = await handler(event, {});
+
+    expect(result.status).toBe(409);
+    expect(result.data.refusal).toBe("duplicate_payment");
+  });
+
   it("fails if the userId is missing", async () => {
     const event = makeEvent({
       sub: "",
@@ -229,6 +259,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: "",
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -249,6 +280,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: "fake-user-456", 
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 
@@ -268,6 +300,7 @@ describe("Public Transaction POST handler", () => {
         token: MOCK_TOKEN,
         trnAmount: 10,
         userId: MOCK_USER_ID,
+        namedOccupant: MOCK_OCCUPANT,
       },
     });
 

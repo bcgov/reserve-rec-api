@@ -276,16 +276,6 @@ aws sesv2 get-account \
 **Cause**: Lambda exceeded 3-minute timeout
 **Solution**: Check CloudWatch logs for bottleneck (S3 read, SES send, etc.)
 
-## Integration with Worldline Payment System
-
-The email dispatch system is integrated with the Worldline payment notification handler:
-
-**File**: `src/handlers/worldlineNotification/constructs.js`
-
-When a payment is successful, the handler sends a message to the email queue to trigger receipt emails.
-
-**Note**: There's a potential issue with `AWS_REGION` environment variable in the Worldline handler that may need fixing later (user requested no changes during setup).
-
 ## Next Steps After Testing
 
 ### Before Production Launch

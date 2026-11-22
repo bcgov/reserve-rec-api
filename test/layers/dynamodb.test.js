@@ -400,6 +400,15 @@ describe("batchTransactData", () => {
     }]]);
   });
 
+  it("sends a ConditionCheck item as a TransactWriteItems ConditionCheck", async () => {
+    mockSend.mockResolvedValue(ok);
+    const check = { TableName: "t", Key: { pk: { S: "a" } }, ConditionExpression: "attribute_exists(pk)" };
+
+    await db.batchTransactData([{ action: "ConditionCheck", data: check }]);
+
+    expect(sent()[0][1].TransactItems).toEqual([{ ConditionCheck: check }]);
+  });
+
   it("uses the given default action for items without one", async () => {
     mockSend.mockResolvedValue(ok);
     const key = { TableName: "t", Key: { pk: { S: "a" } } };

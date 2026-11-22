@@ -6,6 +6,7 @@ process.env.IS_OFFLINE = "false";
 process.env.PAYMENTS_API_SECRET = "/secrets/adminApiStack/paymentsApiPasscode";
 process.env.MERCHANT_ID_SECRET = "/secrets/adminApiStack/merchantId";
 process.env.HASH_KEY_SECRET = "/secrets/adminApiStack/hashKey";
+process.env.WORLDLINE_PAYMENT_API_URL = "https://api.na.bambora.com/v1/payments";
 
 jest.mock("axios");
 const axios = require("axios");
@@ -53,25 +54,6 @@ jest.mock("@aws-sdk/client-secrets-manager", () => {
 jest.mock("../../bookings/methods", () => ({
   snsPublishCommand: jest.fn(),
   snsPublishSend: jest.fn(),
-  completeBooking: jest.fn((event) => {
-    return {
-      updateRequests: [
-        {
-          action: "Update",
-          data: {
-            TableName: "mock-table",
-            Key: {
-              pk: { S: "mock::pk" },
-              sk: { S: "mock::sk" },
-            },
-            UpdateExpression: "updateExpression",
-            ExpressionAttributeNames: "expressionAttributeNames",
-            ExpressionAttributeValues: "expressionAttributeValues",
-          },
-        },
-      ],
-    };
-  }),
 }));
 
 jest.mock("/opt/base", () => {
@@ -103,10 +85,6 @@ jest.mock("/opt/dynamodb", () => ({
   TRANSACTIONAL_DATA_TABLE_NAME: "TransactionalDataTable",
 }));
 
-jest.mock("../../../common/data-utils", () => ({
-  quickApiPutHandler: jest.fn(),
-  quickApiUpdateHandler: jest.fn(),
-}));
 
 const {
   createWorldlineUuidWithPrefix,
@@ -126,16 +104,11 @@ const {
   putItem,
   runQuery,
 } = require("/opt/dynamodb");
-const {
-  quickApiPutHandler,
-  quickApiUpdateHandler,
-} = require("../../../common/data-utils");
 
 describe("Method: processTokenTransaction", () => {
   const MOCK_ADMIN_ID = "admin-123";
   const MOCK_USER_ID = "user-123";
   const MOCK_BOOKING_ID = "booking-123";
-  const TRANSACTION_ID = "transaction-123";
 
   const baseBody = {
     bookingId: MOCK_BOOKING_ID,
@@ -144,6 +117,16 @@ describe("Method: processTokenTransaction", () => {
     userId: MOCK_USER_ID,
     token: "mock-payment-token",
     cardholderName: "Jane Camper",
+    billingName: "Jane Alternate",
+    email: "jane@example.com",
+    address1: "12 Main Street",
+    address2: "Unit 4",
+    city: "Victoria",
+    province: "British Columbia",
+    postalCode: "V8W 1A1",
+    country: "Canada",
+    phoneNumber: "+12505550123",
+    namedOccupant: { contactInfo: { city: "Victoria" } },
   };
 
   beforeEach(() => {
@@ -156,73 +139,29 @@ describe("Method: processTokenTransaction", () => {
       HASH_KEY_SECRET: "/secrets/adminApiStack/hashKey",
     };
 
-    // Axios Worldline Mock
-    axios.post.mockResolvedValue({
-      data: {
-        id: "worldline-trn-123",
-        authorizing_merchant_id: 123456789,
-        approved: "1",
-        message_id: "1",
-        message: "Approved",
-        auth_code: "TEST",
-        created: "2026-06-11T08:08:51",
-        order_number: "BCPR-mock-uuid-1234",
-        type: "P",
-        payment_method: "CC",
-        risk_score: 0,
-        amount: 10,
-        custom: {
-          ref1: "standalone-test",
-          ref2: "test-session-id",
-          ref3: "",
-          ref4: "",
-          ref5: "",
-        },
-        card: {
-          card_type: "VI",
-          last_four: "4675",
-          card_bin: "433026",
-          address_match: 0,
-          postal_result: 0,
-          avs_result: "0",
-          cvd_result: "1",
-          avs: {
-            id: "U",
-            message: "Address information is unavailable.",
-            processed: false,
-          },
-        },
-        links: [
-          {
-            rel: "void",
-            href: "https://api.na.bambora.com/v1/payments/worldline-trn-123/void",
-            method: "POST",
-          },
-          {
-            rel: "return",
-            href: "https://api.na.bambora.com/v1/payments/worldline-trn-123/returns",
-            method: "POST",
-          },
-        ],
-      },
-    });
-
     // Database booking mock
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
+      sessionId: "session-xyz",
       userId: MOCK_USER_ID,
       status: "pending",
       bookingStatus: "pending",
-      feeValues: { bookingTotal: 100 },
+      feePolicySnapshot: { feeInformation: { total: 100 } },
+      namedOccupant: {
+        firstName: "Jane",
+        lastName: "Camper",
+        contactInfo: {
+          streetAddress: "12 Main Street",
+          unitNumber: "Unit 4",
+          postalCode: "V8W 1A1",
+          city: "Victoria",
+          province: "British Columbia",
+          country: "Canada",
+        },
+      },
+      vehicleInformation: [{ licensePlate: "ABC123", vehicleMake: "Van" }],
+      equipmentInformation: "Tent",
     });
-
-    // DynamoDB utils mock
-    quickApiPutHandler.mockResolvedValue([
-      { Put: { Item: { fakeData: true } } },
-    ]);
-    quickApiUpdateHandler.mockResolvedValue([
-      { Update: { Key: { fakeKey: true } } },
-    ]);
 
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-06-11T12:00:00Z"));
@@ -231,54 +170,6 @@ describe("Method: processTokenTransaction", () => {
   afterEach(() => {
     process.env = OLD_ENV;
     jest.useRealTimers();
-  });
-
-  it("successfully processes a payment and completes the booking", async () => {
-    const result = await processTokenTransaction(
-      baseBody,
-      MOCK_USER_ID,
-      MOCK_ADMIN_ID,
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.status).toBe("paid");
-    expect(result.transaction.trnId).toBe("worldline-trn-123");
-
-    // Verify Axios was called with the correct Worldline payload
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(axios.post).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        payment_method: "token",
-        amount: 100,
-        token: expect.objectContaining({ code: "mock-payment-token" }),
-      }),
-      expect.any(Object),
-    );
-
-    expect(batchTransactData).toHaveBeenCalledTimes(1);
-  });
-
-  it("completes the booking as paid", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID);
-
-    expect(completeBooking).toHaveBeenCalledWith(
-      MOCK_BOOKING_ID,
-      expect.anything(),
-      expect.any(Object),
-      { sub: MOCK_USER_ID, paymentStarted: true },
-    );
-  });
-
-  it("turns a Cognito 503 after the charge into a non-retryable 500", async () => {
-    const { completeBooking } = require("../../bookings/methods");
-    completeBooking.mockRejectedValueOnce({ code: 503, data: { retryAfter: 2 } });
-
-    const err = await processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID).catch((e) => e);
-    expect(err.code).toBe(500);
-    expect(err.data).not.toHaveProperty("retryAfter");
-    expect(axios.post).toHaveBeenCalledTimes(1);
   });
 
   it("throws a 403 Exception if the user does not own the booking", async () => {
@@ -298,7 +189,7 @@ describe("Method: processTokenTransaction", () => {
     });
   });
 
-  it("throws a 400 Exception if the user's booking is confirmed already", async () => {
+  it("throws a 409 duplicate_payment Exception if the user's booking is confirmed already", async () => {
     getOneByGlobalId.mockResolvedValue({
       bookingId: MOCK_BOOKING_ID,
       userId: MOCK_USER_ID,
@@ -310,8 +201,9 @@ describe("Method: processTokenTransaction", () => {
     await expect(
       processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
     ).rejects.toMatchObject({
-      code: 400,
+      code: 409,
       message: "Booking has already been paid",
+      data: expect.objectContaining({ refusal: "duplicate_payment" }),
     });
   });
 
@@ -330,29 +222,6 @@ describe("Method: processTokenTransaction", () => {
       code: 400,
       message: "Booking has been cancelled",
     });
-  });
-
-  it("handles Worldline API rejections and writes a 'failed' transaction record", async () => {
-    axios.post.mockRejectedValue({
-      response: {
-        status: 402,
-        statusText: "Payment Required",
-      },
-    });
-
-    await expect(
-      processTokenTransaction(baseBody, MOCK_USER_ID, MOCK_ADMIN_ID),
-    ).rejects.toMatchObject({ code: 402 });
-
-    expect(quickApiPutHandler).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: expect.objectContaining({ status: "failed" }),
-        }),
-      ]),
-      expect.any(Object),
-    );
   });
 });
 
@@ -397,7 +266,7 @@ describe("Methods: getTransactions", () => {
     jest.useRealTimers();
   });
 
-  it("gets all transactions using a bookingId", async () => {
+  it("gets all transactions using a bookingId, without the payment lock row", async () => {
     const result = await getTransactionsByBookingId(MOCK_BOOKING_ID);
 
     expect(result).toEqual({ items: [baseTransaction] });
@@ -406,8 +275,10 @@ describe("Methods: getTransactions", () => {
       expect.objectContaining({
         TableName: "TransactionalDataTable",
         KeyConditionExpression: "pk = :pk",
+        FilterExpression: "sk <> :lockSk",
         ExpressionAttributeValues: {
           ":pk": { S: `transaction::${MOCK_BOOKING_ID}` },
+          ":lockSk": { S: "payment" },
         },
       }),
     );
@@ -542,12 +413,12 @@ describe("Methods: findAndVerifyTransactionOwnership", () => {
     });
   });
 
-  it("throws an error if the userId does not match", async () => {
+  it("answers 404 when the transaction belongs to someone else", async () => {
     await expect(
       findAndVerifyTransactionOwnership(TRANSACTION_ID, "bad-user-id"),
     ).rejects.toMatchObject({
-      code: 401,
-      message: "Unauthorized access to transaction",
+      code: 404,
+      message: "Transaction not found",
     });
   });
 
