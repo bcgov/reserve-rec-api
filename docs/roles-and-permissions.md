@@ -44,6 +44,8 @@ Handlers check scoped roles with the base layer helpers, never `checkAuthContext
 * `checkRequestedFacilityKeys(event, minRole, keys)`: for keys the caller sent. 400 unless 1 to 100 well-formed keys; 403 unless every key is the caller's.
 * `permittedFacilityKeys(adminContext(event))`: `null` for Superadmin and HQ Admin, otherwise the caller's keys (maybe none).
 
+GET /users/me returns `role` (null for a record without one) beside `sub` and `permissions`. Park Operator and Park Staff also get `facilities`: `[{ key, orcs, displayName }]` for the keys the authorizer allowed, named from their operator record.
+
 A record without `role` passes the two facility checks only with the matching tier in the collection of every key: `limited` for parkStaff, `staff` for parkOperator, none for hqAdmin and up.
 
 

@@ -90,17 +90,17 @@ describe('GET /users/me', () => {
 
   it('returns the authorizer principal and its parsed permissions', async () => {
     const res = await meHandler({ requestContext: { authorizer: { principalId: 'sub-1', permissions: '{"bcparks_7":"staff"}' } } }, {});
-    expect(body(res).data).toEqual({ sub: 'sub-1', permissions: { bcparks_7: 'staff' } });
+    expect(body(res).data).toEqual({ sub: 'sub-1', permissions: { bcparks_7: 'staff' }, role: null });
   });
 
   it('returns empty permissions for an unprovisioned or malformed context', async () => {
-    expect(body(await meHandler({ requestContext: { authorizer: { principalId: 'sub-1' } } }, {})).data).toEqual({ sub: 'sub-1', permissions: {} });
-    expect(body(await meHandler({ requestContext: { authorizer: { principalId: 'sub-1', permissions: '{bad' } } }, {})).data).toEqual({ sub: 'sub-1', permissions: {} });
-    expect(body(await meHandler({}, {})).data).toEqual({ sub: null, permissions: {} });
+    expect(body(await meHandler({ requestContext: { authorizer: { principalId: 'sub-1' } } }, {})).data).toEqual({ sub: 'sub-1', permissions: {}, role: null });
+    expect(body(await meHandler({ requestContext: { authorizer: { principalId: 'sub-1', permissions: '{bad' } } }, {})).data).toEqual({ sub: 'sub-1', permissions: {}, role: null });
+    expect(body(await meHandler({}, {})).data).toEqual({ sub: null, permissions: {}, role: null });
   });
 
   it('reports a local superadmin under SAM local', async () => {
     process.env.AWS_SAM_LOCAL = 'true';
-    expect(body(await meHandler({}, {})).data).toEqual({ sub: 'local-dev', permissions: { superadmin: 'superadmin' } });
+    expect(body(await meHandler({}, {})).data).toEqual({ sub: 'local-dev', permissions: { superadmin: 'superadmin' }, role: 'superadmin' });
   });
 });
