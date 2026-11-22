@@ -40,7 +40,7 @@ Every caller with a role gets `role` in the context (`superadmin` for the SuperA
 Handlers check scoped roles with the base layer helpers, never `checkAuthContext`, which refuses parkOperator and parkStaff (403):
 
 * `requireRole(event, minRole)`: the caller's role is at least `minRole` (parkStaff 1, parkOperator 2, hqAdmin 3, superadmin 4).
-* `checkFacilityScope(event, minRole, recordKeys)`: for a record's own keys (a booking's `facilityKeys`). Passes when any key is the caller's; a missing or empty list is refused.
+* `checkFacilityScope(event, minRole, recordKeys)`: for a record's own keys (a booking's `facilityKeys`). Passes when any key is the caller's. With no keys (bookings before #712) it takes the record's `collectionId`: a caller without a role is checked on that collection's tier, Superadmin and HQ Admin pass, scoped roles are refused. Neither keys nor `collectionId` is refused.
 * `checkRequestedFacilityKeys(event, minRole, keys)`: for keys the caller sent. 400 unless 1 to 100 well-formed keys; 403 unless every key is the caller's.
 * `permittedFacilityKeys(adminContext(event))`: `null` for Superadmin and HQ Admin, otherwise the caller's keys (maybe none).
 

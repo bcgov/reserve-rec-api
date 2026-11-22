@@ -46,8 +46,8 @@ describe('adminContext', () => {
     refused(() => adminContext(event({ role: 'parkStaff', permissions: '{}', facilities })), 401);
   });
 
-  it('refuses a scoped caller with no facilities in the context', () => {
-    refused(() => adminContext(event({ role: 'parkStaff', permissions: '{}' })), 401);
+  it.each([['missing', undefined], ['null', 'null']])('refuses a scoped caller whose facilities are %s', (_, facilities) => {
+    refused(() => adminContext(event({ role: 'parkStaff', permissions: '{}', facilities })), 401);
   });
 });
 
@@ -99,6 +99,24 @@ describe('checkFacilityScope', () => {
     refused(() => checkFacilityScope(legacy(), 'parkOperator', [K7A, K8]), 403); // limited is below parkOperator
     refused(() => checkFacilityScope(legacy(), 'parkStaff', [K7A, K9]), 403); // no tier in bcparks_9
     refused(() => checkFacilityScope(legacy(), 'hqAdmin', [K7A]), 403); // no tier reaches hqAdmin
+  });
+
+  describe('a record with no facility keys, only a collectionId (bookings made before #712)', () => {
+    it('checks a caller without a role on that collection', () => {
+      expect(() => checkFacilityScope(legacy(), 'parkStaff', [], 'bcparks_8')).not.toThrow(); // limited
+      refused(() => checkFacilityScope(legacy(), 'parkOperator', undefined, 'bcparks_8'), 403);
+      refused(() => checkFacilityScope(legacy(), 'parkStaff', [], 'bcparks_9'), 403);
+    });
+
+    it('passes all-access callers and refuses scoped ones, who are matched by facility', () => {
+      expect(() => checkFacilityScope(hqAdmin(), 'parkOperator', [], 'bcparks_7')).not.toThrow();
+      refused(() => checkFacilityScope(operator(), 'parkStaff', [], 'bcparks_7'), 403);
+    });
+
+    it('refuses a record with neither facility keys nor a collectionId', () => {
+      refused(() => checkFacilityScope(legacy(), 'parkStaff', [], undefined), 403);
+      refused(() => checkFacilityScope(superadmin(), 'parkStaff', undefined, ''), 403);
+    });
   });
 });
 
