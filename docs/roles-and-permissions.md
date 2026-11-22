@@ -37,6 +37,15 @@ These give GET /users/me only, even to a SuperAdmin group member: any other `rol
 
 Every caller with a role gets `role` in the context (`superadmin` for the SuperAdmin group). Scoped roles also get `operatorId` and `facilities`, a JSON string array of facility keys.
 
+Handlers check scoped roles with the base layer helpers, never `checkAuthContext`, which refuses parkOperator and parkStaff (403):
+
+* `requireRole(event, minRole)`: the caller's role is at least `minRole` (parkStaff 1, parkOperator 2, hqAdmin 3, superadmin 4).
+* `checkFacilityScope(event, minRole, recordKeys)`: for a record's own keys (a booking's `facilityKeys`). Passes when any key is the caller's; a missing or empty list is refused.
+* `checkRequestedFacilityKeys(event, minRole, keys)`: for keys the caller sent. 400 unless 1 to 100 well-formed keys; 403 unless every key is the caller's.
+* `permittedFacilityKeys(adminContext(event))`: `null` for Superadmin and HQ Admin, otherwise the caller's keys (maybe none).
+
+A record without `role` passes the two facility checks only with the matching tier in the collection of every key: `limited` for parkStaff, `staff` for parkOperator, none for hqAdmin and up.
+
 
 ## 2. Implementation: The Authorizers
 
