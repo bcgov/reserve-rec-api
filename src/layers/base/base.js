@@ -407,12 +407,14 @@ function legacyTierCovers(context, minRole, keys) {
 
 /**
  * For a record's own facility keys (a booking's `facilityKeys`, an activity's facilities).
+ * All-access callers (Superadmin, HQ Admin) who meet `minRole` pass before the keys are read.
  * A scoped caller passes when any key is theirs. A record with no keys (a booking made
  * before #712) falls back to its `collectionId`: checked on the tier of a caller without a
- * role, passed for all-access callers, refused for scoped ones. Neither is refused.
+ * role, refused for scoped ones. A caller without a role is refused when there is neither.
  */
 function checkFacilityScope(event, minRole, recordKeys, collectionId = null) {
   const context = adminContext(event);
+  if (context.role && meetsRole(context, minRole) && !permittedFacilityKeys(context)) return context;
   if (!Array.isArray(recordKeys) || recordKeys.length === 0) {
     if (typeof collectionId !== 'string' || !collectionId) throw refuse('the record has no facilities');
     if (!context.role) {
