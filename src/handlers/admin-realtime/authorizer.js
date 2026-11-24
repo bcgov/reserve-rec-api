@@ -4,6 +4,7 @@ const { logger } = require('/opt/base');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 const { resolveAdminPermissions } = require('../authorizers/admin-permissions');
 const { TOPICS, canSubscribe } = require('./topics');
+const { accessKey } = require('./access');
 
 let verifier;
 function getVerifier() {
@@ -48,7 +49,7 @@ exports.handler = async (event) => {
 
   const sub = payload.sub;
   try {
-    const { unauthorized, isSuperAdmin, permissions } = await resolveAdminPermissions(payload);
+    const { unauthorized, isSuperAdmin, role, permissions } = await resolveAdminPermissions(payload);
     if (unauthorized) {
       logger.info('Admin realtime auth: deny, unauthorized group', { userId: sub });
       return policy(sub, 'Deny', methodArn);
@@ -66,6 +67,9 @@ exports.handler = async (event) => {
       permissions: JSON.stringify(permissions),
       isSuperAdmin: String(isSuperAdmin),
       exp: String(payload.exp),
+      // Saved at connect so subscribe and the recheck can look the user up again and spot a change
+      groups: JSON.stringify(payload['cognito:groups'] ?? []),
+      accessKey: accessKey(role, permissions),
     });
   } catch (err) {
     logger.error('Admin realtime auth: permission lookup failed', { userId: sub, reason: err.name, error: err.message });

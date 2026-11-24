@@ -9,9 +9,9 @@ const { metaKey, expiresAt, putRow } = require('./store');
  */
 exports.handler = async (event) => {
   const connectionId = event.requestContext?.connectionId;
-  const { userId, permissions, isSuperAdmin, exp } = event.requestContext?.authorizer || {};
+  const { userId, permissions, isSuperAdmin, exp, groups, accessKey } = event.requestContext?.authorizer || {};
   const tokenExp = Number(exp);
-  if (!connectionId || !userId || !permissions || !Number.isFinite(tokenExp)) {
+  if (!connectionId || !userId || !permissions || !accessKey || !Number.isFinite(tokenExp)) {
     logger.error('Admin realtime connect: missing connectionId or authorizer context', { connectionId, userId });
     return { statusCode: 400 };
   }
@@ -22,6 +22,8 @@ exports.handler = async (event) => {
       userId,
       permissions: JSON.parse(permissions),
       exp: tokenExp,
+      groups: JSON.parse(groups || '[]'),
+      accessKey,
       connectedAt: Date.now(),
       ttl: expiresAt(),
     });

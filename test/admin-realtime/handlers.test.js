@@ -22,6 +22,16 @@ jest.mock('../../src/handlers/admin-realtime/topics', () => ({
   canSubscribe: (...args) => mockCanSubscribe(...args),
 }));
 
+const mockCurrentAccess = jest.fn();
+jest.mock('../../src/handlers/admin-realtime/access', () => ({
+  currentAccess: (...args) => mockCurrentAccess(...args),
+}));
+
+const mockCloseConnection = jest.fn();
+jest.mock('../../src/handlers/admin-realtime/publish', () => ({
+  closeConnection: (...args) => mockCloseConnection(...args),
+}));
+
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { logger } = require('/opt/base');
 const connect = require('../../src/handlers/admin-realtime/connect');
@@ -62,6 +72,8 @@ describe('$connect', () => {
     permissions: '{"superadmin":"superadmin"}',
     isSuperAdmin: 'true',
     exp: '1760003600',
+    groups: '["SuperAdminGroup"]',
+    accessKey: 'key-1',
   };
   const connectEvent = (authorizer) => ({ requestContext: requestContext({ authorizer }) });
 
@@ -78,6 +90,8 @@ describe('$connect', () => {
       userId: 'sub-1',
       permissions: { superadmin: 'superadmin' },
       exp: 1760003600,
+      groups: ['SuperAdminGroup'],
+      accessKey: 'key-1',
       connectedAt: NOW,
       ttl: TTL,
     });
@@ -94,6 +108,7 @@ describe('$connect', () => {
   it.each([
     ['no authorizer context', undefined],
     ['no exp', { ...context, exp: undefined }],
+    ['no access key', { ...context, accessKey: undefined }],
   ])('rejects a connection with %s', async (_, authorizer) => {
     const res = await connect.handler(connectEvent(authorizer));
     expect(res.statusCode).toBe(400);
@@ -133,10 +148,51 @@ describe('$disconnect', () => {
 });
 
 describe('subscribe', () => {
-  const meta = { pk: 'CONN#conn-1', sk: 'META', userId: 'sub-1', permissions: { bcparks_7: 'staff' }, exp: NOW / 1000 + 60 };
+  const meta = { pk: 'CONN#conn-1', sk: 'META', userId: 'sub-1', permissions: { bcparks_7: 'staff' }, exp: NOW / 1000 + 60, accessKey: 'key-1' };
   const withMeta = (item) => mockDdbSend.mockImplementation(async (c) => (
     c.type === 'Get' ? { Item: item && marshall(item) } : {}
   ));
+
+  beforeEach(() => {
+    // By default the user's access is the same now as at connect
+    mockCurrentAccess.mockResolvedValue({ key: 'key-1', permissions: { bcparks_7: 'staff' } });
+  });
+
+  it('closes the connection and writes nothing when the access changed since connect', async () => {
+    withMeta(meta);
+    mockCurrentAccess.mockResolvedValue({ key: 'key-2', permissions: { superadmin: 'superadmin' } });
+    mockCanSubscribe.mockReturnValue(true);
+
+    const res = await subscribe.handler(message({ action: 'subscribe', topic: 'customers' }));
+
+    expect(mockCurrentAccess).toHaveBeenCalledWith(expect.objectContaining({ userId: 'sub-1', accessKey: 'key-1' }));
+    expect(mockCloseConnection).toHaveBeenCalledWith('conn-1');
+    expect(calls('Put')).toHaveLength(0);
+    expect(body(res)).toEqual({ type: 'error', code: 'forbidden' });
+    expect(logger.info).toHaveBeenCalledWith('event=realtime_access_changed', expect.objectContaining({ connectionId: 'conn-1' }));
+  });
+
+  it('closes the connection when the user no longer has any access', async () => {
+    withMeta(meta);
+    mockCurrentAccess.mockResolvedValue({ key: null, permissions: null });
+
+    const res = await subscribe.handler(message({ action: 'subscribe', topic: 'customers' }));
+
+    expect(mockCloseConnection).toHaveBeenCalledWith('conn-1');
+    expect(calls('Put')).toHaveLength(0);
+    expect(body(res)).toEqual({ type: 'error', code: 'forbidden' });
+  });
+
+  it('returns 500 and keeps the connection when the user lookup fails', async () => {
+    withMeta(meta);
+    mockCurrentAccess.mockRejectedValue(new Error('ddb down'));
+
+    const res = await subscribe.handler(message({ action: 'subscribe', topic: 'customers' }));
+
+    expect(res.statusCode).toBe(500);
+    expect(mockCloseConnection).not.toHaveBeenCalled();
+    expect(calls('Put')).toHaveLength(0);
+  });
 
   it('writes the TOPIC row and replies subscribed when allowed', async () => {
     withMeta(meta);

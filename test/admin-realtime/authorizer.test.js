@@ -61,6 +61,8 @@ describe('admin realtime authorizer', () => {
       permissions: JSON.stringify({ superadmin: 'superadmin' }),
       isSuperAdmin: 'true',
       exp: '1760003600',
+      groups: JSON.stringify(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']),
+      accessKey: JSON.stringify({ role: 'superadmin', permissions: { superadmin: 'superadmin' } }),
     });
     expect(mockGetOne).toHaveBeenCalledWith('userid::sub-1', 'base');
   });

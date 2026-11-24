@@ -13,6 +13,8 @@ Files:
 - `topics.js`: the topic registry (`TOPICS`, `canSubscribe`).
 - `publish.js`: `publish(topic, event)`, which sends one event to a topic's subscribers.
 - `publisher.js`: the stream consumer that turns table changes into events.
+- `access.js`: looks a connection's user up again and gives a fingerprint of their access.
+- `recheck.js`: runs every 5 minutes and closes connections whose access changed.
 
 ## Messages
 
@@ -151,6 +153,15 @@ through the existing publisher, not a new consumer.
   may update only that attribute on `config` items. Write `config/admin` by
   hand with update-item only; a full put-item drops the URL until the next
   stack change.
+
+## Access changes
+
+A user's access is looked up again on every subscribe and every 5 minutes by
+`recheck.js`, not trusted from `$connect`. `$connect` saves the user's Cognito
+groups and an `accessKey` (role plus permissions). When a lookup gives a different
+`accessKey`, or none, the connection is closed and the client reconnects with
+its new role. A failed lookup leaves the connection open until the next try.
+Between rechecks, events still go by the permissions saved at `$connect`.
 
 ## Staff events flag
 

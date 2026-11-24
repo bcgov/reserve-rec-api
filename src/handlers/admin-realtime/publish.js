@@ -41,16 +41,17 @@ async function loadMetas(connectionIds) {
   return metas;
 }
 
-async function closeExpired(connectionId) {
+/** Close a connection and delete its rows. Never throws. */
+async function closeConnection(connectionId) {
   try {
     await getManagementClient().send(new DeleteConnectionCommand({ ConnectionId: connectionId }));
   } catch (err) {
-    if (!isGone(err)) logger.warn('Expired realtime connection not closed', { connectionId, error: err?.name });
+    if (!isGone(err)) logger.warn('Realtime connection not closed', { connectionId, error: err?.name });
   }
   try {
     await removeConnection(connectionId);
   } catch (err) {
-    logger.warn('Expired realtime connection rows not deleted', { connectionId, error: err?.name });
+    logger.warn('Realtime connection rows not deleted', { connectionId, error: err?.name });
   }
 }
 
@@ -104,11 +105,11 @@ async function publish(topic, event, ids) {
   const meta = { topic, type: event.type, id: event.id, collectionId: event.collectionId };
   const [results] = await Promise.all([
     Promise.all(recipients.map((id) => send(id, payload, meta))),
-    Promise.all(expired.map(closeExpired)),
+    Promise.all(expired.map(closeConnection)),
   ]);
   for (const result of results) counts[result]++;
   counts.expired = expired.length;
   return counts;
 }
 
-module.exports = { publish, subscribers };
+module.exports = { publish, subscribers, closeConnection };
