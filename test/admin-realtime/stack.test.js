@@ -263,6 +263,11 @@ describe('AdminRealtimeStack', () => {
       expect(statements).toContainEqual({ Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN });
       expect(statements.some((s) => [].concat(s.Action).includes('execute-api:ManageConnections'))).toBe(true);
     }
+    // Without the endpoint the SDK closes nothing on this API, so the socket stays open but silent
+    const endpoint = (file) => fnByFile(template, files, file).props.Environment.Variables.WEBSOCKET_MANAGEMENT_ENDPOINT;
+    expect(endpoint('publisher.js')).toBeDefined();
+    expect(endpoint('subscribe.js')).toEqual(endpoint('publisher.js'));
+    expect(endpoint('recheck.js')).toEqual(endpoint('publisher.js'));
   });
 
   it('runs the recheck every 5 minutes', () => {

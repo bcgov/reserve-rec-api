@@ -162,6 +162,8 @@ groups and an `accessKey` (role plus permissions). When a lookup gives a differe
 `accessKey`, or none, the connection is closed and the client reconnects with
 its new role. A failed lookup leaves the connection open until the next try.
 Between rechecks, events still go by the permissions saved at `$connect`.
+Connections opened before this change have no `accessKey`, so the first
+recheck after deploy closes them once and the admin app reconnects.
 
 ## Staff events flag
 
