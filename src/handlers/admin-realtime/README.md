@@ -158,12 +158,14 @@ through the existing publisher, not a new consumer.
 
 A user's access is looked up again on every subscribe and every 5 minutes by
 `recheck.js`, not trusted from `$connect`. `$connect` saves the user's Cognito
-groups and an `accessKey` (role plus permissions). When a lookup gives a different
-`accessKey`, or none, the connection is closed and the client reconnects with
-its new role. A failed lookup leaves the connection open until the next try.
+`username` and an `accessKey` (role plus permissions). Each lookup reads the
+user record and the user's current Cognito groups (`AdminListGroupsForUser`), so
+a `role` change, a SuperAdmin group change, the `unauthorized` group or a deleted
+user all count. When a lookup gives a different `accessKey`, or none, the
+connection is closed and the client reconnects with its new role. A failed lookup leaves the connection open until the next try.
 Between rechecks, events still go by the permissions saved at `$connect`.
-Connections opened before this change have no `accessKey`, so the first
-recheck after deploy closes them once and the admin app reconnects.
+Connections opened before this change have no `username` or `accessKey`, so
+the first recheck after deploy closes them once and the admin app reconnects.
 
 ## Staff events flag
 

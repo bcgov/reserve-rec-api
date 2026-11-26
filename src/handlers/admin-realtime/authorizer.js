@@ -67,8 +67,8 @@ exports.handler = async (event) => {
       permissions: JSON.stringify(permissions),
       isSuperAdmin: String(isSuperAdmin),
       exp: String(payload.exp),
-      // Saved at connect so subscribe and the recheck can look the user up again and spot a change
-      groups: JSON.stringify(payload['cognito:groups'] ?? []),
+      // Saved at connect so subscribe and the recheck can look the user and their groups up again
+      username: payload.username,
       accessKey: accessKey(role, permissions),
     });
   } catch (err) {

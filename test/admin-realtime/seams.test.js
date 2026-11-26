@@ -81,6 +81,14 @@ jest.mock('@aws-sdk/client-apigatewaymanagementapi', () => ({
 }));
 
 const mockClaims = {};
+// Current Cognito groups by username; a missing user throws like Cognito does.
+const mockGroups = {};
+jest.mock('/opt/cognito', () => ({
+  adminListGroupsForUser: async (_pool, username) => {
+    if (!(username in mockGroups)) throw Object.assign(new Error('User does not exist.'), { name: 'UserNotFoundException' });
+    return mockGroups[username];
+  },
+}));
 jest.mock('aws-jwt-verify', () => ({
   CognitoJwtVerifier: { create: () => ({ verify: async (token) => mockClaims[token] }) },
 }));
@@ -115,6 +123,7 @@ const TOKEN_EXP = 4102444800; // 2100-01-01, never expired in these tests
 function admin(token, sub, permissions) {
   const superadmin = permissions === null;
   mockClaims[token] = { sub, username: `user-${sub}`, exp: TOKEN_EXP, 'cognito:groups': superadmin ? [SUPERADMIN_GROUP] : ['staff'] };
+  mockGroups[`user-${sub}`] = mockClaims[token]['cognito:groups'];
   if (!superadmin) {
     if (!mockTables.has('RefTable')) mockTables.set('RefTable', new Map());
     mockTables.get('RefTable').set(`userid::${sub}|base`, marshall({ pk: `userid::${sub}`, sk: 'base', permissions }));
@@ -284,6 +293,7 @@ describe('admin realtime: access changes while connected', () => {
   }
   function hqAdmin(token, sub) {
     mockClaims[token] = { sub, username: `user-${sub}`, exp: TOKEN_EXP, 'cognito:groups': [] };
+    mockGroups[`user-${sub}`] = [];
     setRole(sub, 'hqAdmin');
   }
 
@@ -315,6 +325,37 @@ describe('admin realtime: access changes while connected', () => {
     expect(await recheck.handler()).toEqual({ checked: 2, closed: 1, failed: 0 });
     expect(mockClosed).toEqual(['c-hq']);
     expect(connRows()).toEqual(['CONN#c-super|META', 'TOPIC#customers|CONN#c-super']);
+  });
+
+  test('the recheck closes a SuperAdmin removed from the group, even though their token still has it', async () => {
+    admin('tok-super', 'sub-super', null);
+    await connectAs('tok-super', 'c-super');
+    await subscribeTo('c-super', 'customers');
+
+    mockGroups['user-sub-super'] = [];
+
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+    expect(mockClosed).toEqual(['c-super']);
+  });
+
+  test('subscribe closes a user added to the unauthorized group', async () => {
+    admin('tok-super', 'sub-super', null);
+    await connectAs('tok-super', 'c-super');
+
+    mockGroups['user-sub-super'] = [SUPERADMIN_GROUP, 'unauthorized'];
+
+    expect(JSON.parse((await subscribeTo('c-super', 'customers')).body)).toEqual({ type: 'error', code: 'forbidden' });
+    expect(mockClosed).toEqual(['c-super']);
+  });
+
+  test('the recheck closes a user deleted from the pool', async () => {
+    hqAdmin('tok-hq', 'sub-hq');
+    await connectAs('tok-hq', 'c-hq');
+
+    delete mockGroups['user-sub-hq'];
+
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+    expect(mockClosed).toEqual(['c-hq']);
   });
 
   test('a later connect uses the new role', async () => {

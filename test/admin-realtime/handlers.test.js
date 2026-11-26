@@ -72,7 +72,7 @@ describe('$connect', () => {
     permissions: '{"superadmin":"superadmin"}',
     isSuperAdmin: 'true',
     exp: '1760003600',
-    groups: '["SuperAdminGroup"]',
+    username: 'alice',
     accessKey: 'key-1',
   };
   const connectEvent = (authorizer) => ({ requestContext: requestContext({ authorizer }) });
@@ -90,7 +90,7 @@ describe('$connect', () => {
       userId: 'sub-1',
       permissions: { superadmin: 'superadmin' },
       exp: 1760003600,
-      groups: ['SuperAdminGroup'],
+      username: 'alice',
       accessKey: 'key-1',
       connectedAt: NOW,
       ttl: TTL,

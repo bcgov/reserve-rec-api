@@ -213,7 +213,10 @@ describe('AdminRealtimeStack', () => {
     });
     expect(fnByFile(template, files, 'subscribe.js').props.Environment.Variables.REALTIME_STAFF_ADDED_ENABLED).toBe('false');
     for (const file of ['subscribe.js', 'recheck.js']) {
-      expect(fnByFile(template, files, file).props.Environment.Variables.REFERENCE_DATA_TABLE_NAME).toBe('RefTable');
+      expect(fnByFile(template, files, file).props.Environment.Variables).toMatchObject({
+        REFERENCE_DATA_TABLE_NAME: 'RefTable',
+        ADMIN_USER_POOL_ID: 'ca-central-1_admin',
+      });
     }
     for (const file of ['connect.js', 'disconnect.js', 'subscribe.js', 'unsubscribe.js', 'ping.js', 'default.js', 'recheck.js']) {
       expect(fnByFile(template, files, file).props.Environment.Variables.ADMIN_REALTIME_TABLE_NAME).toEqual({ Ref: tableId });
@@ -257,10 +260,12 @@ describe('AdminRealtimeStack', () => {
     ]);
   });
 
-  it('lets subscribe and the recheck read users and close connections', () => {
+  it('lets subscribe and the recheck read users and their groups, and close connections', () => {
     for (const file of ['subscribe.js', 'recheck.js']) {
       const statements = statementsFor(file);
       expect(statements).toContainEqual({ Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN });
+      const groups = statements.find((s) => s.Action === 'cognito-idp:AdminListGroupsForUser');
+      expect(JSON.stringify(groups.Resource)).toContain(':userpool/ca-central-1_admin');
       expect(statements.some((s) => [].concat(s.Action).includes('execute-api:ManageConnections'))).toBe(true);
     }
     // Without the endpoint the SDK closes nothing on this API, so the socket stays open but silent
