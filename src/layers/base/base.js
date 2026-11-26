@@ -339,6 +339,119 @@ function meetsTier(heldTier, requiredTier) {
   return TIER_RANK[heldTier] >= TIER_RANK[requiredTier];
 }
 
+// Admin roles, least to most access (#682). Park Operator and Park Staff are scoped to facilities.
+const ROLE_RANK = { parkStaff: 1, parkOperator: 2, hqAdmin: 3, superadmin: 4 };
+const SCOPED_ROLES = ['parkStaff', 'parkOperator'];
+// The legacy tier a record without `role` needs for a role check; hqAdmin and up have none.
+const ROLE_LEGACY_TIER = { parkStaff: 'limited', parkOperator: 'staff' };
+const MAX_REQUESTED_FACILITY_KEYS = 100;
+const FACILITY_KEY = /^[^:]+::[^:]+::[^:]+$/;
+
+const refuse = (message, code = 403) => new Exception(`Unauthorized: ${message}`, { code });
+// One parse per request, shared by every helper.
+const parsedContexts = new WeakMap();
+
+/**
+ * The admin authorizer's context, parsed once: { sub, role, permissions, facilities }.
+ * `role` is null for a record without one; `facilities` is the key list for Park Operator
+ * and Park Staff, null otherwise. A malformed value is refused with 401.
+ */
+function adminContext(event) {
+  if (process.env.AWS_SAM_LOCAL === 'true') {
+    return { sub: 'local-dev', role: 'superadmin', permissions: { superadmin: 'superadmin' }, facilities: null };
+  }
+  if (event && parsedContexts.has(event)) return parsedContexts.get(event);
+  const authorizer = event?.requestContext?.authorizer || {};
+  let context;
+  try {
+    const role = authorizer.role || null;
+    const facilities = SCOPED_ROLES.includes(role) ? JSON.parse(authorizer.facilities) : null;
+    if (facilities && !(Array.isArray(facilities) && facilities.every((key) => typeof key === 'string'))) throw new Error();
+    if (SCOPED_ROLES.includes(role) && !facilities) throw new Error();
+    context = {
+      sub: authorizer.principalId || event?.requestContext?.claims?.sub,
+      role,
+      permissions: JSON.parse(authorizer.permissions || '{}'),
+      facilities,
+    };
+  } catch {
+    logger.warn('Could not parse the admin authorizer context');
+    throw new Exception('Unauthorized - Invalid permissions format', { code: 401 });
+  }
+  if (event) parsedContexts.set(event, context);
+  return context;
+}
+
+// null = every facility (Superadmin and HQ Admin); otherwise the caller's keys, maybe none.
+function permittedFacilityKeys(authContext) {
+  if (authContext?.permissions?.superadmin === 'superadmin') return null;
+  return Array.isArray(authContext?.facilities) ? authContext.facilities : [];
+}
+
+function meetsRole(context, minRole) {
+  return Object.hasOwn(ROLE_RANK, minRole) && ROLE_RANK[context.role] >= ROLE_RANK[minRole];
+}
+
+/** Refuses (403) a caller whose role is below `minRole`. A record without `role` never passes. */
+function requireRole(event, minRole) {
+  const context = adminContext(event);
+  if (!meetsRole(context, minRole)) throw refuse(`requires the ${minRole} role or higher`);
+  return context;
+}
+
+// A record without `role`: the tier the role maps to, in the collection of every key.
+function legacyTierCovers(context, minRole, keys) {
+  const tier = ROLE_LEGACY_TIER[minRole];
+  return Boolean(tier) && keys.every((key) => meetsTier(context.permissions[key.split('::')[0]], tier));
+}
+
+/**
+ * For a record's own facility keys (a booking's `facilityKeys`, an activity's facilities).
+ * A scoped caller passes when any key is theirs. A record with no keys (a booking made
+ * before #712) falls back to its `collectionId`: checked on the tier of a caller without a
+ * role, passed for all-access callers, refused for scoped ones. Neither is refused.
+ */
+function checkFacilityScope(event, minRole, recordKeys, collectionId = null) {
+  const context = adminContext(event);
+  if (!Array.isArray(recordKeys) || recordKeys.length === 0) {
+    if (typeof collectionId !== 'string' || !collectionId) throw refuse('the record has no facilities');
+    if (!context.role) {
+      if (!meetsTier(context.permissions[collectionId], ROLE_LEGACY_TIER[minRole])) throw refuse('no access to this collection');
+      return context;
+    }
+    if (!meetsRole(context, minRole) || permittedFacilityKeys(context)) throw refuse('no access to this record');
+    return context;
+  }
+  if (!context.role) {
+    if (!legacyTierCovers(context, minRole, recordKeys)) throw refuse('no access to this facility');
+    return context;
+  }
+  if (!meetsRole(context, minRole)) throw refuse(`requires the ${minRole} role or higher`);
+  const permitted = permittedFacilityKeys(context);
+  if (permitted && !recordKeys.some((key) => permitted.includes(key))) throw refuse('no access to this facility');
+  return context;
+}
+
+/**
+ * For a list of facility keys the caller sent. 400 unless it is a non-empty list of at most
+ * MAX_REQUESTED_FACILITY_KEYS well-formed keys; 403 unless every key is in scope.
+ */
+function checkRequestedFacilityKeys(event, minRole, requestedKeys) {
+  const context = adminContext(event);
+  if (!Array.isArray(requestedKeys) || requestedKeys.length === 0 || requestedKeys.length > MAX_REQUESTED_FACILITY_KEYS
+    || !requestedKeys.every((key) => typeof key === 'string' && FACILITY_KEY.test(key))) {
+    throw new Exception(`Invalid facility keys: send 1 to ${MAX_REQUESTED_FACILITY_KEYS} keys like collectionId::facilityType::facilityId`, { code: 400 });
+  }
+  if (!context.role) {
+    if (!legacyTierCovers(context, minRole, requestedKeys)) throw refuse('no access to one or more facilities');
+    return context;
+  }
+  if (!meetsRole(context, minRole)) throw refuse(`requires the ${minRole} role or higher`);
+  const permitted = permittedFacilityKeys(context);
+  if (permitted && !requestedKeys.every((key) => permitted.includes(key))) throw refuse('no access to one or more facilities');
+  return context;
+}
+
 /**
  * 
  * @param {Object} event - event object
@@ -364,6 +477,11 @@ function checkAuthContext(event, requiredTier = null, collectionId = null) {
     const authContext = {
       sub: event.requestContext?.authorizer?.principalId || event.requestContext?.claims?.sub,
     };
+
+    // Park Operator and Park Staff only reach endpoints through the facility helpers (#682).
+    if (SCOPED_ROLES.includes(event?.requestContext?.authorizer?.role)) {
+      throw new Exception("Unauthorized: this endpoint is not open to facility-scoped roles.", { code: 403 });
+    }
 
     authContext.permissions = JSON.parse(event?.requestContext?.authorizer?.permissions || '{}');
     const isSuperAdmin = authContext.permissions['superadmin'] === 'superadmin';
@@ -575,6 +693,12 @@ module.exports = {
   filterByRole,
   checkAuthContext,
   meetsTier,
+  adminContext,
+  requireRole,
+  checkFacilityScope,
+  checkRequestedFacilityKeys,
+  permittedFacilityKeys,
+  MAX_REQUESTED_FACILITY_KEYS,
   getClientIp,
   getRequestClaimsFromEvent,
   isoToEpoch,

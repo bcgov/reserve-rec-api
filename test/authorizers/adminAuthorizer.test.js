@@ -57,7 +57,7 @@ describe('admin authorizer', () => {
     mockVerify.mockResolvedValue({ sub: 'sub-1', username: 'boss', 'cognito:groups': [SUPER] });
     const res = await handler(request());
     expect(res.policyDocument.Statement[0]).toEqual({ Action: 'execute-api:Invoke', Effect: 'Allow', Resource: `${BASE}/*` });
-    expect(res.context).toEqual({ isAuthenticated: 'true', isAdmin: 'true', permissions: '{"superadmin":"superadmin"}', userId: 'sub-1', username: 'boss' });
+    expect(res.context).toEqual({ isAuthenticated: 'true', isAdmin: 'true', role: 'superadmin', permissions: '{"superadmin":"superadmin"}', userId: 'sub-1', username: 'boss' });
   });
 
   it('allows the union of resource-map paths for each tier the user holds, plus /users/me', async () => {
