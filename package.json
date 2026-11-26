@@ -60,8 +60,8 @@
     "@opensearch-project/opensearch": "^3.5.1",
     "@smithy/protocol-http": "^5.3.3",
     "@smithy/signature-v4": "^5.3.3",
-    "aws-cdk": "^2.1030.0",
-    "aws-cdk-lib": "^2.220.0",
+    "aws-cdk": "^2.1149.0",
+    "aws-cdk-lib": "^2.278.0",
     "aws-jwt-verify": "4.0.1",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.20.0",
@@ -78,5 +78,8 @@
     "nodemailer": "^10.5.0",
     "qrcode": "^1.5.4",
     "winston": "^3.17.0"
+  },
+  "resolutions": {
+    "aws-sdk/uuid": "^11.1.1"
   }
 }
