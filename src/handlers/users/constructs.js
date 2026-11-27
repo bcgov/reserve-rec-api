@@ -70,13 +70,16 @@ class UsersConstruct extends LambdaConstruct {
       resources: ["*"], // Consider restricting this to specific user pool ARNs if possible
     }));
 
-    // GET /users/me returns the calling user's permissions from the authorizer context
+    // GET /users/me returns the caller's role and permissions from the authorizer context,
+    // and reads the operator record to name a scoped caller's facilities
     this.getMeFunction = this.generateBasicLambdaFn(
       scope,
       'getMeFunction',
       'src/handlers/users/me/GET',
       'index.handler',
-      {} // no DynamoDB access needed — reads from authorizer context only
+      {
+        basicRead: true,
+      }
     );
 
     this.meResource.addMethod('GET', new apigateway.LambdaIntegration(this.getMeFunction), {
