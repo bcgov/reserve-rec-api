@@ -1,6 +1,6 @@
 'use strict';
 
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const { buildQueueId, createQueueMeta, getQueueMeta, putQueueMeta } = require('../utils/dynamodb');
 
 const TTL_BUFFER_HOURS = 48; // Queue META TTL: openingTime + 48h
@@ -15,6 +15,8 @@ exports.handler = async (event) => {
   logger.info('WaitingRoom admin CREATE-QUEUES');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const body = JSON.parse(event?.body || '{}');
     const { collectionId, activityType, activityId, openingTimes } = body;
 

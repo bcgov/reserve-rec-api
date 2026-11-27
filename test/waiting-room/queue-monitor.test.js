@@ -7,6 +7,8 @@ jest.mock('/opt/base', () => ({
 jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
   scanQueuesByStatus: jest.fn(),
   updateQueueMetaStatus: jest.fn(),
+  getActiveMode2QueueId: jest.fn(),
+  restoreActiveMode2QueueId: jest.fn(),
 }));
 
 jest.mock('@aws-sdk/client-lambda', () => ({
@@ -28,6 +30,8 @@ describe('WaitingRoom QUEUE MONITOR handler', () => {
 
     db.scanQueuesByStatus.mockResolvedValue([]);
     db.updateQueueMetaStatus.mockResolvedValue(true);
+    db.getActiveMode2QueueId.mockResolvedValue(null);
+    db.restoreActiveMode2QueueId.mockResolvedValue(true);
 
     // Re-setup Lambda client mock after resetAllMocks
     const { LambdaClient } = require('@aws-sdk/client-lambda');
@@ -118,5 +122,45 @@ describe('WaitingRoom QUEUE MONITOR handler', () => {
 
     const result = await handler({}, {});
     expect(result.releaseInvokedCount).toBe(2);
+  });
+
+  describe('Mode 2 pointer self-heal', () => {
+    const releasing = (...queues) => db.scanQueuesByStatus
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(queues);
+
+    it('restores a missing pointer to the newest releasing Mode 2 queue, and still releases', async () => {
+      releasing(
+        { pk: 'QUEUE#MODE2#global#1#2026-07-01', queueStatus: 'releasing' },
+        { pk: 'QUEUE#MODE2#global#1#2026-07-02', queueStatus: 'releasing' },
+        { pk: 'QUEUE#bcparks_7#dayuse#1#2026-07-03', queueStatus: 'releasing' },
+      );
+      const result = await handler({}, {});
+      expect(db.restoreActiveMode2QueueId).toHaveBeenCalledWith('QUEUE#MODE2#global#1#2026-07-02');
+      expect(result.mode2PointerRestored).toBe('QUEUE#MODE2#global#1#2026-07-02');
+      expect(result.releaseInvokedCount).toBe(3);
+    });
+
+    it('leaves an existing pointer alone', async () => {
+      db.getActiveMode2QueueId.mockResolvedValue('QUEUE#MODE2#global#1#2026-07-01');
+      releasing({ pk: 'QUEUE#MODE2#global#1#2026-07-02', queueStatus: 'releasing' });
+      const result = await handler({}, {});
+      expect(db.restoreActiveMode2QueueId).not.toHaveBeenCalled();
+      expect(result.mode2PointerRestored).toBeNull();
+    });
+
+    it('does not read the pointer when no Mode 2 queue is releasing', async () => {
+      releasing({ pk: 'QUEUE#bcparks_7#dayuse#1#2026-07-03', queueStatus: 'releasing' });
+      await handler({}, {});
+      expect(db.getActiveMode2QueueId).not.toHaveBeenCalled();
+    });
+
+    it('still releases when restoring the pointer fails', async () => {
+      db.restoreActiveMode2QueueId.mockRejectedValue(new Error('throttled'));
+      releasing({ pk: 'QUEUE#MODE2#global#1#2026-07-02', queueStatus: 'releasing' });
+      const result = await handler({}, {});
+      expect(result.releaseInvokedCount).toBe(1);
+    });
   });
 });

@@ -9,6 +9,7 @@ const {
   getClientIp,
   requestIdentity,
   meetsTier,
+  redactEvent,
 } = require('../src/layers/base/base');
 
 describe('Base Layer Tests', () => {
@@ -106,6 +107,34 @@ describe('Base Layer Tests', () => {
       expect(ex.message).toBe('Test error');
       expect(ex.code).toBe(400);
       expect(ex.data).toEqual({ field: 'value' });
+    });
+  });
+
+  describe('redactEvent', () => {
+    it('masks credentials in headers and the query string, whatever their case', () => {
+      const event = {
+        path: '/waiting-room/join',
+        authorizationToken: 'Bearer raw',
+        headers: { Authorization: 'Bearer access', 'x-id-token': 'id.token.jwt', Cookie: 'bcparks-admission=t', 'User-Agent': 'ua' },
+        multiValueHeaders: { 'X-ID-TOKEN': ['id.token.jwt'], cookie: ['a=b'], Accept: ['*/*'] },
+        queryStringParameters: { token: 'ws.access.jwt', queueId: 'QUEUE#x' },
+      };
+      const logged = JSON.stringify(redactEvent(event));
+      for (const secret of ['Bearer raw', 'Bearer access', 'id.token.jwt', 'bcparks-admission', 'a=b', 'ws.access.jwt']) {
+        expect(logged).not.toContain(secret);
+      }
+      expect(redactEvent(event)).toMatchObject({
+        path: '/waiting-room/join',
+        headers: { 'User-Agent': 'ua', 'x-id-token': '[redacted]' },
+        multiValueHeaders: { Accept: ['*/*'] },
+        queryStringParameters: { queueId: 'QUEUE#x' },
+      });
+      expect(event.headers.Authorization).toBe('Bearer access');
+    });
+
+    it('passes events without headers through', () => {
+      expect(redactEvent({ requestContext: { connectionId: 'c' } })).toMatchObject({ requestContext: { connectionId: 'c' } });
+      expect(redactEvent(undefined)).toBeUndefined();
     });
   });
 

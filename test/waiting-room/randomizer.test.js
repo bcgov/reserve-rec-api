@@ -13,7 +13,7 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
 
 const handlerModule = require('../../src/handlers/waiting-room/randomizer/handler');
 const { handler } = handlerModule;
-const applyIpSpread = handlerModule._applyIpSpread;
+const { applyIpSpread } = require('../../src/handlers/waiting-room/utils/shuffle');
 const db = require('../../src/handlers/waiting-room/utils/dynamodb');
 
 const queueId = 'QUEUE#golden-ears#camping#standard-sites#2025-06-15';

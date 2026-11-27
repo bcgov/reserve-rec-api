@@ -29,6 +29,105 @@ describe('key helpers', () => {
   });
 });
 
+describe('active Mode 2 pointer', () => {
+  const pointerKey = { pk: 'MODE2', sk: 'ACTIVE' };
+
+  it('set, get and clear all address the one pointer item', async () => {
+    await db.setActiveMode2QueueId('QUEUE#MODE2#global#1#2026-07-01');
+    expect(sent(0).constructor.name).toBe('PutItemCommand');
+    expect(unmarshall(sent(0).input.Item)).toMatchObject({ ...pointerKey, queueId: 'QUEUE#MODE2#global#1#2026-07-01' });
+
+    mockSend.mockResolvedValueOnce({ Item: marshall({ ...pointerKey, queueId: 'QUEUE#MODE2#global#1#2026-07-01' }) });
+    await expect(db.getActiveMode2QueueId()).resolves.toBe('QUEUE#MODE2#global#1#2026-07-01');
+    expect(unmarshall(sent(1).input.Key)).toEqual(pointerKey);
+
+    await db.clearActiveMode2QueueId();
+    expect(sent(2).constructor.name).toBe('DeleteItemCommand');
+    expect(unmarshall(sent(2).input.Key)).toEqual(pointerKey);
+  });
+
+  it('getActiveMode2QueueId returns null when Mode 2 is off', async () => {
+    await expect(db.getActiveMode2QueueId()).resolves.toBeNull();
+  });
+
+  it('restoreActiveMode2QueueId writes only when no pointer exists', async () => {
+    await expect(db.restoreActiveMode2QueueId('QUEUE#MODE2#global#1#2026-07-01')).resolves.toBe(true);
+    expect(sent(0).input.ConditionExpression).toBe('attribute_not_exists(pk)');
+    expect(unmarshall(sent(0).input.Item)).toMatchObject({ ...pointerKey, queueId: 'QUEUE#MODE2#global#1#2026-07-01' });
+
+    mockSend.mockRejectedValueOnce(ccf());
+    await expect(db.restoreActiveMode2QueueId('QUEUE#MODE2#global#1#2026-07-02')).resolves.toBe(false);
+  });
+});
+
+describe('getActiveMode2Meta', () => {
+  const mode2QueueId = 'QUEUE#MODE2#global#1#2026-07-01';
+  const pointer = { Item: marshall({ pk: 'MODE2', sk: 'ACTIVE', queueId: mode2QueueId }) };
+  const meta = (queueStatus) => ({ Item: marshall({ pk: mode2QueueId, sk: 'META', queueStatus }) });
+  const readKeys = () => mockSend.mock.calls.map(([cmd]) => unmarshall(cmd.input.Key).pk);
+
+  beforeEach(() => {
+    db.clearActiveMode2Cache();
+    // The UTC date (July 2) differs from the queue's: the pointer, not the clock, names it.
+    jest.useFakeTimers({ now: new Date('2026-07-02T01:00:00Z') });
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it("returns the pointed-to queue's META while it is open", async () => {
+    mockSend.mockResolvedValueOnce(pointer).mockResolvedValueOnce(meta('releasing'));
+    await expect(db.getActiveMode2Meta()).resolves.toMatchObject({ pk: mode2QueueId, queueStatus: 'releasing' });
+    expect(readKeys()).toEqual(['MODE2', mode2QueueId]);
+  });
+
+  it('returns null when the pointed-to queue is closed', async () => {
+    mockSend.mockResolvedValueOnce(pointer).mockResolvedValueOnce(meta('closed'));
+    await expect(db.getActiveMode2Meta()).resolves.toBeNull();
+  });
+
+  it('caches the answer, including "Mode 2 off", for 5 seconds', async () => {
+    await expect(db.getActiveMode2Meta()).resolves.toBeNull();
+    jest.advanceTimersByTime(4999);
+    await expect(db.getActiveMode2Meta()).resolves.toBeNull();
+    expect(mockSend).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(2);
+    mockSend.mockResolvedValueOnce(pointer).mockResolvedValueOnce(meta('releasing'));
+    await expect(db.getActiveMode2Meta()).resolves.toMatchObject({ queueStatus: 'releasing' });
+    expect(mockSend).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not cache a failed read', async () => {
+    mockSend.mockRejectedValueOnce(new Error('throttled'));
+    await expect(db.getActiveMode2Meta()).rejects.toThrow('throttled');
+    mockSend.mockResolvedValueOnce(pointer).mockResolvedValueOnce(meta('releasing'));
+    await expect(db.getActiveMode2Meta()).resolves.toMatchObject({ queueStatus: 'releasing' });
+  });
+});
+
+describe('Mode 2 release writes', () => {
+  it('claimMode2Release moves lastReleasedAt only from the value read', async () => {
+    await expect(db.claimMode2Release(queueId, 1700000000, 1700000300)).resolves.toBe(true);
+    expect(sent(0).input.ConditionExpression).toBe('lastReleasedAt = :read');
+    expect(sentValues(0)).toEqual({ ':now': 1700000300, ':read': 1700000000 });
+
+    await db.claimMode2Release(queueId, 0, 1700000300);
+    expect(sent(1).input.ConditionExpression).toBe('attribute_not_exists(lastReleasedAt) OR lastReleasedAt = :read');
+
+    mockSend.mockRejectedValueOnce(ccf());
+    await expect(db.claimMode2Release(queueId, 1700000000, 1700000300)).resolves.toBe(false);
+  });
+
+  it('setEntryRandomOrder writes only to a waiting entry without an order', async () => {
+    await expect(db.setEntryRandomOrder(queueId, 'u-1', 7)).resolves.toBe(true);
+    expect(sent(0).input.ConditionExpression).toBe('#status = :waiting AND attribute_not_exists(randomOrder)');
+    expect(unmarshall(sent(0).input.Key)).toEqual({ pk: queueId, sk: 'ENTRY#u-1' });
+    expect(sentValues(0)).toMatchObject({ ':order': 7, ':waiting': 'waiting' });
+
+    mockSend.mockRejectedValueOnce(ccf());
+    await expect(db.setEntryRandomOrder(queueId, 'u-1', 7)).resolves.toBe(false);
+  });
+});
+
 describe('queue meta', () => {
   it('getQueueMeta reads the META row and unmarshalls it', async () => {
     mockSend.mockResolvedValue({ Item: marshall({ pk: queueId, sk: 'META', queueStatus: 'open' }) });
