@@ -13,6 +13,8 @@ Files:
 - `topics.js`: the topic registry (`TOPICS`, `canSubscribe`).
 - `publish.js`: `publish(topic, event)`, which sends one event to a topic's subscribers.
 - `publisher.js`: the stream consumer that turns table changes into events.
+- `access.js`: looks a connection's user up again and gives a fingerprint of their access.
+- `recheck.js`: runs every 5 minutes and closes connections whose access changed.
 
 ## Messages
 
@@ -151,6 +153,22 @@ through the existing publisher, not a new consumer.
   may update only that attribute on `config` items. Write `config/admin` by
   hand with update-item only; a full put-item drops the URL until the next
   stack change.
+
+## Access changes
+
+A user's access is looked up again on every subscribe and every 5 minutes by
+`recheck.js`, not trusted from `$connect`. `$connect` saves the user's Cognito
+`username` and an `accessKey` (role plus permissions). The `$connect` authorizer
+and every later lookup read the user record and the user's current Cognito
+groups (`AdminListGroupsForUser`), never the token's, which can be hours old.
+So a `role` change, a SuperAdmin group change, the `unauthorized` group or a
+deleted user all count, and a reconnect with the same token is not closed again.
+When a lookup gives a different `accessKey`, or none, the connection is closed
+and the client reconnects with its new role. A failed lookup leaves the
+connection open until the next try.
+Between rechecks, events still go by the permissions saved at `$connect`.
+Connections opened before this change have no `username` or `accessKey`, so
+the first recheck after deploy closes them once and the admin app reconnects.
 
 ## Staff events flag
 

@@ -19,6 +19,10 @@ jest.mock('aws-jwt-verify', () => ({
   CognitoJwtVerifier: { create: (...args) => mockCreate(...args) },
 }));
 
+// Current Cognito groups. Unless a test says otherwise they match the token's.
+const mockListGroups = jest.fn();
+jest.mock('/opt/cognito', () => ({ adminListGroupsForUser: (...args) => mockListGroups(...args) }));
+
 process.env.ADMIN_USER_POOL_ID = 'ca-central-1_admin';
 process.env.ADMIN_USER_POOL_CLIENT_ID = 'admin-client';
 
@@ -35,6 +39,7 @@ describe('admin realtime authorizer', () => {
   beforeEach(() => {
     mockVerify.mockReset();
     mockGetOne.mockReset();
+    mockListGroups.mockReset().mockImplementation(async () => (await mockVerify.mock.results.at(-1)?.value)?.['cognito:groups'] ?? []);
     delete process.env.REALTIME_STAFF_ADDED_ENABLED;
   });
 
@@ -61,6 +66,8 @@ describe('admin realtime authorizer', () => {
       permissions: JSON.stringify({ superadmin: 'superadmin' }),
       isSuperAdmin: 'true',
       exp: '1760003600',
+      username: 'alice',
+      accessKey: JSON.stringify({ role: 'superadmin', permissions: { superadmin: 'superadmin' } }),
     });
     expect(mockGetOne).toHaveBeenCalledWith('userid::sub-1', 'base');
   });
@@ -161,6 +168,58 @@ describe('admin realtime authorizer', () => {
 
   it('denies a token with no groups claim', async () => {
     mockVerify.mockResolvedValue({ sub: 'sub-1', username: 'alice' });
+    expect(effect(await handler(event()))).toBe('Deny');
+  });
+
+  // The token's groups can be hours old. $connect uses the current ones, as subscribe does, so a reconnect is not closed again.
+  it('uses current groups, not the token, for a SuperAdmin removed from the group', async () => {
+    mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
+    mockListGroups.mockResolvedValue([]);
+    mockGetOne.mockResolvedValue({ pk: 'userid::sub-1', sk: 'base', permissions: { bcparks_7: 'staff' } });
+    process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
+
+    const res = await handler(event());
+    expect(effect(res)).toBe('Allow');
+    expect(res.context.isSuperAdmin).toBe('false');
+    expect(res.context.accessKey).toBe(JSON.stringify({ role: null, permissions: { bcparks_7: 'staff' } }));
+    expect(mockListGroups).toHaveBeenCalledWith('ca-central-1_admin', 'alice');
+  });
+
+  it('lets in a user added to the SuperAdmin group whose token predates it', async () => {
+    mockVerify.mockResolvedValue(payload([]));
+    mockListGroups.mockResolvedValue(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']);
+    mockGetOne.mockResolvedValue(null);
+
+    const res = await handler(event());
+    expect(effect(res)).toBe('Allow');
+    expect(res.context.isSuperAdmin).toBe('true');
+  });
+
+  it('denies a user added to unauthorized whose token predates it', async () => {
+    mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
+    mockListGroups.mockResolvedValue(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup', 'unauthorized']);
+    expect(effect(await handler(event()))).toBe('Deny');
+    expect(mockGetOne).not.toHaveBeenCalled();
+  });
+
+  it('denies a user no longer in the pool, or a token without a username', async () => {
+    mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
+    mockListGroups.mockRejectedValue(Object.assign(new Error('gone'), { name: 'UserNotFoundException' }));
+    // A record that would otherwise allow them, so only the not-in-pool check can deny
+    process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
+    mockGetOne.mockResolvedValue({ pk: 'userid::sub-1', sk: 'base', permissions: { bcparks_7: 'staff' } });
+    expect(effect(await handler(event()))).toBe('Deny');
+    expect(mockGetOne).not.toHaveBeenCalled();
+
+    mockListGroups.mockClear();
+    mockVerify.mockResolvedValue({ sub: 'sub-1', exp: 1760003600, 'cognito:groups': ['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup'] });
+    expect(effect(await handler(event()))).toBe('Deny');
+    expect(mockListGroups).not.toHaveBeenCalled();
+  });
+
+  it('denies when the groups lookup fails', async () => {
+    mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
+    mockListGroups.mockRejectedValue(Object.assign(new Error('slow down'), { name: 'TooManyRequestsException' }));
     expect(effect(await handler(event()))).toBe('Deny');
   });
 

@@ -3,7 +3,7 @@
 // The Cognito layer must keep a throttle distinguishable from a refusal: the
 // 07:00 release turned TooManyRequestsException into HTTP 400.
 
-const { adminGetUser, describeUserPool, listUsers, cognitoProviderClient } = require("../src/layers/awsUtils/cognito");
+const { adminGetUser, adminListGroupsForUser, describeUserPool, listUsers, cognitoProviderClient } = require("../src/layers/awsUtils/cognito");
 
 const sdkError = (name) => Object.assign(new Error(name), { name });
 
@@ -83,6 +83,13 @@ describe("Cognito layer requests", () => {
     send.mockResolvedValue({ Username: "jane", Enabled: true });
 
     await expect(adminGetUser("pool", "jane")).resolves.toEqual({ Username: "jane", Enabled: true });
+    expect(send.mock.calls[0][0].input).toEqual({ UserPoolId: "pool", Username: "jane" });
+  });
+
+  it("returns the user's group names from AdminListGroupsForUser", async () => {
+    send.mockResolvedValue({ Groups: [{ GroupName: "admins" }, { GroupName: "unauthorized" }] });
+
+    await expect(adminListGroupsForUser("pool", "jane")).resolves.toEqual(["admins", "unauthorized"]);
     expect(send.mock.calls[0][0].input).toEqual({ UserPoolId: "pool", Username: "jane" });
   });
 

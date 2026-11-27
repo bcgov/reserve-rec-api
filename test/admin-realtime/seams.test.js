@@ -4,6 +4,7 @@
 
 const mockTables = new Map();
 const mockPosts = [];
+const mockClosed = [];
 const mockState = { earlierBookings: [], goneConnections: new Set() };
 
 jest.mock('@aws-sdk/client-dynamodb', () => {
@@ -43,6 +44,10 @@ jest.mock('@aws-sdk/client-dynamodb', () => {
       }
       return { Items: mockState.earlierBookings };
     }
+    if (cmd instanceof actual.ScanCommand) {
+      // Only the recheck scans: every META row
+      return { Items: [...rows(input.TableName).values()].filter((item) => item.sk.S === 'META') };
+    }
     throw new Error(`unexpected command ${cmd.constructor.name}`);
   }
 
@@ -67,13 +72,23 @@ jest.mock('@aws-sdk/client-apigatewaymanagementapi', () => ({
       if (mockState.goneConnections.has(input.ConnectionId)) {
         throw Object.assign(new Error('gone'), { name: 'GoneException' });
       }
+      if (input.closing) return mockClosed.push(input.ConnectionId);
       mockPosts.push({ connectionId: input.ConnectionId, message: JSON.parse(input.Data) });
     }),
   })),
   PostToConnectionCommand: jest.fn((input) => input),
+  DeleteConnectionCommand: jest.fn((input) => ({ ...input, closing: true })),
 }));
 
 const mockClaims = {};
+// Current Cognito groups by username; a missing user throws like Cognito does.
+const mockGroups = {};
+jest.mock('/opt/cognito', () => ({
+  adminListGroupsForUser: async (_pool, username) => {
+    if (!(username in mockGroups)) throw Object.assign(new Error('User does not exist.'), { name: 'UserNotFoundException' });
+    return mockGroups[username];
+  },
+}));
 jest.mock('aws-jwt-verify', () => ({
   CognitoJwtVerifier: { create: () => ({ verify: async (token) => mockClaims[token] }) },
 }));
@@ -97,6 +112,7 @@ const connect = require('../../src/handlers/admin-realtime/connect');
 const subscribe = require('../../src/handlers/admin-realtime/subscribe');
 const disconnect = require('../../src/handlers/admin-realtime/disconnect');
 const publisher = require('../../src/handlers/admin-realtime/publisher');
+const recheck = require('../../src/handlers/admin-realtime/recheck');
 
 const SUPERADMIN_GROUP = 'ca-central-1_abc-AdminIdentityStack-SuperAdminGroup';
 const rows = (name) => mockTables.get(name) ?? new Map();
@@ -107,6 +123,7 @@ const TOKEN_EXP = 4102444800; // 2100-01-01, never expired in these tests
 function admin(token, sub, permissions) {
   const superadmin = permissions === null;
   mockClaims[token] = { sub, username: `user-${sub}`, exp: TOKEN_EXP, 'cognito:groups': superadmin ? [SUPERADMIN_GROUP] : ['staff'] };
+  mockGroups[`user-${sub}`] = mockClaims[token]['cognito:groups'];
   if (!superadmin) {
     if (!mockTables.has('RefTable')) mockTables.set('RefTable', new Map());
     mockTables.get('RefTable').set(`userid::${sub}|base`, marshall({ pk: `userid::${sub}`, sk: 'base', permissions }));
@@ -144,6 +161,7 @@ const customerData = { givenName: 'Ada', familyName: 'Lovelace', email: 'ada@exa
 beforeEach(() => {
   mockTables.clear();
   mockPosts.length = 0;
+  mockClosed.length = 0;
   mockState.earlierBookings = [];
   mockState.goneConnections.clear();
   jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -263,5 +281,115 @@ describe('admin realtime: connect -> subscribe -> publisher', () => {
 
     expect(result).toEqual({ batchItemFailures: [] });
     expect(connRows()).toEqual([]);
+  });
+});
+
+// #682: access is looked up again on every subscribe and by the recheck timer, not taken from $connect.
+describe('admin realtime: access changes while connected', () => {
+  // Sets the user record's role, the way an admin changing someone's role would.
+  function setRole(sub, role) {
+    if (!mockTables.has('RefTable')) mockTables.set('RefTable', new Map());
+    mockTables.get('RefTable').set(`userid::${sub}|base`, marshall({ pk: `userid::${sub}`, sk: 'base', role, operatorId: 'op-1' }));
+  }
+  function hqAdmin(token, sub) {
+    mockClaims[token] = { sub, username: `user-${sub}`, exp: TOKEN_EXP, 'cognito:groups': [] };
+    mockGroups[`user-${sub}`] = [];
+    setRole(sub, 'hqAdmin');
+  }
+
+  test('HQ Admin connects and subscribes, then is refused and closed once demoted to Park Staff', async () => {
+    hqAdmin('tok-hq', 'sub-hq');
+    expect((await connectAs('tok-hq', 'c-hq')).connected).toEqual({ statusCode: 200 });
+    expect(JSON.parse((await subscribeTo('c-hq', 'customers')).body)).toEqual({ type: 'subscribed', topic: 'customers' });
+
+    setRole('sub-hq', 'parkStaff');
+
+    expect(JSON.parse((await subscribeTo('c-hq', 'customers')).body)).toEqual({ type: 'error', code: 'forbidden' });
+    expect(mockClosed).toEqual(['c-hq']);
+    expect(connRows()).toEqual([]);
+  });
+
+  test('the recheck closes only the connection whose access changed', async () => {
+    hqAdmin('tok-hq', 'sub-hq');
+    admin('tok-super', 'sub-super', null);
+    await connectAs('tok-hq', 'c-hq');
+    await connectAs('tok-super', 'c-super');
+    await subscribeTo('c-hq', 'customers');
+    await subscribeTo('c-super', 'customers');
+
+    expect(await recheck.handler()).toEqual({ checked: 2, closed: 0, failed: 0 });
+    expect(mockClosed).toEqual([]);
+
+    setRole('sub-hq', 'parkStaff');
+
+    expect(await recheck.handler()).toEqual({ checked: 2, closed: 1, failed: 0 });
+    expect(mockClosed).toEqual(['c-hq']);
+    expect(connRows()).toEqual(['CONN#c-super|META', 'TOPIC#customers|CONN#c-super']);
+  });
+
+  test('the recheck closes a SuperAdmin removed from the group, even though their token still has it', async () => {
+    admin('tok-super', 'sub-super', null);
+    await connectAs('tok-super', 'c-super');
+    await subscribeTo('c-super', 'customers');
+
+    mockGroups['user-sub-super'] = [];
+
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+    expect(mockClosed).toEqual(['c-super']);
+  });
+
+  test('subscribe closes a user added to the unauthorized group', async () => {
+    admin('tok-super', 'sub-super', null);
+    await connectAs('tok-super', 'c-super');
+
+    mockGroups['user-sub-super'] = [SUPERADMIN_GROUP, 'unauthorized'];
+
+    expect(JSON.parse((await subscribeTo('c-super', 'customers')).body)).toEqual({ type: 'error', code: 'forbidden' });
+    expect(mockClosed).toEqual(['c-super']);
+  });
+
+  test('the recheck closes a user deleted from the pool', async () => {
+    hqAdmin('tok-hq', 'sub-hq');
+    await connectAs('tok-hq', 'c-hq');
+
+    delete mockGroups['user-sub-hq'];
+
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+    expect(mockClosed).toEqual(['c-hq']);
+  });
+
+  // Mark's case: the reconnect uses the same old token, which still says SuperAdmin.
+  test('a SuperAdmin moved back to a tier map reconnects with the same token and stays connected', async () => {
+    process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
+    admin('tok-super', 'sub-super', null);
+    if (!mockTables.has('RefTable')) mockTables.set('RefTable', new Map());
+    mockTables.get('RefTable').set('userid::sub-super|base', marshall({ pk: 'userid::sub-super', sk: 'base', permissions: { bcparks_7: 'staff' } }));
+    await connectAs('tok-super', 'c-super');
+
+    mockGroups['user-sub-super'] = [];
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+
+    expect((await connectAs('tok-super', 'c-super-2')).connected).toEqual({ statusCode: 200 });
+    expect(JSON.parse((await subscribeTo('c-super-2', 'customers')).body)).toEqual({ type: 'subscribed', topic: 'customers' });
+    expect(mockClosed).toEqual(['c-super']);
+    delete process.env.REALTIME_STAFF_ADDED_ENABLED;
+  });
+
+  test('connect refuses a user added to unauthorized, even with an older token', async () => {
+    admin('tok-super', 'sub-super', null);
+    mockGroups['user-sub-super'] = [SUPERADMIN_GROUP, 'unauthorized'];
+
+    const { auth } = await connectAs('tok-super', 'c-super');
+    expect(auth.policyDocument.Statement[0].Effect).toBe('Deny');
+  });
+
+  test('a later connect uses the new role', async () => {
+    hqAdmin('tok-hq', 'sub-hq');
+    await connectAs('tok-hq', 'c-hq');
+    setRole('sub-hq', 'parkStaff');
+    await recheck.handler();
+
+    const again = await connectAs('tok-hq', 'c-hq-2');
+    expect(again.auth.policyDocument.Statement[0].Effect).toBe('Deny');
   });
 });

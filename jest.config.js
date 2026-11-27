@@ -19,6 +19,7 @@ module.exports = {
     '^/opt/accountStatus$': '<rootDir>/src/layers/awsUtils/accountStatus.js',
     '^/opt/awsUtils/ses$': '<rootDir>/src/layers/awsUtils/ses.js',
     '^/opt/awsUtils/sns$': '<rootDir>/src/layers/awsUtils/sns.js',
+    '^/opt/cognito$': '<rootDir>/src/layers/awsUtils/cognito.js',
     '^/opt/base$': '<rootDir>/src/layers/base/base.js',
     '^/opt/dynamodb$': '<rootDir>/src/layers/awsUtils/dynamodb.js',
     '^/opt/emailBlocklist$': '<rootDir>/src/layers/base/emailBlocklist.js',

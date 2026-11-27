@@ -190,13 +190,14 @@ describe('AdminRealtimeStack', () => {
       'ping.js': 'ReserveRecApi-Local-AdminRealtimeStack-Ping',
       'default.js': 'ReserveRecApi-Local-AdminRealtimeStack-Default',
       'publisher.js': 'ReserveRecApi-Local-AdminRealtimeStack-Publisher',
+      'recheck.js': 'ReserveRecApi-Local-AdminRealtimeStack-Recheck',
     });
   });
 
   it('runs every handler on Node 20 with both layers and the contract env vars', () => {
     const [tableId] = only(template, 'AWS::DynamoDB::Table');
     expect(Object.values(files).sort()).toEqual([
-      'authorizer.js', 'connect.js', 'default.js', 'disconnect.js', 'ping.js', 'publisher.js', 'subscribe.js', 'unsubscribe.js',
+      'authorizer.js', 'connect.js', 'default.js', 'disconnect.js', 'ping.js', 'publisher.js', 'recheck.js', 'subscribe.js', 'unsubscribe.js',
     ]);
     for (const file of Object.values(files)) {
       const { props } = fnByFile(template, files, file);
@@ -211,7 +212,13 @@ describe('AdminRealtimeStack', () => {
       REALTIME_STAFF_ADDED_ENABLED: 'false',
     });
     expect(fnByFile(template, files, 'subscribe.js').props.Environment.Variables.REALTIME_STAFF_ADDED_ENABLED).toBe('false');
-    for (const file of ['connect.js', 'disconnect.js', 'subscribe.js', 'unsubscribe.js', 'ping.js', 'default.js']) {
+    for (const file of ['subscribe.js', 'recheck.js']) {
+      expect(fnByFile(template, files, file).props.Environment.Variables).toMatchObject({
+        REFERENCE_DATA_TABLE_NAME: 'RefTable',
+        ADMIN_USER_POOL_ID: 'ca-central-1_admin',
+      });
+    }
+    for (const file of ['connect.js', 'disconnect.js', 'subscribe.js', 'unsubscribe.js', 'ping.js', 'default.js', 'recheck.js']) {
       expect(fnByFile(template, files, file).props.Environment.Variables.ADMIN_REALTIME_TABLE_NAME).toEqual({ Ref: tableId });
     }
     const publisherEnv = fnByFile(template, files, 'publisher.js').props.Environment.Variables;
@@ -247,10 +254,33 @@ describe('AdminRealtimeStack', () => {
     }
   });
 
-  it('lets the authorizer GetItem on the reference table and nothing else', () => {
-    expect(statementsFor('authorizer.js')).toEqual([
-      { Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN },
-    ]);
+  it('lets the authorizer GetItem on the reference table and read groups, and nothing else', () => {
+    const statements = statementsFor('authorizer.js');
+    expect(statements).toHaveLength(2);
+    expect(statements[0]).toEqual({ Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN });
+    expect(statements[1].Action).toBe('cognito-idp:AdminListGroupsForUser');
+    expect(JSON.stringify(statements[1].Resource)).toContain(':userpool/ca-central-1_admin');
+  });
+
+  it('lets subscribe and the recheck read users and their groups, and close connections', () => {
+    for (const file of ['subscribe.js', 'recheck.js']) {
+      const statements = statementsFor(file);
+      expect(statements).toContainEqual({ Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN });
+      const groups = statements.find((s) => s.Action === 'cognito-idp:AdminListGroupsForUser');
+      expect(JSON.stringify(groups.Resource)).toContain(':userpool/ca-central-1_admin');
+      expect(statements.some((s) => [].concat(s.Action).includes('execute-api:ManageConnections'))).toBe(true);
+    }
+    // Without the endpoint the SDK closes nothing on this API, so the socket stays open but silent
+    const endpoint = (file) => fnByFile(template, files, file).props.Environment.Variables.WEBSOCKET_MANAGEMENT_ENDPOINT;
+    expect(endpoint('publisher.js')).toBeDefined();
+    expect(endpoint('subscribe.js')).toEqual(endpoint('publisher.js'));
+    expect(endpoint('recheck.js')).toEqual(endpoint('publisher.js'));
+  });
+
+  it('runs the recheck every 5 minutes', () => {
+    const [, rule] = only(template, 'AWS::Events::Rule');
+    expect(rule.Properties.ScheduleExpression).toBe('rate(5 minutes)');
+    expect(rule.Properties.Targets[0].Arn).toEqual({ 'Fn::GetAtt': [fnByFile(template, files, 'recheck.js').id, 'Arn'] });
   });
 
   it('grants each route handler only the table actions it uses', () => {
@@ -260,7 +290,8 @@ describe('AdminRealtimeStack', () => {
       .flatMap((s) => [].concat(s.Action)).sort();
     expect(tableActions('connect.js')).toEqual(['dynamodb:PutItem']);
     expect(tableActions('disconnect.js')).toEqual(['dynamodb:DeleteItem']);
-    expect(tableActions('subscribe.js')).toEqual(['dynamodb:GetItem', 'dynamodb:PutItem']);
+    expect(tableActions('subscribe.js')).toEqual(['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem']);
+    expect(tableActions('recheck.js')).toEqual(['dynamodb:DeleteItem', 'dynamodb:Scan']);
     expect(tableActions('unsubscribe.js')).toEqual(['dynamodb:DeleteItem']);
     expect(statementsFor('ping.js')).toEqual([]);
     expect(statementsFor('default.js')).toEqual([]);

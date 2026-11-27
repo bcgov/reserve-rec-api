@@ -1,4 +1,4 @@
-const { CognitoIdentityProviderClient, ListUsersCommand, DescribeUserPoolCommand, AdminGetUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const { CognitoIdentityProviderClient, ListUsersCommand, DescribeUserPoolCommand, AdminGetUserCommand, AdminListGroupsForUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { Exception, logger } = require('/opt/base');
 
 const AWS_REGION = process.env.AWS_REGION || 'ca-central-1';
@@ -80,8 +80,15 @@ async function adminGetUser(userPoolId, username) {
   }
 }
 
+// The user's current group names. A user no longer in the pool throws UserNotFoundException.
+async function adminListGroupsForUser(userPoolId, username) {
+  const response = await cognitoProviderClient.send(new AdminListGroupsForUserCommand({ UserPoolId: userPoolId, Username: username }));
+  return (response.Groups ?? []).map(group => group.GroupName);
+}
+
 module.exports = {
   LIST_USER_FILTER_KEYS,
+  adminListGroupsForUser,
   cognitoProviderClient,
   adminGetUser,
   describeUserPool,
