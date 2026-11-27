@@ -4,6 +4,8 @@ const { logger } = require('/opt/base');
 const {
   scanQueuesByStatus,
   updateQueueMetaStatus,
+  getActiveMode2QueueId,
+  restoreActiveMode2QueueId,
 } = require('../utils/dynamodb');
 
 const STALE_RANDOMIZING_TIMEOUT_MINUTES = parseInt(process.env.STALE_RANDOMIZING_TIMEOUT_MINUTES || '5', 10);
@@ -27,6 +29,26 @@ async function invokeLambda(functionArn, payload) {
     InvocationType: 'Event', // async, fire-and-forget
     Payload: Buffer.from(JSON.stringify(payload)),
   }));
+}
+
+/**
+ * Points the Mode 2 pointer at a releasing Mode 2 queue when no pointer exists,
+ * e.g. a queue activated before the pointer existed. Returns the queueId restored, or null.
+ */
+async function restoreMode2Pointer(releasingQueues) {
+  const mode2QueueIds = releasingQueues.map(q => q.pk).filter(pk => pk.startsWith('QUEUE#MODE2')).sort();
+  if (mode2QueueIds.length === 0) return null;
+  try {
+    if (await getActiveMode2QueueId()) return null;
+    // Ids end in their creation date, so the last sorts newest.
+    const queueId = mode2QueueIds[mode2QueueIds.length - 1];
+    if (!(await restoreActiveMode2QueueId(queueId))) return null;
+    logger.warn(`Queue Monitor: Mode 2 pointer was missing, restored to ${queueId}`);
+    return queueId;
+  } catch (err) {
+    logger.error('Queue Monitor: failed to restore the Mode 2 pointer:', err.message);
+    return null;
+  }
 }
 
 /**
@@ -88,6 +110,7 @@ exports.handler = async (event, context) => {
     // 3. Invoke Release Lambda for each 'releasing' queue
     //    Skip Mode 2 queues in 'manual' releaseMode — admin triggers releases on demand
     const releasingQueues = await scanQueuesByStatus('releasing');
+    const mode2PointerRestored = await restoreMode2Pointer(releasingQueues);
     for (const queue of releasingQueues) {
       if (queue.pk.startsWith('QUEUE#MODE2') && queue.releaseMode === 'manual') {
         logger.info(`Queue Monitor: skipping manual-mode Mode 2 queue ${queue.pk}`);
@@ -106,8 +129,8 @@ exports.handler = async (event, context) => {
       }
     }
 
-    logger.info('Queue Monitor complete:', { randomizedCount, staleResetCount, releaseInvokedCount });
-    return { randomizedCount, staleResetCount, releaseInvokedCount };
+    logger.info('Queue Monitor complete:', { randomizedCount, staleResetCount, releaseInvokedCount, mode2PointerRestored });
+    return { randomizedCount, staleResetCount, releaseInvokedCount, mode2PointerRestored };
 
   } catch (err) {
     logger.error('WaitingRoom QUEUE MONITOR error:', err);

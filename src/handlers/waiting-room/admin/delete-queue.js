@@ -1,6 +1,6 @@
 'use strict';
 
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const { getQueueMeta, queryQueueEntries, deleteQueueMeta, batchDeleteItems } = require('../utils/dynamodb');
 
 const SAFE_TO_DELETE_STATUSES = ['pre-open', 'closed'];
@@ -9,6 +9,8 @@ exports.handler = async (event) => {
   logger.info('WaitingRoom admin DELETE-QUEUE');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const queueId = event?.pathParameters?.queueId
       ? decodeURIComponent(event.pathParameters.queueId)
       : null;
