@@ -27,11 +27,11 @@ A user record can carry a `role` instead of a tier map. When `role` is set, the 
 
 ```json
 { "pk": "userid::<sub>", "sk": "base", "role": "parkStaff", "operatorId": "op-1", "narrowTo": [7, "bcparks_363::trail::9"] }
-{ "pk": "operator::op-1", "sk": "base", "orcs": [7], "extraFacilities": ["bcparks_363::trail::9"],
+{ "pk": "operator::op-1", "sk": "base", "parks": [7], "extraFacilities": ["bcparks_363::trail::9"],
   "facilities": { "bcparks_7::structure::3": { "orcs": 7, "displayName": "Hut" } } }
 ```
 
-The operator's cached `facilities` count only while their `orcs` is in the operator's `orcs` or their key is in `extraFacilities`. `narrowTo` (park numbers or facility keys) keeps only matching facilities; leaving it out means all of them.
+The operator's cached `facilities` count only while their `orcs` is in the operator's `parks` or their key is in `extraFacilities`. `narrowTo` (park numbers or facility keys) keeps only matching facilities; leaving it out means all of them.
 
 These give GET /users/me only, even to a SuperAdmin group member: any other `role` value (including `superadmin`), a scoped role without `operatorId` or with a missing operator record, a `narrowTo` that is empty, not a list, or holds a bad entry, and a scoped role that ends up with no facilities. A `superadmin` key inside a tier map grants nothing. The `unauthorized` group is always denied.
 
