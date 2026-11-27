@@ -2,7 +2,7 @@
 
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent } = require('/opt/base');
 const { getQueueMeta, getQueueEntry } = require('../utils/dynamodb');
-const { generateToken, buildAdmissionCookieHeader } = require('../utils/token');
+const { issueAdmission } = require('../utils/token');
 const { getHmacSigningKey } = require('../utils/secrets');
 
 const ADMISSION_TTL_MINUTES = parseInt(process.env.ADMISSION_TTL_MINUTES || '15', 10);
@@ -37,11 +37,7 @@ exports.handler = async (event, context) => {
       throw new Exception('Not admitted to this queue yet', { code: 403, errorCode: 'NOT_ADMITTED' });
     }
 
-    // Check admission hasn't expired
     const now = Math.floor(Date.now() / 1000);
-    if (entry.admissionExpiry && entry.admissionExpiry < now) {
-      throw new Exception('Admission expired', { code: 403, errorCode: 'EXPIRED' });
-    }
 
     // Get queue meta for validation
     const queueMeta = await getQueueMeta(queueId);
@@ -49,17 +45,19 @@ exports.handler = async (event, context) => {
       throw new Exception('Queue not found', { code: 404 });
     }
 
-    // Generate a fresh HMAC token
+    // Capped at admissionExpiry so repeated claims cannot extend access past the window.
     const hmacKey = await getHmacSigningKey();
-    const token = generateToken(
+    const admission = issueAdmission(
       userId,
       entry.facilityKey,
       entry.dateKey,
       hmacKey,
-      ADMISSION_TTL_MINUTES
+      ADMISSION_TTL_MINUTES,
+      entry.admissionExpiry
     );
-
-    const tokenExpiry = now + ADMISSION_TTL_MINUTES * 60;
+    if (!admission) {
+      throw new Exception('Admission expired', { code: 403, errorCode: 'EXPIRED' });
+    }
 
     logger.info(`User ${userId} claimed admission for queue ${queueId}`);
 
@@ -68,13 +66,13 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': buildAdmissionCookieHeader(token, ADMISSION_TTL_MINUTES),
+        'Set-Cookie': admission.cookie,
       },
       body: JSON.stringify({
         status: 'admitted',
         facilityKey: entry.facilityKey,
         dateKey: entry.dateKey,
-        tokenExpiry,
+        tokenExpiry: admission.exp,
         admittedAt: entry.admittedAt || now,
       }),
     };
