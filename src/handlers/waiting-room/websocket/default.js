@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger } = require('/opt/base');
+const { logger, redactEvent } = require('/opt/base');
 
 /**
  * WebSocket $default route handler.
@@ -8,6 +8,6 @@ const { logger } = require('/opt/base');
  * Simply acknowledges the message to keep the connection alive.
  */
 exports.handler = async (event) => {
-  logger.debug('WebSocket $default:', JSON.stringify(event));
+  logger.debug('WebSocket $default:', JSON.stringify(redactEvent(event)));
   return { statusCode: 200 };
 };

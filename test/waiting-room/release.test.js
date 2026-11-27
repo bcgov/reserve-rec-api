@@ -14,6 +14,8 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
   updateQueueEntryStatus: jest.fn(),
   incrementAdmittedCount: jest.fn(),
   decrementAdmittedCount: jest.fn(),
+  claimMode2Release: jest.fn(),
+  setEntryRandomOrder: jest.fn(),
 }));
 
 jest.mock('../../src/handlers/waiting-room/utils/token', () => ({
@@ -34,6 +36,7 @@ jest.mock('@aws-sdk/client-apigatewaymanagementapi', () => ({
 
 const { handler } = require('../../src/handlers/waiting-room/release/handler');
 const db = require('../../src/handlers/waiting-room/utils/dynamodb');
+const { mockWebSocket } = require('./helpers/mockWebSocket');
 
 const queueId = 'QUEUE#golden-ears#camping#standard-sites#2025-06-15';
 const now = Math.floor(Date.now() / 1000);
@@ -209,6 +212,8 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     db.setEntryAdmitted.mockResolvedValue(true);
     db.updateQueueEntryStatus.mockResolvedValue(true);
     db.updateQueueMetaLastReleasedAt.mockResolvedValue({});
+    db.claimMode2Release.mockResolvedValue(true);
+    db.setEntryRandomOrder.mockResolvedValue(true);
 
     const { generateToken } = require('../../src/handlers/waiting-room/utils/token');
     generateToken.mockReturnValue('test-payload.test-sig');
@@ -221,6 +226,38 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     }));
   });
 
+  describe('release claim', () => {
+    it('claims the interval from the lastReleasedAt it read before writing anything', async () => {
+      db.getQueueMeta.mockResolvedValue({ ...mode2Meta, lastReleasedAt: now - 600 });
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+
+      await handler({ queueId: mode2QueueId });
+
+      expect(db.claimMode2Release).toHaveBeenCalledWith(mode2QueueId, now - 600, expect.any(Number));
+      expect(db.claimMode2Release.mock.invocationCallOrder[0])
+        .toBeLessThan(db.setEntryRandomOrder.mock.invocationCallOrder[0]);
+    });
+
+    it.each([
+      ['a scheduled', {}],
+      ['a forced', { force: true }],
+    ])('skips %s release that loses the claim to a concurrent one', async (_, extra) => {
+      db.claimMode2Release.mockResolvedValue(false);
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+
+      const result = await handler({ queueId: mode2QueueId, ...extra });
+
+      expect(result).toEqual({ status: 'skipped', reason: 'release-in-progress', queueId: mode2QueueId });
+      expect(db.setEntryRandomOrder).not.toHaveBeenCalled();
+      expect(db.setEntryAdmitting).not.toHaveBeenCalled();
+    });
+
+    it('does not claim an interval when nobody is waiting', async () => {
+      await handler({ queueId: mode2QueueId });
+      expect(db.claimMode2Release).not.toHaveBeenCalled();
+    });
+  });
+
   it('returns too-soon when interval has not elapsed', async () => {
     const recentMeta = { ...mode2Meta, lastReleasedAt: now - 60 }; // released 60s ago, interval=300s
     db.getQueueMeta.mockResolvedValue(recentMeta);
@@ -229,6 +266,43 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     expect(result.status).toBe('too-soon');
     expect(result.nextRelease).toBe(recentMeta.lastReleasedAt + 300);
     expect(db.queryQueueEntries).not.toHaveBeenCalled();
+  });
+
+  describe('firstReleaseAt gate', () => {
+    const gatedMeta = offsetMs => ({ ...mode2Meta, firstReleaseAt: new Date(Date.now() + offsetMs).toISOString() });
+    let ws;
+    beforeEach(() => { ws = mockWebSocket(); });
+
+    it('holds without touching entries or pushing before the first release time', async () => {
+      db.getQueueMeta.mockResolvedValue(gatedMeta(60 * 1000));
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+
+      const result = await handler({ queueId: mode2QueueId });
+      expect(result).toEqual({ status: 'waiting', reason: 'before-first-release', queueId: mode2QueueId });
+      expect(db.queryQueueEntries).not.toHaveBeenCalled();
+      expect(db.claimMode2Release).not.toHaveBeenCalled();
+      expect(db.setEntryRandomOrder).not.toHaveBeenCalled();
+      expect(db.setEntryAdmitting).not.toHaveBeenCalled();
+      expect(ws.send).not.toHaveBeenCalled();
+    });
+
+    it('releases normally once the first release time has passed', async () => {
+      db.getQueueMeta.mockResolvedValue(gatedMeta(-60 * 1000));
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+
+      const result = await handler({ queueId: mode2QueueId });
+      expect(result.status).toBe('released');
+      expect(result.admitted).toBe(1);
+    });
+
+    it('is bypassed by force (admin manual release)', async () => {
+      db.getQueueMeta.mockResolvedValue(gatedMeta(60 * 1000));
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+
+      const result = await handler({ queueId: mode2QueueId, force: true });
+      expect(result.status).toBe('released');
+      expect(result.admitted).toBe(1);
+    });
   });
 
   it('bypasses time gate when force=true (admin manual release)', async () => {
@@ -247,18 +321,139 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     expect(result.status).toBe('empty');
   });
 
-  it('admits FIFO batch of waiting entries', async () => {
-    const entries = [makeMode2Entry(2), makeMode2Entry(0), makeMode2Entry(1)]; // unsorted
-    db.queryQueueEntries.mockResolvedValue(entries);
+  describe('ordering', () => {
+    const withOrder = (i, randomOrder) => ({ ...makeMode2Entry(i), randomOrder });
+    const admittedIds = () => db.setEntryAdmitting.mock.calls.map(c => c[1]);
+    let random;
 
-    const result = await handler({ queueId: mode2QueueId });
-    expect(result.status).toBe('released');
-    expect(result.admitted).toBe(2); // batchSize=2
-    // Check FIFO order: user-0 (joinedAt smallest) should be admitted first
-    const firstAdmitCall = db.setEntryAdmitting.mock.calls[0];
-    expect(firstAdmitCall[1]).toBe('user-0');
-    const secondAdmitCall = db.setEntryAdmitting.mock.calls[1];
-    expect(secondAdmitCall[1]).toBe('user-1');
+    // Math.random() === 0 shuffles [a,b,c] into [b,c,a].
+    beforeEach(() => { random = jest.spyOn(Math, 'random').mockReturnValue(0); });
+    afterEach(() => random.mockRestore());
+
+    it('admits entries that already hold a randomOrder before fresh ones, regardless of joinedAt', async () => {
+      // user-0 joined first but is fresh; user-5 and user-4 were ordered earlier.
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0), withOrder(5, 1), withOrder(4, 0)]);
+
+      await handler({ queueId: mode2QueueId });
+      expect(admittedIds()).toEqual(['user-4', 'user-5']);
+    });
+
+    it('numbers fresh entries after the current max and writes them with a conditional update', async () => {
+      db.queryQueueEntries.mockResolvedValue([withOrder(9, 7), makeMode2Entry(0), makeMode2Entry(1), makeMode2Entry(2)]);
+
+      await handler({ queueId: mode2QueueId });
+      const calls = db.setEntryRandomOrder.mock.calls;
+      expect(calls.every(c => c[0] === mode2QueueId)).toBe(true);
+      expect(Object.fromEntries(calls.map(c => [c[1], c[2]])))
+        .toEqual({ 'user-1': 8, 'user-2': 9, 'user-0': 10 });
+    });
+
+    it('assigns 0..n-1 from the shuffle on the first release', async () => {
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0), makeMode2Entry(1), makeMode2Entry(2)]);
+
+      await handler({ queueId: mode2QueueId });
+      const orders = Object.fromEntries(db.setEntryRandomOrder.mock.calls.map(c => [c[1], c[2]]));
+      expect(orders).toEqual({ 'user-1': 0, 'user-2': 1, 'user-0': 2 });
+      expect(admittedIds()).toEqual(['user-1', 'user-2']);
+    });
+
+    it('respects batchSize and still admits when an order write loses its race', async () => {
+      const entries = [0, 1, 2, 3].map(makeMode2Entry);
+      db.queryQueueEntries.mockResolvedValue(entries);
+      db.setEntryRandomOrder.mockResolvedValue(false);
+
+      const result = await handler({ queueId: mode2QueueId });
+      expect(result.admitted).toBe(2); // batchSize=2
+      expect(admittedIds()).toHaveLength(2);
+    });
+
+    it('retries a throttled order write once', async () => {
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+      const throttled = Object.assign(new Error('slow down'), { name: 'ProvisionedThroughputExceededException' });
+      db.setEntryRandomOrder.mockRejectedValueOnce(throttled).mockResolvedValueOnce(true);
+
+      const result = await handler({ queueId: mode2QueueId });
+
+      expect(db.setEntryRandomOrder).toHaveBeenCalledTimes(2);
+      expect(result.admitted).toBe(1);
+    });
+
+    it('does not retry a write that failed for another reason', async () => {
+      db.queryQueueEntries.mockResolvedValue([makeMode2Entry(0)]);
+      db.setEntryRandomOrder.mockRejectedValue(new Error('validation'));
+
+      await handler({ queueId: mode2QueueId });
+
+      expect(db.setEntryRandomOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not rewrite entries that already hold a randomOrder', async () => {
+      db.queryQueueEntries.mockResolvedValue([withOrder(0, 0), withOrder(1, 1)]);
+
+      await handler({ queueId: mode2QueueId });
+      expect(db.setEntryRandomOrder).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('position pushes', () => {
+    const goneErr = { name: 'GoneException', $metadata: { httpStatusCode: 410 } };
+    let ws;
+    let random;
+
+    // Math.random() === 0 shuffles users 0..4 into line order 1,2,3,4,0; batchSize=2 admits 1 and 2.
+    beforeEach(() => {
+      random = jest.spyOn(Math, 'random').mockReturnValue(0);
+      ws = mockWebSocket();
+    });
+    afterEach(() => random.mockRestore());
+
+    const messages = () => ws.messages();
+    const positions = () => ws.ofType('position');
+
+    it('numbers the users still waiting 1..n in line order with total n', async () => {
+      db.queryQueueEntries.mockResolvedValue([0, 1, 2, 3, 4].map(makeMode2Entry));
+
+      await handler({ queueId: mode2QueueId });
+      expect(positions()).toEqual([
+        ['conn-3', { type: 'position', position: 1, total: 3 }],
+        ['conn-4', { type: 'position', position: 2, total: 3 }],
+        ['conn-0', { type: 'position', position: 3, total: 3 }],
+      ]);
+    });
+
+    it('sends admitted, not a position, to the admitted batch', async () => {
+      db.queryQueueEntries.mockResolvedValue([0, 1, 2, 3, 4].map(makeMode2Entry));
+
+      await handler({ queueId: mode2QueueId });
+      const admitted = messages().filter(([, m]) => m.type === 'admitted');
+      expect(admitted).toEqual([['conn-1', { type: 'admitted' }], ['conn-2', { type: 'admitted' }]]);
+      expect(positions().map(([id]) => id)).toEqual(['conn-3', 'conn-4', 'conn-0']);
+    });
+
+    it('skips waiting entries without a connectionId but still counts them in the line', async () => {
+      const entries = [0, 1, 2, 3, 4].map(makeMode2Entry);
+      delete entries[4].connectionId;
+      db.queryQueueEntries.mockResolvedValue(entries);
+
+      await handler({ queueId: mode2QueueId });
+      expect(positions()).toEqual([
+        ['conn-3', { type: 'position', position: 1, total: 3 }],
+        ['conn-0', { type: 'position', position: 3, total: 3 }],
+      ]);
+    });
+
+    it('keeps pushing and releases normally when one connection is gone', async () => {
+      ws.send.mockImplementation(async (cmd) => {
+        if (cmd.input.ConnectionId === 'conn-4') throw goneErr;
+        return {};
+      });
+      db.queryQueueEntries.mockResolvedValue([0, 1, 2, 3, 4].map(makeMode2Entry));
+
+      const result = await handler({ queueId: mode2QueueId });
+      expect(result.status).toBe('released');
+      expect(result.admitted).toBe(2);
+      expect(positions().map(([id]) => id)).toEqual(['conn-3', 'conn-4', 'conn-0']);
+    });
   });
 
   it('does not check ceiling (no incrementAdmittedCount)', async () => {
@@ -292,6 +487,7 @@ describe('WaitingRoom RELEASE handler — MODE2 path', () => {
     // Entry is admitted regardless — user picks it up on next page load via join → handleAdmission()
     expect(result.admitted).toBe(1);
     expect(db.setEntryAdmitted).toHaveBeenCalledWith(mode2QueueId, 'user-0');
+    // No status revert: the entry stays admitted.
     expect(db.updateQueueEntryStatus).not.toHaveBeenCalled();
   });
 

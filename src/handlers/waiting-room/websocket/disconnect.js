@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger } = require('/opt/base');
+const { logger, redactEvent } = require('/opt/base');
 const {
   setDisconnectedAt,
   getConnectionRecord,
@@ -17,7 +17,7 @@ const {
  * Uses the connection record (written by $connect) to map connectionId → (queueId, userId).
  */
 exports.handler = async (event) => {
-  logger.debug('WebSocket $disconnect:', JSON.stringify(event));
+  logger.debug('WebSocket $disconnect:', JSON.stringify(redactEvent(event)));
 
   const connectionId = event.requestContext?.connectionId;
   if (!connectionId) {

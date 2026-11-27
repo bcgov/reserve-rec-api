@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger } = require('/opt/base');
+const { logger, redactEvent } = require('/opt/base');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 /**
@@ -13,7 +13,7 @@ const { CognitoJwtVerifier } = require('aws-jwt-verify');
  * which is available to the $connect handler via event.requestContext.authorizer.
  */
 exports.handler = async (event) => {
-  logger.debug('WebSocket authorizer event:', JSON.stringify(event));
+  logger.debug('WebSocket authorizer event:', JSON.stringify(redactEvent(event)));
 
   const token = event.queryStringParameters?.token;
   const queueId = event.queryStringParameters?.queueId;
