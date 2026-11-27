@@ -11,51 +11,65 @@ const {
   updateQueueEntryStatus,
   incrementAdmittedCount,
   decrementAdmittedCount,
+  claimMode2Release,
+  setEntryRandomOrder,
 } = require('../utils/dynamodb');
 const { generateToken } = require('../utils/token');
 const { getHmacSigningKey } = require('../utils/secrets');
+const { shuffleWithIpSpread } = require('../utils/shuffle');
+const { createConnectionPoster, pushPositions } = require('../utils/push');
 
 const MAX_ACTIVE_SESSIONS = parseInt(process.env.MAX_ACTIVE_SESSIONS || '100', 10);
 const RELEASE_BATCH_SIZE = parseInt(process.env.RELEASE_BATCH_SIZE || '50', 10);
+const RANDOM_ORDER_WRITE_CHUNK = 50;
 const ADMISSION_TTL_MINUTES = parseInt(process.env.ADMISSION_TTL_MINUTES || '15', 10);
+const THROTTLE_ERRORS = ['ProvisionedThroughputExceededException', 'ThrottlingException', 'RequestLimitExceeded'];
 
-/**
- * Push an admission notification to a connected WebSocket client.
- * Returns true on success, false on stale connection (410 GoneException).
- */
-async function pushAdmissionNotification(connectionId) {
-  const WEBSOCKET_MANAGEMENT_ENDPOINT = process.env.WEBSOCKET_MANAGEMENT_ENDPOINT;
-  if (!connectionId || !WEBSOCKET_MANAGEMENT_ENDPOINT) {
-    logger.warn('pushAdmissionNotification: missing connectionId or endpoint');
-    return false;
-  }
-
+async function writeRandomOrder(queueId, entry) {
   try {
-    const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi');
-    const wsClient = new ApiGatewayManagementApiClient({ endpoint: WEBSOCKET_MANAGEMENT_ENDPOINT });
-    await wsClient.send(new PostToConnectionCommand({
-      ConnectionId: connectionId,
-      Data: Buffer.from(JSON.stringify({ type: 'admitted' })),
-    }));
-    return true;
+    return await setEntryRandomOrder(queueId, entry.userId, entry.randomOrder);
   } catch (err) {
-    if (err.name === 'GoneException' || err.$metadata?.httpStatusCode === 410) {
-      logger.info(`Stale WebSocket connection: ${connectionId}`);
-      return false;
-    }
-    logger.warn(`Failed to push to WebSocket ${connectionId}:`, err.message);
-    return false;
+    if (!THROTTLE_ERRORS.includes(err.name)) throw err;
+    return setEntryRandomOrder(queueId, entry.userId, entry.randomOrder);
   }
 }
 
 /**
- * Handle Mode 2 (full-site gating) release.
- * FIFO ordering (by joinedAt), no active-session ceiling, time-gated.
+ * Gives entries without a randomOrder a shuffled position after the current maximum.
+ * In-memory values are set even if a write loses its race, so this release's order holds.
+ */
+async function assignRandomOrder(queueId, entries) {
+  const fresh = entries.filter(e => e.randomOrder == null);
+  if (fresh.length === 0) return;
+
+  const base = entries.reduce((max, e) => Math.max(max, e.randomOrder ?? -1), -1) + 1;
+  shuffleWithIpSpread(fresh).forEach((entry, idx) => {
+    entry.randomOrder = base + idx;
+  });
+
+  let skipped = 0;
+  for (let i = 0; i < fresh.length; i += RANDOM_ORDER_WRITE_CHUNK) {
+    const results = await Promise.allSettled(
+      fresh.slice(i, i + RANDOM_ORDER_WRITE_CHUNK).map(e => writeRandomOrder(queueId, e))
+    );
+    skipped += results.filter(r => r.status === 'rejected' || !r.value).length;
+  }
+  logger.info(`Mode2 queue ${queueId}: assigned randomOrder to ${fresh.length} entries (${skipped} skipped)`);
+}
+
+/**
+ * Mode 2 (full-site gating) release: time-gated, no ceiling. New arrivals are shuffled
+ * once and queued behind entries that already hold a randomOrder.
  */
 async function handleMode2Release(queueId, queueMeta, force = false) {
   const now = Math.floor(Date.now() / 1000);
   const releaseIntervalSeconds = queueMeta.releaseIntervalSeconds || 300;
   const lastReleasedAt = queueMeta.lastReleasedAt || 0;
+
+  if (!force && queueMeta.firstReleaseAt && Date.now() < Date.parse(queueMeta.firstReleaseAt)) {
+    logger.info(`Mode2 queue ${queueId}: holding until first release at ${queueMeta.firstReleaseAt}`);
+    return { status: 'waiting', reason: 'before-first-release', queueId };
+  }
 
   // Time gate — only release when interval has elapsed (bypassed when force=true for admin releases)
   if (!force && now - lastReleasedAt < releaseIntervalSeconds) {
@@ -70,14 +84,22 @@ async function handleMode2Release(queueId, queueMeta, force = false) {
     return { status: 'empty', queueId };
   }
 
-  // FIFO: sort by joinedAt ascending
-  waitingEntries.sort((a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0));
+  // Only one release may run per interval: an admin force release, the scheduled one
+  // and async retries can overlap, and lastReleasedAt is otherwise written last.
+  if (!(await claimMode2Release(queueId, queueMeta.lastReleasedAt || 0, now))) {
+    logger.info(`Mode2 queue ${queueId}: another release claimed this interval`);
+    return { status: 'skipped', reason: 'release-in-progress', queueId };
+  }
+
+  await assignRandomOrder(queueId, waitingEntries);
+  waitingEntries.sort((a, b) => a.randomOrder - b.randomOrder);
 
   const batchSize = Math.min(queueMeta.batchSize || 50, waitingEntries.length);
   const batch = waitingEntries.slice(0, batchSize);
 
   logger.info(`Mode2 queue ${queueId}: admitting batch of ${batchSize} (${waitingEntries.length} waiting)`);
 
+  const postToConnection = createConnectionPoster();
   const hmacKey = await getHmacSigningKey();
   const facilityKey = queueMeta.facilityKey || 'MODE2#global#1';
   let successCount = 0;
@@ -96,10 +118,9 @@ async function handleMode2Release(queueId, queueMeta, force = false) {
       continue;
     }
 
-    const pushed = await pushAdmissionNotification(entry.connectionId);
-    // Always mark admitted — if WS push failed the user has no active connection,
-    // but they will be admitted on their next page load: the join handler returns
-    // status='admitted' which triggers handleAdmission() → claim → redirect.
+    const pushed = (await postToConnection(entry.connectionId, { type: 'admitted' })) === 'sent';
+    // Always mark admitted: with no live WS the user claims on next page load, when the
+    // join handler returns 'admitted' and handleAdmission() redirects.
     await setEntryAdmitted(queueId, userId);
     successCount++;
     if (!pushed) {
@@ -109,6 +130,8 @@ async function handleMode2Release(queueId, queueMeta, force = false) {
 
   // Update lastReleasedAt and admittedCount for admin UI stats
   await updateQueueMetaLastReleasedAt(queueId, now, successCount);
+
+  await pushPositions(postToConnection, waitingEntries.slice(batchSize));
 
   logger.info(`Mode2 queue ${queueId}: released ${successCount} (${failCount} no-WS-connection)`);
   return { status: 'released', queueId, admitted: successCount, reverted: failCount };
@@ -141,7 +164,7 @@ exports.handler = async (event, context) => {
       return { status: 'skipped', reason: 'not-releasing' };
     }
 
-    // ── MODE2 path: FIFO, no ceiling, time-gated ──────────────────────────────
+    // ── MODE2 path: arrival-cohort shuffle, no ceiling, time-gated ──
     if (queueId.startsWith('QUEUE#MODE2')) {
       return handleMode2Release(queueId, queueMeta, force);
     }
@@ -188,6 +211,7 @@ exports.handler = async (event, context) => {
       return { status: 'skipped', reason: 'ceiling-race' };
     }
 
+    const postToConnection = createConnectionPoster();
     const hmacKey = await getHmacSigningKey();
     let successCount = 0;
     let failCount = 0;
@@ -208,7 +232,7 @@ exports.handler = async (event, context) => {
       }
 
       // Phase 2: push WebSocket notification
-      const pushed = await pushAdmissionNotification(entry.connectionId);
+      const pushed = (await postToConnection(entry.connectionId, { type: 'admitted' })) === 'sent';
 
       if (pushed) {
         // Success — transition to 'admitted'

@@ -4,7 +4,7 @@ const { createBooking, formatBookingResponsePublic, } = require("../methods");
 const { batchTransactData, isTransactionConflict } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
-const { getQueueMeta, buildQueueId } = require('../../waiting-room/utils/dynamodb');
+const { getQueueMeta, buildQueueId, getActiveMode2Meta } = require('../../waiting-room/utils/dynamodb');
 const { GENERIC_FAILURE_MESSAGE, refused } = require('../refusals');
 
 exports.handler = async (event, context) => {
@@ -83,14 +83,12 @@ exports.handler = async (event, context) => {
         const queueMeta = await getQueueMeta(queueId);
         waitingRoomActive = !!(queueMeta && queueMeta.queueStatus !== 'closed');
         if (!waitingRoomActive) {
-          // Also check Mode 2 global queue
-          const today = new Date().toISOString().slice(0, 10);
-          const mode2QueueId = `QUEUE#MODE2#global#1#${today}`;
-          const mode2Meta = await getQueueMeta(mode2QueueId);
-          waitingRoomActive = !!(mode2Meta && mode2Meta.queueStatus !== 'closed');
+          waitingRoomActive = !!(await getActiveMode2Meta());
         }
       } catch (err) {
-        logger.warn('Failed to check waiting room status — failing open:', err);
+        // Fail closed: a throttled read under load must not skip admission.
+        logger.error('Failed to check waiting room status:', err);
+        throw refused('waiting_room', "We couldn't confirm your place in the waiting room. Try again in a moment.", 503, { code: 'WAITING_ROOM_UNAVAILABLE' });
       }
 
       if (waitingRoomActive) {

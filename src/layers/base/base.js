@@ -576,6 +576,34 @@ function getHeaderValue(headers, name) {
   return key === undefined ? undefined : headers[key];
 }
 
+const REDACTED_HEADERS = ['authorization', 'x-id-token', 'cookie'];
+const REDACTED_QUERY_PARAMS = ['token'];
+
+function maskKeys(values, names) {
+  if (!values) return values;
+  return Object.fromEntries(Object.entries(values).map(([key, value]) =>
+    [key, names.includes(key.toLowerCase()) ? '[redacted]' : value]));
+}
+
+/** Headers safe to log: credentials (Authorization, X-Id-Token, Cookie) are masked. */
+function redactHeaders(headers) {
+  return maskKeys(headers, REDACTED_HEADERS);
+}
+
+/** An API Gateway or authorizer event safe to log: credentials in headers and the query string are masked. */
+function redactEvent(event) {
+  if (!event || typeof event !== 'object') return event;
+  return {
+    ...event,
+    ...(event.authorizationToken && { authorizationToken: '[redacted]' }),
+    ...(event.cookies && { cookies: '[redacted]' }),
+    headers: redactHeaders(event.headers),
+    multiValueHeaders: redactHeaders(event.multiValueHeaders),
+    queryStringParameters: maskKeys(event.queryStringParameters, REDACTED_QUERY_PARAMS),
+    multiValueQueryStringParameters: maskKeys(event.multiValueQueryStringParameters, REDACTED_QUERY_PARAMS),
+  };
+}
+
 // x-viewer-ip when set, else the address from CloudFront-Viewer-Address ("ip:port",
 // IPv6 bracketed). Header names match case-insensitively; null when neither is set.
 function getClientIp(headers) {
@@ -617,6 +645,7 @@ const Exception = class extends Error {
     this.error = errorData?.error || null;
     this.msg = message || null;
     this.data = errorData?.data || null;
+    if (errorData?.errorCode) this.errorCode = errorData.errorCode;
   }
 };
 
@@ -700,7 +729,10 @@ module.exports = {
   permittedFacilityKeys,
   MAX_REQUESTED_FACILITY_KEYS,
   getClientIp,
+  getHeaderValue,
   getRequestClaimsFromEvent,
+  redactEvent,
+  redactHeaders,
   isoToEpoch,
   logger,
   requestIdentity,

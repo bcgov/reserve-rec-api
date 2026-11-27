@@ -41,6 +41,7 @@ jest.mock("../../src/handlers/waiting-room/utils/secrets", () => ({ getHmacSigni
 jest.mock("../../src/handlers/waiting-room/utils/dynamodb", () => ({
   getQueueMeta: jest.fn(),
   buildQueueId: jest.fn(() => "queue-1"),
+  getActiveMode2Meta: jest.fn(),
 }));
 
 const { handler } = require("../../src/handlers/bookings/POST/public");
@@ -351,6 +352,50 @@ describe("Bookings POST handler", () => {
         const result = await handler(event, context);
         expect(result.status).toBe(500);
         expect(eventNames()).toEqual(["event=hold_failed"]);
+      });
+    });
+
+    describe("waiting room enforcement", () => {
+      const { parseAdmissionCookie } = require("../../src/handlers/waiting-room/utils/token");
+      const { getQueueMeta, getActiveMode2Meta } = require("../../src/handlers/waiting-room/utils/dynamodb");
+
+      beforeEach(() => {
+        process.env.WAITING_ROOM_TABLE_NAME = "waiting-room";
+        process.env.HMAC_SIGNING_KEY_ARN = "hmac-key";
+        parseAdmissionCookie.mockReturnValue(null);
+        getQueueMeta.mockResolvedValue(null);
+        getActiveMode2Meta.mockResolvedValue({ pk: "QUEUE#MODE2#global#1#2026-07-01", queueStatus: "releasing" });
+        createBooking.mockResolvedValue({ requestItems: [] });
+      });
+
+      afterEach(() => {
+        delete process.env.WAITING_ROOM_TABLE_NAME;
+        delete process.env.HMAC_SIGNING_KEY_ARN;
+      });
+
+      it("requires admission while Mode 2 is active and the facility has no queue", async () => {
+        const result = await handler(event, context);
+        expect(result.status).toBe(403);
+        expect(result.data).toMatchObject({ waitingRoom: true, refusal: "waiting_room" });
+        expect(createBooking).not.toHaveBeenCalled();
+      });
+
+      it("books without admission when Mode 2 is off", async () => {
+        getActiveMode2Meta.mockResolvedValue(null);
+        await handler(event, context);
+        expect(createBooking).toHaveBeenCalled();
+      });
+
+      it.each([
+        ["the queue status read", () => getQueueMeta.mockRejectedValue(new Error("ProvisionedThroughputExceededException"))],
+        ["the Mode 2 read", () => getActiveMode2Meta.mockRejectedValue(new Error("ThrottlingException"))],
+      ])("refuses with a 503 instead of skipping admission when %s fails", async (_, arrange) => {
+        arrange();
+        const result = await handler(event, context);
+        expect(result.status).toBe(503);
+        expect(result.data).toMatchObject({ code: "WAITING_ROOM_UNAVAILABLE" });
+        expect(result.message).toBe("We couldn't confirm your place in the waiting room. Try again in a moment.");
+        expect(createBooking).not.toHaveBeenCalled();
       });
     });
 

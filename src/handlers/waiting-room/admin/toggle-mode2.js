@@ -1,13 +1,23 @@
 'use strict';
 
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const {
   CloudFrontClient,
   GetFunctionCommand,
   UpdateFunctionCommand,
   PublishFunctionCommand,
 } = require('@aws-sdk/client-cloudfront');
-const { putQueueMeta, updateQueueMetaStatus, scanQueuesByStatus, getQueueMeta, queryQueueEntries, updateQueueEntryStatus } = require('../utils/dynamodb');
+const {
+  putQueueMeta,
+  updateQueueMetaStatus,
+  scanQueuesByStatus,
+  getQueueMeta,
+  queryQueueEntries,
+  updateQueueEntryStatus,
+  getActiveMode2QueueId,
+  setActiveMode2QueueId,
+  clearActiveMode2QueueId,
+} = require('../utils/dynamodb');
 
 const REGION = 'us-east-1'; // CloudFront is a global service, API endpoint is us-east-1
 
@@ -85,11 +95,14 @@ function getTargets() {
 }
 
 // Fixed queue identifiers for Mode 2 (site-wide gating, no specific facility)
+const MAX_FIRST_RELEASE_AHEAD_MS = 24 * 60 * 60 * 1000;
+
 const MODE2_COLLECTION_ID = 'MODE2';
 const MODE2_ACTIVITY_TYPE = 'global';
 const MODE2_ACTIVITY_ID = 1; // Non-zero so join handler validation passes
 
-function getMode2QueueId() {
+// Names a new queue only; readers find the active one through the pointer.
+function newMode2QueueId() {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   return `QUEUE#${MODE2_COLLECTION_ID}#${MODE2_ACTIVITY_TYPE}#${MODE2_ACTIVITY_ID}#${today}`;
 }
@@ -98,6 +111,8 @@ exports.handler = async (event) => {
   logger.info('WaitingRoom admin TOGGLE-MODE2');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const body = JSON.parse(event?.body || '{}');
 
     if (typeof body.active !== 'boolean') {
@@ -115,6 +130,25 @@ exports.handler = async (event) => {
       throw new Exception('releaseIntervalSeconds must be between 30 and 86400', { code: 400 });
     }
 
+    let firstReleaseAt;
+    if (body.active && body.firstReleaseAt != null) {
+      if (releaseMode === 'manual') {
+        throw new Exception('firstReleaseAt applies to auto release only', { code: 400 });
+      }
+      const firstReleaseDate = new Date(typeof body.firstReleaseAt === 'string' ? body.firstReleaseAt : NaN);
+      if (Number.isNaN(firstReleaseDate.getTime())) {
+        throw new Exception('firstReleaseAt must be a valid ISO 8601 date', { code: 400 });
+      }
+      const msAhead = firstReleaseDate.getTime() - Date.now();
+      if (msAhead <= 0) {
+        throw new Exception('firstReleaseAt must be in the future', { code: 400 });
+      }
+      if (msAhead > MAX_FIRST_RELEASE_AHEAD_MS) {
+        throw new Exception('firstReleaseAt must be no more than 24 hours ahead', { code: 400 });
+      }
+      firstReleaseAt = firstReleaseDate.toISOString();
+    }
+
     const targets = getTargets();
     if (targets.length === 0) {
       throw new Exception('VIEWER_FUNCTION_NAME not configured — Mode 2 CF Function not deployed', { code: 503 });
@@ -122,21 +156,12 @@ exports.handler = async (event) => {
 
     const client = getCFClient();
 
-    // 1. Read the stored active queueId from the primary function's comment
-    //    (so deactivation uses the same queueId even if called past midnight UTC).
-    const getResult = await client.send(new GetFunctionCommand({
-      Name: targets[0].name,
-      Stage: 'LIVE',
-    }));
-
-    // Parse stored queueId from comment (format: "ACTIVE:<queueId>" when active)
-    const existingComment = getResult.FunctionSummary?.FunctionConfig?.Comment || '';
-    const storedQueueIdMatch = existingComment.match(/^ACTIVE:(.+)$/);
-
-    // 2. Write DynamoDB record FIRST — if CloudFront update fails afterward,
-    //    the gate is not active so serving 404 is prevented. Undo on CF failure.
-    const queueId = body.active ? getMode2QueueId() : (storedQueueIdMatch?.[1] ?? getMode2QueueId());
+    // Write DynamoDB FIRST — if CloudFront update fails afterward, the gate is
+    // not active so serving 404 is prevented. Undo on CF failure.
+    const activeQueueId = await getActiveMode2QueueId();
+    const queueId = body.active ? (activeQueueId ?? newMode2QueueId()) : activeQueueId;
     const now = Math.floor(Date.now() / 1000);
+    let previousMeta = null;
 
     if (body.active) {
       // Re-activating an existing same-day queue must preserve its counters —
@@ -144,6 +169,7 @@ exports.handler = async (event) => {
       // cycles, so recomputing/zeroing here would desync the meta from reality.
       // Only a brand-new queue (no prior meta) starts at 0/0.
       const existingMeta = await getQueueMeta(queueId);
+      previousMeta = existingMeta;
       const totalEntries = existingMeta?.totalEntries ?? 0;
       const admittedCount = existingMeta?.admittedCount ?? 0;
 
@@ -156,6 +182,7 @@ exports.handler = async (event) => {
         batchSize,
         releaseIntervalSeconds,
         releaseMode,
+        ...(firstReleaseAt && { firstReleaseAt }),
         lastReleasedAt: existingMeta?.lastReleasedAt ?? 0,
         totalEntries,
         admittedCount,
@@ -164,11 +191,11 @@ exports.handler = async (event) => {
         createdAt: existingMeta?.createdAt ?? now,
         updatedAt: now,
       });
+      await setActiveMode2QueueId(queueId);
       logger.info(`Mode 2 queue created: ${queueId} (batchSize=${batchSize}, interval=${releaseIntervalSeconds}s, releaseMode=${releaseMode})`);
     } else {
-      // Close ALL releasing Mode 2 queues. Scanning rather than using the
-      // comment-stored queueId handles the case where Mode 2 was activated on a
-      // previous UTC day (queueId date would differ from today).
+      // Close ALL releasing Mode 2 queues, not just the pointer's, so a queue
+      // orphaned by an earlier failed toggle is closed too.
       const releasingQueues = await scanQueuesByStatus('releasing');
       const mode2Queues = releasingQueues.filter(q => q.pk && q.pk.startsWith('QUEUE#MODE2'));
       await Promise.all(mode2Queues.map(q => updateQueueMetaStatus(q.pk, 'closed')));
@@ -209,15 +236,16 @@ exports.handler = async (event) => {
         }
       }
 
+      // Cleared last: if closing fails, booking enforcement still finds the queue.
+      await clearActiveMode2QueueId();
+
       logger.info(`Mode 2 deactivated: closed ${mode2Queues.length} queue(s), released ${releasedCount} waiting user(s)`);
     }
 
-    // 3./4. Update + publish each target's CloudFront function code.
+    // Update + publish each target's CloudFront function code.
     // On failure, undo the DynamoDB write. Targets are updated sequentially; if a
     // later target fails after an earlier one published, the error names which
     // functions succeeded so the operator can retry the toggle (idempotent).
-    // Embed the active queueId in the comment so deactivation can retrieve it
-    // even if called past midnight UTC when getMode2QueueId() would return a different date.
     const comment = body.active
       ? `ACTIVE:${queueId}`
       : `WR Mode 2 viewer-request gate — PASS-THROUGH`;
@@ -245,11 +273,21 @@ exports.handler = async (event) => {
       }
     } catch (cfErr) {
       logger.error(`toggle-mode2: CF update failed after publishing [${published.join(', ')}]:`, cfErr.message);
-      // Undo the DynamoDB write to keep state consistent
-      if (body.active) {
+      // Undo only what this call changed: a queue that was already live keeps
+      // running on its previous settings; a queue this call opened is closed again.
+      if (body.active && activeQueueId && previousMeta?.queueStatus === 'releasing') {
+        await putQueueMeta(previousMeta).catch(e =>
+          logger.error('toggle-mode2: failed to restore the live queue after CF error:', e.message)
+        );
+      } else if (body.active) {
         await updateQueueMetaStatus(queueId, 'closed').catch(e =>
           logger.error('toggle-mode2: failed to undo DynamoDB queue after CF error:', e.message)
         );
+        if (!activeQueueId) {
+          await clearActiveMode2QueueId().catch(e =>
+            logger.error('toggle-mode2: failed to clear the Mode 2 pointer after CF error:', e.message)
+          );
+        }
       }
       throw cfErr;
     }
@@ -265,6 +303,7 @@ exports.handler = async (event) => {
       batchSize: body.active ? batchSize : undefined,
       releaseIntervalSeconds: body.active ? releaseIntervalSeconds : undefined,
       releaseMode: body.active ? releaseMode : undefined,
+      firstReleaseAt,
       publishedAt,
     }, `Mode 2 ${body.active ? 'activated' : 'deactivated'}`);
 

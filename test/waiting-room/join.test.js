@@ -11,6 +11,7 @@ jest.mock('/opt/base', () => ({
   sendResponse: jest.fn((status, data, message, error) => ({ status, data, message, error })),
   getRequestClaimsFromEvent: jest.fn(() => ({ sub: 'test-user-123' })),
   getClientIp: jest.requireActual('../../src/layers/base/base').getClientIp,
+  getHeaderValue: jest.requireActual('../../src/layers/base/base').getHeaderValue,
 }));
 
 jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
@@ -23,7 +24,14 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
   queryEntriesByClientIp: jest.fn(),
   abandonQueueEntry: jest.fn(),
   incrementAbandonedCount: jest.fn(),
+  getActiveMode2QueueId: jest.fn(),
 }));
+
+jest.mock('/opt/cognito', () => ({ adminGetUser: jest.fn() }), { virtual: true });
+const mockVerify = jest.fn();
+jest.mock('aws-jwt-verify', () => ({ CognitoJwtVerifier: { create: () => ({ verify: (...args) => mockVerify(...args) }) } }));
+process.env.PUBLIC_USER_POOL_ID = 'ca-central-1_pub';
+process.env.PUBLIC_USER_POOL_CLIENT_ID = 'public-client';
 
 const { handler } = require('../../src/handlers/waiting-room/join/handler');
 const db = require('../../src/handlers/waiting-room/utils/dynamodb');
@@ -48,6 +56,7 @@ const makeEvent = (body = validBody, headers = {}) => ({
   body: JSON.stringify(body),
   headers: {
     'CloudFront-Viewer-Address': '1.2.3.4',
+    'X-Id-Token': 'id-token',
     ...headers,
   },
 });
@@ -62,6 +71,9 @@ describe('WaitingRoom JOIN handler', () => {
     db.incrementQueueTotalEntries.mockResolvedValue(1);
     db.abandonQueueEntry.mockResolvedValue(true);
     db.incrementAbandonedCount.mockResolvedValue();
+    db.getActiveMode2QueueId.mockResolvedValue(null);
+    db.getQueueEntry.mockResolvedValue(null);
+    mockVerify.mockResolvedValue({ sub: 'test-user-123', email_verified: true });
   });
 
   it('returns 401 if not authenticated', async () => {
@@ -126,6 +138,36 @@ describe('WaitingRoom JOIN handler', () => {
     expect(result.status).toBe(429);
   });
 
+  it('keeps the place held in another queue when the IP limit refuses the join', async () => {
+    db.queryEntriesByUserId.mockResolvedValue([{ pk: 'QUEUE#other#camping#sites#2025-06-16', status: 'waiting' }]);
+    db.queryEntriesByClientIp.mockResolvedValue(Array(4).fill({ status: 'waiting' }));
+
+    const result = await handler(makeEvent(), {});
+
+    expect(result.status).toBe(429);
+    expect(db.abandonQueueEntry).not.toHaveBeenCalled();
+    expect(db.incrementAbandonedCount).not.toHaveBeenCalled();
+  });
+
+  describe('entry TTL', () => {
+    const NOW = Date.parse('2026-07-02T12:00:00Z');
+    beforeEach(() => jest.useFakeTimers({ now: NOW }));
+    afterEach(() => jest.useRealTimers());
+    const ttl = () => db.putQueueEntry.mock.calls[0][0].ttl;
+
+    it('runs 25 hours from the opening time when the queue has not opened yet', async () => {
+      db.getQueueMeta.mockResolvedValue({ ...validMeta, openingTime: '2026-07-02T14:00:00Z' });
+      await handler(makeEvent(), {});
+      expect(ttl()).toBe(Date.parse('2026-07-03T15:00:00Z') / 1000);
+    });
+
+    it('runs 25 hours from now for a queue opened more than 25 hours ago', async () => {
+      db.getQueueMeta.mockResolvedValue({ ...validMeta, queueStatus: 'releasing', openingTime: '2026-07-01T05:00:00Z' });
+      await handler(makeEvent(), {});
+      expect(ttl()).toBe(NOW / 1000 + 25 * 3600);
+    });
+  });
+
   it('successfully creates a queue entry on valid join', async () => {
     const result = await handler(makeEvent(), {});
     expect(result.status).toBe(200);
@@ -146,5 +188,83 @@ describe('WaitingRoom JOIN handler', () => {
     expect(result.data.queueId).toBe('QUEUE#golden-ears#camping#standard-sites#2025-06-15');
     expect(result.data.openingTime).toBe(validMeta.openingTime);
     expect(result.data.queueStatus).toBe('pre-open');
+  });
+
+  describe('firstReleaseAt', () => {
+    const firstReleaseAt = '2026-03-05T15:03:00.000Z';
+    const mode2Body = { collectionId: 'MODE2', activityType: 'global', activityId: 1, startDate: '2026-03-05' };
+    const mode2Meta = { ...validMeta, pk: 'QUEUE#MODE2#global#1#2026-03-05', queueStatus: 'releasing', firstReleaseAt };
+    const existing = { pk: mode2Meta.pk, userId: 'test-user-123', status: 'waiting', joinedAt: 1000000 };
+
+    beforeEach(() => {
+      db.getActiveMode2QueueId.mockResolvedValue(mode2Meta.pk);
+      db.getQueueMeta.mockResolvedValue(mode2Meta);
+    });
+
+    it('is returned when a user newly joins a Mode 2 queue', async () => {
+      const result = await handler(makeEvent(mode2Body), {});
+      expect(result.status).toBe(200);
+      expect(result.data.firstReleaseAt).toBe(firstReleaseAt);
+    });
+
+    it('is returned on the already-joined path found by user lookup', async () => {
+      db.queryEntriesByUserId.mockResolvedValue([existing]);
+      const result = await handler(makeEvent(mode2Body), {});
+      expect(result.data.firstReleaseAt).toBe(firstReleaseAt);
+    });
+
+    it('is returned on the already-joined path found by the strongly-consistent read', async () => {
+      db.getQueueEntry.mockResolvedValue(existing);
+      const result = await handler(makeEvent(mode2Body), {});
+      expect(db.putQueueEntry).not.toHaveBeenCalled();
+      expect(result.data.firstReleaseAt).toBe(firstReleaseAt);
+    });
+
+    it('is omitted when the Mode 2 queue has none', async () => {
+      db.getQueueMeta.mockResolvedValue({ ...mode2Meta, firstReleaseAt: undefined });
+      const result = await handler(makeEvent(mode2Body), {});
+      expect(result.data).not.toHaveProperty('firstReleaseAt');
+    });
+
+    it('is never returned for Mode 1 queues', async () => {
+      db.getQueueMeta.mockResolvedValue({ ...validMeta, firstReleaseAt });
+      db.queryEntriesByUserId.mockResolvedValue([{ ...existing, pk: validMeta.pk }]);
+
+      const rejoin = await handler(makeEvent(), {});
+      expect(rejoin.data).not.toHaveProperty('firstReleaseAt');
+
+      db.queryEntriesByUserId.mockResolvedValue([]);
+      const fresh = await handler(makeEvent(), {});
+      expect(fresh.data).not.toHaveProperty('firstReleaseAt');
+    });
+  });
+
+  describe('Mode 2', () => {
+    const pointedQueueId = 'QUEUE#MODE2#global#1#2026-03-05';
+    const mode2Meta = { ...validMeta, pk: pointedQueueId, queueStatus: 'releasing', facilityKey: 'MODE2#global#1' };
+    // The client sends UTC "today", which has already rolled over to the next day.
+    const mode2Body = { collectionId: 'MODE2', activityType: 'global', activityId: 1, startDate: '2026-03-06' };
+
+    it("joins the queue the pointer names, ignoring the client's startDate", async () => {
+      db.getActiveMode2QueueId.mockResolvedValue(pointedQueueId);
+      db.getQueueMeta.mockResolvedValue(mode2Meta);
+
+      const result = await handler(makeEvent(mode2Body), {});
+
+      expect(result.status).toBe(200);
+      expect(result.data.queueId).toBe(pointedQueueId);
+      expect(db.getQueueMeta).toHaveBeenCalledWith(pointedQueueId);
+      expect(db.putQueueEntry).toHaveBeenCalledWith(expect.objectContaining({
+        pk: pointedQueueId, facilityKey: 'MODE2#global#1', dateKey: '2026-03-05',
+      }));
+      expect(db.incrementQueueTotalEntries).toHaveBeenCalledWith(pointedQueueId);
+    });
+
+    it('returns 404 when Mode 2 is not active', async () => {
+      const result = await handler(makeEvent(mode2Body), {});
+      expect(result.status).toBe(404);
+      expect(db.getQueueMeta).not.toHaveBeenCalled();
+      expect(db.putQueueEntry).not.toHaveBeenCalled();
+    });
   });
 });

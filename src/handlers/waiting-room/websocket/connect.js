@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger } = require('/opt/base');
+const { logger, redactEvent } = require('/opt/base');
 const {
   getQueueEntry,
   setConnectionId,
@@ -22,7 +22,7 @@ const ACTIVE_STATUSES = ['waiting', 'admitting', 'admitted'];
  * 4. Write a connection record (CONN#<connectionId>) for disconnect lookup
  */
 exports.handler = async (event) => {
-  logger.debug('WebSocket $connect:', JSON.stringify(event));
+  logger.debug('WebSocket $connect:', JSON.stringify(redactEvent(event)));
 
   const connectionId = event.requestContext?.connectionId;
   const userId = event.requestContext?.authorizer?.userId;

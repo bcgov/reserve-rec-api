@@ -6,6 +6,8 @@ const mockLogger = { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: 
 jest.mock('/opt/base', () => ({
   logger: mockLogger,
   getClientIp: jest.requireActual('../src/layers/base/base').getClientIp,
+  redactEvent: jest.requireActual('../src/layers/base/base').redactEvent,
+  redactHeaders: jest.requireActual('../src/layers/base/base').redactHeaders,
 }));
 
 const mockCheckNetworks = jest.fn();
@@ -272,5 +274,42 @@ describe('public authorizer, network spread on availability reads', () => {
   it('does not check other routes', async () => {
     await handler(event(`${ARN_PREFIX}/GET/bookings`));
     expect(mockCheckNetworks).not.toHaveBeenCalled();
+  });
+});
+
+describe('public authorizer, failures and logging', () => {
+  let handler;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.PUBLIC_USER_POOL_ID = 'ca-central-1_test';
+    process.env.PUBLIC_USER_POOL_CLIENT_ID = 'client-test';
+    mockVerify.mockResolvedValue({ sub: SUB, username: 'someone' });
+    mockAdminGetUser.mockResolvedValue(cognitoUser());
+    handler = loadHandler();
+  });
+
+  it('answers as a guest when a step after token validation throws', async () => {
+    mockCheckNetworks.mockRejectedValue(new Error('table unavailable'));
+    const res = await handler(event());
+    expect(res.context).toMatchObject(GUEST);
+    expect(res.policyDocument.Statement[0]).toMatchObject({ Effect: 'Allow', Resource: `${ARN_PREFIX.split('/')[0]}/*` });
+  });
+
+  it('never writes the bearer token, ID token or cookies to its debug log', async () => {
+    mockCheckNetworks.mockResolvedValue({ over: false });
+    await handler({
+      ...event(INVENTORY_ARN, 'Bearer access.token.secret'),
+      headers: {
+        'x-viewer-ip': VIEWER_IP,
+        Authorization: 'Bearer access.token.secret',
+        'X-Id-Token': 'id.token.secret',
+        cookie: 'bcparks-admission=admission.secret',
+      },
+    });
+    const logged = JSON.stringify(mockLogger.debug.mock.calls);
+    expect(logged).not.toContain('access.token.secret');
+    expect(logged).not.toContain('id.token.secret');
+    expect(logged).not.toContain('admission.secret');
   });
 });
