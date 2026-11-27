@@ -17,6 +17,7 @@ process.env.WAITING_ROOM_TABLE_NAME = 'WaitingRoom';
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 const { getOne, runQuery, batchGetData } = require('/opt/dynamodb');
 const { handler } = require('../../src/handlers/activities/_collectionId/GET/public');
+const { clearActiveMode2Cache } = require('../../src/handlers/waiting-room/utils/dynamodb');
 
 const COL = 'bcparks_1';
 const get = (queryStringParameters) => handler({ pathParameters: { collectionId: COL }, queryStringParameters });
@@ -28,6 +29,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers({ now: new Date('2026-10-30T18:00:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
   getOne.mockResolvedValue({ displayName: 'Joffre Lakes' });
+  clearActiveMode2Cache();
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -54,21 +56,32 @@ describe('GET /activities/{collectionId} (public) waiting room status', () => {
     expect(parse(res).data).toEqual({ displayName: 'Joffre Lakes', waitingRoomActive: false });
   });
 
-  it("falls back to today's global queue when the facility has none", async () => {
-    mockSend.mockResolvedValueOnce({}).mockResolvedValueOnce(queueItem({ queueStatus: 'open' }));
+  it('falls back to the active global queue named by the Mode 2 pointer, whatever the date', async () => {
+    const mode2QueueId = 'QUEUE#MODE2#global#1#2026-10-29';
+    mockSend
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce(queueItem({ pk: 'MODE2', sk: 'ACTIVE', queueId: mode2QueueId }))
+      .mockResolvedValueOnce(queueItem({ queueStatus: 'releasing' }));
 
     const res = await get(single);
 
-    expect(requestedKeys()).toEqual([`QUEUE#${COL}#dayuse#4#2026-11-01`, 'QUEUE#MODE2#global#1#2026-10-30']);
+    expect(requestedKeys()).toEqual([`QUEUE#${COL}#dayuse#4#2026-11-01`, 'MODE2', mode2QueueId]);
     expect(parse(res).data.waitingRoomActive).toBe(true);
   });
 
-  it.each([
-    ['is closed', queueItem({ queueStatus: 'closed' })],
-    ['does not exist', {}],
-  ])('reports inactive when the global queue %s', async (_label, mode2) => {
-    mockSend.mockResolvedValueOnce({}).mockResolvedValueOnce(mode2);
+  it('reports inactive when the pointed-to global queue is closed', async () => {
+    mockSend
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce(queueItem({ pk: 'MODE2', sk: 'ACTIVE', queueId: 'QUEUE#MODE2#global#1#2026-10-30' }))
+      .mockResolvedValueOnce(queueItem({ queueStatus: 'closed' }));
     const res = await get(single);
+    expect(parse(res).data.waitingRoomActive).toBe(false);
+  });
+
+  it('reports inactive without reading a global queue when Mode 2 is off', async () => {
+    mockSend.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    const res = await get(single);
+    expect(requestedKeys()).toEqual([`QUEUE#${COL}#dayuse#4#2026-11-01`, 'MODE2']);
     expect(parse(res).data.waitingRoomActive).toBe(false);
   });
 

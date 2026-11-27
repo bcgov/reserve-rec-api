@@ -4,6 +4,7 @@
 
 jest.mock('/opt/base', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+  redactEvent: jest.requireActual('../../src/layers/base/base').redactEvent,
 }));
 
 jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
@@ -26,6 +27,7 @@ describe('WebSocket $connect handler', () => {
 
     jest.mock('/opt/base', () => ({
       logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+      redactEvent: jest.requireActual('../../src/layers/base/base').redactEvent,
     }));
     jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
       getQueueEntry: jest.fn(),
@@ -49,6 +51,20 @@ describe('WebSocket $connect handler', () => {
       },
       ...overrides.requestContext,
     },
+  });
+
+  it('does not write the connection token or cookies to its debug log', async () => {
+    const { logger } = require('/opt/base');
+    db.getQueueEntry.mockResolvedValue(null);
+    await connectHandler.handler({
+      ...makeConnectEvent(),
+      headers: { Cookie: 'bcparks-admission=admission.secret' },
+      queryStringParameters: { token: 'ws.token.secret', queueId: 'QUEUE#x' },
+    });
+    const logged = JSON.stringify(logger.debug.mock.calls);
+    expect(logged).toContain('QUEUE#x');
+    expect(logged).not.toContain('ws.token.secret');
+    expect(logged).not.toContain('admission.secret');
   });
 
   const waitingEntry = {
@@ -152,6 +168,7 @@ describe('WebSocket $disconnect handler', () => {
 
     jest.mock('/opt/base', () => ({
       logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+      redactEvent: jest.requireActual('../../src/layers/base/base').redactEvent,
     }));
     jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
       getQueueEntry: jest.fn(),
@@ -211,6 +228,7 @@ describe('WebSocket $default handler', () => {
     jest.resetModules();
     jest.mock('/opt/base', () => ({
       logger: { info: jest.fn(), debug: jest.fn() },
+      redactEvent: jest.requireActual('../../src/layers/base/base').redactEvent,
     }));
     defaultHandler = require('../../src/handlers/waiting-room/websocket/default');
   });

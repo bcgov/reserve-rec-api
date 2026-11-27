@@ -17,21 +17,20 @@ jest.mock('../../src/handlers/waiting-room/utils/dynamodb', () => ({
   getQueueEntry: jest.fn(),
 }));
 
-jest.mock('../../src/handlers/waiting-room/utils/token', () => ({
-  generateToken: jest.fn(() => 'test-payload.test-signature'),
-  buildAdmissionCookieHeader: jest.fn((token, ttl) => `bcparks-admission=${token}; HttpOnly; Max-Age=${ttl * 60}`),
-}));
-
 jest.mock('../../src/handlers/waiting-room/utils/secrets', () => ({
   getHmacSigningKey: jest.fn(() => Promise.resolve('test-hmac-key')),
 }));
 
 const { handler } = require('../../src/handlers/waiting-room/claim/handler');
 const db = require('../../src/handlers/waiting-room/utils/dynamodb');
-const { sendResponse, getRequestClaimsFromEvent } = require('/opt/base');
+const { getRequestClaimsFromEvent } = require('/opt/base');
+const { validateToken, parseAdmissionCookie } = require('../../src/handlers/waiting-room/utils/token');
 
 const queueId = 'QUEUE#golden-ears#camping#standard-sites#2025-06-15';
-const now = Math.floor(Date.now() / 1000);
+const now = 1700000000;
+
+const cookieMaxAge = (result) => Number(result.headers['Set-Cookie'].match(/Max-Age=(\d+)/)[1]);
+const cookiePayload = (result) => validateToken(parseAdmissionCookie(result.headers['Set-Cookie']), 'test-hmac-key');
 
 const validEntry = {
   pk: queueId,
@@ -58,8 +57,13 @@ const makeEvent = (body = { queueId }) => ({
 describe('WaitingRoom CLAIM handler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockReturnValue(now * 1000);
     db.getQueueEntry.mockResolvedValue(validEntry);
     db.getQueueMeta.mockResolvedValue(validMeta);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('returns 401 if not authenticated', async () => {
@@ -100,7 +104,11 @@ describe('WaitingRoom CLAIM handler', () => {
   it('returns 200 with Set-Cookie header on valid admitted entry', async () => {
     const result = await handler(makeEvent(), {});
     expect(result.statusCode).toBe(200);
-    expect(result.headers['Set-Cookie']).toContain('bcparks-admission=test-payload.test-signature');
+    expect(cookiePayload(result)).toMatchObject({
+      sid: 'test-user-123',
+      fk: 'golden-ears#camping#standard-sites',
+      dk: '2025-06-15',
+    });
   });
 
   it('returns facilityKey, dateKey, tokenExpiry in response body', async () => {
@@ -108,7 +116,7 @@ describe('WaitingRoom CLAIM handler', () => {
     const body = JSON.parse(result.body);
     expect(body.facilityKey).toBe('golden-ears#camping#standard-sites');
     expect(body.dateKey).toBe('2025-06-15');
-    expect(body.tokenExpiry).toBeGreaterThan(now);
+    expect(body.tokenExpiry).toBe(now + 900);
   });
 
   it('accepts entries in admitting status as well', async () => {
@@ -117,10 +125,23 @@ describe('WaitingRoom CLAIM handler', () => {
     expect(result.statusCode).toBe(200);
   });
 
-  it('is idempotent — re-calling returns fresh token', async () => {
-    const { generateToken } = require('../../src/handlers/waiting-room/utils/token');
-    generateToken.mockReturnValueOnce('new-payload.new-sig');
+  it('caps token, cookie and tokenExpiry at admissionExpiry on repeated claims', async () => {
+    const admissionExpiry = now + 120;
+    db.getQueueEntry.mockResolvedValue({ ...validEntry, admissionExpiry });
+
+    const first = await handler(makeEvent(), {});
+    Date.now.mockReturnValue((now + 60) * 1000);
+    const second = await handler(makeEvent(), {});
+
+    expect(JSON.parse(second.body).tokenExpiry).toBe(admissionExpiry);
+    expect(cookiePayload(second).exp).toBe(admissionExpiry);
+    expect(cookieMaxAge(second)).toBe(60);
+    expect(cookiePayload(first).exp).toBe(admissionExpiry);
+  });
+
+  it('refuses a claim at the moment admissionExpiry is reached', async () => {
+    db.getQueueEntry.mockResolvedValue({ ...validEntry, admissionExpiry: now });
     const result = await handler(makeEvent(), {});
-    expect(result.headers['Set-Cookie']).toContain('new-payload.new-sig');
+    expect(result.status).toBe(403);
   });
 });

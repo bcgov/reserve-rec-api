@@ -15,18 +15,36 @@ const crypto = require('crypto');
  */
 function generateToken(sub, facilityKey, dateKey, secretKey, ttlMinutes = 15) {
   const now = Math.floor(Date.now() / 1000);
+  return signToken(sub, facilityKey, dateKey, secretKey, now, now + ttlMinutes * 60);
+}
+
+function signToken(sub, facilityKey, dateKey, secretKey, iat, exp) {
   const nonce = crypto.randomBytes(16).toString('hex');
-  const payload = {
-    sid: sub,
-    fk: facilityKey,
-    dk: dateKey,
-    iat: now,
-    exp: now + ttlMinutes * 60,
-    nonce,
-  };
+  const payload = { sid: sub, fk: facilityKey, dk: dateKey, iat, exp, nonce };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secretKey).update(payloadB64).digest('hex');
   return `${payloadB64}.${sig}`;
+}
+
+/**
+ * Issues an admission token and its Set-Cookie header, both expiring at the earlier of
+ * now + ttlMinutes and notAfter, so neither outlives the entry's admission window.
+ *
+ * @param {string} sub - Cognito user sub
+ * @param {string} facilityKey - collectionId#activityType#activityId
+ * @param {string} dateKey - startDate (YYYY-MM-DD)
+ * @param {string} secretKey - HMAC signing key from Secrets Manager
+ * @param {number} ttlMinutes - Token TTL in minutes
+ * @param {number} notAfter - Latest allowed expiry (epoch seconds)
+ * @returns {{token: string, exp: number, cookie: string}|null} null if the window has closed
+ */
+function issueAdmission(sub, facilityKey, dateKey, secretKey, ttlMinutes, notAfter) {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = Math.min(now + ttlMinutes * 60, notAfter);
+  // Also false for NaN, so a missing notAfter refuses rather than issuing uncapped.
+  if (!(exp > now)) return null;
+  const token = signToken(sub, facilityKey, dateKey, secretKey, now, exp);
+  return { token, exp, cookie: admissionCookie(token, exp - now) };
 }
 
 /**
@@ -91,29 +109,21 @@ function parseAdmissionCookie(cookieHeader) {
   return null;
 }
 
-/**
- * Builds a Set-Cookie header value for the admission token.
- *
- * @param {string} token - Token string
- * @param {number} ttlMinutes - TTL in minutes
- * @returns {string} Set-Cookie header value
- */
-function buildAdmissionCookieHeader(token, ttlMinutes) {
-  const maxAge = ttlMinutes * 60;
-  return `bcparks-admission=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+function admissionCookie(token, maxAgeSeconds) {
+  return `bcparks-admission=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAgeSeconds}`;
 }
 
 /**
  * Builds a Set-Cookie header that clears the admission cookie.
  */
 function clearAdmissionCookieHeader() {
-  return 'bcparks-admission=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0';
+  return admissionCookie('', 0);
 }
 
 module.exports = {
   generateToken,
   validateToken,
   parseAdmissionCookie,
-  buildAdmissionCookieHeader,
+  issueAdmission,
   clearAdmissionCookieHeader,
 };

@@ -1,13 +1,13 @@
 'use strict';
 
 const { logger, sendResponse } = require('/opt/base');
-const { scanQueuesByStatus } = require('../utils/dynamodb');
+const { getActiveMode2Meta } = require('../utils/dynamodb');
 
 /**
  * GET /waiting-room/mode2/status
  *
  * Public (no auth). Returns whether a Mode 2 queue is currently active
- * (i.e. a QUEUE#MODE2 record exists with queueStatus = 'releasing').
+ * (the Mode 2 pointer names a queue that is not closed).
  * Used by the Angular public app on startup to decide whether to enforce
  * the Mode 2 waiting room guard on facility/cart routes.
  */
@@ -27,8 +27,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const releasingQueues = await scanQueuesByStatus('releasing');
-    const active = releasingQueues.some(q => q.pk && q.pk.startsWith('QUEUE#MODE2'));
+    const active = !!(await getActiveMode2Meta());
 
     return sendResponse(200, { active }, 'Mode 2 status retrieved');
   } catch (err) {

@@ -3,14 +3,14 @@
  * Rebuild operator facilities  (Ref bcgov/reserve-rec-api#682)
  *
  * An operator record (pk `operator::<id>`, sk `base`) lists the parks it runs in
- * `orcs` and any other facilities in `extraFacilities`. The admin authorizer
+ * `parks` (park numbers) and any other facilities in `extraFacilities`. The admin authorizer
  * reads the cached `facilities` map instead of querying for them on every
  * request. This script fills that cache: each park's facilities from
  * orcs-index (#678), plus the extra facilities.
  *
- * It writes only `facilities` and `facilitiesBuiltFrom` (the orcs and extras
+ * It writes only `facilities` and `facilitiesBuiltFrom` (the parks and extras
  * the cache was built from), only when the cache changed, and only if the
- * operator's orcs and extras are still what it read. Each write and its audit
+ * operator's parks and extras are still what it read. Each write and its audit
  * entry (old and new cache) go in one transaction. An operator edited mid-run
  * is reported as a conflict and the run carries on; rerun to pick it up.
  *
@@ -48,8 +48,8 @@ function facilityItemKey(key) {
 
 // Why an operator's grant cannot be built from, or null when it can.
 function grantProblem(operator) {
-  const { orcs, extraFacilities = [] } = operator;
-  if (!Array.isArray(orcs) || !orcs.every((o) => Number.isInteger(o) && o > 0)) return 'orcs is not a list of park numbers';
+  const { parks, extraFacilities = [] } = operator;
+  if (!Array.isArray(parks) || !parks.every((o) => Number.isInteger(o) && o > 0)) return 'parks is not a list of park numbers';
   if (!Array.isArray(extraFacilities) || !extraFacilities.every((k) => typeof k === 'string' && FACILITY_KEY.test(k))) {
     return 'extraFacilities is not a list of facility keys';
   }
@@ -70,7 +70,7 @@ function sameFacilities(a, b) {
 
 // Maps come back in any key order, so compare the grant field by field (lists keep their order).
 function sameGrant(a = {}, b) {
-  return JSON.stringify(a.orcs) === JSON.stringify(b.orcs) && JSON.stringify(a.extraFacilities) === JSON.stringify(b.extraFacilities);
+  return JSON.stringify(a.parks) === JSON.stringify(b.parks) && JSON.stringify(a.extraFacilities) === JSON.stringify(b.extraFacilities);
 }
 
 // Same shape writeAuditLog (/opt/base) writes.
@@ -86,20 +86,20 @@ function auditRecord(user, operatorId, oldFacilities, newFacilities, timestamp, 
   };
 }
 
-// Only write if orcs and extraFacilities are still what we built from.
+// Only write if parks and extraFacilities are still what we built from.
 function updateParams(tableName, operator, facilities) {
-  const builtFrom = { orcs: operator.orcs, extraFacilities: operator.extraFacilities ?? [] };
+  const builtFrom = { parks: operator.parks, extraFacilities: operator.extraFacilities ?? [] };
   const hasExtras = operator.extraFacilities !== undefined;
   return {
     TableName: tableName,
     Key: { pk: operator.pk, sk: operator.sk },
     UpdateExpression: 'SET #facilities = :facilities, #builtFrom = :builtFrom',
-    ConditionExpression: `#orcs = :orcs AND ${hasExtras ? '#extra = :extra' : 'attribute_not_exists(#extra)'}`,
-    ExpressionAttributeNames: { '#facilities': 'facilities', '#builtFrom': 'facilitiesBuiltFrom', '#orcs': 'orcs', '#extra': 'extraFacilities' },
+    ConditionExpression: `#parks = :parks AND ${hasExtras ? '#extra = :extra' : 'attribute_not_exists(#extra)'}`,
+    ExpressionAttributeNames: { '#facilities': 'facilities', '#builtFrom': 'facilitiesBuiltFrom', '#parks': 'parks', '#extra': 'extraFacilities' },
     ExpressionAttributeValues: {
       ':facilities': facilities,
       ':builtFrom': builtFrom,
-      ':orcs': operator.orcs,
+      ':parks': operator.parks,
       ...(hasExtras ? { ':extra': operator.extraFacilities } : {}),
     },
   };
@@ -147,7 +147,7 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
   }
 
   const items = [];
-  for (const orcs of operator.orcs) items.push(...await parkFacilities(doc, tableName, orcs));
+  for (const orcs of operator.parks) items.push(...await parkFacilities(doc, tableName, orcs));
   for (const key of operator.extraFacilities ?? []) {
     const item = (await doc.send(new GetCommand({ TableName: tableName, Key: facilityItemKey(key) }))).Item;
     if (item && !item.isDeleted) items.push(item);
@@ -155,8 +155,8 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
   }
   const facilities = buildFacilities(items);
 
-  // The grant counts too, so facilitiesBuiltFrom never lags behind orcs and extras.
-  const grant = { orcs: operator.orcs, extraFacilities: operator.extraFacilities ?? [] };
+  // The grant counts too, so facilitiesBuiltFrom never lags behind parks and extras.
+  const grant = { parks: operator.parks, extraFacilities: operator.extraFacilities ?? [] };
   if (sameFacilities(operator.facilities, facilities) && sameGrant(operator.facilitiesBuiltFrom, grant)) {
     log(`  ${id}: unchanged (${Object.keys(facilities).length} facilities)`);
     return 'unchanged';
@@ -174,7 +174,7 @@ async function rebuildOperator(doc, { tableName, auditTableName, auditUser, appl
       ],
     }));
   } catch (e) {
-    // ConditionalCheckFailed: orcs or extras changed since we read them. TransactionConflict: a write to the operator landed at the same moment.
+    // ConditionalCheckFailed: parks or extras changed since we read them. TransactionConflict: a write to the operator landed at the same moment.
     const reason = e.CancellationReasons?.[0]?.Code;
     if (e.name !== 'TransactionCanceledException' || !['ConditionalCheckFailed', 'TransactionConflict'].includes(reason)) throw e;
     log(`  ${id}: CONFLICT (${reason}), the operator changed during the run, rerun to rebuild`);

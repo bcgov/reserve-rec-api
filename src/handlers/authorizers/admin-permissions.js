@@ -9,13 +9,13 @@ const USERS_ME_ONLY = { isSuperAdmin: false, permissions: null };
 const isOrcs = (entry) => Number.isInteger(entry) && entry > 0;
 const isFacilityKey = (entry) => typeof entry === 'string' && FACILITY_KEY.test(entry);
 
-// The operator's cached facility keys still inside its grant (`orcs` or
+// The operator's cached facility keys still inside its grant (`parks` or
 // `extraFacilities`), narrowed by `narrowTo` when the user has one. Sorted.
 function scopedFacilities(operator, narrowTo) {
-  const orcs = Array.isArray(operator.orcs) ? operator.orcs : [];
+  const parks = Array.isArray(operator.parks) ? operator.parks : [];
   const extras = Array.isArray(operator.extraFacilities) ? operator.extraFacilities : [];
   return Object.entries(operator.facilities ?? {})
-    .filter(([key, facility]) => orcs.includes(facility?.orcs) || extras.includes(key))
+    .filter(([key, facility]) => parks.includes(facility?.orcs) || extras.includes(key))
     .filter(([key, facility]) => !narrowTo || narrowTo.includes(key) || narrowTo.includes(facility?.orcs))
     .map(([key]) => key)
     .sort();

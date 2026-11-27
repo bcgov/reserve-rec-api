@@ -16,7 +16,7 @@ const USERS_ME_ONLY = { isSuperAdmin: false, permissions: null };
 const OPERATOR = {
   pk: 'operator::op-1',
   sk: 'base',
-  orcs: [7, 8],
+  parks: [7, 8],
   extraFacilities: ['bcparks_363::trail::9'],
   facilities: {
     'bcparks_7::structure::3': { orcs: 7, displayName: 'Hut' },
@@ -134,13 +134,13 @@ describe('resolveAdminPermissions', () => {
     });
 
     it('leaves out a cached facility whose park the operator no longer runs', async () => {
-      records({ user: scoped(), operator: { ...OPERATOR, orcs: [8], extraFacilities: [] } });
+      records({ user: scoped(), operator: { ...OPERATOR, parks: [8], extraFacilities: [] } });
       const res = await resolveAdminPermissions(payload([]));
       expect(res.facilities).toEqual(['bcparks_8::lot::1']);
     });
 
-    it('keeps an extra facility outside the operator orcs', async () => {
-      records({ user: scoped(), operator: { ...OPERATOR, orcs: [] } });
+    it('keeps an extra facility outside the operator parks', async () => {
+      records({ user: scoped(), operator: { ...OPERATOR, parks: [] } });
       const res = await resolveAdminPermissions(payload([]));
       expect(res.facilities).toEqual(['bcparks_363::trail::9']);
     });
@@ -169,7 +169,7 @@ describe('resolveAdminPermissions', () => {
     });
 
     it('an operator with no facilities in its grant', async () => {
-      records({ user: scoped(), operator: { ...OPERATOR, orcs: [], extraFacilities: [] } });
+      records({ user: scoped(), operator: { ...OPERATOR, parks: [], extraFacilities: [] } });
       await expect(resolveAdminPermissions(payload([]))).resolves.toEqual(USERS_ME_ONLY);
     });
   });
