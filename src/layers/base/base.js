@@ -407,12 +407,14 @@ function legacyTierCovers(context, minRole, keys) {
 
 /**
  * For a record's own facility keys (a booking's `facilityKeys`, an activity's facilities).
+ * All-access callers (Superadmin, HQ Admin) who meet `minRole` pass before the keys are read.
  * A scoped caller passes when any key is theirs. A record with no keys (a booking made
  * before #712) falls back to its `collectionId`: checked on the tier of a caller without a
- * role, passed for all-access callers, refused for scoped ones. Neither is refused.
+ * role, refused for scoped ones. A caller without a role is refused when there is neither.
  */
 function checkFacilityScope(event, minRole, recordKeys, collectionId = null) {
   const context = adminContext(event);
+  if (context.role && meetsRole(context, minRole) && !permittedFacilityKeys(context)) return context;
   if (!Array.isArray(recordKeys) || recordKeys.length === 0) {
     if (typeof collectionId !== 'string' || !collectionId) throw refuse('the record has no facilities');
     if (!context.role) {
@@ -576,6 +578,34 @@ function getHeaderValue(headers, name) {
   return key === undefined ? undefined : headers[key];
 }
 
+const REDACTED_HEADERS = ['authorization', 'x-id-token', 'cookie'];
+const REDACTED_QUERY_PARAMS = ['token'];
+
+function maskKeys(values, names) {
+  if (!values) return values;
+  return Object.fromEntries(Object.entries(values).map(([key, value]) =>
+    [key, names.includes(key.toLowerCase()) ? '[redacted]' : value]));
+}
+
+/** Headers safe to log: credentials (Authorization, X-Id-Token, Cookie) are masked. */
+function redactHeaders(headers) {
+  return maskKeys(headers, REDACTED_HEADERS);
+}
+
+/** An API Gateway or authorizer event safe to log: credentials in headers and the query string are masked. */
+function redactEvent(event) {
+  if (!event || typeof event !== 'object') return event;
+  return {
+    ...event,
+    ...(event.authorizationToken && { authorizationToken: '[redacted]' }),
+    ...(event.cookies && { cookies: '[redacted]' }),
+    headers: redactHeaders(event.headers),
+    multiValueHeaders: redactHeaders(event.multiValueHeaders),
+    queryStringParameters: maskKeys(event.queryStringParameters, REDACTED_QUERY_PARAMS),
+    multiValueQueryStringParameters: maskKeys(event.multiValueQueryStringParameters, REDACTED_QUERY_PARAMS),
+  };
+}
+
 // x-viewer-ip when set, else the address from CloudFront-Viewer-Address ("ip:port",
 // IPv6 bracketed). Header names match case-insensitively; null when neither is set.
 function getClientIp(headers) {
@@ -617,6 +647,7 @@ const Exception = class extends Error {
     this.error = errorData?.error || null;
     this.msg = message || null;
     this.data = errorData?.data || null;
+    if (errorData?.errorCode) this.errorCode = errorData.errorCode;
   }
 };
 
@@ -700,7 +731,10 @@ module.exports = {
   permittedFacilityKeys,
   MAX_REQUESTED_FACILITY_KEYS,
   getClientIp,
+  getHeaderValue,
   getRequestClaimsFromEvent,
+  redactEvent,
+  redactHeaders,
   isoToEpoch,
   logger,
   requestIdentity,

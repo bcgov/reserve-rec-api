@@ -89,4 +89,24 @@ describe('createBooking refusals', () => {
     fetchProductDates.mockResolvedValue([]);
     await expect(createBooking(props())).rejects.toMatchObject({ code: 404, data: { refusal: 'not_found' } });
   });
+
+  it('refuses an impossible date before reading anything', async () => {
+    await expect(createBooking({ ...props(), startDate: '2026-11-31', endDate: '2026-12-01' })).rejects.toMatchObject({
+      code: 400, data: { refusal: 'invalid' },
+    });
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(fetchProductDates).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['start after startDate', ['2026-06-16']],
+    ['run past endDate', ['2026-06-15', '2026-06-16']],
+  ])('refuses product dates that %s', async (_, dates) => {
+    runQuery.mockResolvedValue({ items: [] });
+    getOne.mockResolvedValue({ productId: '3', reservationPolicy: { isReservable: true } });
+    fetchProductDates.mockResolvedValue(dates.map((date) => ({ date })));
+    await expect(createBooking({ ...props(), endDate: '2026-06-15' })).rejects.toMatchObject({
+      code: 400, data: { refusal: 'invalid' },
+    });
+  });
 });

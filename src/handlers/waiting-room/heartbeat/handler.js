@@ -5,14 +5,19 @@ const { getQueueEntry, updateQueueEntryStatus } = require('../utils/dynamodb');
 const {
   parseAdmissionCookie,
   validateToken,
-  generateToken,
-  buildAdmissionCookieHeader,
+  issueAdmission,
   clearAdmissionCookieHeader,
 } = require('../utils/token');
 const { getHmacSigningKey } = require('../utils/secrets');
 
 const ADMISSION_TTL_MINUTES = parseInt(process.env.ADMISSION_TTL_MINUTES || '15', 10);
 const MAX_ADMISSION_MINUTES = parseInt(process.env.MAX_ADMISSION_MINUTES || '30', 10);
+
+function deny(statusCode, error, code, clearCookie = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (clearCookie) headers['Set-Cookie'] = clearAdmissionCookieHeader();
+  return { statusCode, headers, body: JSON.stringify({ error, code }) };
+}
 
 exports.handler = async (event, context) => {
   logger.info('WaitingRoom HEARTBEAT:', { path: event.path, method: event.httpMethod });
@@ -30,36 +35,18 @@ exports.handler = async (event, context) => {
     const admissionToken = parseAdmissionCookie(cookieHeader);
 
     if (!admissionToken) {
-      return {
-        statusCode: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'No admission token', code: 'NO_TOKEN' }),
-      };
+      return deny(401, 'No admission token', 'NO_TOKEN', false);
     }
 
     const hmacKey = await getHmacSigningKey();
     const payload = validateToken(admissionToken, hmacKey);
 
     if (!payload) {
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': clearAdmissionCookieHeader(),
-        },
-        body: JSON.stringify({ error: 'Admission expired', code: 'EXPIRED' }),
-      };
+      return deny(403, 'Admission expired', 'EXPIRED');
     }
 
     if (payload.sid !== userId) {
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': clearAdmissionCookieHeader(),
-        },
-        body: JSON.stringify({ error: 'Admission mismatch', code: 'USER_MISMATCH' }),
-      };
+      return deny(403, 'Admission mismatch', 'USER_MISMATCH');
     }
 
     // Get queueId from request body
@@ -72,68 +59,51 @@ exports.handler = async (event, context) => {
     // Verify the queue entry is still admitted
     const entry = await getQueueEntry(queueId, userId);
     if (!entry || entry.status !== 'admitted') {
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': clearAdmissionCookieHeader(),
-        },
-        body: JSON.stringify({ error: 'Admission expired or revoked', code: 'EXPIRED' }),
-      };
+      return deny(403, 'Admission expired or revoked', 'EXPIRED');
+    }
+
+    // Refuse a cookie minted for another queue; leave it set, as it is still valid there.
+    if (payload.fk !== entry.facilityKey || payload.dk !== entry.dateKey) {
+      return deny(403, 'Admission does not match this queue', 'QUEUE_MISMATCH', false);
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const admittedAt = entry.admittedAt || payload.iat;
-    const maxExpiryTime = admittedAt + MAX_ADMISSION_MINUTES * 60;
+    const maxExpiryTime = entry.admittedAt + MAX_ADMISSION_MINUTES * 60;
 
     // Check absolute max admission time
     if (now >= maxExpiryTime) {
       await updateQueueEntryStatus(queueId, userId, 'expired', 'admitted');
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': clearAdmissionCookieHeader(),
-        },
-        body: JSON.stringify({ error: 'Maximum admission time reached', code: 'MAX_TIME' }),
-      };
+      return deny(403, 'Maximum admission time reached', 'MAX_TIME');
     }
 
-    // Calculate new expiry — the smaller of ADMISSION_TTL_MINUTES from now and the absolute max
-    const newExpiry = Math.min(now + ADMISSION_TTL_MINUTES * 60, maxExpiryTime);
-    const newTtlMinutes = Math.ceil((newExpiry - now) / 60);
-
-    // Generate refreshed token
-    const newToken = generateToken(userId, payload.fk, payload.dk, hmacKey, newTtlMinutes);
+    const admission = issueAdmission(
+      userId, entry.facilityKey, entry.dateKey, hmacKey, ADMISSION_TTL_MINUTES, maxExpiryTime
+    );
+    if (!admission) {
+      return deny(403, 'Admission expired', 'EXPIRED');
+    }
 
     // Update DynamoDB — conditional on entry still being 'admitted'
     const updated = await updateQueueEntryStatus(queueId, userId, 'admitted', 'admitted', {
-      admissionToken: newToken,
-      admissionExpiry: newExpiry,
+      admissionToken: admission.token,
+      admissionExpiry: admission.exp,
     });
 
     if (!updated) {
       // Concurrent update (e.g., cleanup Lambda expired it between our check and our update)
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': clearAdmissionCookieHeader(),
-        },
-        body: JSON.stringify({ error: 'Admission expired', code: 'EXPIRED' }),
-      };
+      return deny(403, 'Admission expired', 'EXPIRED');
     }
 
-    logger.info(`Heartbeat extended admission for ${userId}, new expiry: ${newExpiry}`);
+    logger.info(`Heartbeat extended admission for ${userId}, new expiry: ${admission.exp}`);
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': buildAdmissionCookieHeader(newToken, newTtlMinutes),
+        'Set-Cookie': admission.cookie,
       },
       body: JSON.stringify({
-        tokenExpiry: newExpiry,
+        tokenExpiry: admission.exp,
         maxExpiryTime,
       }),
     };

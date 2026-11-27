@@ -89,8 +89,10 @@ describe('checkFacilityScope', () => {
     expect(() => checkFacilityScope(superadmin(), 'hqAdmin', [K9])).not.toThrow();
   });
 
-  it.each([[undefined], [[]], ['bcparks_7::structure::1']])('refuses a record key list of %p', (keys) => {
-    refused(() => checkFacilityScope(superadmin(), 'parkStaff', keys), 403);
+  it.each([[undefined], [[]], ['bcparks_7::structure::1']])('passes all-access callers and refuses scoped ones for a record key list of %p', (keys) => {
+    expect(() => checkFacilityScope(superadmin(), 'parkStaff', keys)).not.toThrow();
+    expect(() => checkFacilityScope(hqAdmin(), 'parkStaff', keys)).not.toThrow();
+    refused(() => checkFacilityScope(operator(), 'parkStaff', keys), 403);
   });
 
   it('needs the legacy tier, by rank, in the collection of every key', () => {
@@ -113,9 +115,11 @@ describe('checkFacilityScope', () => {
       refused(() => checkFacilityScope(operator(), 'parkStaff', [], 'bcparks_7'), 403);
     });
 
-    it('refuses a record with neither facility keys nor a collectionId', () => {
+    it('refuses a record with neither facility keys nor a collectionId, except for all-access callers', () => {
       refused(() => checkFacilityScope(legacy(), 'parkStaff', [], undefined), 403);
-      refused(() => checkFacilityScope(superadmin(), 'parkStaff', undefined, ''), 403);
+      refused(() => checkFacilityScope(operator(), 'parkStaff', [], undefined), 403);
+      expect(() => checkFacilityScope(superadmin(), 'parkStaff', undefined, '')).not.toThrow();
+      expect(() => checkFacilityScope(hqAdmin(), 'parkOperator', [], undefined)).not.toThrow();
     });
   });
 });

@@ -34,13 +34,13 @@ describe('rebuild-operator-facilities', () => {
   });
 
   it.each([
-    [{ orcs: [7, 8] }, null],
-    [{ orcs: [7], extraFacilities: ['bcparks_363::trail::1'] }, null],
-    [{}, 'orcs is not a list of park numbers'],
-    [{ orcs: ['7'] }, 'orcs is not a list of park numbers'],
-    [{ orcs: [0] }, 'orcs is not a list of park numbers'],
-    [{ orcs: [7], extraFacilities: ['bcparks_363'] }, 'extraFacilities is not a list of facility keys'],
-    [{ orcs: [7], extraFacilities: 'bcparks_363::trail::1' }, 'extraFacilities is not a list of facility keys'],
+    [{ parks: [7, 8] }, null],
+    [{ parks: [7], extraFacilities: ['bcparks_363::trail::1'] }, null],
+    [{}, 'parks is not a list of park numbers'],
+    [{ parks: ['7'] }, 'parks is not a list of park numbers'],
+    [{ parks: [0] }, 'parks is not a list of park numbers'],
+    [{ parks: [7], extraFacilities: ['bcparks_363'] }, 'extraFacilities is not a list of facility keys'],
+    [{ parks: [7], extraFacilities: 'bcparks_363::trail::1' }, 'extraFacilities is not a list of facility keys'],
   ])('checks the grant %j', (operator, problem) => {
     expect(grantProblem(operator)).toBe(problem);
   });
@@ -64,20 +64,21 @@ describe('rebuild-operator-facilities', () => {
     });
   });
 
-  it('only writes when orcs and extras are still what it read', () => {
-    const withExtras = updateParams(TABLE, { pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_363::trail::1'] }, {});
-    expect(withExtras.ConditionExpression).toBe('#orcs = :orcs AND #extra = :extra');
-    expect(withExtras.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7], extraFacilities: ['bcparks_363::trail::1'] });
+  it('only writes when parks and extras are still what it read', () => {
+    const withExtras = updateParams(TABLE, { pk: 'operator::op1', sk: 'base', parks: [7], extraFacilities: ['bcparks_363::trail::1'] }, {});
+    expect(withExtras.ConditionExpression).toBe('#parks = :parks AND #extra = :extra');
+    expect(withExtras.ExpressionAttributeNames).toMatchObject({ '#parks': 'parks', '#extra': 'extraFacilities' });
+    expect(withExtras.ExpressionAttributeValues[':builtFrom']).toEqual({ parks: [7], extraFacilities: ['bcparks_363::trail::1'] });
 
-    const noExtras = updateParams(TABLE, { pk: 'operator::op1', sk: 'base', orcs: [7] }, {});
-    expect(noExtras.ConditionExpression).toBe('#orcs = :orcs AND attribute_not_exists(#extra)');
+    const noExtras = updateParams(TABLE, { pk: 'operator::op1', sk: 'base', parks: [7] }, {});
+    expect(noExtras.ConditionExpression).toBe('#parks = :parks AND attribute_not_exists(#extra)');
     expect(noExtras.ExpressionAttributeValues).not.toHaveProperty(':extra');
     expect(noExtras.UpdateExpression).toBe('SET #facilities = :facilities, #builtFrom = :builtFrom');
   });
 
   it('caches park facilities plus extras, then audits the change', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS, DIAMOND] }, byKey: { 'facility::bcparks_363|trail::1': JOFFRE } });
-    const operator = { pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_363::trail::1'] };
+    const operator = { pk: 'operator::op1', sk: 'base', parks: [7], extraFacilities: ['bcparks_363::trail::1'] };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
 
@@ -90,7 +91,7 @@ describe('rebuild-operator-facilities', () => {
 
   it('leaves out non-facility items the index returns and extras that do not exist', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS, { pk: 'protectedArea', sk: '7', orcs: 7 }] } });
-    const operator = { pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_9::trail::1'] };
+    const operator = { pk: 'operator::op1', sk: 'base', parks: [7], extraFacilities: ['bcparks_9::trail::1'] };
 
     await rebuildOperator(doc, OPTS, operator, silent);
 
@@ -102,7 +103,7 @@ describe('rebuild-operator-facilities', () => {
       byOrcs: { 7: [CHEAKAMUS, { ...DIAMOND, isDeleted: true }] },
       byKey: { 'facility::bcparks_363|trail::1': { ...JOFFRE, isDeleted: true } },
     });
-    const operator = { pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_363::trail::1'] };
+    const operator = { pk: 'operator::op1', sk: 'base', parks: [7], extraFacilities: ['bcparks_363::trail::1'] };
 
     await rebuildOperator(doc, OPTS, operator, silent);
 
@@ -116,7 +117,7 @@ describe('rebuild-operator-facilities', () => {
       return cmd.input.ExclusiveStartKey ? { Items: [DIAMOND] } : { Items: [CHEAKAMUS], LastEvaluatedKey: { pk: 'x' } };
     });
 
-    await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent);
+    await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', parks: [7] }, silent);
 
     expect(Object.keys(writes(doc)[0].Update.ExpressionAttributeValues[':facilities'])).toEqual(['bcparks_7::structure::1', 'bcparks_7::structure::2']);
   });
@@ -124,8 +125,8 @@ describe('rebuild-operator-facilities', () => {
   it('writes nothing when the cache is unchanged', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
     const operator = {
-      pk: 'operator::op1', sk: 'base', orcs: [7],
-      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { orcs: [7], extraFacilities: [] },
+      pk: 'operator::op1', sk: 'base', parks: [7],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { parks: [7], extraFacilities: [] },
     };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('unchanged');
@@ -135,8 +136,8 @@ describe('rebuild-operator-facilities', () => {
   it('writes nothing when the stored grant comes back in a different key order', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
     const operator = {
-      pk: 'operator::op1', sk: 'base', orcs: [7],
-      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { extraFacilities: [], orcs: [7] },
+      pk: 'operator::op1', sk: 'base', parks: [7],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { extraFacilities: [], parks: [7] },
     };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('unchanged');
@@ -146,43 +147,43 @@ describe('rebuild-operator-facilities', () => {
   it('rewrites when the grant changed even if the facilities did not', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
     const operator = {
-      pk: 'operator::op1', sk: 'base', orcs: [7, 999],
-      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { orcs: [7], extraFacilities: [] },
+      pk: 'operator::op1', sk: 'base', parks: [7, 999],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { parks: [7], extraFacilities: [] },
     };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
-    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7, 999], extraFacilities: [] });
+    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ parks: [7, 999], extraFacilities: [] });
   });
 
   it('rewrites when only extraFacilities changed even if the facilities did not', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
     const operator = {
-      pk: 'operator::op1', sk: 'base', orcs: [7], extraFacilities: ['bcparks_9::trail::1'],
-      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { orcs: [7], extraFacilities: [] },
+      pk: 'operator::op1', sk: 'base', parks: [7], extraFacilities: ['bcparks_9::trail::1'],
+      facilities: buildFacilities([CHEAKAMUS]), facilitiesBuiltFrom: { parks: [7], extraFacilities: [] },
     };
 
     expect(await rebuildOperator(doc, OPTS, operator, silent)).toBe('updated');
-    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ orcs: [7], extraFacilities: ['bcparks_9::trail::1'] });
+    expect(writes(doc)[0].Update.ExpressionAttributeValues[':builtFrom']).toEqual({ parks: [7], extraFacilities: ['bcparks_9::trail::1'] });
   });
 
   it('writes nothing on a dry run', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
 
-    expect(await rebuildOperator(doc, { ...OPTS, apply: false }, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).toBe('updated');
+    expect(await rebuildOperator(doc, { ...OPTS, apply: false }, { pk: 'operator::op1', sk: 'base', parks: [7] }, silent)).toBe('updated');
     expect(writes(doc)).toEqual([]);
   });
 
   it('skips an invalid operator without reading or writing anything', async () => {
     const doc = fakeDoc();
 
-    expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: '7' }, silent)).toBe('invalid');
+    expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', parks: '7' }, silent)).toBe('invalid');
     expect(doc.send).not.toHaveBeenCalled();
   });
 
   it('writes the cache and its audit entry in one transaction', async () => {
     const doc = fakeDoc({ byOrcs: { 7: [CHEAKAMUS] } });
 
-    await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent);
+    await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', parks: [7] }, silent);
 
     const transactions = doc.send.mock.calls.map(([c]) => c).filter((c) => c instanceof TransactWriteCommand);
     expect(transactions).toHaveLength(1);
@@ -204,7 +205,7 @@ describe('rebuild-operator-facilities', () => {
       name: 'TransactionCanceledException', CancellationReasons: [{ Code: code }, { Code: 'None' }],
     }));
 
-    expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).toBe('conflict');
+    expect(await rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', parks: [7] }, silent)).toBe('conflict');
   });
 
   it('rethrows any other write failure', async () => {
@@ -212,7 +213,7 @@ describe('rebuild-operator-facilities', () => {
       name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'None' }, { Code: 'ValidationError' }],
     }));
 
-    await expect(rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', orcs: [7] }, silent)).rejects.toThrow('audit table missing');
+    await expect(rebuildOperator(doc, OPTS, { pk: 'operator::op1', sk: 'base', parks: [7] }, silent)).rejects.toThrow('audit table missing');
   });
 
   describe('main', () => {
@@ -226,8 +227,8 @@ describe('rebuild-operator-facilities', () => {
     });
 
     it('carries on past a conflicted operator and exits non-zero so it gets rerun', async () => {
-      const conflicted = { pk: 'operator::op1', sk: 'base', orcs: [7] };
-      const fine = { pk: 'operator::op2', sk: 'base', orcs: [7] };
+      const conflicted = { pk: 'operator::op1', sk: 'base', parks: [7] };
+      const fine = { pk: 'operator::op2', sk: 'base', parks: [7] };
       const doc = {
         send: jest.fn(async (cmd) => {
           if (cmd instanceof ScanCommand) return { Items: [conflicted, fine] };

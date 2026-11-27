@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const { scanQueuesByStatus, scanAllQueueMetas } = require('../utils/dynamodb');
 
 const VALID_STATUSES = ['pre-open', 'randomizing', 'releasing', 'closed'];
@@ -9,6 +9,8 @@ exports.handler = async (event) => {
   logger.info('WaitingRoom admin LIST-QUEUES');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const status = event?.queryStringParameters?.status || null;
 
     if (status && !VALID_STATUSES.includes(status)) {
@@ -33,11 +35,15 @@ exports.handler = async (event) => {
       ...(q.releaseIntervalSeconds != null && { releaseIntervalSeconds: q.releaseIntervalSeconds }),
       ...(q.releaseMode != null && { releaseMode: q.releaseMode }),
       ...(q.lastReleasedAt != null && { lastReleasedAt: q.lastReleasedAt }),
+      ...(q.firstReleaseAt != null && { firstReleaseAt: q.firstReleaseAt }),
     }));
 
     return sendResponse(200, { queues: result, count: result.length }, 'Success');
 
   } catch (err) {
+    if (err instanceof Exception || err.code) {
+      return sendResponse(err.code || 500, null, err.message, err);
+    }
     logger.error('WaitingRoom LIST-QUEUES error:', err);
     return sendResponse(500, null, 'Internal server error', err);
   }

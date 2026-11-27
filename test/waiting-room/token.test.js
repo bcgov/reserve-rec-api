@@ -1,6 +1,6 @@
 'use strict';
 
-const { generateToken, validateToken, parseAdmissionCookie, buildAdmissionCookieHeader, clearAdmissionCookieHeader } = require('../../src/handlers/waiting-room/utils/token');
+const { generateToken, validateToken, parseAdmissionCookie, issueAdmission, clearAdmissionCookieHeader } = require('../../src/handlers/waiting-room/utils/token');
 
 const SECRET = 'test-hmac-secret-key-for-unit-tests';
 
@@ -91,10 +91,15 @@ describe('token utilities', () => {
     });
   });
 
-  describe('buildAdmissionCookieHeader', () => {
-    it('builds the correct Set-Cookie header', () => {
-      const header = buildAdmissionCookieHeader('mytoken', 15);
-      expect(header).toBe('bcparks-admission=mytoken; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900');
+  describe('issueAdmission', () => {
+    it('builds a locked-down cookie carrying the token for the full TTL inside a longer window', () => {
+      const now = Math.floor(Date.now() / 1000);
+      const { token, cookie } = issueAdmission('user-123', 'fk', 'dk', SECRET, 15, now + 3600);
+      expect(cookie).toBe(`bcparks-admission=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900`);
+    });
+
+    it('refuses to issue when no window end is known', () => {
+      expect(issueAdmission('user-123', 'fk', 'dk', SECRET, 15, undefined)).toBeNull();
     });
   });
 

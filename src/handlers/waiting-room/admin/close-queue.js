@@ -1,12 +1,14 @@
 'use strict';
 
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const { getQueueMeta, updateQueueMetaStatus, queryQueueEntries, updateQueueEntryStatus } = require('../utils/dynamodb');
 
 exports.handler = async (event) => {
   logger.info('WaitingRoom admin CLOSE-QUEUE');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const queueId = event?.pathParameters?.queueId
       ? decodeURIComponent(event.pathParameters.queueId)
       : null;

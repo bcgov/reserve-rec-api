@@ -27,11 +27,9 @@ jest.mock('../../src/handlers/waiting-room/utils/secrets', () => ({
 }));
 
 jest.mock('../../src/handlers/waiting-room/utils/token', () => ({
+  ...jest.requireActual('../../src/handlers/waiting-room/utils/token'),
   parseAdmissionCookie: jest.fn(),
   validateToken: jest.fn(),
-  generateToken: jest.fn(),
-  buildAdmissionCookieHeader: jest.fn(),
-  clearAdmissionCookieHeader: jest.fn(),
 }));
 
 const { getRequestClaimsFromEvent } = require('/opt/base');
@@ -39,6 +37,12 @@ const db = require('../../src/handlers/waiting-room/utils/dynamodb');
 const secrets = require('../../src/handlers/waiting-room/utils/secrets');
 const token = require('../../src/handlers/waiting-room/utils/token');
 const { handler } = require('../../src/handlers/waiting-room/heartbeat/handler');
+const realToken = jest.requireActual('../../src/handlers/waiting-room/utils/token');
+
+const cookieMaxAge = (result) => Number(result.headers['Set-Cookie'].match(/Max-Age=(\d+)/)[1]);
+const cookiePayload = (result) =>
+  realToken.validateToken(realToken.parseAdmissionCookie(result.headers['Set-Cookie']), 'test-secret');
+const storedExpiry = () => db.updateQueueEntryStatus.mock.calls[0][4].admissionExpiry;
 
 const NOW = 1700000000;
 
@@ -50,9 +54,6 @@ beforeEach(() => {
   process.env.ADMISSION_TTL_MINUTES = '15';
   process.env.MAX_ADMISSION_MINUTES = '30';
 
-  token.clearAdmissionCookieHeader.mockReturnValue('bcparks-admission=; HttpOnly; Max-Age=0');
-  token.buildAdmissionCookieHeader.mockReturnValue('bcparks-admission=newtoken; HttpOnly; Max-Age=900');
-  token.generateToken.mockReturnValue('new-token-string');
   secrets.getHmacSigningKey.mockResolvedValue('test-secret');
 });
 
@@ -83,6 +84,8 @@ const admittedEntry = {
   sk: 'ENTRY#user-sub-123',
   userId: 'user-sub-123',
   status: 'admitted',
+  facilityKey: 'golden-ears#camping#standard',
+  dateKey: '2025-06-15',
   admittedAt: NOW - 300,
   admissionExpiry: NOW + 600,
 };
@@ -193,11 +196,10 @@ describe('Heartbeat handler', () => {
 
     const result = await handler(makeEvent());
     expect(result.statusCode).toBe(200);
-    expect(result.headers['Set-Cookie']).toContain('bcparks-admission=newtoken');
-    const body = JSON.parse(result.body);
-    expect(body.tokenExpiry).toBeDefined();
-    expect(body.maxExpiryTime).toBeDefined();
-    expect(token.generateToken).toHaveBeenCalled();
+    expect(cookiePayload(result)).toMatchObject({ sid: 'user-sub-123', exp: NOW + 900 });
+    expect(cookieMaxAge(result)).toBe(900);
+    expect(JSON.parse(result.body).tokenExpiry).toBe(NOW + 900);
+    expect(storedExpiry()).toBe(NOW + 900);
   });
 
   it('returns 403 EXPIRED when concurrent update fails (conditional check failed)', async () => {
@@ -223,10 +225,29 @@ describe('Heartbeat handler', () => {
     db.getQueueEntry.mockResolvedValue({ ...admittedEntry, admittedAt });
     db.updateQueueEntryStatus.mockResolvedValue(true);
 
-    await handler(makeEvent());
+    const result = await handler(makeEvent());
 
-    // generateToken should have been called with a TTL ≤ 5 minutes
-    const [, , , , ttlArg] = token.generateToken.mock.calls[0];
-    expect(ttlArg).toBeLessThanOrEqual(5);
+    const cap = admittedAt + 30 * 60;
+    expect(JSON.parse(result.body).tokenExpiry).toBe(cap);
+    expect(cookiePayload(result).exp).toBe(cap);
+    expect(cookieMaxAge(result)).toBe(cap - NOW);
+    expect(storedExpiry()).toBe(cap);
+  });
+
+  it.each([
+    ['facility', { fk: 'other-park#camping#standard' }],
+    ['date', { dk: '2025-06-16' }],
+  ])('refuses without extending when the cookie is for another %s', async (_, otherQueue) => {
+    getRequestClaimsFromEvent.mockReturnValue({ sub: 'user-sub-123' });
+    token.parseAdmissionCookie.mockReturnValue('valid-token');
+    token.validateToken.mockReturnValue({ ...validPayload, ...otherQueue });
+    db.getQueueEntry.mockResolvedValue(admittedEntry);
+    db.updateQueueEntryStatus.mockResolvedValue(true);
+
+    const result = await handler(makeEvent());
+
+    expect(result.statusCode).toBe(403);
+    expect(JSON.parse(result.body).code).toBe('QUEUE_MISMATCH');
+    expect(db.updateQueueEntryStatus).not.toHaveBeenCalled();
   });
 });
