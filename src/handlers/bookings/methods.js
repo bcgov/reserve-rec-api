@@ -14,6 +14,7 @@ const {
 const { snsPublishCommand, snsPublishSend } = require("/opt/sns");
 const { Exception, logger } = require("/opt/base");
 const { genericRefusal, refused } = require("./refusals");
+const { validateBookingDates } = require("./dates");
 const { sendConfirmationEmail, sendCancellationEmail } = require("../../../lib/handlers/emailDispatch/utils");
 const {
   getActivityByActivityId,
@@ -925,6 +926,14 @@ async function createBooking(props) {
       throw refused('not_found', `No ProductDates found for Product (CollectionID: ${collectionId}, Type: ${activityType}, ID: ${activityId}, ProductID: ${productId})`, 404);
     }
 
+    // The fetch is a string range on sk, so the dates it returns must be the dates the
+    // queue, hold and duplicate checks above were keyed on.
+    const lastDate = props.endDate || props.startDate;
+    if (!productDates.some(({ date }) => date === props.startDate)
+      || productDates.some(({ date }) => date < props.startDate || date > lastDate)) {
+      throw refused('invalid', 'The requested dates do not match the dates available for this product');
+    }
+
     // === Validate the booking request against the Product and ProductDate data ===
     await validateBookingRequest(product, productDates, props);
 
@@ -1425,6 +1434,7 @@ async function validateBookingCreateProps(props) {
       throw refused('invalid', `Missing required property: ${prop}`);
     }
   }
+  validateBookingDates(props.startDate, props.endDate);
 }
 
 function formatBookingResponsePublic(bookingResponse) {
