@@ -358,6 +358,31 @@ describe('admin realtime: access changes while connected', () => {
     expect(mockClosed).toEqual(['c-hq']);
   });
 
+  // Mark's case: the reconnect uses the same old token, which still says SuperAdmin.
+  test('a SuperAdmin moved back to a tier map reconnects with the same token and stays connected', async () => {
+    process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
+    admin('tok-super', 'sub-super', null);
+    if (!mockTables.has('RefTable')) mockTables.set('RefTable', new Map());
+    mockTables.get('RefTable').set('userid::sub-super|base', marshall({ pk: 'userid::sub-super', sk: 'base', permissions: { bcparks_7: 'staff' } }));
+    await connectAs('tok-super', 'c-super');
+
+    mockGroups['user-sub-super'] = [];
+    expect(await recheck.handler()).toEqual({ checked: 1, closed: 1, failed: 0 });
+
+    expect((await connectAs('tok-super', 'c-super-2')).connected).toEqual({ statusCode: 200 });
+    expect(JSON.parse((await subscribeTo('c-super-2', 'customers')).body)).toEqual({ type: 'subscribed', topic: 'customers' });
+    expect(mockClosed).toEqual(['c-super']);
+    delete process.env.REALTIME_STAFF_ADDED_ENABLED;
+  });
+
+  test('connect refuses a user added to unauthorized, even with an older token', async () => {
+    admin('tok-super', 'sub-super', null);
+    mockGroups['user-sub-super'] = [SUPERADMIN_GROUP, 'unauthorized'];
+
+    const { auth } = await connectAs('tok-super', 'c-super');
+    expect(auth.policyDocument.Statement[0].Effect).toBe('Deny');
+  });
+
   test('a later connect uses the new role', async () => {
     hqAdmin('tok-hq', 'sub-hq');
     await connectAs('tok-hq', 'c-hq');

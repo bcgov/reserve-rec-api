@@ -254,10 +254,12 @@ describe('AdminRealtimeStack', () => {
     }
   });
 
-  it('lets the authorizer GetItem on the reference table and nothing else', () => {
-    expect(statementsFor('authorizer.js')).toEqual([
-      { Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN },
-    ]);
+  it('lets the authorizer GetItem on the reference table and read groups, and nothing else', () => {
+    const statements = statementsFor('authorizer.js');
+    expect(statements).toHaveLength(2);
+    expect(statements[0]).toEqual({ Action: 'dynamodb:GetItem', Effect: 'Allow', Resource: REF_TABLE_ARN });
+    expect(statements[1].Action).toBe('cognito-idp:AdminListGroupsForUser');
+    expect(JSON.stringify(statements[1].Resource)).toContain(':userpool/ca-central-1_admin');
   });
 
   it('lets subscribe and the recheck read users and their groups, and close connections', () => {

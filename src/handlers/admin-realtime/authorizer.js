@@ -4,7 +4,7 @@ const { logger } = require('/opt/base');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 const { resolveAdminPermissions } = require('../authorizers/admin-permissions');
 const { TOPICS, canSubscribe } = require('./topics');
-const { accessKey } = require('./access');
+const { accessKey, currentGroups } = require('./access');
 
 let verifier;
 function getVerifier() {
@@ -49,7 +49,13 @@ exports.handler = async (event) => {
 
   const sub = payload.sub;
   try {
-    const { unauthorized, isSuperAdmin, role, permissions } = await resolveAdminPermissions(payload);
+    // Current groups, as subscribe and the recheck use, so all three agree on the user's access
+    const groups = await currentGroups(payload.username);
+    if (!groups) {
+      logger.info('Admin realtime auth: deny, user not in the pool', { userId: sub });
+      return policy(sub, 'Deny', methodArn);
+    }
+    const { unauthorized, isSuperAdmin, role, permissions } = await resolveAdminPermissions({ ...payload, 'cognito:groups': groups });
     if (unauthorized) {
       logger.info('Admin realtime auth: deny, unauthorized group', { userId: sub });
       return policy(sub, 'Deny', methodArn);
@@ -67,7 +73,7 @@ exports.handler = async (event) => {
       permissions: JSON.stringify(permissions),
       isSuperAdmin: String(isSuperAdmin),
       exp: String(payload.exp),
-      // Saved at connect so subscribe and the recheck can look the user and their groups up again
+      // Saved so subscribe and the recheck can look the user and their groups up again
       username: payload.username,
       accessKey: accessKey(role, permissions),
     });

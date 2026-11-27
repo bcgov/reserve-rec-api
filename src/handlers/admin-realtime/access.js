@@ -11,23 +11,31 @@ function accessKey(role, permissions) {
 }
 
 /**
+ * The user's current Cognito groups (not the token's, which can be hours old), or null
+ * when there is no username or the user is no longer in the pool. Any other error throws.
+ */
+async function currentGroups(username) {
+  if (!username) return null;
+  try {
+    return await adminListGroupsForUser(process.env.ADMIN_USER_POOL_ID, username);
+  } catch (err) {
+    if (err?.name === 'UserNotFoundException') return null;
+    throw err;
+  }
+}
+
+/**
  * Look the connection's user up again, the way the authorizer did at $connect, with
- * their current Cognito groups (not the token's), so a group change shows too.
+ * their current Cognito groups, so a group change shows too.
  * Returns { key, permissions }; both are null when the user no longer gets any access,
  * including when they were deleted from the pool. Any other lookup error throws.
  */
 async function currentAccess(meta) {
-  if (!meta.username) return { key: null, permissions: null };
-  let groups;
-  try {
-    groups = await adminListGroupsForUser(process.env.ADMIN_USER_POOL_ID, meta.username);
-  } catch (err) {
-    if (err?.name === 'UserNotFoundException') return { key: null, permissions: null };
-    throw err;
-  }
+  const groups = await currentGroups(meta.username);
+  if (!groups) return { key: null, permissions: null };
   const resolved = await resolveAdminPermissions({ sub: meta.userId, 'cognito:groups': groups });
   if (resolved.unauthorized || !resolved.permissions) return { key: null, permissions: null };
   return { key: accessKey(resolved.role, resolved.permissions), permissions: resolved.permissions };
 }
 
-module.exports = { accessKey, currentAccess };
+module.exports = { accessKey, currentGroups, currentAccess };

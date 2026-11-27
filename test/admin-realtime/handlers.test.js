@@ -109,6 +109,7 @@ describe('$connect', () => {
     ['no authorizer context', undefined],
     ['no exp', { ...context, exp: undefined }],
     ['no access key', { ...context, accessKey: undefined }],
+    ['no username', { ...context, username: undefined }],
   ])('rejects a connection with %s', async (_, authorizer) => {
     const res = await connect.handler(connectEvent(authorizer));
     expect(res.statusCode).toBe(400);
