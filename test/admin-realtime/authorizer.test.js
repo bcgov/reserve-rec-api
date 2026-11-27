@@ -79,7 +79,7 @@ describe('admin realtime authorizer', () => {
     process.env.REALTIME_STAFF_ADDED_ENABLED = 'true';
     mockVerify.mockResolvedValue(payload(['ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup']));
     mockGetOne.mockImplementation(async (pk) => (pk === 'operator::op-1'
-      ? { orcs: [7], facilities: { 'bcparks_7::structure::3': { orcs: 7 } } }
+      ? { parks: [7], facilities: { 'bcparks_7::structure::3': { orcs: 7 } } }
       : { role, operatorId: 'op-1', permissions: { bcparks_7: 'staff' } }));
     expect(effect(await handler(event()))).toBe('Deny');
   });

@@ -40,7 +40,7 @@ const event = () => ({
 });
 const SUPERADMIN = 'ReserveRecApi-Dev-AdminIdentityStack-SuperAdminGroup';
 const OPERATOR = {
-  orcs: [7],
+  parks: [7],
   extraFacilities: [],
   facilities: { 'bcparks_7::structure::3': { orcs: 7, displayName: 'Hut' } },
 };
