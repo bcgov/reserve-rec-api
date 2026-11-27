@@ -1,9 +1,9 @@
 // Authorizer for public API access
 
-const { logger, getClientIp } = require('/opt/base');
+const { logger, getClientIp, redactEvent, redactHeaders } = require('/opt/base');
 const { authorizeAll, generatePolicy, getDenyPolicy, parseToken, validateToken, handleContextAndAPIKey } = require('./methods');
 const { getOne } = require('/opt/dynamodb');
-const { adminGetUser } = require('/opt/cognito');
+const { getAccountStatus } = require('/opt/accountStatus');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 const { checkNetworks } = require('./tokenNetworks');
 
@@ -18,23 +18,6 @@ const accountStatusCache = new Map();
 function isAvailabilityRead(methodArn) {
   const [, , method, resource] = (methodArn || '').split(':').slice(5).join(':').split('/');
   return method === 'GET' && AVAILABILITY_RESOURCES.includes(resource);
-}
-
-function isBcsc(identities) {
-  try {
-    const parsed = JSON.parse(identities || '[]');
-    return Array.isArray(parsed) && parsed.some((id) => id.providerName === 'BCSC');
-  } catch {
-    return false;
-  }
-}
-
-// Cognito resets email_verified on every BCSC login, so BCSC accounts count as verified.
-function accountActive(user, sub) {
-  const attrs = user?.UserAttributes || [];
-  const get = (name) => attrs.find((a) => a.Name === name)?.Value;
-  if (get('sub') !== sub || user.Enabled === false) return false;
-  return get('email_verified') === 'true' || isBcsc(get('identities'));
 }
 
 function isThrottled(error) {
@@ -55,14 +38,13 @@ async function isAccountActive(userPoolId, payload) {
 
   let active;
   try {
-    active = accountActive(await adminGetUser(userPoolId, payload.username || payload.sub), payload.sub);
+    active = (await getAccountStatus(userPoolId, payload.sub, payload.username)).status === 'active';
   } catch (error) {
     if (isThrottled(error)) {
       logger.warn('Account status check throttled; allowing', { sub: payload.sub });
       return true;
     }
-    if (error?.cause?.name !== 'UserNotFoundException') throw error;
-    active = false;
+    throw error;
   }
   accountStatusCache.delete(payload.sub);
   if (accountStatusCache.size >= ACCOUNT_STATUS_CACHE_MAX) {
@@ -175,7 +157,7 @@ function getAuthorizationToken(normalizedEvent) {
 }
 
 exports.handler = async function (event, context, callback) {
-  logger.debug('Public Authorizer:', JSON.stringify(event));
+  logger.debug('Public Authorizer:', JSON.stringify(redactEvent(event)));
 
   // Normalize the event format
   const normalizedEvent = normalizeAuthorizerEvent(event);
@@ -188,7 +170,7 @@ exports.handler = async function (event, context, callback) {
   const admissionToken = parseAdmissionCookie(cookieStr);
   const admissionPayload = admissionToken ? decodeAdmissionPayload(admissionToken) : null;
   logger.debug(`Normalized event payload version: ${JSON.stringify(normalizedEvent.payloadVersion)}`);
-  logger.debug(`Normalized headers: ${JSON.stringify(normalizedEvent.headers)}`);
+  logger.debug(`Normalized headers: ${JSON.stringify(redactHeaders(normalizedEvent.headers))}`);
 
   // Get config creds
   let config = {
@@ -214,6 +196,13 @@ exports.handler = async function (event, context, callback) {
     });
   }
 
+  // Parse the methodArn to construct wildcard policy (outside the try: the catch needs it)
+  const arnPrefix = normalizedEvent.methodArn.split(':').slice(0, 6);
+  const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
+  const apiIDString = arnPrefix[5];
+  const apiString = apiIDString.split('/')[0];
+  const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/*';
+
   try {
     const headers = normalizedEvent.headers;
     const authorization = getAuthorizationToken(normalizedEvent);
@@ -234,13 +223,6 @@ exports.handler = async function (event, context, callback) {
       logger.error(`CLIENT_ID set: ${!!config.PUBLIC_USER_POOL_CLIENT_ID}`);
     }
     logger.info("============================");
-
-    // Parse the methodArn to construct wildcard policy
-    const arnPrefix = normalizedEvent.methodArn.split(':').slice(0, 6);
-    const joinedArnPrefix = arnPrefix.slice(0, 5).join(':');
-    const apiIDString = arnPrefix[5];
-    const apiString = apiIDString.split('/')[0];
-    const fullAPIMethods = joinedArnPrefix + ':' + apiString + '/*';
 
     // Attempt to parse and validate token if present
     let payload = null;

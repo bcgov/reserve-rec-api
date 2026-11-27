@@ -2,6 +2,7 @@
 
 jest.mock('/opt/base', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+  redactEvent: jest.requireActual('../../src/layers/base/base').redactEvent,
 }));
 
 // aws-jwt-verify is only in lib/handlers/authorizer/node_modules, not root — use virtual mock

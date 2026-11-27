@@ -6,45 +6,20 @@ const {
 const { Exception, logger, sendResponse, filterByRole } = require('/opt/base');
 const { ALLOWED_FILTERS } = require('../../configs');
 const { ROLE_BASED_FILTERS } = require('../../../facilities/configs');
-const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-
-const WAITING_ROOM_TABLE_NAME = process.env.WAITING_ROOM_TABLE_NAME;
-let _client;
-function getClient() {
-  if (!_client) _client = new DynamoDBClient({ region: process.env.AWS_REGION || 'ca-central-1' });
-  return _client;
-}
+const { getQueueMeta, getActiveMode2Meta } = require('../../../waiting-room/utils/dynamodb');
 
 /**
  * Checks if a waiting room queue is active for the given facility + date.
  * Returns { waitingRoomActive, waitingRoomOpeningTime } to append to the activity response.
  */
 async function getWaitingRoomStatus(collectionId, activityType, activityId, startDate) {
-  if (!WAITING_ROOM_TABLE_NAME || !startDate) return {};
+  if (!process.env.WAITING_ROOM_TABLE_NAME || !startDate) return {};
   try {
-    const pk = `QUEUE#${collectionId}#${activityType}#${activityId}#${startDate}`;
-    const result = await getClient().send(new GetItemCommand({
-      TableName: WAITING_ROOM_TABLE_NAME,
-      Key: marshall({ pk, sk: 'META' }),
-    }));
-    if (!result.Item) {
+    const meta = await getQueueMeta(`QUEUE#${collectionId}#${activityType}#${activityId}#${startDate}`);
+    if (!meta) {
       // Facility-specific queue not found — check Mode 2 global queue
-      const today = new Date().toISOString().slice(0, 10);
-      const mode2Pk = `QUEUE#MODE2#global#1#${today}`;
-      const mode2Result = await getClient().send(new GetItemCommand({
-        TableName: WAITING_ROOM_TABLE_NAME,
-        Key: marshall({ pk: mode2Pk, sk: 'META' }),
-      }));
-      if (mode2Result.Item) {
-        const mode2Meta = unmarshall(mode2Result.Item);
-        if (mode2Meta.queueStatus !== 'closed') {
-          return { waitingRoomActive: true };
-        }
-      }
-      return { waitingRoomActive: false };
+      return { waitingRoomActive: !!(await getActiveMode2Meta()) };
     }
-    const meta = unmarshall(result.Item);
     const active = meta.queueStatus !== 'closed';
     return {
       waitingRoomActive: active,

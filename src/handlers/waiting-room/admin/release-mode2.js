@@ -1,7 +1,8 @@
 'use strict';
 
-const { Exception, logger, sendResponse } = require('/opt/base');
+const { Exception, logger, sendResponse, checkAuthContext } = require('/opt/base');
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+const { getActiveMode2QueueId } = require('../utils/dynamodb');
 
 let _lambdaClient;
 function getLambdaClient() {
@@ -11,21 +12,21 @@ function getLambdaClient() {
   return _lambdaClient;
 }
 
-function getMode2QueueId() {
-  const today = new Date().toISOString().slice(0, 10);
-  return `QUEUE#MODE2#global#1#${today}`;
-}
-
 exports.handler = async (event) => {
   logger.info('WaitingRoom admin RELEASE-MODE2');
 
   try {
+    checkAuthContext(event, 'superadmin');
+
     const releaseLambdaArn = process.env.RELEASE_LAMBDA_ARN;
     if (!releaseLambdaArn) {
       throw new Exception('RELEASE_LAMBDA_ARN not configured', { code: 503 });
     }
 
-    const queueId = getMode2QueueId();
+    const queueId = await getActiveMode2QueueId();
+    if (!queueId) {
+      throw new Exception('Mode 2 is not active', { code: 409 });
+    }
 
     // Synchronously invoke the Release Lambda so we can return how many were admitted.
     // force=true bypasses the time gate — admin-triggered releases are manual overrides.

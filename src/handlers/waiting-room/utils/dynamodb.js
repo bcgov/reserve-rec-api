@@ -208,6 +208,98 @@ async function decrementAdmittedCount(queueId, count) {
   }
 }
 
+// ─── Active Mode 2 pointer ─────────────────────────────────────────────────────
+// One item naming the active Mode 2 queue, so readers never rebuild its id from
+// the clock (the UTC date rolls over mid-afternoon Pacific).
+
+const MODE2_POINTER_KEY = { pk: 'MODE2', sk: 'ACTIVE' };
+
+/**
+ * Returns the active Mode 2 queueId, or null when Mode 2 is off.
+ */
+async function getActiveMode2QueueId() {
+  const result = await getClient().send(new GetItemCommand({
+    TableName: TABLE_NAME,
+    Key: marshall(MODE2_POINTER_KEY),
+  }));
+  return result.Item ? unmarshall(result.Item).queueId : null;
+}
+
+async function setActiveMode2QueueId(queueId) {
+  await getClient().send(new PutItemCommand({
+    TableName: TABLE_NAME,
+    Item: marshall({ ...MODE2_POINTER_KEY, queueId, updatedAt: Math.floor(Date.now() / 1000) }),
+  }));
+}
+
+async function clearActiveMode2QueueId() {
+  await getClient().send(new DeleteItemCommand({
+    TableName: TABLE_NAME,
+    Key: marshall(MODE2_POINTER_KEY),
+  }));
+}
+
+/**
+ * Writes the pointer only when none exists. Returns false if one already does.
+ */
+async function restoreActiveMode2QueueId(queueId) {
+  try {
+    await getClient().send(new PutItemCommand({
+      TableName: TABLE_NAME,
+      Item: marshall({ ...MODE2_POINTER_KEY, queueId, updatedAt: Math.floor(Date.now() / 1000) }),
+      ConditionExpression: 'attribute_not_exists(pk)',
+    }));
+    return true;
+  } catch (err) {
+    if (err.name === 'ConditionalCheckFailedException') return false;
+    throw err;
+  }
+}
+
+const ACTIVE_MODE2_CACHE_MS = 5000;
+let activeMode2Cache = null;
+
+/**
+ * The active Mode 2 queue's META, or null when Mode 2 is off or its queue is closed.
+ * Every booking reads this, so answers are cached per container for 5 s;
+ * a failed read throws and is not cached.
+ */
+async function getActiveMode2Meta() {
+  const now = Date.now();
+  if (activeMode2Cache && activeMode2Cache.expires > now) return activeMode2Cache.meta;
+  const queueId = await getActiveMode2QueueId();
+  const meta = queueId ? await getQueueMeta(queueId) : null;
+  const active = meta && meta.queueStatus !== 'closed' ? meta : null;
+  activeMode2Cache = { meta: active, expires: now + ACTIVE_MODE2_CACHE_MS };
+  return active;
+}
+
+function clearActiveMode2Cache() {
+  activeMode2Cache = null;
+}
+
+/**
+ * Claims a Mode 2 release by moving lastReleasedAt from the value the caller read
+ * to now. Returns false when another release moved it first.
+ */
+async function claimMode2Release(queueId, readLastReleasedAt, now) {
+  try {
+    await getClient().send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: marshall({ pk: queueId, sk: buildMetaSk() }),
+      UpdateExpression: 'SET lastReleasedAt = :now, updatedAt = :now',
+      ConditionExpression: readLastReleasedAt
+        ? 'lastReleasedAt = :read'
+        : 'attribute_not_exists(lastReleasedAt) OR lastReleasedAt = :read',
+      ExpressionAttributeValues: marshall({ ':now': now, ':read': readLastReleasedAt || 0 }),
+    }));
+    return true;
+  } catch (err) {
+    if (err.name === 'ConditionalCheckFailedException') return false;
+    throw err;
+  }
+}
+
 // ─── Queue Entry operations ───────────────────────────────────────────────────
 
 /**
@@ -273,6 +365,27 @@ async function updateQueueEntryStatus(queueId, userId, newStatus, expectedStatus
 
   try {
     await getClient().send(new UpdateItemCommand(params));
+    return true;
+  } catch (err) {
+    if (err.name === 'ConditionalCheckFailedException') return false;
+    throw err;
+  }
+}
+
+/**
+ * Sets randomOrder on a waiting entry that has none. Returns false if the entry
+ * left 'waiting' or another release already ordered it.
+ */
+async function setEntryRandomOrder(queueId, userId, randomOrder) {
+  try {
+    await getClient().send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: marshall({ pk: queueId, sk: buildEntrySk(userId) }),
+      UpdateExpression: 'SET randomOrder = :order, updatedAt = :now',
+      ConditionExpression: '#status = :waiting AND attribute_not_exists(randomOrder)',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: marshall({ ':order': randomOrder, ':now': Math.floor(Date.now() / 1000), ':waiting': 'waiting' }),
+    }));
     return true;
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') return false;
@@ -673,10 +786,19 @@ module.exports = {
   decrementAdmittedCount,
   incrementAbandonedCount,
   deleteQueueMeta,
+  // Active Mode 2 pointer
+  getActiveMode2QueueId,
+  setActiveMode2QueueId,
+  clearActiveMode2QueueId,
+  restoreActiveMode2QueueId,
+  getActiveMode2Meta,
+  clearActiveMode2Cache,
+  claimMode2Release,
   // Queue Entry
   getQueueEntry,
   putQueueEntry,
   updateQueueEntryStatus,
+  setEntryRandomOrder,
   abandonQueueEntry,
   setDisconnectedAt,
   setConnectionId,

@@ -16,6 +16,7 @@ module.exports = {
     '!**/__tests__/**',
   ],
   moduleNameMapper: {
+    '^/opt/accountStatus$': '<rootDir>/src/layers/awsUtils/accountStatus.js',
     '^/opt/awsUtils/ses$': '<rootDir>/src/layers/awsUtils/ses.js',
     '^/opt/awsUtils/sns$': '<rootDir>/src/layers/awsUtils/sns.js',
     '^/opt/cognito$': '<rootDir>/src/layers/awsUtils/cognito.js',
