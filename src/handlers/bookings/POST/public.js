@@ -1,6 +1,7 @@
 // Create new booking
 const { Exception, logger, sendResponse, getRequestClaimsFromEvent, requestIdentity } = require("/opt/base");
 const { createBooking, formatBookingResponsePublic, } = require("../methods");
+const { validateBookingDates } = require("../dates");
 const { batchTransactData, isTransactionConflict } = require("/opt/dynamodb");
 const { parseAdmissionCookie, validateToken } = require('../../waiting-room/utils/token');
 const { getHmacSigningKey } = require('../../waiting-room/utils/secrets');
@@ -68,6 +69,8 @@ exports.handler = async (event, context) => {
     if (missingParams.length > 0) {
       throw refused("invalid", `Cannot create booking - missing required parameter(s): ${missingParams.join(", ")}`);
     }
+
+    validateBookingDates(startDate, endDate);
 
     if (quantity < 1) {
       throw refused("invalid", `Invalid quantity: ${quantity}`);
@@ -156,14 +159,10 @@ exports.handler = async (event, context) => {
       response.holdLimits = created.holdLimits;
     }
 
-    // Note: the confirmation SMS is dispatched at booking completion, not here.
-    // At create time the booking is not yet confirmed and the FE has not sent
-    // the SMS opt-in (it arrives with the complete request). See the booking
-    // complete handlers and methods.completeBooking().
+    // No confirmation SMS here: the opt-in only arrives with the complete request
+    // (see methods.completeBooking()).
 
-    // event=<name> as the first token so a metric filter can match without
-    // parsing prose. Success was previously only returned, never logged, so
-    // holds could not be counted.
+    // event=<name> as the first token so a metric filter can match without parsing prose.
     const bookingItem = bookingRequestItems?.find((item) => item?.data?.Item?.schema?.S === "booking");
     logger.info("event=hold_created", {
       bookingId: bookingItem?.data?.Item?.bookingId?.S,
