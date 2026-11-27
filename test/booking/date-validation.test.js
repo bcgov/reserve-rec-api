@@ -29,6 +29,7 @@ jest.mock("../../src/handlers/waiting-room/utils/token", () => ({
 jest.mock("../../src/handlers/waiting-room/utils/secrets", () => ({ getHmacSigningKey: jest.fn() }));
 jest.mock("../../src/handlers/waiting-room/utils/dynamodb", () => ({
   getQueueMeta: jest.fn(),
+  getActiveMode2Meta: jest.fn(async () => null),
   buildQueueId: jest.requireActual("../../src/handlers/waiting-room/utils/dynamodb").buildQueueId,
 }));
 
